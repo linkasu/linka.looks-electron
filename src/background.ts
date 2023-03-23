@@ -5,6 +5,7 @@ import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import { join } from "path";
 import { TobiiProcess } from "tobiiee";
+import { readdirSync } from "fs";
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Scheme must be registered before the app is ready
@@ -31,11 +32,14 @@ async function createWindow() {
   })
 
   if (platform() === 'win32') {
-    const tobii = new TobiiProcess({
-      path: join(__dirname, '.\\..\\extraResources\\bin\\win\\GazePointLogger.exe')
-    })
 
+    const tobii = new TobiiProcess({
+      path: join(__dirname, '.\\..\\extraResources\\bin\\GazePointLogger.exe')
+    })
+    tobii.start();
     tobii.on("point", (point) => {
+      console.log(point);
+      
       const rect = win.getContentBounds();
       const pointInWindow = {
           x: Math.floor(point.x - rect.x),
