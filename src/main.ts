@@ -7,7 +7,7 @@ import { loadFonts } from './plugins/webfontloader'
 import { ipcRenderer } from 'electron'
 
 
-ipcRenderer.on("eye-point", console.log)
+
 
 loadFonts()
 

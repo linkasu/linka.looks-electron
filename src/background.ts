@@ -39,14 +39,15 @@ async function createWindow() {
     tobii.start();
     tobii.on("point", (point) => {
       console.log(point);
-      
+
       const rect = win.getContentBounds();
       const pointInWindow = {
-          x: Math.floor(point.x - rect.x),
-          y: Math.floor(point.y - rect.y),
-          ts: point.ts
+        x: Math.floor(point.x - rect.x),
+        y: Math.floor(point.y - rect.y),
+        ts: point.ts
       }
-      win.webContents.send("eye-point", pointInWindow)
+      if (pointInWindow.x > 0 && pointInWindow.x < rect.x && pointInWindow.y > 0 && pointInWindow.y < rect.y)
+        win.webContents.send("eye-point", pointInWindow)
     })
   }
 
