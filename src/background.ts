@@ -1,8 +1,10 @@
 'use strict'
-
+import { platform } from "os";
 import { app, protocol, BrowserWindow } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
+import { join } from "path";
+import { TobiiProcess } from "tobiiee";
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Scheme must be registered before the app is ready
@@ -16,17 +18,33 @@ async function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
-      
+
       // Required for Spectron testing
       enableRemoteModule: !!process.env.IS_TEST,
-      
+
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
       nodeIntegration: (process.env
-          .ELECTRON_NODE_INTEGRATION as unknown) as boolean,
+        .ELECTRON_NODE_INTEGRATION as unknown) as boolean,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
     }
   })
+
+  if (platform() === 'win32') {
+    const tobii = new TobiiProcess({
+      path: join(__dirname, '.\\..\\extraResources\\bin\\win\\GazePointLogger.exe')
+    })
+
+    tobii.on("point", (point) => {
+      const rect = win.getContentBounds();
+      const pointInWindow = {
+          x: Math.floor(point.x - rect.x),
+          y: Math.floor(point.y - rect.y),
+          ts: point.ts
+      }
+      win.webContents.send("eye-point", pointInWindow)
+    })
+  }
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
