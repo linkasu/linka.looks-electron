@@ -5,7 +5,7 @@ import { GazeData } from "tobiiee/build/GazeData";
 export class PageWatcher {
     private static CLASS = 'eye';
     static TIMEOUT: number = 1000;
-    static EXIT_TIMEOUT: number = 50;
+    static EXIT_TIMEOUT: number = 150;
 
     private lastElement?: Element;
 
