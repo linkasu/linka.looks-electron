@@ -1,10 +1,11 @@
 'use strict'
 import { platform } from "os";
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, screen } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import { join } from "path";
 import { TobiiProcess } from "tobiiee";
+import { GazeData } from "tobiiee/build/GazeData";
 import { readdirSync } from "fs";
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -37,18 +38,25 @@ async function createWindow() {
       path: join(__dirname, '.\\..\\extraResources\\bin\\GazePointLogger.exe')
     })
     tobii.start();
+    let lastSend = 0;
     tobii.on("point", (point) => {
-      console.log(point);
-
-      const rect = win.getContentBounds();
-      const pointInWindow = {
-        x: Math.floor(point.x - rect.x),
-        y: Math.floor(point.y - rect.y),
-        ts: point.ts
-      }
-      if (pointInWindow.x > 0 && pointInWindow.x < rect.x && pointInWindow.y > 0 && pointInWindow.y < rect.y)
-        win.webContents.send("eye-point", pointInWindow)
+      if((+new Date) - lastSend < (1000/30)) return;
+      lastSend = +new Date()
+      sendPoint(win, point);
     })
+  }
+  else if (platform() == 'darwin') {
+
+    setInterval(() => {
+      const coords = screen.getCursorScreenPoint()
+
+      sendPoint(win, {
+        ...coords,
+        ts: +new Date()
+
+      })
+    }, 1000 / 30)
+
   }
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
@@ -106,3 +114,14 @@ if (isDevelopment) {
     })
   }
 }
+function sendPoint(win: BrowserWindow, point: GazeData) {
+  const rect = win.getContentBounds();
+  const pointInWindow = {
+    x: Math.floor(point.x - rect.x),
+    y: Math.floor(point.y - rect.y),
+    ts: point.ts
+  };
+  if (pointInWindow.x > 0 && pointInWindow.x < rect.x && pointInWindow.y > 0 && pointInWindow.y < rect.y)
+    win.webContents.send("eye-point", pointInWindow);
+}
+
