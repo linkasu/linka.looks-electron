@@ -40,7 +40,7 @@ async function createWindow() {
     tobii.start();
     let lastSend = 0;
     tobii.on("point", (point) => {
-      if((+new Date) - lastSend < (1000/30)) return;
+      if ((+new Date) - lastSend < (1000 / 30)) return;
       lastSend = +new Date()
       sendPoint(win, point);
     })
@@ -49,6 +49,7 @@ async function createWindow() {
 
     setInterval(() => {
       const coords = screen.getCursorScreenPoint()
+
 
       sendPoint(win, {
         ...coords,
@@ -121,7 +122,8 @@ function sendPoint(win: BrowserWindow, point: GazeData) {
     y: Math.floor(point.y - rect.y),
     ts: point.ts
   };
-  if (pointInWindow.x > 0 && pointInWindow.x < rect.x && pointInWindow.y > 0 && pointInWindow.y < rect.y)
+  if (pointInWindow.x > 0 && pointInWindow.x < rect.width && pointInWindow.y > 0 && pointInWindow.y < rect.height) {
     win.webContents.send("eye-point", pointInWindow);
+  }
 }
 

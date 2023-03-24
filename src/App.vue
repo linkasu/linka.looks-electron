@@ -1,5 +1,10 @@
 <template>
   <v-app>
+    <v-app-bar>
+      <v-app-bar-title>
+        LINKa. смотри
+      </v-app-bar-title>
+    </v-app-bar>
     <v-main>
       <router-view/>
     </v-main>
@@ -7,15 +12,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import {Vue} from 'vue-class-component'
 
-export default defineComponent({
-  name: 'App',
-
-  data () {
-    return {
-      //
-    }
-  },
-})
+export default class App extends Vue {
+  
+}
 </script>
