@@ -41,5 +41,6 @@ export default  class OutpuiLine extends Vue {
     .output-line{
         display: grid;
         grid-template-columns: 1fr 7fr 1fr 1fr;
+        gap: 4px;
     }
 </style>
