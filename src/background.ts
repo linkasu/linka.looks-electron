@@ -6,7 +6,10 @@ import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import { join } from "path";
 import { TobiiProcess } from "tobiiee";
 import { GazeData } from "tobiiee/build/GazeData";
-import { readdirSync } from "fs";
+import { CardsStorage } from "./CardsStorage/backend";
+
+new CardsStorage()  
+
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Scheme must be registered before the app is ready
