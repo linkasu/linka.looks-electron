@@ -36,27 +36,33 @@ export class TTS {
         this.isPlaying = false
     }
     public playText(text: string): Promise<void> {
+
         return new Promise((resolve, reject) => {
-          if (this.isPlaying) {
-            this.isPlaying = false;
-            window.speechSynthesis.cancel();
-            return resolve();
-          }
-          this.isPlaying = true;
-          const speech = new SpeechSynthesisUtterance();
-          speech.text = text;
-          window.speechSynthesis.speak(speech);
-          speech.onend = () => {
-            this.isPlaying = false;
-            resolve();
-          };
-          speech.onerror = (event) => {
-            this.isPlaying = false;
-            reject(event.error);
-          };
+            text = text.trim();
+            if (text.length == 0) {
+                resolve();
+                return
+            }
+            if (this.isPlaying) {
+                this.isPlaying = false;
+                window.speechSynthesis.cancel();
+                return resolve();
+            }
+            this.isPlaying = true;
+            const speech = new SpeechSynthesisUtterance();
+            speech.text = text;
+            window.speechSynthesis.speak(speech);
+            speech.onend = () => {
+                this.isPlaying = false;
+                resolve();
+            };
+            speech.onerror = (event) => {
+                this.isPlaying = false;
+                reject(event.error);
+            };
         });
-      }
-    
+    }
+
 
     private playUrl(url: string) {
         return new Promise((resolve, reject) => {
