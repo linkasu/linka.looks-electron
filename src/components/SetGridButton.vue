@@ -7,8 +7,8 @@
           ⎵
         </h1>
       </div>
-      <div v-if="card.cardType==0">
-        <span >{{card.title}}</span>
+      <div v-if="card.cardType==0" class="text">
+        <span >{{card.title.slice(0, 50)}}</span>
       </div>
     </div>
   </eye-button>
@@ -63,6 +63,7 @@ export default class SetGridButton extends Vue.with(Props) {
   height: 100%;
   display: grid;
   grid-template-rows: 8fr 4fr;
+  gap: 1em;
 }
 .icon {
   height: 100%;
@@ -76,5 +77,10 @@ export default class SetGridButton extends Vue.with(Props) {
   width: 80%;
   margin: 10%;
   background-size: contain  ;
+}
+.text{
+
+height: 100%;
+  overflow: hidden;
 }
 </style>

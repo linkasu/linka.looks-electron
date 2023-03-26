@@ -7,6 +7,15 @@
       <v-icon block class="speaker-icon">mdi-speaker</v-icon>
       <div class="output-text" ref="text">
         <div class="text" v-if="withoutSpace">{{ text }}</div>
+        <div v-else class="cards">
+          <set-grid-button
+            v-for="(card, i) in clone"
+            :key="i"
+            :card="card"
+            :file="file"
+            class="card"
+          />
+        </div>
       </div>
     </eye-button>
     <eye-button @click="backspace">
@@ -21,6 +30,7 @@
 <script lang="ts">
 import { Vue, Options, prop } from "vue-class-component";
 import EyeButton from "@/components/EyeButton.vue";
+import SetGridButton from "@/components/SetGridButton.vue";
 import { Card, ConfigFile } from "@/interfaces/ConfigFile";
 import { Config } from "electron";
 
@@ -38,6 +48,7 @@ class Props {
 @Options({
   components: {
     EyeButton,
+    SetGridButton,
   },
 })
 export default class OutpuiLine extends Vue.with(Props) {
@@ -60,12 +71,10 @@ export default class OutpuiLine extends Vue.with(Props) {
   scrollEnd() {
     setTimeout(() => {
       const el = this.$refs.text as HTMLButtonElement;
-      console.log(el);
-
-      el.scrollTo({
-        left: el.offsetWidth,
+      if(el.firstElementChild) el.scrollTo({
+        left: el.firstElementChild.scrollWidth+100,
       });
-    }, 0);
+    }, 50);
   }
 
   clear() {
@@ -107,5 +116,16 @@ export default class OutpuiLine extends Vue.with(Props) {
 .speaker-icon {
   width: 100%;
   height: 100%;
+}
+
+.cards {
+  height: 100%;
+  display: inline-flex;
+  max-width: max-content;
+}
+.card {
+  box-shadow: none;
+  height: 100%;
+  width: 150px;
 }
 </style>

@@ -80,6 +80,6 @@ export default class SetGrid extends Vue.with(Props) {
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--columns), 1fr);
-  grid-template-rows: repeat(var(--rows), 1fr);
+  grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
 }
 </style>

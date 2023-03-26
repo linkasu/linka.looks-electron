@@ -1,5 +1,5 @@
 <template>
-  <button class="eye eyebtn">
+  <button class="eyebtn" :class="{ eye: enabled }">
     <slot />
     <div class="overlay" v-if="isInside">
       <canvas ref="canvas"></canvas>
@@ -8,12 +8,18 @@
 </template>
 
 <script lang="ts">
-import { Vue, Options } from "vue-class-component";
+import { Vue, Options, prop } from "vue-class-component";
+
+class Props {
+  enabled = prop({
+    default: true,
+  });
+}
 
 @Options({
   components: {},
 })
-export default class EyeButton extends Vue {
+export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   countOfClicks = 0;
   get buttonTimeout(): number {
@@ -36,14 +42,15 @@ export default class EyeButton extends Vue {
     const canvas = this.$refs.canvas as HTMLCanvasElement;
     if (!canvas) return;
 
-    const stayCount = Math.floor( time / this.buttonTimeout)
+    const stayCount = Math.floor(time / this.buttonTimeout);
 
-    if(this.countOfClicks<stayCount){
-      (this.$el as HTMLButtonElement).dispatchEvent(new Event('click'))
-      this.countOfClicks = stayCount
+    if (this.countOfClicks < stayCount) {
+      (this.$el as HTMLButtonElement).dispatchEvent(new Event("click"));
+      this.countOfClicks = stayCount;
     }
 
-    const percent = (time - stayCount*this.buttonTimeout)/this.buttonTimeout
+    const percent =
+      (time - stayCount * this.buttonTimeout) / this.buttonTimeout;
 
     canvas.style.width = "100%";
     canvas.style.height = "100%";
