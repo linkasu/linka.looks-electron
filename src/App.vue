@@ -4,6 +4,10 @@
       <v-app-bar-title>
         LINKa. смотри
       </v-app-bar-title>
+
+      <v-btn flat icon color="primary" to="/">
+        <v-icon>mdi-home</v-icon>
+      </v-btn>
     </v-app-bar>
     <v-main>
       <router-view/>

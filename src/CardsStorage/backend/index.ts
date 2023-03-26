@@ -5,17 +5,21 @@ import { readdir } from "fs/promises";
 import AdmZip from "adm-zip";
 import { ConfigFile } from "@/interfaces/ConfigFile";
 import { Directory } from "@/interfaces/Directory";
+import { ICloudStorage } from "../abstract";
 
 const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
 const documentsPath = join(require('os').homedir(), 'Documents');
 const linkedFolderName = 'LINKa';
 const HOME_DIR = join(documentsPath, linkedFolderName);
-export class CardsStorage {
+export class CardsStorage extends ICloudStorage {
     constructor() {
+        super()
         this.init()
         ipcMain.handle('storage:getFiles', (_, path) => this.getFiles(path))
         ipcMain.handle('storage:getDefaultImage', (_, path) => this.getDefaultImage(path))
+        ipcMain.handle('storage:getConfigFile', (_, path) => this.getConfigFile(path))
+        ipcMain.handle('storage:getImage', (_, path, entry) => this.getImage(path, entry))
     }
     init() {
 
@@ -27,7 +31,7 @@ export class CardsStorage {
 
 
     async getFiles(path = ""): Promise<(Directory)>{
-        const dir = join(HOME_DIR, path)
+        const dir = this.checkPath(path)
         const files = (await readdir(dir)).map((f) => join(dir, f))
         return files.map((file) => {
             if (lstatSync(file).isDirectory()) {
@@ -50,18 +54,26 @@ export class CardsStorage {
     }
 
     getConfigFile(path: string) {
-        const zip = new AdmZip(path)
+        const zip = new AdmZip(this.checkPath(path))
         return JSON.parse(zip.readAsText("config.json")) as ConfigFile
     }
 
+    private checkPath(path: string): string  {
+        return path.includes(HOME_DIR) ? path : join(HOME_DIR, path);
+    }
+    getImage(path: string, entry: string){
+        
+        const zip = new AdmZip(this.checkPath( path))
+        return zip.readFile(entry)
+    }
+
     getDefaultImage(path: string){
-        const config = this.getConfigFile(path)
+        const config = this.getConfigFile(this.checkPath( path))
         const card = config.cards.find((c=>!!c.imagePath))
         if(!card) return null
         const entry = card.imagePath
         if(!entry) return null
-        const zip = new AdmZip(path)
-        return zip.readFile(entry)
+        return this.getImage(path, entry)
     }
 
 

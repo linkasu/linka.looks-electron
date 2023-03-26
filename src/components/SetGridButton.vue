@@ -2,13 +2,13 @@
   <eye-button>
     <div class="content">
       <div align-center>
-        <v-icon v-if="back" class="icon"> mdi-arrow-up </v-icon>
-        <v-icon v-else-if="file&&file.directory" class="icon"> mdi-folder </v-icon>
-        <div v-else class="img" :style="{'--image': image}" />
+        <div v-if="card.cardType==0 " class="img" :style="{'--image': image}" />
+        <h1 v-if="card.cardType==1 " class="img" >
+          ⎵
+        </h1>
       </div>
-      <div>
-        <span v-if="file">{{ basename(file.file).slice(0,25) }}</span>
-        <span v-if="back">Шаг назад</span>
+      <div v-if="card.cardType==0">
+        <span >{{card.title}}</span>
       </div>
     </div>
   </eye-button>
@@ -21,31 +21,30 @@ import { DirectoryFile } from "@/interfaces/Directory";
 import { basename } from "path";
 import { ipcRenderer } from "electron";
 import { storageService } from "@/CardsStorage/frontend";
+import { Card } from "@/interfaces/ConfigFile";
 
 class Props {
-  file?: DirectoryFile = prop({
-    required: false
+  card: Card = prop({
+    required: true
   });
-  back: WithDefault<boolean> = prop({
-    default: false,
-  });
+  file: string  = prop({
+    required: true
+  })
 }
 @Options({
   components: {
     EyeButton,
   },
 })
-export default class ExplorerGridButton extends Vue.with(Props) {
+export default class SetGridButton extends Vue.with(Props) {
   image?: string = "";
-
+  
   mounted() {
     
-    if (this.back) {
-    return
-    } 
-    if (this.file && !this.file.directory) {
+    if (this.card && this.card.imagePath) {
+      if(this.card.cardType==-0){
       storageService
-      .getDefaultImage(this.file.file)
+      .getImage(this.file, this.card.imagePath)
         .then((buffer) => {
           if(!buffer) return;
           const url = URL.createObjectURL(
@@ -53,10 +52,8 @@ export default class ExplorerGridButton extends Vue.with(Props) {
           );
           this.image = `url("${url}"`
         });
-    }
-  }
-  basename(path: string) {
-    return basename(path);
+      }
+     }
   }
 }
 </script>
