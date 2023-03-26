@@ -1,10 +1,11 @@
 <template>
+    
   <v-layout full-height class="output-line">
     <eye-button>
       <v-icon> mdi-lock </v-icon>
     </eye-button>
-    <eye-button class="output-block">
-      <v-icon block class="speaker-icon">mdi-speaker</v-icon>
+    <eye-button class="output-block" @click="say">
+      <v-icon block class="speaker-icon" :color="isPlaying?'success':''">mdi-speaker</v-icon>
       <div class="output-text" ref="text">
         <div class="text" v-if="withoutSpace">{{ text }}</div>
         <div v-else class="cards">
@@ -24,6 +25,7 @@
     <eye-button @click="clear">
       <v-icon> mdi-delete </v-icon>
     </eye-button>
+   
   </v-layout>
 </template>
 
@@ -32,7 +34,7 @@ import { Vue, Options, prop } from "vue-class-component";
 import EyeButton from "@/components/EyeButton.vue";
 import SetGridButton from "@/components/SetGridButton.vue";
 import { Card, ConfigFile } from "@/interfaces/ConfigFile";
-import { Config } from "electron";
+import { TTS } from "@/utils/TTS";
 
 class Props {
   file: string = prop({
@@ -84,6 +86,15 @@ export default class OutpuiLine extends Vue.with(Props) {
   backspace() {
     this.$emit("value", this.clone.slice(0, -1));
   }
+  async say(){
+    this.isPlaying = true
+    if(this.config.withoutSpace)
+        await TTS.instance.playText(this.text)
+    else
+ await   TTS.instance.playCards(this.file, this.cards)
+    this.isPlaying = false
+  }
+ isPlaying=false
 }
 </script>
 

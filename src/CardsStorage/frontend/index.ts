@@ -41,6 +41,15 @@ class StorageService extends ICloudStorage {
       return null;
     }
   }
+  async getAudio(path: string, entry: string) {
+    try {
+      const imageBuffer = await ipcRenderer.invoke("storage:getAudio", path, entry);
+      return imageBuffer ? (imageBuffer as Buffer) : null;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
 }
 
 export const storageService = new StorageService();

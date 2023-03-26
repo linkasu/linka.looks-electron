@@ -1,6 +1,7 @@
 <template>
   <v-layout full-height class="root">
     <output-line :cards="cards" :file="filename" :config="config" @value="(cards)=>this.cards=cards" />
+        
     <set-grid v-if="config" :config="config" :file="filename"  @card="addCard"/>
   </v-layout>
 </template>

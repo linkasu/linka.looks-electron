@@ -20,6 +20,7 @@ export class CardsStorage extends ICloudStorage {
         ipcMain.handle('storage:getDefaultImage', (_, path) => this.getDefaultImage(path))
         ipcMain.handle('storage:getConfigFile', (_, path) => this.getConfigFile(path))
         ipcMain.handle('storage:getImage', (_, path, entry) => this.getImage(path, entry))
+        ipcMain.handle('storage:getAudio', (_, path, entry) => this.getAudio(path, entry))
     }
     init() {
 
@@ -63,8 +64,16 @@ export class CardsStorage extends ICloudStorage {
     }
     getImage(path: string, entry: string){
         
-        const zip = new AdmZip(this.checkPath( path))
-        return zip.readFile(entry)
+        return this.getBuffer(path, entry);
+    }
+    private getBuffer(path: string, entry: string) {
+        const zip = new AdmZip(this.checkPath(path));
+        return zip.readFile(entry);
+    }
+
+    getAudio(path: string, entry: string){
+        return this.getBuffer(path, entry);
+
     }
 
     getDefaultImage(path: string){
