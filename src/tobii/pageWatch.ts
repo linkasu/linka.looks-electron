@@ -1,4 +1,3 @@
-    
 import { ipcRenderer } from 'electron';
 import { GazeData } from "tobiiee/build/GazeData";
 
