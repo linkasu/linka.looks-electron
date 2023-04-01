@@ -1,11 +1,16 @@
 <template>
-    
   <v-layout full-height class="output-line">
-    <eye-button>
-      <v-icon> mdi-lock </v-icon>
+    <eye-button
+      :lock='true'
+      :color="buttonEnabled ? 'primary' : ''"
+      @click="switchButtonEnabled"
+    >
+      <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </eye-button>
     <eye-button class="output-block" @click="say">
-      <v-icon block class="speaker-icon" :color="isPlaying?'success':''">mdi-speaker</v-icon>
+      <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''"
+        >mdi-speaker</v-icon
+      >
       <div class="output-text" ref="text">
         <div class="text" v-if="withoutSpace">{{ text }}</div>
         <div v-else class="cards">
@@ -25,7 +30,6 @@
     <eye-button @click="clear">
       <v-icon> mdi-delete </v-icon>
     </eye-button>
-   
   </v-layout>
 </template>
 
@@ -54,6 +58,13 @@ class Props {
   },
 })
 export default class OutpuiLine extends Vue.with(Props) {
+  get buttonEnabled() {
+    return this.$store.getters.button_enabled;
+  }
+  switchButtonEnabled() {
+    this.$store.dispatch("button_enabled");
+  }
+
   get withoutSpace() {
     return this.config?.withoutSpace;
   }
@@ -73,9 +84,10 @@ export default class OutpuiLine extends Vue.with(Props) {
   scrollEnd() {
     setTimeout(() => {
       const el = this.$refs.text as HTMLButtonElement;
-      if(el.firstElementChild) el.scrollTo({
-        left: el.firstElementChild.scrollWidth+100,
-      });
+      if (el.firstElementChild)
+        el.scrollTo({
+          left: el.firstElementChild.scrollWidth + 100,
+        });
     }, 50);
   }
 
@@ -86,15 +98,13 @@ export default class OutpuiLine extends Vue.with(Props) {
   backspace() {
     this.$emit("value", this.clone.slice(0, -1));
   }
-  async say(){
-    this.isPlaying = true
-    if(this.config.withoutSpace)
-        await TTS.instance.playText(this.text)
-    else
- await   TTS.instance.playCards(this.file, this.cards)
-    this.isPlaying = false
+  async say() {
+    this.isPlaying = true;
+    if (this.config.withoutSpace) await TTS.instance.playText(this.text);
+    else await TTS.instance.playCards(this.file, this.cards);
+    this.isPlaying = false;
   }
- isPlaying=false
+  isPlaying = false;
 }
 </script>
 
@@ -103,7 +113,7 @@ export default class OutpuiLine extends Vue.with(Props) {
   height: 150px;
   display: grid;
   grid-template-columns: 1fr 7fr 1fr 1fr;
-  gap: 4px;
+  
 }
 
 .text {

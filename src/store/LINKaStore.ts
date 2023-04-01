@@ -1,5 +1,9 @@
 export interface LINKaStore{
     button :{
-        timeout: number
+        timeout: number,
+        enabled: boolean    
+    },
+    ui:{
+        outputLine: boolean
     }
 }

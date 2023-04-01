@@ -1,8 +1,18 @@
 <template>
-  <v-layout full-height class="root">
-    <output-line :cards="cards" :file="filename" :config="config" @value="(cards)=>this.cards=cards" />
-        
-    <set-grid v-if="config" :config="config" :file="filename"  @card="addCard"/>
+  <v-layout
+    full-height
+    class="root"
+    :class="{ root_hide: !interfaceOutputLine }"
+  >
+    <output-line
+      :cards="cards"
+      :file="filename"
+      :config="config"
+      @value="(cards) => (this.cards = cards)"
+      v-if="interfaceOutputLine"
+    />
+
+    <set-grid v-if="config" :config="config" :file="filename" @card="addCard" />
   </v-layout>
 </template>
 
@@ -12,6 +22,7 @@ import OutputLine from "@/components/OutputLine.vue";
 import SetGrid from "@/components/SetGrid.vue";
 import { Card, ConfigFile } from "@/interfaces/ConfigFile";
 import { storageService } from "@/CardsStorage/frontend";
+import { TTS } from "@/utils/TTS";
 @Options({
   components: {
     OutputLine,
@@ -19,19 +30,27 @@ import { storageService } from "@/CardsStorage/frontend";
   },
 })
 export default class SetExplorerView extends Vue {
-  filename: string| null = null;;
-  config: ConfigFile| null = null;
-  cards: Card[] = []
+  filename: string | null = null;
+  config: ConfigFile | null = null;
+  cards: Card[] = [];
+
+  get interfaceOutputLine() {
+    return this.$store.getters.interface_outputLine;
+  }
+
   mounted() {
-    this.filename = this.$route.params.path.toString().replace(/§/g, "/");
+    this.filename = this.$route.params.path.toString();
 
     storageService.getConfigFile(this.filename).then((config) => {
-
       if (config) this.config = config;
     });
   }
-  addCard(card:Card){
-    this.cards.push(card)
+  addCard(card: Card) {
+    if (this.interfaceOutputLine) {
+      this.cards.push(card);
+    } else {
+      if (this.filename) TTS.instance.playCards(this.filename, [card], true);
+    }
   }
 }
 </script>
@@ -39,6 +58,10 @@ export default class SetExplorerView extends Vue {
 .root {
   display: grid;
   grid-template-rows: auto 8fr;
+}
+.root_hide {
+  /* background-color: black; */
+  grid-template-rows: 1fr;
 }
 .root > div {
   /* border: 1px solid black; */

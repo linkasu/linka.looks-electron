@@ -14,11 +14,11 @@ export class TTS {
         return TTS._instance
     }
 
-    public async playCards(file: string, cards: Card[]) {
+    public async playCards(file: string, cards: Card[], force = false) {
         if (this.isPlaying) {
             this.isPlaying = false;
             this.audio.pause()
-            return
+            if (!force) return
         }
         this.isPlaying = true
         for (const card of cards) {

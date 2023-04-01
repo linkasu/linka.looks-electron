@@ -1,7 +1,7 @@
 <template>
   <button class="eyebtn" :class="{ eye: enabled }">
     <slot />
-    <div class="overlay" v-if="isInside">
+    <div class="overlay" v-if="isInside  ||( !buttonEnabled&&!lock)" :class="{'disabled':!buttonEnabled&&!lock}">
       <canvas ref="canvas"></canvas>
     </div>
   </button>
@@ -14,6 +14,9 @@ class Props {
   enabled = prop({
     default: true,
   });
+  lock = prop({
+    default: false
+  })
 }
 
 @Options({
@@ -29,13 +32,13 @@ export default class EyeButton extends Vue.with(Props) {
   mounted() {
     const el = this.$el as Element;
     el.addEventListener("eye-enter", () => {
-      this.onEnter();
+      if (this.buttonEnabled||this.lock) this.onEnter();
     });
     el.addEventListener("eye-exit", () => {
       this.onExit();
     });
     el.addEventListener("eye-stay", (event) => {
-      this.onStay((event as CustomEvent).detail.time);
+      if (this.buttonEnabled||this.lock) this.onStay((event as CustomEvent).detail.time);
     });
   }
   onStay(time: number) {
@@ -89,6 +92,10 @@ export default class EyeButton extends Vue.with(Props) {
     this.isInside = true;
     this.countOfClicks = 0;
   }
+
+  get buttonEnabled() {
+    return this.$store.getters.button_enabled;
+  }
 }
 </script>
 
@@ -101,10 +108,17 @@ export default class EyeButton extends Vue.with(Props) {
   height: 100%;
   background: rgba(0, 0, 0, 0.05);
 }
+
+.disabled{
+  background: rgba(0, 0, 0, 0.5);
+    
+}
+
 .eyebtn {
   position: relative;
   box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset;
 }
+
 canvas {
   position: absolute;
   left: 0;
