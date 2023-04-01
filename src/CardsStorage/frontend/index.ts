@@ -16,6 +16,10 @@ class StorageService extends ICloudStorage {
     selectImage(path: string): Promise<string> {
         return ipcRenderer.invoke("storage:selectImage", path);
     }
+    selectAudio(path: string): Promise<string | null> {
+        return ipcRenderer.invoke("storage:selectAudio", path);
+        
+    }
     async getFiles(path = "") {
         try {
             return ipcRenderer.invoke("storage:getFiles", path) as Promise<Directory>;

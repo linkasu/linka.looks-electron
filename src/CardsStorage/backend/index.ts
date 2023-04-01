@@ -37,6 +37,11 @@ export class CardsStorage extends ICloudStorage {
             win = BrowserWindow.fromWebContents(_.sender)
 
             return this.selectImage(path)
+        }) 
+        ipcMain.handle('storage:selectAudio', (_, path) => {
+            win = BrowserWindow.fromWebContents(_.sender)
+
+            return this.selectAudio(path)
         })
     }
     init() {
@@ -114,6 +119,16 @@ export class CardsStorage extends ICloudStorage {
 
     public async selectImage(path: string) {
 
+        return this.selectFile(path, 'Изображение', ['png', 'jpg', 'jpeg', 'gif'])
+
+
+    }
+    selectAudio(path: string): Promise<string | null> {
+        return this.selectFile(path, 'Звук', ['mp3', 'wav', 'ogg'])
+        
+    }
+    private async selectFile(path: string, name: string, extensions: string[]) {
+
         if (!win) {
             return null;
         }
@@ -121,8 +136,8 @@ export class CardsStorage extends ICloudStorage {
             .showOpenDialog(win, {
                 filters: [
                     {
-                        name: 'Изображение',
-                        extensions: ['png', 'jpg', 'jpeg', 'gif']
+                        name,
+                        extensions
                     }
                 ]
             })
@@ -130,8 +145,6 @@ export class CardsStorage extends ICloudStorage {
         path = this.checkPath(path)
 
         return this.adddFile(path, res.filePaths[0])
-
-
     }
 
     async createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {

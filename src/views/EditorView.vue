@@ -143,6 +143,12 @@
                           @audio="(src) => (selected.audioPath = src)"
                         />
                       </v-row>
+                      <v-row>
+
+                        <v-btn block @click="selectAudio">
+                          Выбрать звук из файла
+                        </v-btn>
+                      </v-row>
                       <v-row v-if="selected.audioPath">
                         <v-btn block @click="playAudio"
                           >Послушать озвучку</v-btn
@@ -292,6 +298,14 @@ export default class EditorView extends Vue.with(Props) {
 
     if (this.selected && this.selected.cardType === 0)
       this.selected.imagePath = id;
+  }
+
+  async selectAudio() {
+    if (!this.filename) return;
+    const id = await storageService.selectAudio(this.filename);
+
+    if (this.selected && this.selected.cardType === 0&&id)
+      this.selected.audioPath = id;
   }
 
   playAudio() {
