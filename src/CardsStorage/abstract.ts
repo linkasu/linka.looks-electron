@@ -12,5 +12,6 @@ export abstract class ICloudStorage{
     abstract copyToTemp(path: string): Promise<string>;
     abstract selectImage(path: string): Promise<string| null>;
     abstract createImageFromText(path: string, text: string): Promise<string| null>;
+    abstract createAudioFromText(path: string, text: string, voice: string): Promise<string| null>;
 
 }

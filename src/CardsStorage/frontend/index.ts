@@ -4,6 +4,9 @@ import { ICloudStorage } from "../abstract";
 import { Directory } from "@/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
+    createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {
+        return ipcRenderer.invoke("storage:createAudioFromText", path, text, voice);
+    }
     createImageFromText(path: string, text: string): Promise<string | null> {
         return ipcRenderer.invoke("storage:createImageFromText", path, text);
     }

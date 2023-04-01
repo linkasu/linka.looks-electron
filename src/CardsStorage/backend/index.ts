@@ -10,6 +10,7 @@ import { Directory } from "@/interfaces/Directory";
 import { ICloudStorage } from "../abstract";
 import { appendZip } from "@/utils/addToZip";
 import { UltimateTextToImage } from "ultimate-text-to-image";
+import { tts } from "@/utils/TTSServer";
 
 const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
@@ -31,6 +32,7 @@ export class CardsStorage extends ICloudStorage {
         ipcMain.handle('storage:getAudio', (_, path, entry) => this.getAudio(path, entry))
         ipcMain.handle('storage:copyToTemp', (_, path) => this.copyToTemp(path))
         ipcMain.handle('storage:createImageFromText', (_, path, text) => this.createImageFromText(path, text))
+        ipcMain.handle('storage:createAudioFromText', (_, path, text, voice) => this.createAudioFromText(path, text, voice))
         ipcMain.handle('storage:selectImage', (_, path) => {
             win = BrowserWindow.fromWebContents(_.sender)
 
@@ -132,6 +134,10 @@ export class CardsStorage extends ICloudStorage {
 
     }
 
+    async createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {
+        const buff = await tts(text, voice)
+        return this.addBuffer(path, buff, '.mp3')
+    }
 
     createImageFromText(path: string, text: string): Promise<string | null> {
         const buffer = new UltimateTextToImage(text,

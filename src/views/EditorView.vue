@@ -110,7 +110,7 @@
                 ></v-text-field>
               </v-row>
               <v-row>
-                <v-card>
+                <v-card width="100%">
                   <v-card-title primary-title>
                     Работа с изображением
                   </v-card-title>
@@ -128,15 +128,26 @@
                           @image="(path) => (selected.imagePath = path)"
                         />
                       </v-row>
-                      <v-row
-                        ><v-btn
-                          block
-                          @click="selectImage"
-                          :disabled="!selected.imagePath"
+                    </v-container>
+                  </v-card-text>
+                </v-card>
+              </v-row>
+              <v-row>
+                <v-card width="100%">
+                  <v-card-title primary-title> Работа с озвучкой </v-card-title>
+                  <v-card-text>
+                    <v-container>
+                      <v-row>
+                        <tts-dialog
+                          :file="filename"
+                          @audio="(src) => (selected.audioPath = src)"
+                        />
+                      </v-row>
+                      <v-row v-if="selected.audioPath">
+                        <v-btn block @click="playAudio"
+                          >Послушать озвучку</v-btn
                         >
-                          Сохранить
-                        </v-btn></v-row
-                      >
+                      </v-row>
                     </v-container>
                   </v-card-text>
                 </v-card>
@@ -153,9 +164,11 @@
 import { Vue, prop, Options } from "vue-class-component";
 import SetGridButton from "@/components/SetGridButton.vue";
 import CreateFromTextDialog from "@/components/EditorView/CreateFromTextDialog.vue";
+import TTSDialog from "@/components/EditorView/TTSDialog.vue";
 import { Card, ConfigFile, NewCard } from "@/interfaces/ConfigFile";
 import { storageService } from "@/CardsStorage/frontend";
 import { uuid } from "uuidv4";
+import { TTS } from "@/utils/TTS";
 
 class Props {}
 
@@ -163,6 +176,7 @@ class Props {}
   components: {
     SetGridButton,
     CreateFromTextDialog,
+    "tts-dialog": TTSDialog,
   },
   watch: {
     columns: "onColumns",
@@ -278,6 +292,11 @@ export default class EditorView extends Vue.with(Props) {
 
     if (this.selected && this.selected.cardType === 0)
       this.selected.imagePath = id;
+  }
+
+  playAudio() {
+    if (this.filename && this.selected && this.selected.cardType == 0)
+      TTS.instance.playCards(this.filename, [this.selected]);
   }
 }
 </script>
