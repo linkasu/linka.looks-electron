@@ -11,6 +11,7 @@ import { ICloudStorage } from "../abstract";
 import { appendZip } from "@/utils/addToZip";
 import { UltimateTextToImage } from "ultimate-text-to-image";
 import { tts } from "@/utils/TTSServer";
+import delay from "delay";
 
 const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
@@ -31,13 +32,15 @@ export class CardsStorage extends ICloudStorage {
         ipcMain.handle('storage:getImage', (_, path, entry) => this.getImage(path, entry))
         ipcMain.handle('storage:getAudio', (_, path, entry) => this.getAudio(path, entry))
         ipcMain.handle('storage:copyToTemp', (_, path) => this.copyToTemp(path))
+        ipcMain.handle('storage:defaultToTemp', (_, path) => this.defaultToTemp(path))
         ipcMain.handle('storage:createImageFromText', (_, path, text) => this.createImageFromText(path, text))
         ipcMain.handle('storage:createAudioFromText', (_, path, text, voice) => this.createAudioFromText(path, text, voice))
+        ipcMain.handle('storage:saveSet', (_, path, location, config) => this.saveSet(path, location, config))
         ipcMain.handle('storage:selectImage', (_, path) => {
             win = BrowserWindow.fromWebContents(_.sender)
 
             return this.selectImage(path)
-        }) 
+        })
         ipcMain.handle('storage:selectAudio', (_, path) => {
             win = BrowserWindow.fromWebContents(_.sender)
 
@@ -57,20 +60,26 @@ export class CardsStorage extends ICloudStorage {
         const dir = this.checkPath(path)
         const files = (await readdir(dir)).map((f) => join(dir, f))
         return files.map((file) => {
-            if (lstatSync(file).isDirectory()) {
+            try {
 
-                return {
-                    directory: true,
-                    set: undefined,
-                    file
+                if (lstatSync(file).isDirectory()) {
+
+                    return {
+                        directory: true,
+                        set: undefined,
+                        file
+                    }
+
+                } else if (file.endsWith('.linka')) {
+                    return {
+                        directory: false,
+                        set: this.getConfigFile(file),
+                        file
+                    }
                 }
 
-            } else if (file.endsWith('.linka')) {
-                return {
-                    directory: false,
-                    set: this.getConfigFile(file),
-                    file
-                }
+            } catch (error) {
+                return null
             }
             return null
         }).filter(f => f != null) as Directory
@@ -125,7 +134,7 @@ export class CardsStorage extends ICloudStorage {
     }
     selectAudio(path: string): Promise<string | null> {
         return this.selectFile(path, 'Звук', ['mp3', 'wav', 'ogg'])
-        
+
     }
     private async selectFile(path: string, name: string, extensions: string[]) {
 
@@ -174,7 +183,57 @@ export class CardsStorage extends ICloudStorage {
         return this.addBuffer(path, buffer, '.png')
     }
 
-    async adddFile(path: string, file: string) {
+    async defaultToTemp(path: string): Promise<string> {
+        path = this.checkPath(path)
+        const tmp = join(tmpdir(), basename(path));
+        const config: ConfigFile = {
+            columns: 3,
+            rows: 3,
+            cards: [],
+            withoutSpace: false,
+            directSet: false,
+            version: '2.0'
+        }
+        const json = JSON.stringify(config)
+        await this.addBuffer(tmp, Buffer.from(json), 'json', 'config')
+        await delay(300)
+
+        return tmp;
+    }
+
+
+    async saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
+        path = this.checkPath(path)
+        location = this.checkPath(location)
+        await this.cleanFile(path, config)
+        await delay(500)
+
+        const json = JSON.stringify(config)
+        await this.addBuffer(path, Buffer.from(json), 'json', 'config')
+        await delay(500)
+        await copyFile(path, location)
+    }
+    cleanFile(path: string, config: ConfigFile) {
+        const paths = []
+        for (const card of config.cards) {
+            if (card.cardType === 0) {
+                paths.push(card.audioPath)
+                paths.push(card.imagePath)
+            }
+        }
+        const zip = new AdmZip(path)
+        const entries = zip.getEntries()
+        for (const entry of entries) {
+            if (!paths.includes(entry.name)) {
+                zip.deleteFile(entry)
+            }
+        }
+
+        return zip.writeZipPromise()
+
+    }
+
+    private async adddFile(path: string, file: string) {
         const buff = await readFile(file)
         path = this.checkPath(path)
         const ext = extname(file)
@@ -182,15 +241,18 @@ export class CardsStorage extends ICloudStorage {
         return this.addBuffer(path, buff, ext);
     }
 
-    async addBuffer(path: string, buff: Buffer, ext: string) {
-        const name = uuid() + ext;
-
+    async addBuffer(path: string, buff: Buffer, ext: string, name?: string) {
+        if (!name) name = uuid();
+        // const zip = new AdmZip(path)
+        // zip.addFile(name+'.'+ext, buff);
+        // await zip.writeZipPromise()
+        const file = name + '.' + ext!
         await appendZip(path, async (a) => {
             a.append(buff, {
-                name
+                name: file
             })
         })
-        return name
+        return file
     }
 
     private copyFolderSync(srcPath: string, destPath: string) {

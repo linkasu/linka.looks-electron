@@ -10,12 +10,13 @@ export async function appendZip(source: string, callback: (archive: archiver.Arc
 
         // create temp dir (folder must exist)
         await fsp.mkdir(tempDir, { recursive: true })
+        if (fs.existsSync(source)) {
+            // extract to folder
+            await extract(source, { dir: tempDir })
 
-        // extract to folder
-        await extract(source, { dir: tempDir })
-
-        // delete original zip
-        await fsp.unlink(source)
+            // delete original zip
+            await fsp.unlink(source)
+        }
 
         // recreate zip file to stream archive data to
         const output = fs.createWriteStream(source);

@@ -4630,6 +4630,11 @@
     "is-descriptor" "^1.0.2"
     "isobject" "^3.0.1"
 
+"delay@^5.0.0":
+  "integrity" "sha512-ReEBKkIfe4ya47wlPYf/gu5ib6yUG0/Aez0JQZQz94kiWtRQvZIQbTiehsnwHvLSWJnQdhVeqYue7Id1dKr0qw=="
+  "resolved" "https://registry.npmjs.org/delay/-/delay-5.0.0.tgz"
+  "version" "5.0.0"
+
 "delayed-stream@~1.0.0":
   "integrity" "sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ=="
   "resolved" "https://registry.npmjs.org/delayed-stream/-/delayed-stream-1.0.0.tgz"

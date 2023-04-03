@@ -1,5 +1,6 @@
 <template>
   <div fluid class="editor">
+    <new-file-dialog ref="newFile" @text="newFileName"/>
     <v-card fill-height>
       <v-card-title primary-title> Настройки набора </v-card-title>
       <v-card-text>
@@ -12,7 +13,7 @@
                     label="Количество строк"
                     type="number"
                     :min="1"
-                    v-model="columns"
+                    v-model="rows"
                   ></v-text-field>
                 </v-col>
                 <v-col xs12 md6>
@@ -21,7 +22,7 @@
                     small
                     :min="1"
                     type="number"
-                    v-model="rows"
+                    v-model="columns"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -43,7 +44,7 @@
       </v-card-text>
     </v-card>
     <div class="editor-body">
-      <v-card xs8 fill-height fluid v-if="config">
+      <v-card xs8 fill-height fluid v-if="filename">
         <v-card-title> Карточки </v-card-title>
         <v-card-text class="cards-wrapper">
           <div class="cards" :style="{ '--rows': rows, '--columns': columns }">
@@ -144,7 +145,6 @@
                         />
                       </v-row>
                       <v-row>
-
                         <v-btn block @click="selectAudio">
                           Выбрать звук из файла
                         </v-btn>
@@ -170,6 +170,7 @@
 import { Vue, prop, Options } from "vue-class-component";
 import SetGridButton from "@/components/SetGridButton.vue";
 import CreateFromTextDialog from "@/components/EditorView/CreateFromTextDialog.vue";
+import NewFileDialog from "@/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/components/EditorView/TTSDialog.vue";
 import { Card, ConfigFile, NewCard } from "@/interfaces/ConfigFile";
 import { storageService } from "@/CardsStorage/frontend";
@@ -182,6 +183,7 @@ class Props {}
   components: {
     SetGridButton,
     CreateFromTextDialog,
+    NewFileDialog,
     "tts-dialog": TTSDialog,
   },
   watch: {
@@ -190,13 +192,34 @@ class Props {}
   },
 })
 export default class EditorView extends Vue.with(Props) {
-  columns = 3;
-  rows = 3;
+  get columns(): number {
+    return this.$store.getters.editor_columns;
+  }
+
+  public set columns(v: number) {
+    this.$store.commit("editor_columns", v);
+  }
+  get rows(): number {
+    return this.$store.getters.editor_rows;
+  }
+
+  public set rows(v: number) {
+    this.$store.commit("editor_rows", v);
+  }
+
   mpage = 0;
-  file = [];
-  cards = [] as (Card | NewCard)[];
-  filename: string | null = null;
-  config: ConfigFile | null = null;
+
+  get cards(): (Card | NewCard)[] {
+    return this.$store.getters.editor_cards;
+  }
+
+  public set cards(v: (Card | NewCard)[]) {
+    this.$store.commit("editor_cards", v);
+  }
+
+  get filename(): string | null {
+    return this.$store.getters.editor_temp;
+  }
   selected: Card | NewCard | null = null;
 
   cardTypes = [
@@ -206,8 +229,18 @@ export default class EditorView extends Vue.with(Props) {
     { text: "Новая карточка", value: 3 },
   ];
   current: (Card | NewCard)[] = [];
-  isWithoutSpace = false;
-  isDirectSet = false;
+  get isWithoutSpace(): boolean {
+    return this.$store.getters.editor_isWithoutSpace;
+  }
+  set isWithoutSpace(v: boolean) {
+    this.$store.commit("editor_isWithoutSpace", v);
+  }
+  get isDirectSet(): boolean {
+    return this.$store.getters.editor_isDirectSet;
+  }
+  set isDirectSet(v: boolean) {
+    this.$store.commit("editor_isDirectSet", v);
+  }
 
   get pageSize(): number {
     return this.columns * this.rows;
@@ -258,24 +291,23 @@ export default class EditorView extends Vue.with(Props) {
   }
 
   mounted() {
-    this.loadSet();
+    if (this.path.endsWith("new")) {
+      (this.$refs.newFile as NewFileDialog).show()
+    } else this.loadSet();
+  }
+  async newFileName(text: string){
+    await this.$store.dispatch("editor_new_file", this.path.slice(0, -3)+ text);
+    this.page=0
+    
   }
   async loadSet() {
-    this.filename = await storageService.copyToTemp(
-      this.$route.params.path.toString()
-    );
-
-    const config = await storageService.getConfigFile(this.filename);
-    if (config) {
-      this.config = config;
-      this.columns = config.columns;
-      this.rows = config.rows;
-      this.cards = config.cards;
-      this.isWithoutSpace = config.withoutSpace;
-      this.isDirectSet = !!config.directSet;
-      this.page = 0;
-    }
+    await this.$store.dispatch("editor_current", this.path);
+    this.page=0
   }
+  private get path(): string {
+    return this.$route.params.path.toString();
+  }
+
   select(index: number) {
     let card = this.cards[this.pageSize * this.page + index];
     if (!card) {
@@ -295,6 +327,7 @@ export default class EditorView extends Vue.with(Props) {
   async selectImage() {
     if (!this.filename) return;
     const id = await storageService.selectImage(this.filename);
+    console.log(id);
 
     if (this.selected && this.selected.cardType === 0)
       this.selected.imagePath = id;
@@ -304,7 +337,7 @@ export default class EditorView extends Vue.with(Props) {
     if (!this.filename) return;
     const id = await storageService.selectAudio(this.filename);
 
-    if (this.selected && this.selected.cardType === 0&&id)
+    if (this.selected && this.selected.cardType === 0 && id)
       this.selected.audioPath = id;
   }
 

@@ -1,19 +1,19 @@
 <template>
   <v-dialog v-model="dialog" width="auto">
     <template v-slot:activator="{ props }">
-      <v-btn color="error" flat icon="" v-bind="props">
-        <v-icon>mdi-delete-forever</v-icon>
+      <v-btn flat icon="" v-bind="props">
+        <v-icon>mdi-content-save</v-icon>
       </v-btn>
     </template>
 
     <v-card min-width="300px">
-      <v-card-title primary-title> Удалить {{file}}? </v-card-title>
+      <v-card-title primary-title> Сохранить {{title}}? </v-card-title>
       <v-card-text> Вы уверены? </v-card-text>
       <v-card-actions>
         <v-btn
           color="error"
           @click="
-            $emit('delete');
+            $emit('save');
             dialog = false;
           "
           >Да</v-btn
@@ -28,7 +28,7 @@
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
-    file: string = prop({
+    title: string = prop({
         required: true
     })
 }

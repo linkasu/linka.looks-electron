@@ -1,36 +1,17 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
-    <template v-slot:activator="{ props }">
-      <v-btn v-bind="props" block> Cоздать из текста </v-btn>
-    </template>
-
-    <v-card min-width="300px">
-      <v-card-title primary-title> Введите текст </v-card-title>
-      <v-card-text>
-        <v-form>
-          <v-text-field
-            label="Текст для картинки"
-            v-model="text"
-          ></v-text-field>
-        </v-form>
-      </v-card-text>
-      <v-card-actions>
-        <v-btn
-          color="primary"
-          @click="
-            create();
-            dialog = false;
-          "
-        >
-          Создать
-        </v-btn>
-        <v-btn color="primary" @click="dialog = false"> Отмена </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <input-dialog
+    buttonText="Cоздать из текста"
+    title="Введите текст"
+    label="Текст для картинки"
+    comfirmText="Создать"
+    cancelText="Отмена"
+    @confirm="create"
+  />
 </template>
 
 <script lang="ts">
+import InputDialog from "@/components/InputDialog.vue";
+
 import { storageService } from "@/CardsStorage/frontend";
 import { Vue, prop, Options } from "vue-class-component";
 
@@ -41,23 +22,15 @@ class Props {
 }
 
 @Options({
-    watch:{
-        dialog: 'onDialog'
-    }
+  components: {
+    InputDialog,
+  },
 })
 export default class CreateFromTextDialog extends Vue.with(Props) {
-  dialog = false;
-  text = "";
-  create() {
-    storageService.createImageFromText(this.file, this.text).then((value) => {
+  create(text: string) {
+    storageService.createImageFromText(this.file, text).then((value) => {
       this.$emit("image", value);
     });
-  }
-  onDialog(v: boolean){
-
-    if(!v){
-        this.text = ""
-    }
   }
 }
 </script>
