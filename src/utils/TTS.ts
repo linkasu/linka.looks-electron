@@ -23,7 +23,7 @@ export class TTS {
         this.isPlaying = true
         for (const card of cards) {
             if (!this.isPlaying) break;
-            if (card.cardType == 0) {
+            if (card.cardType == 0 && card.audioPath) {
 
                 const buffer = await storageService.getAudio(file, card.audioPath)
                 if (!buffer) continue;

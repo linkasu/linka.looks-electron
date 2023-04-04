@@ -1,6 +1,6 @@
 <template>
   <div fluid class="editor">
-    <new-file-dialog ref="newFile" @text="newFileName"/>
+    <new-file-dialog ref="newFile" @text="newFileName" />
     <v-card fill-height>
       <v-card-title primary-title> Настройки набора </v-card-title>
       <v-card-text>
@@ -47,20 +47,26 @@
       <v-card xs8 fill-height fluid v-if="filename">
         <v-card-title> Карточки </v-card-title>
         <v-card-text class="cards-wrapper">
-          <div class="cards" :style="{ '--rows': rows, '--columns': columns }">
-            <set-grid-button
-              v-for="(card, i) in current"
-              :key="card.id"
-              :file="filename"
-              :card="card"
-              :enabled="false"
-              :class="{
-                selected: selected?.id === card?.id,
-                nonValid: !isValid(card),
-              }"
-              @click="select(i)"
-            />
-          </div>
+          <draggable
+            v-model="current"
+            item-key="id"
+            class="cards"
+            :style="{ '--rows': rows, '--columns': columns }"
+          >
+            <template #item="{ element, index }">
+              <set-grid-button
+                :key="element.id"
+                :file="filename"
+                :card="element"
+                :enabled="false"
+                :class="{
+                  selected: selected?.id === element?.id,
+                  nonValid: !isValid(element),
+                }"
+                @click="select(index)"
+              />
+            </template>
+          </draggable>
         </v-card-text>
         <v-card-text class="buttons">
           <v-layout>
@@ -176,12 +182,13 @@ import { Card, ConfigFile, NewCard } from "@/interfaces/ConfigFile";
 import { storageService } from "@/CardsStorage/frontend";
 import { uuid } from "uuidv4";
 import { TTS } from "@/utils/TTS";
-
+import draggable from "vuedraggable";
 class Props {}
 
 @Options({
   components: {
     SetGridButton,
+    draggable,
     CreateFromTextDialog,
     NewFileDialog,
     "tts-dialog": TTSDialog,
@@ -192,6 +199,7 @@ class Props {}
   },
 })
 export default class EditorView extends Vue.with(Props) {
+  mcurrent: (Card | NewCard)[] = [];
   get columns(): number {
     return this.$store.getters.editor_columns;
   }
@@ -228,7 +236,28 @@ export default class EditorView extends Vue.with(Props) {
     { text: "Пробел", value: 1 },
     { text: "Новая карточка", value: 3 },
   ];
-  current: (Card | NewCard)[] = [];
+
+  get current(): (Card | NewCard)[] {
+    return this.mcurrent;
+  }
+  set current(v: (Card | NewCard)[]) {
+    if (v.length == this.mcurrent.length) {
+      const cids = this.mcurrent
+        .map(({ id }) => id.toString())
+        .reduce((a, b) => a + b);
+      const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
+      this.mcurrent = v;
+
+      if (cids != nids) {
+        for (let index = 0; index < v.length; index++) {
+          const element = v[index];
+          this.cards[this.pageSize * this.page+index] = element
+        }
+      }
+    } else{
+      this.mcurrent = v;
+    }
+  }
   get isWithoutSpace(): boolean {
     return this.$store.getters.editor_isWithoutSpace;
   }
@@ -292,23 +321,27 @@ export default class EditorView extends Vue.with(Props) {
 
   mounted() {
     if (this.path.endsWith("new")) {
-      (this.$refs.newFile as NewFileDialog).show()
+      (this.$refs.newFile as NewFileDialog).show();
     } else this.loadSet();
   }
-  async newFileName(text: string){
-    await this.$store.dispatch("editor_new_file", this.path.slice(0, -3)+ text);
-    this.page=0
-    
+  async newFileName(text: string) {
+    await this.$store.dispatch(
+      "editor_new_file",
+      this.path.slice(0, -3) + text
+    );
+    this.page = 0;
   }
   async loadSet() {
     await this.$store.dispatch("editor_current", this.path);
-    this.page=0
+    this.page = 0;
   }
   private get path(): string {
     return this.$route.params.path.toString();
   }
 
   select(index: number) {
+    console.log(index);
+
     let card = this.cards[this.pageSize * this.page + index];
     if (!card) {
       card = this.cards[this.pageSize * this.page + index] =

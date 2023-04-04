@@ -2,11 +2,11 @@ export type Card = StandardCard
 
 
 interface StandardCard {
-  id: number;
+  id: string;
   cardType: 0|1|2
-  imagePath: string;
-  title: string;
-  audioPath: string;
+  imagePath?: string;
+  title?: string;
+  audioPath?: string;
 };
 export interface NewCard {
   id: string,

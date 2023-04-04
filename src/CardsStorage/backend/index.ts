@@ -209,7 +209,10 @@ export class CardsStorage extends ICloudStorage {
         await delay(500)
         config.cards = config.cards.map((card)=>{
             if(card.cardType >2){
-                card.cardType = 2
+                card={
+                    id: uuid(),
+                    cardType: 2
+                }
             }
             return card;
         })

@@ -60,6 +60,8 @@ export default class SetGridButton extends Vue.with(Props) {
   }
 
   mounted() {
+    
+    
     this.onCard(this.card);
   }
 }
