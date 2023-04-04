@@ -47,6 +47,7 @@ export default class SetExplorerView extends Vue {
   }
   addCard(card: Card) {
     if (this.interfaceOutputLine) {
+      if((this.config?.withoutSpace&&card.cardType<2)||(!this.config?.withoutSpace&&card.cardType==0))
       this.cards.push(card);
     } else {
       if (this.filename) TTS.instance.playCards(this.filename, [card], true);
