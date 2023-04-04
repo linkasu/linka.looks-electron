@@ -207,6 +207,12 @@ export class CardsStorage extends ICloudStorage {
         location = this.checkPath(location)
         await this.cleanFile(path, config)
         await delay(500)
+        config.cards = config.cards.map((card)=>{
+            if(card.cardType >2){
+                card.cardType = 2
+            }
+            return card;
+        })
 
         const json = JSON.stringify(config)
         await this.addBuffer(path, Buffer.from(json), 'json', 'config')
