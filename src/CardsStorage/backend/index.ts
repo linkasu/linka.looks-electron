@@ -9,9 +9,9 @@ import { ConfigFile } from "@/interfaces/ConfigFile";
 import { Directory } from "@/interfaces/Directory";
 import { ICloudStorage } from "../abstract";
 import { appendZip } from "@/utils/addToZip";
-import { UltimateTextToImage } from "ultimate-text-to-image";
 import { tts } from "@/utils/TTSServer";
 import delay from "delay";
+import { createImageFromText } from "@/utils/ImageFromText";
 
 const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
@@ -161,25 +161,9 @@ export class CardsStorage extends ICloudStorage {
         return this.addBuffer(path, buff, '.mp3')
     }
 
-    createImageFromText(path: string, text: string): Promise<string | null> {
-        const buffer = new UltimateTextToImage(text,
-            {
-                width: 400,
-                maxWidth: 1000,
-                maxHeight: 1000,
-                fontFamily: "Arial",
-                fontColor: "#000",
-                fontSize: 72,
-                minFontSize: 10,
-                lineHeight: 50,
-                autoWrapLineHeightMultiplier: 1.2,
-                margin: 20,
-                marginBottom: 40,
-                align: "center",
-                valign: "middle",
-            })
-            .render()
-            .toBuffer('image/png')
+    async createImageFromText(path: string, text: string): Promise<string | null> {
+        const buffer = await createImageFromText(text)
+        
         return this.addBuffer(path, buffer, '.png')
     }
 

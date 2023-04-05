@@ -9,7 +9,7 @@ module.exports = defineConfig({
   pluginOptions: {
     electronBuilder: {
       
-      externals: ['ultimate-text-to-image'],
+      // externals: ['ultimate-text-to-image'],
       nodeIntegration: true,
       builderOptions: {
         publish: ['github'],
