@@ -16,7 +16,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+    - name: Install deps
+      run: npm ci
+    - name: Unit tests
+      run: npm run test:unit
+    - name: Unit tests
+      run: npm run test:unit
     - name: Build
-      run: |
-        npm ci
-        npm run electron:build
+      run: npm run electron:build
