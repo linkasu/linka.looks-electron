@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" width="auto" @show="dialog=true">
+  <v-dialog v-model="dialog" width="auto" @show="dialog = true">
     <template v-slot:activator="{ props }" v-if="buttonText">
       <v-btn v-bind="props" block> {{ buttonText }} </v-btn>
     </template>
@@ -7,23 +7,12 @@
     <v-card min-width="300px">
       <v-card-title primary-title> {{ title }} </v-card-title>
       <v-card-text>
-        <v-form
-          @submit.prevent="
-            $emit('confirm', text);
-            dialog = false;
-          "
-        >
+        <v-form @submit.prevent="submit()">
           <v-text-field :label="label" v-model="text"></v-text-field>
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn
-          color="primary"
-          @click="
-            $emit('confirm', text);
-            dialog = false;
-          "
-        >
+        <v-btn color="primary" @click="submit()">
           {{ comfirmText }}
         </v-btn>
         <v-btn color="primary" @click="dialog = false" v-if="cancelText">
@@ -58,16 +47,26 @@ class Props {
 })
 export default class CreateFromTextDialog extends Vue.with(Props) {
   dialog = false;
+  noCancel = false;
   text = "";
-  
+
   onDialog(v: boolean) {
     if (!v) {
-      this.$emit("cancel");
+        if (!this.noCancel) this.$emit("cancel");
+        this.noCancel = false;
+      
       this.text = "";
     }
   }
-  public show(){
+  public show() {
     this.dialog = true;
+  }
+  async submit() {
+    this.noCancel = true;
+
+    this.$emit("confirm", this.text);
+
+    this.dialog = false;
   }
 }
 </script>

@@ -6,6 +6,7 @@
     comfirmText="Создать"
     cancelText="Отмена"
     @confirm="(text)=>$emit('text', text)"
+    @cancel="cancel"
   />
 </template>
 
@@ -24,6 +25,9 @@ class Props {}
 export default class NewFileDialog extends Vue.with(Props) {
     show(){
         (this.$refs.dialog as InputDialog).show()
+    }
+    cancel(){
+        this.$router.back()
     }
 }
 </script>
