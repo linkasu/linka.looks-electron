@@ -3,9 +3,6 @@ name: Electron build
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
 jobs:
   build:
     runs-on: windows-latest
