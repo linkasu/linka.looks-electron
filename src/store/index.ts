@@ -79,11 +79,14 @@ export default createStore<LINKaStore>({
     button_enabled({ button }, value) {
       button.enabled = value
     },
+    interface_outputLine({ ui }, value) {
+      ui.outputLine = value
+    },
 
   },
   actions: {
-    interface_outputLine({ state }) {
-      state.ui.outputLine = !state.ui.outputLine
+    interface_outputLine({ state, commit }) {
+      commit('interface_outputLine', !state.ui.outputLine)
     },
 
     button_enabled({ state }) {
@@ -111,6 +114,7 @@ export default createStore<LINKaStore>({
         commit('editor_cards', config.cards);
         commit('editor_isWithoutSpace', config.withoutSpace);
         commit('editor_isDirectSet', !!config.directSet);
+        
       }
 
     }

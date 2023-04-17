@@ -8,7 +8,7 @@
       :cards="cards"
       :file="filename"
       :config="config"
-      @value="(cards) => (this.cards = cards)"
+      @value="(cards:Card[]) => (this.cards = cards)"
       v-if="interfaceOutputLine"
     />
 
@@ -42,13 +42,23 @@ export default class SetExplorerView extends Vue {
     this.filename = this.$route.params.path.toString();
 
     storageService.getConfigFile(this.filename).then((config) => {
-      if (config) this.config = config;
+      if (config) {
+        this.config = config;
+        if (config.directSet != undefined) {
+          this.$store.commit("interface_outputLine", !config.directSet);
+        } else {
+          this.$store.commit("interface_outputLine", true);
+        }
+      }
     });
   }
   addCard(card: Card) {
     if (this.interfaceOutputLine) {
-      if((this.config?.withoutSpace&&card.cardType<2)||(!this.config?.withoutSpace&&card.cardType==0))
-      this.cards.push(card);
+      if (
+        (this.config?.withoutSpace && card.cardType < 2) ||
+        (!this.config?.withoutSpace && card.cardType == 0)
+      )
+        this.cards.push(card);
     } else {
       if (this.filename) TTS.instance.playCards(this.filename, [card], true);
     }

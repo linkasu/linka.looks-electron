@@ -84,7 +84,7 @@ export default class OutpuiLine extends Vue.with(Props) {
   scrollEnd() {
     setTimeout(() => {
       const el = this.$refs.text as HTMLButtonElement;
-      if (el.firstElementChild)
+      if (el&&el.firstElementChild)
         el.scrollTo({
           left: el.firstElementChild.scrollWidth + 100,
         });

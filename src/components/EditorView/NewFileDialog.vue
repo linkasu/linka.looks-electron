@@ -5,7 +5,7 @@
     label="Название"
     comfirmText="Создать"
     cancelText="Отмена"
-    @confirm="(text)=>$emit('text', text)"
+    @confirm="(text:string)=>$emit('text', text)"
     @cancel="cancel"
   />
 </template>
