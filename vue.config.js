@@ -8,8 +8,11 @@ module.exports = defineConfig({
   },
   pluginOptions: {
     electronBuilder: {
+      electronBuilder: {
+      
       nodeIntegration: true,
       builderOptions: {
+        publish: ['github'],
         extraResources: [
           {
             from: "./extraResources/",
