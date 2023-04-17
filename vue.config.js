@@ -8,7 +8,6 @@ module.exports = defineConfig({
   },
   pluginOptions: {
     electronBuilder: {
-      electronBuilder: {
         nodeIntegration: true,
         builderOptions: {
           publish: ["github"],
@@ -22,5 +21,4 @@ module.exports = defineConfig({
         },
       },
     },
-  },
 });
