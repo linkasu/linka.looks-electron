@@ -16,4 +16,5 @@ export abstract class ICloudStorage {
     abstract createAudioFromText(path: string, text: string, voice: string): Promise<string | null>;
     abstract defaultToTemp(file: string): string | Promise<string>;
     abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>
+    abstract moveSet(file: string, location: string): Promise<string>;
 }

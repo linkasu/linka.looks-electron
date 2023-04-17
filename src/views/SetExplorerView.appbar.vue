@@ -32,6 +32,7 @@
     <v-btn flat icon :to="editLink">
       <v-icon>mdi-pencil</v-icon>
     </v-btn>
+    <folder-button :file="file" @move="move"/>
     <delete-button :file="title" @delete="del" />
   </v-app-bar>
 </template>
@@ -39,11 +40,13 @@
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
 import DeleteButton from "@/components/SetExplorer/DeleteButton.vue";
+import FolderButton from "@/components/SetExplorer/FolderButton.vue";
 import { storageService } from "@/CardsStorage/frontend";
 
 @Options({
   components: {
     DeleteButton,
+    FolderButton
   },
 })
 export default class SetExplorerViewAppBar extends Vue {
@@ -76,6 +79,13 @@ export default class SetExplorerViewAppBar extends Vue {
   async del() {
     await storageService.moveToTrash(this.file);
     this.back();
+  }
+  async move(location: string){
+    const target = await storageService.moveSet(this.file, location)
+    const url = target.slice(target.lastIndexOf('LINKa')+5).replaceAll('/', '§').replace('\\', `§`)
+    console.log(url);
+    
+    this.$router.push('/set/'+url)
   }
 }
 </script>

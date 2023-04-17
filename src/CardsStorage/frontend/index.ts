@@ -4,13 +4,17 @@ import { ICloudStorage } from "../abstract";
 import { Directory } from "@/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
+    moveSet(file: string, location: string):Promise<string> {
+        return ipcRenderer.invoke("storage:moveSet", file, location);
+
+    }
     defaultToTemp(file: string): string | Promise<string> {
         return ipcRenderer.invoke("storage:defaultToTemp", file);
-    
+
     }
     saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
-        
-        return ipcRenderer.invoke("storage:saveSet", path, location, JSON.parse(JSON.stringify(config)))    ;
+
+        return ipcRenderer.invoke("storage:saveSet", path, location, JSON.parse(JSON.stringify(config)));
     }
     createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {
         return ipcRenderer.invoke("storage:createAudioFromText", path, text, voice);
@@ -26,7 +30,7 @@ class StorageService extends ICloudStorage {
     }
     selectAudio(path: string): Promise<string | null> {
         return ipcRenderer.invoke("storage:selectAudio", path);
-        
+
     }
     async getFiles(path = "") {
         try {

@@ -75,6 +75,11 @@ export default createStore<LINKaStore>({
     editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value
     },
+
+    button_enabled({ button }, value) {
+      button.enabled = value
+    },
+
   },
   actions: {
     interface_outputLine({ state }) {
