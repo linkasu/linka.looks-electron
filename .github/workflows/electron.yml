@@ -1,5 +1,4 @@
 name: Electron build
-
 on:
   push:
     branches: [ "main" ]
@@ -14,7 +13,7 @@ jobs:
       with:
         node-version: 16.x
     - name: Install deps
-      run: npm ci
+      run: npm  i
     - name: Unit tests
       run: npm run test:unit
     - name: Build
