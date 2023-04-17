@@ -1,4 +1,5 @@
 name: Electron build
+
 on:
   push:
     branches: [ "main" ]
@@ -13,10 +14,10 @@ jobs:
       with:
         node-version: 16.x
     - name: Install deps
-      run: npm  i
+      run: npm ci
     - name: Unit tests
       run: npm run test:unit
     - name: Build
-      run: npm run electron:build
+      run: npm run electron:build  -- -p always
       env:
         GH_TOKEN: ${{secrets.GH_TOKEN}}
