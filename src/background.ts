@@ -7,6 +7,7 @@ import { join } from "path";
 import { TobiiProcess } from "tobiiee";
 import { GazeData } from "tobiiee/build/GazeData";
 import { CardsStorage } from "./CardsStorage/backend";
+import { autoUpdater } from "electron-updater";
 
 new CardsStorage()  
 
@@ -68,6 +69,8 @@ async function createWindow() {
     createProtocol('app')
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
+
+   autoUpdater.checkForUpdatesAndNotify()
   }
 }
 
