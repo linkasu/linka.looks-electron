@@ -1,6 +1,6 @@
 <template>
   <div class="grid">
-    <eye-button @click="page--">
+    <eye-button @click="page--" color="primary">
       <v-icon> mdi-arrow-left </v-icon>
     </eye-button>
 
@@ -11,7 +11,7 @@
       <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="$emit('card', card)" />
     </div>
 
-    <eye-button @click="page++">
+    <eye-button @click="page++" color="primary">
       <v-icon> mdi-arrow-right </v-icon>
     </eye-button>
   </div>

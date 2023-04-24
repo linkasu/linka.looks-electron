@@ -6,5 +6,17 @@ import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 
 export default createVuetify(
-  // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
+  {
+    theme: {
+      themes: {
+        light: {
+          colors: {
+            primary: '#197377',
+            secondary: '#AD9F4E',
+            accent: '#7DF6FA',
+          },
+        }
+      },
+    },
+  }
 )

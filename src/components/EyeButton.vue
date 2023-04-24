@@ -1,5 +1,5 @@
 <template>
-  <button class="eyebtn" :class="{ eye: enabled }">
+  <button class="eyebtn" :class="{ eye: enabled }" :style="{background: `rgb(var(--v-theme-${color}))`}">
     <slot />
     <div class="overlay" v-if="isInside  ||( !buttonEnabled&&!lock)" :class="{'disabled':!buttonEnabled&&!lock}">
       <canvas ref="canvas"></canvas>
@@ -16,6 +16,9 @@ class Props {
   });
   lock = prop({
     default: false
+  })
+  color = prop({
+    required: false
   })
 }
 
@@ -116,7 +119,8 @@ export default class EyeButton extends Vue.with(Props) {
 
 .eyebtn {
   position: relative;
-  box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset;
+  border: 1px solid rgb(var(--v-theme-secondary));
+  /* box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset; */
 }
 
 canvas {
@@ -124,4 +128,5 @@ canvas {
   left: 0;
   top: 0;
 }
+
 </style>
