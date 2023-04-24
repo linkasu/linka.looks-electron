@@ -9,7 +9,7 @@
       </eye-button>
       <eye-button class="output-block" @click="say">
         <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''"
-          >mdi-speaker</v-icon
+          >mdi-account-voice</v-icon
         >
         <div class="output-text" ref="text">
           <div class="text" v-if="withoutSpace">{{ text }}</div>
