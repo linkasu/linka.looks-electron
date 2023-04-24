@@ -132,7 +132,7 @@
                         <create-from-text-dialog
                           block
                           :file="filename"
-                          @image="(path) => (selected.imagePath = path)"
+                          @image="(path:string) => (selected.imagePath = path)"
                         />
                       </v-row>
                     </v-container>
@@ -166,6 +166,18 @@
               </v-row>
             </section>
           </v-form>
+        </v-card-text>
+      </v-card>
+      <v-card v-else>
+        <v-card-title primary-title>
+          Выберете картинку для начала работы
+        </v-card-title>
+        <v-card-text>
+          <h3>Советы в редакторе наборов:</h3>
+          <ul>
+            <li>Для добавления новой карточки выберете любую с "+"</li>
+            <li>Вы можете менять карточки местами, перетаскивая их</li>
+          </ul>
         </v-card-text>
       </v-card>
     </div>
@@ -408,7 +420,8 @@ export default class EditorView extends Vue.with(Props) {
   width: 100%;
 }
 .selected {
-  background: yellow;
+  background: yellow !important;
+  border: 1px solid yellow;
 }
 
 .nonValid {
