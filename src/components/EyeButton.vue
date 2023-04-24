@@ -1,5 +1,5 @@
 <template>
-  <button class="eyebtn" :class="{ eye: enabled }" :style="{background: `rgb(var(--v-theme-${color}))`}">
+  <button class="eyebtn" :class="{ eye: enabled, isInside }" :style="{background: `rgb(var(--v-theme-${color}))`}">
     <slot />
     <div class="overlay" v-if="isInside  ||( !buttonEnabled&&!lock)" :class="{'disabled':!buttonEnabled&&!lock}">
       <canvas ref="canvas"></canvas>
@@ -70,7 +70,6 @@ export default class EyeButton extends Vue.with(Props) {
     const height = canvas.clientHeight;
     const x = width / 2;
     const y = height / 2;
-
     const radius = Math.min(width, height) * 0.35;
     const lineWidth = 4;
     const startAngle = -Math.PI / 2;
@@ -82,7 +81,7 @@ export default class EyeButton extends Vue.with(Props) {
     ctx.arc(x, y, radius, startAngle, endAngle);
     ctx.stroke();
 
-    ctx.strokeStyle = "#0F0";
+    ctx.strokeStyle = "#00A";
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.arc(x, y, radius, startAngle, startAngle + percent * (2 * Math.PI));
@@ -121,6 +120,9 @@ export default class EyeButton extends Vue.with(Props) {
   position: relative;
   border: 1px solid rgb(var(--v-theme-secondary));
   /* box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset; */
+}
+.isInside{
+  background-color: yellow !important;
 }
 
 canvas {
