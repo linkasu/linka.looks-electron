@@ -1,12 +1,16 @@
 <template>
   <v-app-bar>
-    <exit-button @exit="$router.back()"/>
+    <exit-button @exit="$router.back()" />
     <v-app-bar-title>
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
     <v-btn icon>
-      <save-button :title="title" @save="save" />
+      <save-button
+        :title="title"
+        @save="save"
+        @saveAs="(title:string)=>saveAs(title)"
+      />
     </v-btn>
   </v-app-bar>
 </template>
@@ -41,5 +45,10 @@ export default class EditorViewAppBar extends Vue.with(Props) {
     await this.$store.dispatch("editor_save");
     this.$router.back();
   }
+  async saveAs(title: string) {
+    const newLink = await this.$store.dispatch("editor_save_as", title);
+    this.$router.push('/set/'+newLink)
+    
+  } 
 }
 </script>

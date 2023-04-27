@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync } from "fs";
 import { join, basename, extname } from "path";
-import { readdir, unlink, copyFile, readFile , rename} from "fs/promises";
+import { readdir, unlink, copyFile, readFile, rename } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
 import AdmZip from "adm-zip";
@@ -161,7 +161,7 @@ export class CardsStorage extends ICloudStorage {
 
     async createImageFromText(path: string, text: string): Promise<string | null> {
         const buffer = await createImageFromText(text)
-        
+
         return this.addBuffer(path, buffer, '.png')
     }
 
@@ -189,9 +189,9 @@ export class CardsStorage extends ICloudStorage {
         location = this.checkPath(location)
         await this.cleanFile(path, config)
         await delay(500)
-        config.cards = config.cards.map((card)=>{
-            if(card.cardType >2){
-                card={
+        config.cards = config.cards.map((card) => {
+            if (card.cardType > 2) {
+                card = {
                     id: uuid(),
                     cardType: 2
                 }
@@ -207,11 +207,11 @@ export class CardsStorage extends ICloudStorage {
     async moveSet(file: string, location: string) {
         file = this.checkPath(file)
         location = this.checkPath(location)
-        const target = join( location, basename(file))
+        const target = join(location, basename(file))
         await rename(file, target)
         return target
     }
-private    cleanFile(path: string, config: ConfigFile) {
+    private cleanFile(path: string, config: ConfigFile) {
         const paths = []
         for (const card of config.cards) {
             if (card.cardType === 0) {
@@ -246,7 +246,7 @@ private    cleanFile(path: string, config: ConfigFile) {
         // await zip.writeZipPromise()
         const file = name + '.' + ext!
         await appendZip(path, async (a) => {
-            a.append(buff, {
+            await a.append(buff, {
                 name: file
             })
         })

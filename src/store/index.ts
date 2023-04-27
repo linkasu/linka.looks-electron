@@ -128,7 +128,23 @@ export default createStore<LINKaStore>({
         withoutSpace: state.editor.isWithoutSpace,
         version: '1.0'
       })
+    },
+    async editor_save_as({ state, commit }, title) {
+      
+      const parts = state.editor.current.split(`§`)
+      parts[parts.length-1] = title 
+      const current = parts.join('§')
+      await storageService.saveSet(state.editor.temp, current, {
+        cards: state.editor.cards,
+        columns: state.editor.columns,
+        rows: state.editor.rows,
+        directSet: state.editor.isDirectSet,
+        withoutSpace: state.editor.isWithoutSpace,
+        version: '1.0'
+      })
+      return current
     }
+
   },
   modules: {
   }
