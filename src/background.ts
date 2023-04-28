@@ -119,7 +119,7 @@ if (isDevelopment) {
   }
 }
 function sendPoint(win: BrowserWindow, point: GazeData) {
-  if(!win.isFocused()) return;
+  if(!win || win.isDestroyed()|| !win.isFocused()) return;
   const rect = win.getContentBounds();
   const pointInWindow = {
     x: Math.floor(point.x - rect.x),
