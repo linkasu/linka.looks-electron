@@ -1,6 +1,11 @@
 import { Card } from "@/interfaces/ConfigFile"
 
 export interface LINKaStore{
+    colors:{
+        primary: string, 
+        accent: string,
+        secondary:string
+    }
     button :{
         timeout: number,
         enabled: boolean    

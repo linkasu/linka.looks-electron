@@ -5,7 +5,7 @@ import store from './store'
 import vuetify from './plugins/vuetify'
 import { loadFonts } from './plugins/webfontloader'
 import { PageWatcher } from './tobii/pageWatch'
-
+import './store/eStore'
 new PageWatcher()
 
 loadFonts()

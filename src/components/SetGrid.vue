@@ -69,6 +69,7 @@ export default class SetGrid extends Vue.with(Props) {
 </script>
 
 <style scoped>
+
 .grid {
   border-top: 1px solid black;
   display: grid;

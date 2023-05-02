@@ -31,12 +31,14 @@
               <v-row>
                 <v-checkbox
                   label="Набор для печати текста"
+                  
                   v-model="isWithoutSpace"
-                ></v-checkbox>
+                ></v-checkbox>  
                 <v-checkbox
                   label="Рекомендовать скрыть строку вывода при работе с набором"
                   v-model="isDirectSet"
                 ></v-checkbox>
+
               </v-row>
             </v-col>
           </v-row>
@@ -174,11 +176,18 @@
         </v-card-title>
         <v-card-text>
           <h3>Советы в редакторе наборов:</h3>
-          <ul>
-            <li>Для добавления новой карточки выберете любую с "+"</li>
-            <li>Вы можете менять карточки местами, перетаскивая их</li>
-          </ul>
-        </v-card-text>
+            <ul>
+              <li>Для добавления новой карточки выберете любую с "+"</li>
+              <li>Вы можете менять карточки местами, перетаскивая их</li>
+            </ul>
+
+          <v-expansion-panels>
+  <v-expansion-panel
+    title="Узнать подробнее"
+    text="Lorem ipsum dolor sit amet consectetur adipisicing elit. Commodi, ratione debitis quis est labore voluptatibus! Eaque cupiditate minima"
+  >
+  </v-expansion-panel>
+</v-expansion-panels>         </v-card-text>
       </v-card>
     </div>
   </div>

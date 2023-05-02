@@ -122,7 +122,7 @@ export default class EyeButton extends Vue.with(Props) {
   /* box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset; */
 }
 .isInside{
-  background-color: yellow !important;
+  background-color: rgb(var(--v-theme-secondary)) !important;
 }
 
 canvas {

@@ -8,7 +8,9 @@ import { TobiiProcess } from "tobiiee";
 import { GazeData } from "tobiiee/build/GazeData";
 import { CardsStorage } from "./CardsStorage/backend";
 import { autoUpdater } from "electron-updater";
+import Store  from "electron-store";
 
+Store.initRenderer();
 new CardsStorage()  
 
 const isDevelopment = process.env.NODE_ENV !== 'production'

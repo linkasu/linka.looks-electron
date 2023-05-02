@@ -5,6 +5,9 @@
 
             <v-icon>mdi-plus</v-icon>
         </v-btn>
+        <v-btn flat icon to="/settings">
+            <v-icon>mdi-cog</v-icon>
+        </v-btn>
     </v-app-bar>
 </template>
 

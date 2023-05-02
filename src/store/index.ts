@@ -1,9 +1,25 @@
 import { createStore, } from 'vuex'
+
 import { LINKaStore } from './LINKaStore'
 import { storageService } from '@/CardsStorage/frontend'
+import { eStore } from './eStore'
 
-export default createStore<LINKaStore>({
+
+const fields = [
+  {commit: 'colors_primary', default: '#197377'} as Field<string>,
+  {commit: 'colors_accent', default: '#7DF6FA'} as Field<string>,
+  {commit: 'colors_secondary', default: '#AD9F4E'} as Field<string>,
+  {commit: 'button_timeout', default: 1000} as Field<number>,
+  
+]
+
+const store = createStore<LINKaStore>({
   state: {
+    colors:{
+      secondary: '',
+      accent: '',
+      primary:'#197377'
+    },
     button: {
       timeout: 1000,
       enabled: true
@@ -21,7 +37,9 @@ export default createStore<LINKaStore>({
     }
   },
   getters: {
-
+    colors({colors}){
+      return colors
+    },
     button_timeout({ button }) {
       return button.timeout
     },
@@ -54,6 +72,18 @@ export default createStore<LINKaStore>({
     },
   },
   mutations: {
+    colors_primary({colors}, value){
+        eStore.set('colors_primary', value)
+        colors.primary = value
+    },
+    colors_accent({colors}, value){
+        eStore.set('colors_accent', value)
+        colors.accent = value
+    },
+    colors_secondary({colors}, value){
+        eStore.set('colors_secondary', value)
+        colors.secondary = value
+    },
     editor_current({ editor }, value) {
       editor.current = value
     },
@@ -75,7 +105,10 @@ export default createStore<LINKaStore>({
     editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value
     },
-
+    button_timeout({button}, value){
+      eStore.set('button_timeout', value)
+      button.timeout = value
+    }, 
     button_enabled({ button }, value) {
       button.enabled = value
     },
@@ -149,3 +182,16 @@ export default createStore<LINKaStore>({
   modules: {
   }
 })
+
+export default store
+
+
+for (const field of fields) {
+  store.commit(field.commit, eStore.get(field.commit, field.default))
+}
+
+
+interface Field<T> {
+  commit: string;
+  default:T
+}

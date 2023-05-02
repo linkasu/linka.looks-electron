@@ -5,6 +5,8 @@ import SetExplorerView from '../views/SetExplorerView.vue'
 import SetExplorerViewAppBar from '../views/SetExplorerView.appbar.vue'
 import EditorView from '../views/EditorView.vue'
 import EditorViewAppBar from '../views/EditorView.appbar.vue'
+import SettingsView from '../views/SettingsView.vue'
+import SettingsViewAppBar from '../views/SettingsView.appbar.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -34,6 +36,13 @@ const routes: Array<RouteRecordRaw> = [
       appbar: EditorViewAppBar
     }
   },
+  {
+    path: '/settings',
+    components : {
+      default: SettingsView,
+      appbar: SettingsViewAppBar
+    }
+  }
 ]
 
 const router = createRouter({

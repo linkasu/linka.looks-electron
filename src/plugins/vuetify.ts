@@ -1,9 +1,12 @@
 // Styles
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
-
+import store from '@/store'
 // Vuetify
 import { createVuetify } from 'vuetify'
+
+
+
 
 export default createVuetify(
   {
@@ -11,9 +14,9 @@ export default createVuetify(
       themes: {
         light: {
           colors: {
-            primary: '#197377',
-            secondary: '#AD9F4E',
-            accent: '#7DF6FA',
+            primary: store.getters.colors.primary,
+            secondary: store.getters.colors.secondary,
+            accent: store.getters.colors.accent,
           },
         }
       },
