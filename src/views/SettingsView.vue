@@ -1,85 +1,45 @@
 <template>
- <v-container row wrap>
-<v-flex>   <v-card  md8 xs12>
-        <v-card-title primary-title>
-            Главные настройки
-        </v-card-title>
-        <v-card-text>
-            <v-checkbox label="Активировать карточку при удержании взгляда" v-model="eyetrackerTimeout" value="value"></v-checkbox>
-        </v-card-text>
-    </v-card>
-    <v-card md4>
-        <v-card-title >
-            Настройки цвета
-        </v-card-title>
-        <v-card-text>
+  <v-container>
+    <v-row>
+      <v-col cols="12" md="8">
+        <v-card>
+          <v-card-title primary-title> Главные настройки </v-card-title>
+          <v-card-text>
             <v-text-field
-                label="Цвет №1"
-                v-model="colorPrimary"
-                type="color"
+              type="number"
+              label="Время задержки взгляда для активации"
+              v-model="eyetrackerTimeout"
+              min="0.1"
+              max="5"
+              step="0.1"
             ></v-text-field>
-            <v-text-field
-                label="Цвет №2"
-                v-model="colorAccent"
-                type="color"
-            ></v-text-field>
-            <v-text-field
-                label="Цвет границ"
-                v-model="colorSecondary"
-                type="color"
-            ></v-text-field>
-            <v-row>
-                <v-btn color="success" @click="makeDefault">Назначить стандартную цветовую схему</v-btn>
-                <v-btn color="success" @click="makeBG">Назначить черно-белую цветовую схему</v-btn>
-            </v-row>
-        </v-card-text>
-    </v-card>
-</v-flex>
- </v-container>   
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" md="4">
+        <color-settings />
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script lang="ts">
-import {Vue, prop, Options} from 'vue-class-component'
-
-class Props{
-
-}
+import { Vue, prop, Options } from "vue-class-component";
+import ColorSettings from "@/components/Settings/ColorsSettings.vue";
+class Props {}
 
 @Options({
-
+  components: {
+    ColorSettings,
+  },
 })
-export default class SettingsView extends Vue.with(Props){
-    
-    eyetrackerTimeout = true
-
-    get colorPrimary(){
-        return this.$store.state.colors.primary
-    }
-    set colorPrimary(v:string){
-        this.$store.commit('colors_primary', v)
-    }
-    get colorAccent(){
-        return this.$store.state.colors.accent
-    }
-    set colorAccent(v:string){
-        this.$store.commit('colors_accent', v)
-    }
-    get colorSecondary(){
-        return this.$store.state.colors.secondary
-    }
-    set colorSecondary(v:string){
-        this.$store.commit('colors_secondary', v)
-    }
-
-    makeDefault(){
-        this.colorPrimary = '#197377'
-        this.colorAccent = '#7DF6FA'
-        this.colorSecondary = '#FFD200'
-    }
-    makeBG(){
-        this.colorPrimary = '#DDDDDD'
-        this.colorAccent = '#FFFFFF'
-        this.colorSecondary = '#FfFFFF'
-    }
+export default class SettingsView extends Vue.with(Props) {
+  get eyetrackerTimeout() {
+    return this.$store.state.button.timeout / 1000;
+  }
+  set eyetrackerTimeout(value: number) {
+    this.$store.commit("button_timeout", value * 1000);
+  }
 }
 </script>
