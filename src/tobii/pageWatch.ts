@@ -1,9 +1,10 @@
+import store from '@/store';
 import { ipcRenderer } from 'electron';
 import { GazeData } from "tobiiee/build/GazeData";
 
 export class PageWatcher {
     private static CLASS = 'eye';
-    static TIMEOUT: number = 1000;
+    static TIMEOUT: number = store.state.button.timeout;
     static EXIT_TIMEOUT: number = 150;
 
     private lastElement?: Element;
@@ -15,6 +16,17 @@ export class PageWatcher {
         ipcRenderer.on('eye-point', (event, point: GazeData) => {
             this.onGaze(point);
         });
+        window.addEventListener('keyup', (event)=>{
+            if(!(event.target instanceof HTMLInputElement)){
+                this.onKeyboard(event.code)
+            }
+            
+        })
+    }
+    onKeyboard(code: string) {
+        if(!store.getters.button_keyboardActivaton)return;
+        const elements = document.getElementsByClassName(PageWatcher.CLASS);
+        
     }
 
     private onGaze(point: GazeData) {

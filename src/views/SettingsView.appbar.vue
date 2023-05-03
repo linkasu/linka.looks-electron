@@ -1,10 +1,10 @@
 <template>
   <v-app-bar>
-    <exit-button @exit="$router.back()" />
+    <v-btn icon="mdi-arrow-left" flat @click="$router.back()" />
 
     <v-app-bar-title>Настройки</v-app-bar-title>
     <v-spacer />
-    <v-btn flat disabled>Настройки сохраняются автоматически</v-btn >
+    <v-btn flat disabled color="red">Настройки сохраняются автоматически</v-btn >
   </v-app-bar>
 </template>
 

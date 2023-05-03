@@ -1,13 +1,22 @@
 <template>
-  <button class="eyebtn" :class="{ eye: enabled, isInside }" :style="{background: `rgb(var(--v-theme-${color}))`}">
+  <button
+    class="eyebtn"
+    :class="{ eye: enabled, isInside }"
+    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
+  >
     <slot />
-    <div class="overlay" v-if="isInside  ||( !buttonEnabled&&!lock)" :class="{'disabled':!buttonEnabled&&!lock}">
+    <div
+      class="overlay"
+      v-if="isInside || (!buttonEnabled && !lock)"
+      :class="{ disabled: !buttonEnabled && !lock }"
+    >
       <canvas ref="canvas"></canvas>
     </div>
   </button>
 </template>
 
 <script lang="ts">
+import { toHandlers } from "vue";
 import { Vue, Options, prop } from "vue-class-component";
 
 class Props {
@@ -15,11 +24,11 @@ class Props {
     default: true,
   });
   lock = prop({
-    default: false
-  })
+    default: false,
+  });
   color = prop({
-    required: false
-  })
+    required: false,
+  });
 }
 
 @Options({
@@ -28,6 +37,9 @@ class Props {
 export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   countOfClicks = 0;
+  get borderWidth() {
+    return this.$store.getters.button_borders + "px";
+  }
   get buttonTimeout(): number {
     return this.$store.getters.button_timeout;
   }
@@ -35,16 +47,18 @@ export default class EyeButton extends Vue.with(Props) {
   mounted() {
     const el = this.$el as Element;
     el.addEventListener("eye-enter", () => {
-      if (this.buttonEnabled||this.lock) this.onEnter();
+      if (this.buttonEnabled || this.lock) this.onEnter();
     });
     el.addEventListener("eye-exit", () => {
       this.onExit();
     });
     el.addEventListener("eye-stay", (event) => {
-      if (this.buttonEnabled||this.lock) this.onStay((event as CustomEvent).detail.time);
+      if (this.buttonEnabled || this.lock)
+        this.onStay((event as CustomEvent).detail.time);
     });
   }
   onStay(time: number) {
+    if (!this.$store.getters.button_eyeActivation) return;
     const canvas = this.$refs.canvas as HTMLCanvasElement;
     if (!canvas) return;
 
@@ -91,6 +105,7 @@ export default class EyeButton extends Vue.with(Props) {
     this.isInside = false;
   }
   onEnter() {
+    if (!this.$store.getters.button_eyeSelect) return;
     this.isInside = true;
     this.countOfClicks = 0;
   }
@@ -111,17 +126,15 @@ export default class EyeButton extends Vue.with(Props) {
   background: rgba(0, 0, 0, 0.05);
 }
 
-.disabled{
+.disabled {
   background: rgba(0, 0, 0, 0.5);
-    
 }
 
 .eyebtn {
   position: relative;
   border: 1px solid rgb(var(--v-theme-secondary));
-  /* box-shadow: 0px 0px 2px 2px rgba(34, 60, 80, 0.2) inset; */
 }
-.isInside{
+.isInside {
   background-color: rgb(var(--v-theme-secondary)) !important;
 }
 
@@ -130,5 +143,4 @@ canvas {
   left: 0;
   top: 0;
 }
-
 </style>

@@ -6,23 +6,35 @@ import { eStore } from './eStore'
 
 
 const fields = [
-  {commit: 'colors_primary', default: '#197377'} as Field<string>,
-  {commit: 'colors_accent', default: '#7DF6FA'} as Field<string>,
-  {commit: 'colors_secondary', default: '#AD9F4E'} as Field<string>,
-  {commit: 'button_timeout', default: 1000} as Field<number>,
-  
+  { commit: 'colors_primary', default: '#197377' } as Field<string>,
+  { commit: 'colors_accent', default: '#7DF6FA' } as Field<string>,
+  { commit: 'colors_secondary', default: '#AD9F4E' } as Field<string>,
+  { commit:'button_timeout', default: 1000} as Field<number>,
+  { commit:'button_eyeSelect', default: true} as Field<boolean>,
+  { commit:'button_eyeActivation', default: true} as Field<boolean>,
+  { commit:'button_joystickActivation', default: true} as Field<boolean>,
+  { commit:'button_keyboardActivaton', default: true} as Field<boolean>,
+  { commit:'button_mouseActivation', default: true} as Field<boolean>,
+  { commit:'button_borders', default: 1} as Field<number>,
+  { commit:'button_enabled', default: true} as Field<boolean>,
 ]
 
 const store = createStore<LINKaStore>({
   state: {
-    colors:{
+    colors: {
       secondary: '',
       accent: '',
-      primary:'#197377'
+      primary: '#197377'
     },
     button: {
       timeout: 1000,
-      enabled: true
+      enabled: true,
+      eyeSelect: true,
+      eyeActivation: true,
+      joystickActivation: true,
+      keyboardActivaton: true,
+      mouseActivation: true,
+      borders: 1
     },
     ui: {
       outputLine: true
@@ -37,7 +49,7 @@ const store = createStore<LINKaStore>({
     }
   },
   getters: {
-    colors({colors}){
+    colors({ colors }) {
       return colors
     },
     button_timeout({ button }) {
@@ -45,6 +57,24 @@ const store = createStore<LINKaStore>({
     },
     button_enabled({ button }) {
       return button.enabled
+    },
+    button_eyeSelect({ button }) {
+      return button.eyeSelect
+    },
+    button_eyeActivation({ button }) {
+      return button.eyeActivation
+    },
+    button_joystickActivation({ button }) {
+      return button.joystickActivation
+    },
+    button_keyboardActivaton({ button }) {
+      return button.keyboardActivaton
+    },
+    button_mouseActivation({ button }) {
+      return button.mouseActivation
+    },
+    button_borders({ button }) {
+      return button.borders
     },
     interface_outputLine({ ui }) {
       return ui.outputLine
@@ -72,17 +102,17 @@ const store = createStore<LINKaStore>({
     },
   },
   mutations: {
-    colors_primary({colors}, value){
-        eStore.set('colors_primary', value)
-        colors.primary = value
+    colors_primary({ colors }, value) {
+      eStore.set('colors_primary', value)
+      colors.primary = value
     },
-    colors_accent({colors}, value){
-        eStore.set('colors_accent', value)
-        colors.accent = value
+    colors_accent({ colors }, value) {
+      eStore.set('colors_accent', value)
+      colors.accent = value
     },
-    colors_secondary({colors}, value){
-        eStore.set('colors_secondary', value)
-        colors.secondary = value
+    colors_secondary({ colors }, value) {
+      eStore.set('colors_secondary', value)
+      colors.secondary = value
     },
     editor_current({ editor }, value) {
       editor.current = value
@@ -105,12 +135,36 @@ const store = createStore<LINKaStore>({
     editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value
     },
-    button_timeout({button}, value){
+    button_timeout({ button }, value) {
       eStore.set('button_timeout', value)
       button.timeout = value
-    }, 
+    },
     button_enabled({ button }, value) {
       button.enabled = value
+    },
+    button_eyeSelect({ button }, value) {
+      eStore.set('button_eyeSelect', value);
+      button.eyeSelect = value
+    },
+    button_eyeActivation({ button }, value) {
+      eStore.set('button_eyeActivation', value);
+      button.eyeActivation = value
+    },
+    button_joystickActivation({ button }, value) {
+      eStore.set('button_joystickActivation', value);
+      button.joystickActivation = value
+    },
+    button_keyboardActivaton({ button }, value) {
+      eStore.set('button_keyboardActivaton', value);
+      button.keyboardActivaton = value
+    },
+    button_mouseActivation({ button }, value) {
+      eStore.set('button_mouseActivation', value);
+      button.mouseActivation = value
+    },
+    button_borders({ button }, value) {
+      eStore.set('button_borders', value);
+      button.borders = value
     },
     interface_outputLine({ ui }, value) {
       ui.outputLine = value
@@ -127,7 +181,7 @@ const store = createStore<LINKaStore>({
     },
 
     async editor_new_file({ state, dispatch }, file: string) {
-      file+='.linka'
+      file += '.linka'
       state.editor.current = file;
       state.editor.temp = await storageService.defaultToTemp(file)
       dispatch('editor_load_set')
@@ -139,7 +193,7 @@ const store = createStore<LINKaStore>({
       dispatch('editor_load_set')
 
     },
-    async editor_load_set({state, commit}){
+    async editor_load_set({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp!);
       if (config) {
         commit('editor_columns', config.columns);
@@ -147,7 +201,7 @@ const store = createStore<LINKaStore>({
         commit('editor_cards', config.cards);
         commit('editor_isWithoutSpace', config.withoutSpace);
         commit('editor_isDirectSet', !!config.directSet);
-        
+
       }
 
     }
@@ -163,9 +217,9 @@ const store = createStore<LINKaStore>({
       })
     },
     async editor_save_as({ state, commit }, title) {
-      
+
       const parts = state.editor.current.split(`§`)
-      parts[parts.length-1] = title 
+      parts[parts.length - 1] = title
       const current = parts.join('§')
       await storageService.saveSet(state.editor.temp, current, {
         cards: state.editor.cards,
@@ -193,5 +247,5 @@ for (const field of fields) {
 
 interface Field<T> {
   commit: string;
-  default:T
+  default: T
 }

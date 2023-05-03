@@ -8,7 +8,7 @@
       :cards="cards"
       :file="filename"
       :config="config"
-      @value="(cards:Card[]) => (this.cards = cards)"
+      @value="(cards:Card[] ) => (this.cards = cards)"
       v-if="interfaceOutputLine"
     />
 

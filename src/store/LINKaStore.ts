@@ -1,16 +1,22 @@
 import { Card } from "@/interfaces/ConfigFile"
 
-export interface LINKaStore{
-    colors:{
-        primary: string, 
+export interface LINKaStore {
+    colors: {
+        primary: string,
         accent: string,
-        secondary:string
+        secondary: string
     }
-    button :{
+    button: {
         timeout: number,
-        enabled: boolean    
+        eyeSelect: boolean,
+        eyeActivation: boolean,
+        joystickActivation: boolean,
+        keyboardActivaton: boolean,
+        mouseActivation: boolean,
+        borders: number;
+        enabled: boolean
     },
-    ui:{
+    ui: {
         outputLine: boolean
     },
     editor: {
