@@ -6,6 +6,13 @@
           <v-card-title primary-title> Главные настройки </v-card-title>
           <v-card-text>
             <v-container>
+                <v-checkbox
+                    v-model="isExitButton"
+                    label="Кнопка выхода из набора глазами"
+                  />
+            </v-container>
+            <v-container>
+
               <v-row>
                 <v-col xs="6">
                   <v-checkbox
@@ -61,9 +68,9 @@
       </v-col>
     </v-row>
     <v-row>
-        <v-col cols="12" md="12">
-            <input-settings/>
-        </v-col>
+      <v-col cols="12" md="12">
+        <input-settings />
+      </v-col>
     </v-row>
   </v-container>
 </template>
@@ -77,7 +84,7 @@ class Props {}
 @Options({
   components: {
     ColorSettings,
-    InputSettings
+    InputSettings,
   },
 })
 export default class SettingsView extends Vue.with(Props) {
@@ -117,6 +124,14 @@ export default class SettingsView extends Vue.with(Props) {
   set mouseActivation(value: boolean) {
     this.$store.commit("button_mouseActivation", value);
   }
+
+  get isExitButton() {
+    return this.$store.getters.ui_exitButton;
+  }
+  set isExitButton(value: boolean) {
+    this.$store.commit("ui_exitButton", value);
+  }
+
   get enabled() {
     return this.$store.getters.button_enabled;
   }

@@ -17,6 +17,7 @@ const fields = [
   { commit: 'button_mouseActivation', default: true } as Field<boolean>,
   { commit: 'button_borders', default: 1 } as Field<number>,
   { commit: 'button_enabled', default: true } as Field<boolean>,
+  { commit: 'ui_exitButton', default: true } as Field<boolean>,
   {commit: 'keyMaping_up', default: ['ArrowUp']} as Field<string[]>,
   {commit: 'keyMaping_down', default: ['ArrowDown']} as Field<string[]>,
   {commit: 'keyMaping_left', default: ['ArrowLeft']} as Field<string[]>,
@@ -42,7 +43,8 @@ const store = createStore<LINKaStore>({
       borders: 1
     },
     ui: {
-      outputLine: true
+      outputLine: true,
+      exitButton: true
     },
     selectedKey: undefined,
     keyMaping: {
@@ -119,10 +121,18 @@ const store = createStore<LINKaStore>({
     editor_isWithoutSpace({ editor }) {
       return editor.isWithoutSpace
     },
+
+    ui_exitButton({ui}){
+      return ui.exitButton
+    }
   },
   mutations: {
     selectedKey(state, value){
       state.selectedKey = value
+    },
+    ui_exitButton(state, value){
+      eStore.set('ui_exitButton', value)
+      state.ui.exitButton = value
     },
     keyMaping_up({ keyMaping }, value) {
       eStore.set('keyMaping_up', value)

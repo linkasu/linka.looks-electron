@@ -1,8 +1,13 @@
 <template>
   <div class="grid">
+    <div class="left-grid">
+      <eye-button color="accent" @click="$router.back()" v-if="isExitButton">
+      <v-icon>mdi-exit-run</v-icon>
+    </eye-button>
     <eye-button @click="page--" color="primary">
       <v-icon> mdi-arrow-left </v-icon>
     </eye-button>
+  </div>
 
     <div
       class="cards"
@@ -61,6 +66,10 @@ export default class SetGrid extends Vue.with(Props) {
     return this.config.columns * this.config.rows;
   }
 
+  get isExitButton(){
+    return this.$store.getters.ui_exitButton && !this.$store.getters.interface_outputLine;
+  }
+ 
   mounted() {
     if (!this.config) return;
     
@@ -82,5 +91,13 @@ export default class SetGrid extends Vue.with(Props) {
   display: grid;
   grid-template-columns: repeat(var(--columns), 1fr);
   grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
+}
+
+.left-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.left-grid:has(button+button){
+  grid-template-rows: 2fr 10fr;
 }
 </style>

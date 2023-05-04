@@ -28,8 +28,9 @@ export interface LINKaStore {
         enabled: boolean
     },
     ui: {
-        outputLine: boolean
-    },
+        outputLine: boolean,
+        exitButton: boolean
+    }
     editor: {
         current: string,
         temp: string,
