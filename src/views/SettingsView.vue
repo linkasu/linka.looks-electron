@@ -60,17 +60,24 @@
         <color-settings />
       </v-col>
     </v-row>
+    <v-row>
+        <v-col cols="12" md="12">
+            <input-settings/>
+        </v-col>
+    </v-row>
   </v-container>
 </template>
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
 import ColorSettings from "@/components/Settings/ColorsSettings.vue";
+import InputSettings from "@/components/Settings/InputSettings.vue";
 class Props {}
 
 @Options({
   components: {
     ColorSettings,
+    InputSettings
   },
 })
 export default class SettingsView extends Vue.with(Props) {

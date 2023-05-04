@@ -1,11 +1,22 @@
 import { Card } from "@/interfaces/ConfigFile"
 
+interface KeyMap  {
+    up: string[]
+    down: string[]
+    left: string[]
+    right: string[]
+    enter: string[]
+}
+export type Side = keyof KeyMap
 export interface LINKaStore {
     colors: {
         primary: string,
         accent: string,
         secondary: string
     }
+    
+    keyMaping:KeyMap
+    selectedKey?:Side;
     button: {
         timeout: number,
         eyeSelect: boolean,

@@ -1,6 +1,6 @@
 import { createStore, } from 'vuex'
 
-import { LINKaStore } from './LINKaStore'
+import { LINKaStore, Side } from './LINKaStore'
 import { storageService } from '@/CardsStorage/frontend'
 import { eStore } from './eStore'
 
@@ -9,14 +9,19 @@ const fields = [
   { commit: 'colors_primary', default: '#197377' } as Field<string>,
   { commit: 'colors_accent', default: '#7DF6FA' } as Field<string>,
   { commit: 'colors_secondary', default: '#AD9F4E' } as Field<string>,
-  { commit:'button_timeout', default: 1000} as Field<number>,
-  { commit:'button_eyeSelect', default: true} as Field<boolean>,
-  { commit:'button_eyeActivation', default: true} as Field<boolean>,
-  { commit:'button_joystickActivation', default: true} as Field<boolean>,
-  { commit:'button_keyboardActivaton', default: true} as Field<boolean>,
-  { commit:'button_mouseActivation', default: true} as Field<boolean>,
-  { commit:'button_borders', default: 1} as Field<number>,
-  { commit:'button_enabled', default: true} as Field<boolean>,
+  { commit: 'button_timeout', default: 1000 } as Field<number>,
+  { commit: 'button_eyeSelect', default: true } as Field<boolean>,
+  { commit: 'button_eyeActivation', default: true } as Field<boolean>,
+  { commit: 'button_joystickActivation', default: true } as Field<boolean>,
+  { commit: 'button_keyboardActivaton', default: true } as Field<boolean>,
+  { commit: 'button_mouseActivation', default: true } as Field<boolean>,
+  { commit: 'button_borders', default: 1 } as Field<number>,
+  { commit: 'button_enabled', default: true } as Field<boolean>,
+  {commit: 'keyMaping_up', default: ['ArrowUp']} as Field<string[]>,
+  {commit: 'keyMaping_down', default: ['ArrowDown']} as Field<string[]>,
+  {commit: 'keyMaping_left', default: ['ArrowLeft']} as Field<string[]>,
+  {commit: 'keyMaping_right', default: ['ArrowRight']} as Field<string[]>,
+  {commit: 'keyMaping_enter', default: ['Enter']} as Field<string[]>,
 ]
 
 const store = createStore<LINKaStore>({
@@ -39,6 +44,14 @@ const store = createStore<LINKaStore>({
     ui: {
       outputLine: true
     },
+    selectedKey: undefined,
+    keyMaping: {
+      up: ['ArrowUp'],
+      down: ['ArrowDown'],
+      left: ['ArrowLeft'],
+      right: ['ArrowRight'],
+      enter: ['Enter']
+    },
     editor: {
       current: '',
       temp: '',
@@ -49,6 +62,12 @@ const store = createStore<LINKaStore>({
     }
   },
   getters: {
+    selectedKey({selectedKey}){
+      return selectedKey
+    },
+    keyMaping({ keyMaping }) {
+      return keyMaping
+    },
     colors({ colors }) {
       return colors
     },
@@ -102,6 +121,29 @@ const store = createStore<LINKaStore>({
     },
   },
   mutations: {
+    selectedKey(state, value){
+      state.selectedKey = value
+    },
+    keyMaping_up({ keyMaping }, value) {
+      eStore.set('keyMaping_up', value)
+      keyMaping.up = value
+    },
+    keyMaping_down({ keyMaping }, value) {
+      eStore.set('keyMaping_down', value)
+      keyMaping.down = value
+    },
+    keyMaping_left({ keyMaping }, value) {
+      eStore.set('keyMaping_left', value)
+      keyMaping.left = value
+    },
+    keyMaping_right({ keyMaping }, value) {
+      eStore.set('keyMaping_right', value)
+      keyMaping.right = value
+    },
+    keyMaping_enter({ keyMaping }, value) {
+      eStore.set('keyMaping_enter', value)
+      keyMaping.enter = value
+    },
     colors_primary({ colors }, value) {
       eStore.set('colors_primary', value)
       colors.primary = value
@@ -171,7 +213,21 @@ const store = createStore<LINKaStore>({
     },
 
   },
+
   actions: {
+  
+    keymap_push({state, commit}, {side, code}:{side: Side, code: string}){
+      if(!Object.values( state.keyMaping).find((sides)=>sides.includes(code))){
+        state.keyMaping[side].push(code)
+      }
+      commit('keyMaping_'+side, state.keyMaping[side])
+      state.selectedKey = undefined
+    },
+    keymap_remove({state, commit}, {side, code}:{side: Side, code: string}){
+      commit('keyMaping_'+side, state.keyMaping[side].filter((c)=>c!==code))
+      state.selectedKey = undefined
+    },
+
     interface_outputLine({ state, commit }) {
       commit('interface_outputLine', !state.ui.outputLine)
     },

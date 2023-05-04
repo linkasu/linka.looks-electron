@@ -54,11 +54,11 @@ async function createWindow() {
       const coords = screen.getCursorScreenPoint()
 
 
-      sendPoint(win, {
-        ...coords,
-        ts: +new Date()
+      // sendPoint(win, {
+      //   ...coords,
+      //   ts: +new Date()
 
-      })
+      // })
     }, 1000 / 30)
 
   }

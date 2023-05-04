@@ -39,7 +39,7 @@ function hexToRGB(input: string) {
 <style>
 #app {
   height: 100vh;
-  overflow: hidden;
+  overflow: scroll;
 }
 * {
   --v-theme-primary: v-bind(primary) !important;
