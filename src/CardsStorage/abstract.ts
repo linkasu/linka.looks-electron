@@ -17,4 +17,7 @@ export abstract class ICloudStorage {
     abstract defaultToTemp(file: string): string | Promise<string>;
     abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>
     abstract moveSet(file: string, location: string): Promise<string>;
+
+    abstract mkdir(file: string):Promise<void>
+    abstract rmdir(file: string):Promise<void>
 }

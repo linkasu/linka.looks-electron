@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" width="auto" @show="dialog = true">
-    <template v-slot:activator="{ props }" v-if="buttonText">
-      <v-btn v-bind="props" block> {{ buttonText }} </v-btn>
+    <template v-slot:activator="{ props }" v-if="buttonText||icon">
+      <v-btn v-bind="props" :block="!!!icon" :icon="icon" :flat="!!icon"> {{ buttonText }}  <v-icon v-if="icon">{{icon}}</v-icon></v-btn>
     </template>
 
     <v-card min-width="300px">
@@ -34,6 +34,7 @@ class Props {
     required: true,
   });
   buttonText?: string = prop({});
+  icon?: string = prop({})
   comfirmText: string = prop({
     required: true,
   });

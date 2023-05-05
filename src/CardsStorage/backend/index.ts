@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync } from "fs";
 import { join, basename, extname } from "path";
-import { readdir, unlink, copyFile, readFile, rename } from "fs/promises";
+import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
 import AdmZip from "adm-zip";
@@ -35,6 +35,8 @@ export class CardsStorage extends ICloudStorage {
         ipcMain.handle('storage:createAudioFromText', (_, path, text, voice) => this.createAudioFromText(path, text, voice))
         ipcMain.handle('storage:saveSet', (_, path, location, config) => this.saveSet(path, location, config))
         ipcMain.handle('storage:moveSet', (_, path, location) => this.moveSet(path, location))
+        ipcMain.handle('storage:mkdir', (_, path) => this.mkdir(path))
+        ipcMain.handle('storage:rmdir', (_, path) => this.rmdir(path))
 
 
         ipcMain.handle('storage:selectImage', (_, path) => {
@@ -116,7 +118,12 @@ export class CardsStorage extends ICloudStorage {
         if (!entry) return null
         return this.getImage(path, entry)
     }
-
+    public  mkdir(file: string): Promise<void> {
+        return mkdir(this.checkPath(file))
+    }
+    public rmdir(file: string): Promise<void> {
+        return rm(this.checkPath(file), {force: true, recursive: true})
+    }
     public moveToTrash(path: string): Promise<void> {
         return unlink(this.checkPath(path))
     }

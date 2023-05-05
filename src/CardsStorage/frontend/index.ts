@@ -4,7 +4,13 @@ import { ICloudStorage } from "../abstract";
 import { Directory } from "@/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
-    moveSet(file: string, location: string):Promise<string> {
+    mkdir(file: string): Promise<void> {
+        return ipcRenderer.invoke("storage:mkdir", file);
+    }
+    rmdir(file: string): Promise<void> {
+        return ipcRenderer.invoke("storage:rmdir", file);
+    }
+    moveSet(file: string, location: string): Promise<string> {
         return ipcRenderer.invoke("storage:moveSet", file, location);
 
     }
