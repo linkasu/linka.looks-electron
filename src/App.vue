@@ -5,6 +5,9 @@
     <v-main>
       <router-view />
     </v-main>
+    <v-footer class="footer">
+        <update-status-bar/>
+    </v-footer>
   </v-app>
 </template>
 
@@ -13,6 +16,7 @@ import { ref } from "vue";
 import { Vue } from "vue-class-component";
 import store from "./store";
 import { computed } from "vue";
+import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
 
 const primary = computed(()=>{
   return hexToRGB( store.getters.colors.primary)
@@ -45,5 +49,11 @@ function hexToRGB(input: string) {
   --v-theme-primary: v-bind(primary) !important;
   --v-theme-accent: v-bind(accent) !important;
   --v-theme-secondary: v-bind(secondary) !important;
+}
+.footer{
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #fdfdfd;
 }
 </style>

@@ -1,6 +1,6 @@
 'use strict'
 import { platform } from "os";
-import { app, protocol, BrowserWindow, screen } from 'electron'
+import { app, protocol, BrowserWindow, screen, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import { join } from "path";
@@ -8,10 +8,10 @@ import { TobiiProcess } from "tobiiee";
 import { GazeData } from "tobiiee/build/GazeData";
 import { CardsStorage } from "./CardsStorage/backend";
 import { autoUpdater } from "electron-updater";
-import Store  from "electron-store";
+import Store from "electron-store";
 
 Store.initRenderer();
-new CardsStorage()  
+new CardsStorage()
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -63,6 +63,21 @@ async function createWindow() {
 
   }
 
+  ipcMain.on('app_version', (event) => {
+    event.sender.send('app_version', { version: app.getVersion() });
+  });
+
+  autoUpdater.on('update-available', () => {
+    win.webContents.send('update_available');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    win.webContents.send('update_downloaded');
+  });
+
+  ipcMain.on('restart_app', () => {
+    autoUpdater.quitAndInstall();
+  });
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string)
@@ -72,7 +87,6 @@ async function createWindow() {
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
 
-   autoUpdater.checkForUpdatesAndNotify()
   }
 }
 
@@ -121,7 +135,7 @@ if (isDevelopment) {
   }
 }
 function sendPoint(win: BrowserWindow, point: GazeData) {
-  if(!win || win.isDestroyed()|| !win.isFocused()) return;
+  if (!win || win.isDestroyed() || !win.isFocused()) return;
   const rect = win.getContentBounds();
   const pointInWindow = {
     x: Math.floor(point.x - rect.x),
