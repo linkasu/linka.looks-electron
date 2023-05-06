@@ -29,6 +29,9 @@ class Props {
   color = prop({
     required: false,
   });
+  path = prop({
+    default: false
+  })
 }
 
 @Options({

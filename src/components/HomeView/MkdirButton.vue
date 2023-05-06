@@ -1,12 +1,25 @@
 <template>
-  <input-dialog
-    icon="mdi-folder-plus"
-    title="Введите название папки"
-    label="Название папки"
-    comfirmText="Создать"
-    cancelText="Отмена"
-    @confirm="create"
-  />
+  <div>
+    <input-dialog
+      icon="mdi-folder-plus"
+      title="Введите название папки"
+      label="Название папки"
+      comfirmText="Создать"
+      cancelText="Отмена"
+      @confirm="create"
+      :checkFilePath="true"
+    />
+
+    <v-snackbar v-model="error" :timeout="5000">
+      Ошибка создания папки. Проверьте название на наличие спецсимволов.
+
+      <template v-slot:actions>
+        <v-btn color="blue" variant="text" @click="error = false">
+          Закрыть
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </div>
 </template>
 
 <script lang="ts">
@@ -23,10 +36,16 @@ class Props {}
   },
 })
 export default class MkdirButton extends Vue.with(Props) {
+  error: boolean = false;
+
   async create(name: string) {
     const root = this.$route.params.path.toString();
-    await storageService.mkdir(root + "§" + name);
-    window.location.reload()
+    try {
+      await storageService.mkdir(root + "§" + name);
+      window.location.reload();
+    } catch (error) {
+      this.error = true;
+    }
   }
 }
 </script>
