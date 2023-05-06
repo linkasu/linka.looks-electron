@@ -5,13 +5,12 @@
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <v-btn icon>
+    <set-settings/>
       <save-button
         :title="title"
         @save="save"
         @saveAs="(title:string)=>saveAs(title)"
-      />
-    </v-btn>
+      />  
   </v-app-bar>
 </template>
 
@@ -19,6 +18,7 @@
 import { Vue, prop, Options } from "vue-class-component";
 import SaveButton from "@/components/EditorView/SaveButton.vue";
 import ExitButton from "@/components/EditorView/ExitButton.vue";
+import SetSettings from "@/components/EditorView/SetSettings.vue";
 import { storageService } from "@/CardsStorage/frontend";
 
 class Props {}
@@ -27,6 +27,7 @@ class Props {}
   components: {
     ExitButton,
     SaveButton,
+    SetSettings
   },
 })
 export default class EditorViewAppBar extends Vue.with(Props) {

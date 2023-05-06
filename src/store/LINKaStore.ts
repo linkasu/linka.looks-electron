@@ -1,6 +1,6 @@
 import { Card } from "@/interfaces/ConfigFile"
 
-interface KeyMap  {
+interface KeyMap {
     up: string[]
     down: string[]
     left: string[]
@@ -14,9 +14,9 @@ export interface LINKaStore {
         accent: string,
         secondary: string
     }
-    
-    keyMaping:KeyMap
-    selectedKey?:Side;
+
+    keyMaping: KeyMap
+    selectedKey?: Side;
     button: {
         timeout: number,
         eyeSelect: boolean,
@@ -35,6 +35,10 @@ export interface LINKaStore {
         current: string,
         temp: string,
         cards: Card[],
+        quiz: boolean,
+        questions: string[],
+        quizAutoNext: boolean,
+        quizReadQuestion: boolean;
         columns: number;
         rows: number;
         isDirectSet: boolean;

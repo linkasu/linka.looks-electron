@@ -7,6 +7,7 @@ interface StandardCard {
   imagePath?: string;
   title?: string;
   audioPath?: string;
+  answer?: true
 };
 export interface NewCard {
   id: string,
@@ -19,5 +20,9 @@ export   interface ConfigFile {
     rows: number;
     withoutSpace: boolean;
     directSet?: boolean
+    quiz?: boolean
+    questions?: string[],
+    quizAutoNext?: boolean,
+    quizReadQuestion?: boolean,
     cards: Card[]
 }  

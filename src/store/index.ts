@@ -58,6 +58,10 @@ const store = createStore<LINKaStore>({
       current: '',
       temp: '',
       cards: [],
+      quiz: false,
+      questions: [],
+      quizAutoNext: true,
+      quizReadQuestion: true,
       columns: 3,
       rows: 3,
       isDirectSet: false, isWithoutSpace: false
@@ -120,6 +124,21 @@ const store = createStore<LINKaStore>({
     },
     editor_isWithoutSpace({ editor }) {
       return editor.isWithoutSpace
+    },
+
+    editor_isQuiz({ editor }) {
+      return editor.quiz
+    },
+
+    editor_quizAutoNext({ editor }) {
+      return editor.quizAutoNext
+    },
+
+    editor_quizReadQuestion({ editor }) {
+      return editor.quizReadQuestion
+    },
+    editor_questions({ editor }) {
+      return editor.questions
     },
 
     ui_exitButton({ui}){
@@ -186,6 +205,18 @@ const store = createStore<LINKaStore>({
     },
     editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value
+    },
+    editor_isQuiz({ editor }, value) {
+      editor.quiz = value
+    },
+    editor_questions({ editor }, value) {
+      editor.questions = value
+    },
+    editor_quizAutoNext({ editor }, value) {
+      editor.quizAutoNext = value
+    },
+    editor_quizReadQuestion({ editor }, value) {
+      editor.quizReadQuestion = value
     },
     button_timeout({ button }, value) {
       eStore.set('button_timeout', value)
@@ -267,7 +298,8 @@ const store = createStore<LINKaStore>({
         commit('editor_cards', config.cards);
         commit('editor_isWithoutSpace', config.withoutSpace);
         commit('editor_isDirectSet', !!config.directSet);
-
+        commit('editor_isQuiz', !!config.quiz);
+        commit('editor_questions', config.questions??[]);
       }
 
     }
@@ -279,7 +311,11 @@ const store = createStore<LINKaStore>({
         rows: state.editor.rows,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
-        version: '1.0'
+        questions: state.editor.questions ,
+        quiz: state.editor.quiz,
+        quizAutoNext: state.editor.quizAutoNext,
+        quizReadQuestion: state.editor.quizReadQuestion,
+        version: '2.0'
       })
     },
     async editor_save_as({ state, commit }, title) {

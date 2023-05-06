@@ -2,7 +2,7 @@
   <v-app>
     <router-view name="appbar" />
 
-    <v-main>
+    <v-main style="margin-bottom: 40px;">
       <router-view />
     </v-main>
     <v-footer class="footer">

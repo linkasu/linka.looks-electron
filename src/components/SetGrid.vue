@@ -4,7 +4,7 @@
       <eye-button color="accent" @click="$router.back()" v-if="isExitButton">
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
-    <eye-button @click="page--" color="primary">
+    <eye-button @click="page--" color="primary" v-if="!config.quiz">
       <v-icon> mdi-arrow-left </v-icon>
     </eye-button>
   </div>
@@ -16,7 +16,7 @@
       <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="$emit('card', card)" />
     </div>
 
-    <eye-button @click="page++" color="primary">
+    <eye-button @click="page++" color="primary" v-if="!config.quiz">
       <v-icon> mdi-arrow-right </v-icon>
     </eye-button>
   </div>
@@ -35,6 +35,9 @@ class Props {
   file: string = prop({
     required: true
   })
+  quizPage?:number = prop({
+    required: false
+  })
 }
 
 @Options({
@@ -42,6 +45,9 @@ class Props {
     EyeButton,
     SetGridButton,
   },
+  watch:{
+    quizPage:'onQuizPage'
+  }
 })
 export default class SetGrid extends Vue.with(Props) {
   private mpage = 0;
@@ -73,6 +79,9 @@ export default class SetGrid extends Vue.with(Props) {
   mounted() {
     if (!this.config) return;
     
+  }
+  onQuizPage(p:number){
+    this.page = p
   }
 }
 </script>

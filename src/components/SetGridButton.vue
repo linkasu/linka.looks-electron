@@ -1,5 +1,8 @@
 <template>
   <eye-button>
+    <div class="dot" v-if="dot">
+
+    </div>
     <v-icon v-if="card.cardType == 3"> mdi-plus </v-icon>
     <div class="content" v-else>
       <div align-center>
@@ -30,6 +33,9 @@ class Props {
   file: string = prop({
     required: true,
   });
+  dot = prop({
+    default: false
+  })
 }
 @Options({
   components: {
@@ -44,6 +50,7 @@ class Props {
 })
 export default class SetGridButton extends Vue.with(Props) {
   image?: string = "";
+
 
   onCard(card: Card) {
     if (card && card.imagePath) {
@@ -90,5 +97,16 @@ export default class SetGridButton extends Vue.with(Props) {
 .text {
   height: 100%;
   overflow: hidden;
+}
+.dot{
+  --size: 24px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: calc(var(--size) / 2);
+  background-color: rgb(var(--v-theme-secondary));
+  position: absolute;
+  top: calc(var(--size) / -2);
+  right: calc(var(--size) / -2);
+  z-index: 10000;
 }
 </style>

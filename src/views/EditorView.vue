@@ -1,51 +1,16 @@
 <template>
   <div fluid class="editor">
     <new-file-dialog ref="newFile" @text="newFileName" />
-    <v-card fill-height>
-      <v-card-title primary-title> Настройки набора </v-card-title>
-      <v-card-text>
-        <v-form>
-          <v-row>
-            <v-col xs8>
-              <v-row>
-                <v-col xs12 md6>
-                  <v-text-field
-                    label="Количество строк"
-                    type="number"
-                    :min="1"
-                    v-model="rows"
-                  ></v-text-field>
-                </v-col>
-                <v-col xs12 md6>
-                  <v-text-field
-                    label="Количество колонок"
-                    small
-                    :min="1"
-                    type="number"
-                    v-model="columns"
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-            </v-col>
-            <v-col xs4>
-              <v-row>
-                <v-checkbox
-                  label="Набор для печати текста"
-                  v-model="isWithoutSpace"
-                ></v-checkbox>
-                <v-checkbox
-                  label="Рекомендовать скрыть строку вывода при работе с набором"
-                  v-model="isDirectSet"
-                ></v-checkbox>
-              </v-row>
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-card-text>
-    </v-card>
     <div class="editor-body">
       <v-card xs8 fill-height fluid v-if="filename">
         <v-card-title> Карточки </v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-if="isQuiz"
+            label="Введите вопрос для этой страницы"
+            v-model="questions[page]"
+          ></v-text-field>
+        </v-card-text>
         <v-card-text class="cards-wrapper">
           <draggable
             v-model="current"
@@ -54,6 +19,7 @@
             :style="{ '--rows': rows, '--columns': columns }"
           >
             <template #item="{ element, index }">
+              
               <set-grid-button
                 :key="element.id"
                 :file="filename"
@@ -63,6 +29,7 @@
                   selected: selected?.id === element?.id,
                   nonValid: !isValid(element),
                 }"
+                :dot="!!element.answer"
                 @click="select(index)"
               />
             </template>
@@ -160,6 +127,17 @@
                           >Послушать озвучку</v-btn
                         >
                       </v-row>
+                    </v-container>
+                  </v-card-text>
+                </v-card>
+              </v-row>
+              <v-row>
+
+                <v-card width="100%" v-if="isQuiz">
+                  <v-card-title primary-title> Работа с викториной </v-card-title>
+                  <v-card-text>
+                    <v-container>
+                      <v-checkbox label="Отметить как правильный ответ" v-model="selected.answer" />
                     </v-container>
                   </v-card-text>
                 </v-card>
@@ -283,6 +261,13 @@ export default class EditorView extends Vue.with(Props) {
     this.$store.commit("editor_isDirectSet", v);
   }
 
+  get isQuiz(): boolean {
+    return this.$store.getters.editor_isQuiz;
+  }
+  set isQuiz(v: boolean) {
+    this.$store.commit("editor_isQuiz", v);
+  }
+
   get pageSize(): number {
     return this.columns * this.rows;
   }
@@ -316,6 +301,11 @@ export default class EditorView extends Vue.with(Props) {
     }
     return true;
   }
+
+  get questions():string[]{
+    return this.$store.getters.editor_questions
+  }
+
   isValid(card: Card) {
     if (card.cardType == 0) {
       if (!card.imagePath || !card.imagePath || !card.title) {
@@ -395,18 +385,16 @@ export default class EditorView extends Vue.with(Props) {
 
 <style scoped>
 .editor {
-  display: grid;
-  gap: 16px;
-  grid-template-rows: 3fr 9fr;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 104px);
   padding: 10px;
 }
 .editor-body {
+  height: 100%;
   display: grid;
   grid-template-columns: 8fr 4fr;
 }
 .cards {
-  height: 80%;
+  height: 60%;
   display: grid;
   grid-template-rows: repeat(var(--rows), 1fr);
   grid-template-columns: repeat(var(--columns), 1fr);
