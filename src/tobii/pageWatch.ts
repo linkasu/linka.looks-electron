@@ -49,6 +49,9 @@ export class PageWatcher {
             }
         }
         if (action == null) return false;
+        if(this.lastElement?.getBoundingClientRect().width==0){
+            this.lastElement = undefined
+        }
         if (!this.lastElement && elements[0]) {
             this.lastElement = elements[0];
             const e = new CustomEvent('eye-enter', { detail: {} })
@@ -72,6 +75,7 @@ export class PageWatcher {
         } else {
             let e = new CustomEvent('click', { detail: {} })
             this.lastElement.dispatchEvent(e)
+            
 
         }
         return true
