@@ -1,8 +1,9 @@
 <template>
   <input-dialog
-  ref="dialog"
+    ref="dialog"
     title="Новое название файла"
     label="Название"
+    :checkFilePath="true"
     comfirmText="Создать"
     cancelText="Отмена"
     @confirm="(text:string)=>$emit('text', text)"
@@ -23,11 +24,11 @@ class Props {}
   },
 })
 export default class NewFileDialog extends Vue.with(Props) {
-    show(){
-        (this.$refs.dialog as InputDialog).show()
-    }
-    cancel(){
-        this.$router.back()
-    }
+  show() {
+    (this.$refs.dialog as InputDialog).show();
+  }
+  cancel() {
+    this.$router.back();
+  }
 }
 </script>
