@@ -55,7 +55,7 @@ export default class HomeView extends Vue {
 
   mounted() {
     this.root = this.$route.params.path.toString();
-  }
+  } 
 
   private loadSets() {
     storageService
