@@ -10,7 +10,16 @@
       v-if="isInside || (!buttonEnabled && !lock)"
       :class="{ disabled: !buttonEnabled && !lock }"
     >
-      <canvas ref="canvas"></canvas>
+      <div
+        class="progress-bar"
+        :style="{ '--seconds': seconds, '--size': size }"
+      >
+        <progress
+          min="0"
+          :max="buttonTimeout"
+          style="visibility: hidden; height: 0; width: 0"
+        ></progress>
+      </div>
     </div>
   </button>
 </template>
@@ -30,8 +39,8 @@ class Props {
     required: false,
   });
   path = prop({
-    default: false
-  })
+    default: false,
+  });
 }
 
 @Options({
@@ -62,8 +71,6 @@ export default class EyeButton extends Vue.with(Props) {
   }
   onStay(time: number) {
     if (!this.$store.getters.button_eyeActivation) return;
-    const canvas = this.$refs.canvas as HTMLCanvasElement;
-    if (!canvas) return;
 
     const stayCount = Math.floor(time / this.buttonTimeout);
 
@@ -71,38 +78,6 @@ export default class EyeButton extends Vue.with(Props) {
       (this.$el as HTMLButtonElement).dispatchEvent(new Event("click"));
       this.countOfClicks = stayCount;
     }
-
-    const percent =
-      (time - stayCount * this.buttonTimeout) / this.buttonTimeout;
-
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    // ...then set the internal size to match
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const x = width / 2;
-    const y = height / 2;
-    const radius = Math.min(width, height) * 0.35;
-    const lineWidth = 4;
-    const startAngle = -Math.PI / 2;
-    const endAngle = 2 * Math.PI;
-
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = "#ccc";
-    ctx.beginPath();
-    ctx.arc(x, y, radius, startAngle, endAngle);
-    ctx.stroke();
-
-    ctx.strokeStyle = "#00A";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.arc(x, y, radius, startAngle, startAngle + percent * (2 * Math.PI));
-    ctx.stroke();
   }
   onExit() {
     this.isInside = false;
@@ -115,6 +90,15 @@ export default class EyeButton extends Vue.with(Props) {
 
   get buttonEnabled() {
     return this.$store.getters.button_enabled;
+  }
+
+  get size() {
+    const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
+    return Math.min(rect.width, rect.height) * 0.8 + "px";
+  }
+
+  public get seconds(): string {
+    return this.buttonTimeout / 1000 + "s";
   }
 }
 </script>
@@ -145,5 +129,42 @@ canvas {
   position: absolute;
   left: 0;
   top: 0;
+}
+@property --progress-value {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: false;
+}
+
+@keyframes progress {
+  to {
+    --progress-value: 100;
+  }
+}
+
+.progress-bar {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  justify-content: center;
+  align-items: center;
+
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: radial-gradient(
+      closest-side,
+      transparent 79%,
+      transparent 80% 100%
+    ),
+    conic-gradient(
+      rgb(var(--v-theme-primary)) calc(var(--progress-value) * 1%),
+      transparent 0
+    );
+  animation: progress 1s infinite forwards;
+  animation-duration: var(--seconds);
+  animation-timing-function: linear;
 }
 </style>
