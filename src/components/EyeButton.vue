@@ -160,7 +160,7 @@ canvas {
       transparent 80% 100%
     ),
     conic-gradient(
-      rgb(var(--v-theme-primary)) calc(var(--progress-value) * 1%),
+      rgba(var(--v-theme-primary), 0.8) calc(var(--progress-value) * 1%),
       transparent 0
     );
   animation: progress 1s infinite forwards;
