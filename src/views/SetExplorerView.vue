@@ -11,7 +11,7 @@
       @value="(cards:Card[] ) => (this.cards = cards)"
       v-if="interfaceOutputLine && !isQuiz"
     />
-    <quiz-output-line :config="config" :page="quizPage" v-if="isQuiz" @restart="quizPage=0" />
+    <quiz-output-line :config="config" :page="quizPage" v-if="isQuiz" @restart="quizPage=0; errors = 0" :errors="errors" />
 
     <set-grid v-if="config" :config="config" :file="filename" :quizPage="quizPage" @card="addCard" />
   </v-layout>
@@ -37,7 +37,7 @@ export default class SetExplorerView extends Vue {
   config: ConfigFile | null = null;
   cards: Card[] = [];
   quizPage = 0;
-
+  errors = 0;
   get interfaceOutputLine() {
     return this.$store.getters.interface_outputLine;
   }
@@ -68,6 +68,11 @@ export default class SetExplorerView extends Vue {
     if (this.isQuiz) {
       if(card.answer){
         this.quizPage++
+      } else{
+        this.errors++
+        if(this.quizAutoNext){
+          this.quizPage++
+        }
       }
       return;
     }
