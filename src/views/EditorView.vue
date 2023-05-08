@@ -191,14 +191,14 @@ class Props {}
 export default class EditorView extends Vue.with(Props) {
   mcurrent: (Card | NewCard)[] = [];
   get columns(): number {
-    return this.$store.getters.editor_columns;
+    return this.$store.state.editor.columns;
   }
 
   public set columns(v: number) {
     this.$store.commit("editor_columns", v);
   }
   get rows(): number {
-    return this.$store.getters.editor_rows;
+    return this.$store.state.editor.rows;
   }
 
   public set rows(v: number) {
@@ -208,7 +208,7 @@ export default class EditorView extends Vue.with(Props) {
   mpage = 0;
 
   get cards(): (Card | NewCard)[] {
-    return this.$store.getters.editor_cards;
+    return this.$store.state.editor.cards;
   }
 
   public set cards(v: (Card | NewCard)[]) {
@@ -216,7 +216,7 @@ export default class EditorView extends Vue.with(Props) {
   }
 
   get filename(): string | null {
-    return this.$store.getters.editor_temp;
+    return this.$store.state.editor.temp;
   }
   selected: Card | NewCard | null = null;
 
@@ -249,20 +249,20 @@ export default class EditorView extends Vue.with(Props) {
     }
   }
   get isWithoutSpace(): boolean {
-    return this.$store.getters.editor_isWithoutSpace;
+    return this.$store.state.editor.isWithoutSpace;
   }
   set isWithoutSpace(v: boolean) {
     this.$store.commit("editor_isWithoutSpace", v);
   }
   get isDirectSet(): boolean {
-    return this.$store.getters.editor_isDirectSet;
+    return this.$store.state.editor.isDirectSet;
   }
   set isDirectSet(v: boolean) {
     this.$store.commit("editor_isDirectSet", v);
   }
 
   get isQuiz(): boolean {
-    return this.$store.getters.editor_isQuiz;
+    return this.$store.state.editor.quiz;
   }
   set isQuiz(v: boolean) {
     this.$store.commit("editor_isQuiz", v);
@@ -278,7 +278,8 @@ export default class EditorView extends Vue.with(Props) {
   public set page(v: number) {
     this.mpage = Math.max(0, v);
     this.selected = null;
-    const arr = this.cards.slice(
+    if(!this.cards) return
+    const arr = this.cards?.slice(
       this.pageSize * this.page,
       this.pageSize * (this.page + 1)
     );
@@ -303,7 +304,7 @@ export default class EditorView extends Vue.with(Props) {
   }
 
   get questions():string[]{
-    return this.$store.getters.editor_questions
+    return this.$store.state.editor.questions
   }
 
   isValid(card: Card) {
