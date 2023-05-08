@@ -64,13 +64,13 @@ export default class SetExplorerViewAppBar extends Vue {
     return this.$route.fullPath.replace("set", "edit");
   }
   get interfaceOutputLine() {
-    return this.$store.getters.interface_outputLine;
+    return this.$store.state.ui.outputLine;
   }
   switchInterfaceOutputLine() {
     this.$store.dispatch("interface_outputLine");
   }
   get buttonEnabled() {
-    return this.$store.getters.button_enabled;
+    return this.$store.state.button.enabled;
   }
   switchButtonEnabled() {
     this.$store.dispatch("button_enabled");

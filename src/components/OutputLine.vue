@@ -1,5 +1,9 @@
 <template>
-  <v-layout full-height class="output-line " :class="{'output-line-back': isExitButton}">
+  <v-layout
+    full-height
+    class="output-line"
+    :class="{ 'output-line-back': isExitButton }"
+  >
     <eye-button color="accent" @click="$router.back()" v-if="isExitButton">
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
@@ -11,9 +15,9 @@
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </eye-button>
     <eye-button class="output-block" @click="say">
-      <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''"
-        >mdi-account-voice</v-icon
-      >
+      <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''">
+        mdi-account-voice
+      </v-icon>
       <div class="output-text" ref="text">
         <div class="text" v-if="withoutSpace">{{ text }}</div>
         <div v-else class="cards">
@@ -62,13 +66,12 @@ class Props {
   },
 })
 export default class OutpuiLine extends Vue.with(Props) {
- 
-  get isExitButton(){
-    return this.$store.getters.ui_exitButton
+  get isExitButton() {
+    return this.$store.state.ui.exitButton;
   }
- 
+
   get buttonEnabled() {
-    return this.$store.getters.button_enabled;
+    return this.$store.state.button.enabled;
   }
   switchButtonEnabled() {
     this.$store.dispatch("button_enabled");

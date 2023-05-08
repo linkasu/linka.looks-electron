@@ -39,7 +39,7 @@ export default class SetExplorerView extends Vue {
   quizPage = 0;
   errors = 0;
   get interfaceOutputLine() {
-    return this.$store.getters.interface_outputLine;
+    return this.$store.state.ui.outputLine;
   }
   get isQuiz() {
     return this.config?.quiz;

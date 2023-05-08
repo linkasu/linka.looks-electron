@@ -85,46 +85,46 @@ export default class SetSettings extends Vue.with(Props) {
   dialog = this.defaultOpen;
 
   get columns(): number {
-    return this.$store.getters.editor_columns;
+    return this.$store.state.editor.columns;
   }
 
   public set columns(v: number) {
     this.$store.commit("editor_columns", v);
   }
   get rows(): number {
-    return this.$store.getters.editor_rows;
+    return this.$store.state.editor.rows;
   }
 
   public set rows(v: number) {
     this.$store.commit("editor_rows", v);
   }
   get isWithoutSpace(): boolean {
-    return this.$store.getters.editor_isWithoutSpace;
+    return this.$store.state.editor.isWithoutSpace;
   }
   set isWithoutSpace(v: boolean) {
     this.$store.commit("editor_isWithoutSpace", v);
   }
   get isDirectSet(): boolean {
-    return this.$store.getters.editor_isDirectSet;
+    return this.$store.state.editor.isDirectSet;
   }
   set isDirectSet(v: boolean) {
     this.$store.commit("editor_isDirectSet", v);
   }
 
   get isQuiz(): boolean {
-    return this.$store.getters.editor_isQuiz;
+    return this.$store.state.editor.quiz;
   }
   set isQuiz(v: boolean) {
     this.$store.commit("editor_isQuiz", v);
   }
   get editor_quizReadQuestion(): boolean {
-    return this.$store.getters.editor_quizReadQuestion;
+    return this.$store.state.editor.quizReadQuestion;
   }
   set editor_quizReadQuestion(v: boolean) {
     this.$store.commit("editor_quizReadQuestion", v);
   }
   get editor_quizAutoNext(): boolean {
-    return this.$store.getters.editor_quizAutoNext;
+    return this.$store.state.editor.quizAutoNext;
   }
   set editor_quizAutoNext(v: boolean) {
     this.$store.commit("editor_quizAutoNext", v);

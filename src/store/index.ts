@@ -18,11 +18,11 @@ const fields = [
   { commit: 'button_borders', default: 1 } as Field<number>,
   { commit: 'button_enabled', default: true } as Field<boolean>,
   { commit: 'ui_exitButton', default: true } as Field<boolean>,
-  {commit: 'keyMaping_up', default: ['ArrowUp']} as Field<string[]>,
-  {commit: 'keyMaping_down', default: ['ArrowDown']} as Field<string[]>,
-  {commit: 'keyMaping_left', default: ['ArrowLeft']} as Field<string[]>,
-  {commit: 'keyMaping_right', default: ['ArrowRight']} as Field<string[]>,
-  {commit: 'keyMaping_enter', default: ['Enter']} as Field<string[]>,
+  { commit: 'keyMaping_up', default: ['ArrowUp'] } as Field<string[]>,
+  { commit: 'keyMaping_down', default: ['ArrowDown'] } as Field<string[]>,
+  { commit: 'keyMaping_left', default: ['ArrowLeft'] } as Field<string[]>,
+  { commit: 'keyMaping_right', default: ['ArrowRight'] } as Field<string[]>,
+  { commit: 'keyMaping_enter', default: ['Enter'] } as Field<string[]>,
 ]
 
 const store = createStore<LINKaStore>({
@@ -67,122 +67,43 @@ const store = createStore<LINKaStore>({
       isDirectSet: false, isWithoutSpace: false
     }
   },
-  getters: {
-    selectedKey({selectedKey}){
-      return selectedKey
-    },
-    keyMaping({ keyMaping }) {
-      return keyMaping
-    },
-    colors({ colors }) {
-      return colors
-    },
-    button_timeout({ button }) {
-      return button.timeout
-    },
-    button_enabled({ button }) {
-      return button.enabled
-    },
-    button_eyeSelect({ button }) {
-      return button.eyeSelect
-    },
-    button_eyeActivation({ button }) {
-      return button.eyeActivation
-    },
-    button_joystickActivation({ button }) {
-      return button.joystickActivation
-    },
-    button_keyboardActivaton({ button }) {
-      return button.keyboardActivaton
-    },
-    button_mouseActivation({ button }) {
-      return button.mouseActivation
-    },
-    button_borders({ button }) {
-      return button.borders
-    },
-    interface_outputLine({ ui }) {
-      return ui.outputLine
-    },
-    editor_current({ editor }) {
-      return editor.current
-    },
-    editor_temp({ editor }) {
-      return editor.temp
-    },
-    editor_cards({ editor }) {
-      return editor.cards
-    },
-    editor_columns({ editor }) {
-      return editor.columns
-    },
-    editor_rows({ editor }) {
-      return editor.rows
-    },
-    editor_isDirectSet({ editor }) {
-      return editor.isDirectSet
-    },
-    editor_isWithoutSpace({ editor }) {
-      return editor.isWithoutSpace
-    },
-
-    editor_isQuiz({ editor }) {
-      return editor.quiz
-    },
-
-    editor_quizAutoNext({ editor }) {
-      return editor.quizAutoNext
-    },
-
-    editor_quizReadQuestion({ editor }) {
-      return editor.quizReadQuestion
-    },
-    editor_questions({ editor }) {
-      return editor.questions
-    },
-
-    ui_exitButton({ui}){
-      return ui.exitButton
-    }
-  },
   mutations: {
-    selectedKey(state, value){
+    selectedKey(state, value) {
       state.selectedKey = value
     },
-    ui_exitButton(state, value){
-      eStore.set('ui_exitButton', value)
+    ui_exitButton(state, value) {
       state.ui.exitButton = value
     },
     keyMaping_up({ keyMaping }, value) {
-      eStore.set('keyMaping_up', value)
+      
       keyMaping.up = value
     },
     keyMaping_down({ keyMaping }, value) {
-      eStore.set('keyMaping_down', value)
+      
       keyMaping.down = value
     },
     keyMaping_left({ keyMaping }, value) {
-      eStore.set('keyMaping_left', value)
+      
       keyMaping.left = value
     },
     keyMaping_right({ keyMaping }, value) {
-      eStore.set('keyMaping_right', value)
+      
       keyMaping.right = value
     },
     keyMaping_enter({ keyMaping }, value) {
-      eStore.set('keyMaping_enter', value)
+      
       keyMaping.enter = value
     },
     colors_primary({ colors }, value) {
-      eStore.set('colors_primary', value)
+      
       colors.primary = value
     },
     colors_accent({ colors }, value) {
-      eStore.set('colors_accent', value)
+      
       colors.accent = value
     },
     colors_secondary({ colors }, value) {
-      eStore.set('colors_secondary', value)
+      
       colors.secondary = value
     },
     editor_current({ editor }, value) {
@@ -219,34 +140,34 @@ const store = createStore<LINKaStore>({
       editor.quizReadQuestion = value
     },
     button_timeout({ button }, value) {
-      eStore.set('button_timeout', value)
+      
       button.timeout = value
     },
     button_enabled({ button }, value) {
       button.enabled = value
     },
     button_eyeSelect({ button }, value) {
-      eStore.set('button_eyeSelect', value);
+      
       button.eyeSelect = value
     },
     button_eyeActivation({ button }, value) {
-      eStore.set('button_eyeActivation', value);
+      
       button.eyeActivation = value
     },
     button_joystickActivation({ button }, value) {
-      eStore.set('button_joystickActivation', value);
+      
       button.joystickActivation = value
     },
     button_keyboardActivaton({ button }, value) {
-      eStore.set('button_keyboardActivaton', value);
+      
       button.keyboardActivaton = value
     },
     button_mouseActivation({ button }, value) {
-      eStore.set('button_mouseActivation', value);
+      
       button.mouseActivation = value
     },
     button_borders({ button }, value) {
-      eStore.set('button_borders', value);
+      
       button.borders = value
     },
     interface_outputLine({ ui }, value) {
@@ -256,16 +177,16 @@ const store = createStore<LINKaStore>({
   },
 
   actions: {
-  
-    keymap_push({state, commit}, {side, code}:{side: Side, code: string}){
-      if(!Object.values( state.keyMaping).find((sides)=>sides.includes(code))){
+
+    keymap_push({ state, commit }, { side, code }: { side: Side, code: string }) {
+      if (!Object.values(state.keyMaping).find((sides) => sides.includes(code))) {
         state.keyMaping[side].push(code)
       }
-      commit('keyMaping_'+side, state.keyMaping[side])
+      commit('keyMaping_' + side, state.keyMaping[side])
       state.selectedKey = undefined
     },
-    keymap_remove({state, commit}, {side, code}:{side: Side, code: string}){
-      commit('keyMaping_'+side, state.keyMaping[side].filter((c)=>c!==code))
+    keymap_remove({ state, commit }, { side, code }: { side: Side, code: string }) {
+      commit('keyMaping_' + side, state.keyMaping[side].filter((c) => c !== code))
       state.selectedKey = undefined
     },
 
@@ -299,7 +220,7 @@ const store = createStore<LINKaStore>({
         commit('editor_isWithoutSpace', config.withoutSpace);
         commit('editor_isDirectSet', !!config.directSet);
         commit('editor_isQuiz', !!config.quiz);
-        commit('editor_questions', config.questions??[]);
+        commit('editor_questions', config.questions ?? []);
       }
 
     }
@@ -311,7 +232,7 @@ const store = createStore<LINKaStore>({
         rows: state.editor.rows,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
-        questions: state.editor.questions ,
+        questions: state.editor.questions,
         quiz: state.editor.quiz,
         quizAutoNext: state.editor.quizAutoNext,
         quizReadQuestion: state.editor.quizReadQuestion,
@@ -335,8 +256,16 @@ const store = createStore<LINKaStore>({
     }
 
   },
-  modules: {
-  }
+  plugins: [
+    (store) => {
+      store.subscribe((mutation, state) => {
+        if (!fields.find(({ commit }) => {
+          return mutation.type === commit
+        })) return
+        eStore.set(mutation.type, mutation.payload)
+      })
+    }
+  ]
 })
 
 export default store

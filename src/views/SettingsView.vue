@@ -89,51 +89,51 @@ class Props {}
 })
 export default class SettingsView extends Vue.with(Props) {
   get timeout() {
-    return this.$store.getters.button_timeout / 1000;
+    return this.$store.state.button.timeout / 1000;
   }
   set timeout(value: number) {
     this.$store.commit("button_timeout", value * 1000);
   }
   get eyeSelect() {
-    return this.$store.getters.button_eyeSelect;
+    return this.$store.state.button.eyeSelect;
   }
   set eyeSelect(value: boolean) {
     this.$store.commit("button_eyeSelect", value);
   }
   get eyeActivation() {
-    return this.$store.getters.button_eyeActivation;
+    return this.$store.state.button.eyeActivation;
   }
   set eyeActivation(value: boolean) {
     this.$store.commit("button_eyeActivation", value);
   }
   get joystickActivation() {
-    return this.$store.getters.button_joystickActivation;
+    return this.$store.state.button.joystickActivation;
   }
   set joystickActivation(value: boolean) {
     this.$store.commit("button_joystickActivation", value);
   }
   get keyboardActivaton() {
-    return this.$store.getters.button_keyboardActivaton;
+    return this.$store.state.button.keyboardActivaton;
   }
   set keyboardActivaton(value: boolean) {
     this.$store.commit("button_keyboardActivaton", value);
   }
   get mouseActivation() {
-    return this.$store.getters.button_mouseActivation;
+    return this.$store.state.button.mouseActivation;
   }
   set mouseActivation(value: boolean) {
     this.$store.commit("button_mouseActivation", value);
   }
 
   get isExitButton() {
-    return this.$store.getters.ui_exitButton;
+    return this.$store.state.ui.exitButton;
   }
   set isExitButton(value: boolean) {
     this.$store.commit("ui_exitButton", value);
   }
 
   get enabled() {
-    return this.$store.getters.button_enabled;
+    return this.$store.state.button.enabled;
   }
   set enabled(value: boolean) {
     this.$store.commit("button_enabled", value);

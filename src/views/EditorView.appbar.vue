@@ -32,10 +32,10 @@ class Props {}
 })
 export default class EditorViewAppBar extends Vue.with(Props) {
   get path(): string {
-    return this.$store.getters.editor_current;
+    return this.$store.state.editor.current;
   }
   get filename(): string | null {
-    return this.$store.getters.editor_temp;
+    return this.$store.state.editor.temp;
   }
 
   get title() {

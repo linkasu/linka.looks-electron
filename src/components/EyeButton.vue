@@ -50,10 +50,10 @@ export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   countOfClicks = 0;
   get borderWidth() {
-    return this.$store.getters.button_borders + "px";
+    return this.$store.state.button.borders + "px";
   }
   get buttonTimeout(): number {
-    return this.$store.getters.button_timeout;
+    return this.$store.state.button.timeout;
   }
 
   mounted() {
@@ -70,8 +70,7 @@ export default class EyeButton extends Vue.with(Props) {
     });
   }
   onStay(time: number) {
-    if (!this.$store.getters.button_eyeActivation) return;
-
+    if (!this.$store.state.button.eyeActivation) return;
     const stayCount = Math.floor(time / this.buttonTimeout);
 
     if (this.countOfClicks < stayCount) {
@@ -83,16 +82,17 @@ export default class EyeButton extends Vue.with(Props) {
     this.isInside = false;
   }
   onEnter() {
-    if (!this.$store.getters.button_eyeSelect) return;
+    if (!this.$store.state.button.eyeSelect) return;
     this.isInside = true;
     this.countOfClicks = 0;
   }
 
   get buttonEnabled() {
-    return this.$store.getters.button_enabled;
+    return this.$store.state.button.enabled;
   }
 
   get size() {
+    if(!this.$el) return 0+'px';
     const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
     return Math.min(rect.width, rect.height) * 0.8 + "px";
   }

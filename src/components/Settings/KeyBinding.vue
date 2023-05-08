@@ -48,13 +48,13 @@ export default class KeyBinding extends Vue.with(Props) {
   }
 
   get keys() {
-    return this.$store.getters.keyMaping[this.side];
+    return this.$store.state.keyMaping[this.side];
   }
 
   get selected() {
-    return this.$store.getters.selectedKey;
+    return this.$store.state.selectedKey;
   }
-  set selected(side: Side) {
+  set selected(side: Side|undefined) {
     this.$store.commit("selectedKey", side);
   }
   get isCurrent() {

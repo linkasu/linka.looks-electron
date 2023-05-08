@@ -33,7 +33,7 @@ export class PageWatcher {
         })
     }
     onKeyboard(code: string) {
-        if (!store.getters.button_keyboardActivaton) return;
+        if (!store.state.button.keyboardActivaton) return;
         const elements = document.getElementsByClassName(PageWatcher.CLASS);
         const map = store.state.keyMaping;
         let action: Side | null = null

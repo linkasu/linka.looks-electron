@@ -19,13 +19,15 @@ import { computed } from "vue";
 import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
 
 const primary = computed(()=>{
-  return hexToRGB( store.getters.colors.primary)
+  console.log(store.state.colors);
+  
+  return hexToRGB( store.state.colors.primary)
 })
 const accent = computed(()=>{
-  return hexToRGB( store.getters.colors.accent)
+  return hexToRGB( store.state.colors.accent)
 })
 const secondary = computed(()=>{
-  return hexToRGB( store.getters.colors.secondary)
+  return hexToRGB( store.state.colors.secondary)
 })
 
 function hexToRGB(input: string) {

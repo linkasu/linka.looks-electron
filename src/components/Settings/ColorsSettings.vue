@@ -48,7 +48,7 @@ class Props {}
 @Options({})
 export default class extends Vue.with(Props) {
   get borders() {
-    return this.$store.getters.button_borders;
+    return this.$store.state.button.borders;
   }
   set borders(value: number) {
     this.$store.commit("button_borders", value);
