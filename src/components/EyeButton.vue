@@ -124,6 +124,9 @@ export default class EyeButton extends Vue.with(Props) {
 .eyebtn {
   position: relative;
   border: 1px solid rgb(var(--v-theme-secondary));
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 .isInside {
   background-color: rgb(var(--v-theme-secondary)) !important;
