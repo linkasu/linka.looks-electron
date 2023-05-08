@@ -250,7 +250,12 @@ const store = createStore<LINKaStore>({
         rows: state.editor.rows,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
-        version: '1.0'
+        
+        questions: state.editor.questions,
+        quiz: state.editor.quiz,
+        quizAutoNext: state.editor.quizAutoNext,
+        quizReadQuestion: state.editor.quizReadQuestion,
+        version: '2.0'
       })
       return current
     }
