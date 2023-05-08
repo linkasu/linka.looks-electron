@@ -11,6 +11,7 @@
       :class="{ disabled: !buttonEnabled && !lock }"
     >
       <div
+        v-if="circle"
         class="progress-bar"
         :style="{ '--seconds': seconds, '--size': size }"
       >
@@ -49,6 +50,7 @@ class Props {
 export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   countOfClicks = 0;
+  circle = false;
   get borderWidth() {
     return this.$store.state.button.borders + "px";
   }
@@ -70,6 +72,7 @@ export default class EyeButton extends Vue.with(Props) {
     });
   }
   onStay(time: number) {
+    this.circle = true;
     if (!this.$store.state.button.eyeActivation) return;
     const stayCount = Math.floor(time / this.buttonTimeout);
 
@@ -80,6 +83,7 @@ export default class EyeButton extends Vue.with(Props) {
   }
   onExit() {
     this.isInside = false;
+    this.circle = false;
   }
   onEnter() {
     if (!this.$store.state.button.eyeSelect) return;
@@ -92,7 +96,7 @@ export default class EyeButton extends Vue.with(Props) {
   }
 
   get size() {
-    if(!this.$el) return 0+'px';
+    if (!this.$el) return 0 + "px";
     const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
     return Math.min(rect.width, rect.height) * 0.8 + "px";
   }

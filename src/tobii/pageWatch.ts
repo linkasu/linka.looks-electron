@@ -22,14 +22,11 @@ export class PageWatcher {
         });
         window.addEventListener('keydown', (event) => {
             if (!(event.target instanceof HTMLInputElement)) {
-
-
                 if (this.onKeyboard(event.code)) {
                     event.preventDefault();
                     return false
                 }
             }
-
         })
     }
     onKeyboard(code: string) {
@@ -49,7 +46,7 @@ export class PageWatcher {
             }
         }
         if (action == null) return false;
-        if(this.lastElement?.getBoundingClientRect().width==0){
+        if (this.lastElement?.getBoundingClientRect().width == 0) {
             this.lastElement = undefined
         }
         if (!this.lastElement && elements[0]) {
@@ -61,7 +58,7 @@ export class PageWatcher {
         if (!this.lastElement) return true;
 
         if (action !== 'enter') {
-            if(!store.state.button.enabled) return;
+            if (!store.state.button.enabled) return;
             let next = this.findNear(elements, action);
             if (!next) return;
             let e = new CustomEvent('eye-exit', { detail: {} })
@@ -75,7 +72,7 @@ export class PageWatcher {
         } else {
             let e = new CustomEvent('click', { detail: {} })
             this.lastElement.dispatchEvent(e)
-            
+
 
         }
         return true
@@ -168,7 +165,11 @@ export class PageWatcher {
     enterWatch(el: Element, time: number) {
         this.lastElement = el;
         this.enterTs = time;
-        const e = new CustomEvent('eye-enter', { detail: {} })
+        const e = new CustomEvent('eye-enter', {
+            detail: {
+                eye: true
+            }
+        })
         el.dispatchEvent(e)
     }
     exitWatch(time: number, important = false) {
@@ -178,7 +179,11 @@ export class PageWatcher {
         }
 
         if (important || (this.exitTs && time - this.exitTs > PageWatcher.EXIT_TIMEOUT)) {
-            const e = new CustomEvent('eye-exit', { detail: {} })
+            const e = new CustomEvent('eye-exit', {
+                detail: {
+                    eye: true
+                }
+            })
             this.lastElement?.dispatchEvent(e)
             this.reset()
             return true
