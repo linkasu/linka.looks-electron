@@ -1,4 +1,4 @@
-import { Card } from "@/interfaces/ConfigFile"
+import { Card, ConfigFile } from "@/interfaces/ConfigFile"
 
 interface KeyMap {
     up: string[]
@@ -42,6 +42,10 @@ export interface LINKaStore {
         columns: number;
         rows: number;
         isDirectSet: boolean;
-        isWithoutSpace: boolean
+        isWithoutSpace: boolean;
+        description?: string;
+    }
+    explorer:{
+        config?: ConfigFile
     }
 }

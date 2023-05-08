@@ -7,7 +7,10 @@
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-
+    <notes-button
+    v-if="config?.description"
+    :config="config"
+    />
     <v-btn
       flat
       icon
@@ -41,15 +44,20 @@
 import { Options, Vue } from "vue-class-component";
 import DeleteButton from "@/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/components/SetExplorer/FolderButton.vue";
+import NotesButton from "@/components/SetExplorer/NotesButton.vue";
 import { storageService } from "@/CardsStorage/frontend";
 
 @Options({
   components: {
     DeleteButton,
-    FolderButton
+    FolderButton,
+    NotesButton
   },
 })
 export default class SetExplorerViewAppBar extends Vue {
+  get config(){
+    return this.$store.state.explorer.config
+  }
   get file(): string {
     return this.$route.params.path.toString();
   }

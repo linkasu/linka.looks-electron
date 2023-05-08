@@ -65,6 +65,9 @@ const store = createStore<LINKaStore>({
       columns: 3,
       rows: 3,
       isDirectSet: false, isWithoutSpace: false
+    },
+    explorer: {
+
     }
   },
   mutations: {
@@ -75,35 +78,35 @@ const store = createStore<LINKaStore>({
       state.ui.exitButton = value
     },
     keyMaping_up({ keyMaping }, value) {
-      
+
       keyMaping.up = value
     },
     keyMaping_down({ keyMaping }, value) {
-      
+
       keyMaping.down = value
     },
     keyMaping_left({ keyMaping }, value) {
-      
+
       keyMaping.left = value
     },
     keyMaping_right({ keyMaping }, value) {
-      
+
       keyMaping.right = value
     },
     keyMaping_enter({ keyMaping }, value) {
-      
+
       keyMaping.enter = value
     },
     colors_primary({ colors }, value) {
-      
+
       colors.primary = value
     },
     colors_accent({ colors }, value) {
-      
+
       colors.accent = value
     },
     colors_secondary({ colors }, value) {
-      
+
       colors.secondary = value
     },
     editor_current({ editor }, value) {
@@ -139,35 +142,38 @@ const store = createStore<LINKaStore>({
     editor_quizReadQuestion({ editor }, value) {
       editor.quizReadQuestion = value
     },
+    editor_description({ editor }, value) {
+      editor.description = value
+    },
     button_timeout({ button }, value) {
-      
+
       button.timeout = value
     },
     button_enabled({ button }, value) {
       button.enabled = value
     },
     button_eyeSelect({ button }, value) {
-      
+
       button.eyeSelect = value
     },
     button_eyeActivation({ button }, value) {
-      
+
       button.eyeActivation = value
     },
     button_joystickActivation({ button }, value) {
-      
+
       button.joystickActivation = value
     },
     button_keyboardActivaton({ button }, value) {
-      
+
       button.keyboardActivaton = value
     },
     button_mouseActivation({ button }, value) {
-      
+
       button.mouseActivation = value
     },
     button_borders({ button }, value) {
-      
+
       button.borders = value
     },
     interface_outputLine({ ui }, value) {
@@ -217,12 +223,12 @@ const store = createStore<LINKaStore>({
         commit('editor_columns', config.columns);
         commit('editor_rows', config.rows);
         commit('editor_cards', config.cards);
+        commit('editor_description', config.description);
         commit('editor_isWithoutSpace', config.withoutSpace);
         commit('editor_isDirectSet', !!config.directSet);
         commit('editor_isQuiz', !!config.quiz);
         commit('editor_questions', config.questions ?? []);
       }
-
     }
     ,
     async editor_save({ state, commit }) {
@@ -236,6 +242,7 @@ const store = createStore<LINKaStore>({
         quiz: state.editor.quiz,
         quizAutoNext: state.editor.quizAutoNext,
         quizReadQuestion: state.editor.quizReadQuestion,
+        description: state.editor.description,
         version: '2.0'
       })
     },
@@ -250,7 +257,7 @@ const store = createStore<LINKaStore>({
         rows: state.editor.rows,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
-        
+        description: state.editor.description,
         questions: state.editor.questions,
         quiz: state.editor.quiz,
         quizAutoNext: state.editor.quizAutoNext,
@@ -258,8 +265,21 @@ const store = createStore<LINKaStore>({
         version: '2.0'
       })
       return current
-    }
+    },
+    async open_file({ state, commit }, filename) {
 
+      const config = await storageService.getConfigFile(filename)
+
+      if (config) {
+        state.explorer.config = config;
+        if (config.directSet != undefined) {
+          commit("interface_outputLine", !config.directSet);
+        } else {
+          commit("interface_outputLine", true);
+        }
+      }
+
+    }
   },
   plugins: [
     (store) => {

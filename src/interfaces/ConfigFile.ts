@@ -24,5 +24,6 @@ export   interface ConfigFile {
     questions?: string[],
     quizAutoNext?: boolean,
     quizReadQuestion?: boolean,
-    cards: Card[]
+    cards: Card[];
+    description?: string
 }  

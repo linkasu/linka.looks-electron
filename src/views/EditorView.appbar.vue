@@ -5,12 +5,13 @@
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <set-settings/>
-      <save-button
-        :title="title"
-        @save="save"
-        @saveAs="(title:string)=>saveAs(title)"
-      />  
+    <notes-button edit="true" />
+    <set-settings />
+    <save-button
+      :title="title"
+      @save="save"
+      @saveAs="(title:string)=>saveAs(title)"
+    />
   </v-app-bar>
 </template>
 
@@ -19,6 +20,8 @@ import { Vue, prop, Options } from "vue-class-component";
 import SaveButton from "@/components/EditorView/SaveButton.vue";
 import ExitButton from "@/components/EditorView/ExitButton.vue";
 import SetSettings from "@/components/EditorView/SetSettings.vue";
+import NotesButton from "@/components/SetExplorer/NotesButton.vue";
+
 import { storageService } from "@/CardsStorage/frontend";
 
 class Props {}
@@ -27,7 +30,8 @@ class Props {}
   components: {
     ExitButton,
     SaveButton,
-    SetSettings
+    SetSettings,
+    NotesButton,
   },
 })
 export default class EditorViewAppBar extends Vue.with(Props) {
@@ -48,8 +52,7 @@ export default class EditorViewAppBar extends Vue.with(Props) {
   }
   async saveAs(title: string) {
     const newLink = await this.$store.dispatch("editor_save_as", title);
-    this.$router.push('/set/'+newLink)
-    
-  } 
+    this.$router.push("/set/" + newLink);
+  }
 }
 </script>

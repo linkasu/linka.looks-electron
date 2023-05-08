@@ -90,14 +90,24 @@ export class CardsStorage extends ICloudStorage {
 
     getConfigFile(path: string) {
         const zip = new AdmZip(this.checkPath(path))
-        return JSON.parse(zip.readAsText("config.json")) as ConfigFile
+        const raw = zip.readAsText("config.json")
+        try {
+            return JSON.parse(raw) as ConfigFile
+
+        } catch (error) {
+            console.log(raw);
+
+            console.error(error);
+
+        }
+        return null
     }
 
     private checkPath(path: string): string {
         return (path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path)).replace(/§/g, '/');
     }
     getImage(path: string, entry: string) {
-
+        if (!path) return null
         return this.getBuffer(path, entry);
     }
     private getBuffer(path: string, entry: string) {
@@ -112,17 +122,18 @@ export class CardsStorage extends ICloudStorage {
 
     getDefaultImage(path: string) {
         const config = this.getConfigFile(this.checkPath(path))
+        if (!config) return null
         const card = config.cards.find((c => !!c.imagePath))
         if (!card) return null
         const entry = card.imagePath
         if (!entry) return null
         return this.getImage(path, entry)
     }
-    public  mkdir(file: string): Promise<void> {
+    public mkdir(file: string): Promise<void> {
         return mkdir(this.checkPath(file))
     }
     public rmdir(file: string): Promise<void> {
-        return rm(this.checkPath(file), {force: true, recursive: true})
+        return rm(this.checkPath(file), { force: true, recursive: true })
     }
     public moveToTrash(path: string): Promise<void> {
         return unlink(this.checkPath(path))
@@ -158,7 +169,7 @@ export class CardsStorage extends ICloudStorage {
         if (res.canceled) return null;
         path = this.checkPath(path)
 
-        return this.adddFile(path, res.filePaths[0])
+        return this.addFile(path, res.filePaths[0])
     }
 
     async createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {
@@ -194,8 +205,7 @@ export class CardsStorage extends ICloudStorage {
     async saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
         path = this.checkPath(path)
         location = this.checkPath(location)
-        await this.cleanFile(path, config)
-        await delay(500)
+        // await this.cleanFile(pat, config)
         config.cards = config.cards.map((card) => {
             if (card.cardType > 2) {
                 card = {
@@ -207,7 +217,15 @@ export class CardsStorage extends ICloudStorage {
         })
 
         const json = JSON.stringify(config)
-        await this.addBuffer(path, Buffer.from(json), 'json', 'config')
+        JSON.parse(json)
+        try {
+            await this.addBuffer(path, Buffer.from(json), 'json', 'config')
+
+        } catch (error) {
+            console.error(error);
+            
+            return
+        }
         await delay(500)
         await copyFile(path, location)
     }
@@ -238,7 +256,7 @@ export class CardsStorage extends ICloudStorage {
 
     }
 
-    private async adddFile(path: string, file: string) {
+    private async addFile(path: string, file: string) {
         const buff = await readFile(file)
         path = this.checkPath(path)
         const ext = extname(file)
@@ -252,11 +270,7 @@ export class CardsStorage extends ICloudStorage {
         // zip.addFile(name+'.'+ext, buff);
         // await zip.writeZipPromise()
         const file = name + '.' + ext!
-        await appendZip(path, async (a) => {
-            await a.append(buff, {
-                name: file
-            })
-        })
+        await appendZip(path, file, buff)
         return file
     }
 

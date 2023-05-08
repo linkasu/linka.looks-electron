@@ -11,9 +11,24 @@
       @value="(cards:Card[] ) => (this.cards = cards)"
       v-if="interfaceOutputLine && !isQuiz"
     />
-    <quiz-output-line :config="config" :page="quizPage" v-if="isQuiz" @restart="quizPage=0; errors = 0" :errors="errors" />
+    <quiz-output-line
+      :config="config"
+      :page="quizPage"
+      v-if="isQuiz"
+      @restart="
+        quizPage = 0;
+        errors = 0;
+      "
+      :errors="errors"
+    />
 
-    <set-grid v-if="config" :config="config" :file="filename" :quizPage="quizPage" @card="addCard" />
+    <set-grid
+      v-if="config"
+      :config="config"
+      :file="filename"
+      :quizPage="quizPage"
+      @card="addCard"
+    />
   </v-layout>
 </template>
 
@@ -34,7 +49,9 @@ import { TTS } from "@/utils/TTS";
 })
 export default class SetExplorerView extends Vue {
   filename: string | null = null;
-  config: ConfigFile | null = null;
+  get config() {
+    return this.$store.state.explorer.config;
+  }
   cards: Card[] = [];
   quizPage = 0;
   errors = 0;
@@ -52,26 +69,16 @@ export default class SetExplorerView extends Vue {
   }
   mounted() {
     this.filename = this.$route.params.path.toString();
-
-    storageService.getConfigFile(this.filename).then((config) => {
-      if (config) {
-        this.config = config;
-        if (config.directSet != undefined) {
-          this.$store.commit("interface_outputLine", !config.directSet);
-        } else {
-          this.$store.commit("interface_outputLine", true);
-        }
-      }
-    });
+    this.$store.dispatch("open_file", this.filename);
   }
   addCard(card: Card) {
     if (this.isQuiz) {
-      if(card.answer){
-        this.quizPage++
-      } else{
-        this.errors++
-        if(this.quizAutoNext){
-          this.quizPage++
+      if (card.answer) {
+        this.quizPage++;
+      } else {
+        this.errors++;
+        if (this.quizAutoNext) {
+          this.quizPage++;
         }
       }
       return;
