@@ -19,7 +19,6 @@ import { computed } from "vue";
 import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
 
 const primary = computed(()=>{
-  console.log(store.state.colors);
   
   return hexToRGB( store.state.colors.primary)
 })

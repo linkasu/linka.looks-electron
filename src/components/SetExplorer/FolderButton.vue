@@ -76,8 +76,6 @@
     }
     open(file: string) {
       this.current = normalize( file);
-      console.log(this.current);
-      
       this.loadSet();
     }
 

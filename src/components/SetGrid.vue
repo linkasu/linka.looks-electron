@@ -73,7 +73,7 @@ export default class SetGrid extends Vue.with(Props) {
   }
 
   get isExitButton(){
-    return this.$store.getters.ui_exitButton && !this.$store.getters.interface_outputLine;
+    return this.$store.state.ui.exitButton && !this.$store.state.ui.outputLine;
   }
  
   mounted() {
