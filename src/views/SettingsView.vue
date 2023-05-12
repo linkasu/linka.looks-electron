@@ -36,7 +36,7 @@
                 </v-col>
                 <v-col xs="6">
                   <v-checkbox
-                    v-model="keyboardActivaton"
+                    v-model="keyboardActivation"
                     label="Активация карточки клавиатурой"
                   />
                 </v-col>
@@ -124,11 +124,11 @@ export default class SettingsView extends Vue.with(Props) {
   set joystickActivation(value: boolean) {
     this.$store.commit("button_joystickActivation", value);
   }
-  get keyboardActivaton() {
-    return this.$store.state.button.keyboardActivaton;
+  get keyboardActivation() {
+    return this.$store.state.button.keyboardActivation;
   }
-  set keyboardActivaton(value: boolean) {
-    this.$store.commit("button_keyboardActivaton", value);
+  set keyboardActivation(value: boolean) {
+    this.$store.commit("button_keyboardActivation", value);
   }
   get mouseActivation() {
     return this.$store.state.button.mouseActivation;

@@ -30,9 +30,9 @@ export class PageWatcher {
         })
     }
     onKeyboard(code: string) {
-        if (!store.state.button.keyboardActivaton) return;
+        if (!store.state.button.keyboardActivation) return;
         const elements = document.getElementsByClassName(PageWatcher.CLASS);
-        const map = store.state.keyMaping;
+        const map = store.state.keyMapping;
         let action: Side | null = null
         for (const key in map) {
             if (Object.prototype.hasOwnProperty.call(map, key)) {
@@ -113,10 +113,10 @@ export class PageWatcher {
                     break;
             }
             const v = where != 'left' && where !== 'right'
-            const xcoof = v ? 1000 : 1
-            const ycoof = !v ? 1000 : 1
+            const xCoof = v ? 1000 : 1
+            const yCoof = !v ? 1000 : 1
 
-            const d = getDistance({ x: rx * xcoof, y: ry * ycoof }, { x: cx * xcoof, y: cy * ycoof });
+            const d = getDistance({ x: rx * xCoof, y: ry * yCoof }, { x: cx * xCoof, y: cy * yCoof });
             if (d < distance) {
                 distance = d;
                 next = element;

@@ -26,7 +26,7 @@
       :color="buttonEnabled ? 'primary' : ''"
       @click="switchButtonEnabled"
       :title="
-        (buttonEnabled ? 'Выключить' : 'Включиить') + ' управление глазами'
+        (buttonEnabled ? 'Выключить' : 'Включить') + ' управление глазами'
       "
     >
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>

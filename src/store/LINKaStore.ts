@@ -15,14 +15,14 @@ export interface LINKaStore {
         secondary: string
     }
 
-    keyMaping: KeyMap
+    keyMapping: KeyMap
     selectedKey?: Side;
     button: {
         timeout: number,
         eyeSelect: boolean,
         eyeActivation: boolean,
         joystickActivation: boolean,
-        keyboardActivaton: boolean,
+        keyboardActivation: boolean,
         mouseActivation: boolean,
         borders: number;
         enabled: boolean;

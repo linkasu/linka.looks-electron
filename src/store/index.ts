@@ -13,17 +13,17 @@ const fields = [
   { commit: 'button_eyeSelect', default: true } as Field<boolean>,
   { commit: 'button_eyeActivation', default: true } as Field<boolean>,
   { commit: 'button_joystickActivation', default: true } as Field<boolean>,
-  { commit: 'button_keyboardActivaton', default: true } as Field<boolean>,
+  { commit: 'button_keyboardActivation', default: true } as Field<boolean>,
   { commit: 'button_mouseActivation', default: true } as Field<boolean>,
   { commit: 'button_borders', default: 1 } as Field<number>,
   { commit: 'button_enabled', default: true } as Field<boolean>,
   { commit: 'button_clickSound', default: true } as Field<boolean>,
   { commit: 'ui_exitButton', default: true } as Field<boolean>,
-  { commit: 'keyMaping_up', default: ['ArrowUp'] } as Field<string[]>,
-  { commit: 'keyMaping_down', default: ['ArrowDown'] } as Field<string[]>,
-  { commit: 'keyMaping_left', default: ['ArrowLeft'] } as Field<string[]>,
-  { commit: 'keyMaping_right', default: ['ArrowRight'] } as Field<string[]>,
-  { commit: 'keyMaping_enter', default: ['Enter'] } as Field<string[]>,
+  { commit: 'keyMapping_up', default: ['ArrowUp'] } as Field<string[]>,
+  { commit: 'keyMapping_down', default: ['ArrowDown'] } as Field<string[]>,
+  { commit: 'keyMapping_left', default: ['ArrowLeft'] } as Field<string[]>,
+  { commit: 'keyMapping_right', default: ['ArrowRight'] } as Field<string[]>,
+  { commit: 'keyMapping_enter', default: ['Enter'] } as Field<string[]>,
 ]
 
 const store = createStore<LINKaStore>({
@@ -39,7 +39,7 @@ const store = createStore<LINKaStore>({
       eyeSelect: true,
       eyeActivation: true,
       joystickActivation: true,
-      keyboardActivaton: true,
+      keyboardActivation: true,
       mouseActivation: true,
       clickSound: true,
       borders: 1
@@ -49,7 +49,7 @@ const store = createStore<LINKaStore>({
       exitButton: true
     },
     selectedKey: undefined,
-    keyMaping: {
+    keyMapping: {
       up: ['ArrowUp'],
       down: ['ArrowDown'],
       left: ['ArrowLeft'],
@@ -79,25 +79,25 @@ const store = createStore<LINKaStore>({
     ui_exitButton(state, value) {
       state.ui.exitButton = value
     },
-    keyMaping_up({ keyMaping }, value) {
+    keyMapping_up({ keyMapping: keyMapping }, value) {
 
-      keyMaping.up = value
+      keyMapping.up = value
     },
-    keyMaping_down({ keyMaping }, value) {
+    keyMapping_down({ keyMapping: keyMapping }, value) {
 
-      keyMaping.down = value
+      keyMapping.down = value
     },
-    keyMaping_left({ keyMaping }, value) {
+    keyMapping_left({ keyMapping: keyMapping }, value) {
 
-      keyMaping.left = value
+      keyMapping.left = value
     },
-    keyMaping_right({ keyMaping }, value) {
+    keyMapping_right({ keyMapping: keyMapping }, value) {
 
-      keyMaping.right = value
+      keyMapping.right = value
     },
-    keyMaping_enter({ keyMaping }, value) {
+    keyMapping_enter({ keyMapping: keyMapping }, value) {
 
-      keyMaping.enter = value
+      keyMapping.enter = value
     },
     colors_primary({ colors }, value) {
 
@@ -166,9 +166,9 @@ const store = createStore<LINKaStore>({
 
       button.joystickActivation = value
     },
-    button_keyboardActivaton({ button }, value) {
+    button_keyboardActivation({ button }, value) {
 
-      button.keyboardActivaton = value
+      button.keyboardActivation = value
     },
     button_mouseActivation({ button }, value) {
 
@@ -190,14 +190,14 @@ const store = createStore<LINKaStore>({
   actions: {
 
     keymap_push({ state, commit }, { side, code }: { side: Side, code: string }) {
-      if (!Object.values(state.keyMaping).find((sides) => sides.includes(code))) {
-        state.keyMaping[side].push(code)
+      if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
+        state.keyMapping[side].push(code)
       }
-      commit('keyMaping_' + side, state.keyMaping[side])
+      commit('keyMapping_' + side, state.keyMapping[side])
       state.selectedKey = undefined
     },
     keymap_remove({ state, commit }, { side, code }: { side: Side, code: string }) {
-      commit('keyMaping_' + side, state.keyMaping[side].filter((c) => c !== code))
+      commit('keyMapping_' + side, state.keyMapping[side].filter((c) => c !== code))
       state.selectedKey = undefined
     },
 
