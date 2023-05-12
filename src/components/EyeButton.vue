@@ -3,6 +3,7 @@
     class="eyebtn"
     :class="{ eye: enabled, isInside }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
+    @click="click()"
   >
     <slot />
     <div
@@ -104,6 +105,14 @@ export default class EyeButton extends Vue.with(Props) {
   public get seconds(): string {
     return this.buttonTimeout / 1000 + "s";
   }
+  click() {
+    if(!this.$store.state.button.clickSound) return;
+    const el = document.getElementById('button_audio') as HTMLAudioElement
+    el.pause()
+    el.currentTime = 0
+    el.play()
+  }
+
 }
 </script>
 

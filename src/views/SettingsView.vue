@@ -48,6 +48,12 @@
                     label="Активация карточки мышкой"
                   />
                 </v-col>
+                <v-col xs="6">
+                  <v-checkbox
+                    v-model="clickSound"
+                    label="звук щелчка при активации кнопки"
+                  />
+                </v-col>
               </v-row>
             </v-container>
             <v-slider
@@ -99,6 +105,12 @@ export default class SettingsView extends Vue.with(Props) {
   }
   set eyeSelect(value: boolean) {
     this.$store.commit("button_eyeSelect", value);
+  }
+  get clickSound() {
+    return this.$store.state.button.clickSound;
+  }
+  set clickSound(value: boolean) {
+    this.$store.commit("button_clickSound", value);
   }
   get eyeActivation() {
     return this.$store.state.button.eyeActivation;

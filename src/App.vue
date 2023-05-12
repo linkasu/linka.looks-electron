@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <router-view name="appbar" />
-
+    <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
     <v-main style="margin-bottom: 40px;">
       <router-view />
     </v-main>
