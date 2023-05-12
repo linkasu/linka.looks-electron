@@ -48,7 +48,7 @@ export default class KeyBinding extends Vue.with(Props) {
   }
 
   get keys() {
-    return this.$store.state.keyMaping[this.side];
+    return this.$store.state.keyMapping[this.side];
   }
 
   get selected() {
