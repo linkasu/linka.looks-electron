@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent } from "electron";
+import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync } from "fs";
 import { join, basename, extname } from "path";
 import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
@@ -13,42 +13,26 @@ import { tts } from "@/utils/TTSServer";
 import delay from "delay";
 import { createImageFromText } from "@/utils/ImageFromText";
 import { HOME_DIR } from "../constants";
+import { getMethods } from "@/utils/getMethods";
 
 const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
 let win: BrowserWindow | null = null;
 
-export class CardsStorage extends ICloudStorage {
-
+export class CardsStorage extends ICloudStorage { 
     constructor() {
         super()
         this.init()
-        ipcMain.handle('storage:getFiles', (_, path) => this.getFiles(path))
-        ipcMain.handle('storage:getDefaultImage', (_, path) => this.getDefaultImage(path))
-        ipcMain.handle('storage:getConfigFile', (_, path) => this.getConfigFile(path))
-        ipcMain.handle('storage:moveToTrash', (_, path) => this.moveToTrash(path))
-        ipcMain.handle('storage:getImage', (_, path, entry) => this.getImage(path, entry))
-        ipcMain.handle('storage:getAudio', (_, path, entry) => this.getAudio(path, entry))
-        ipcMain.handle('storage:copyToTemp', (_, path) => this.copyToTemp(path))
-        ipcMain.handle('storage:defaultToTemp', (_, path) => this.defaultToTemp(path))
-        ipcMain.handle('storage:createImageFromText', (_, path, text) => this.createImageFromText(path, text))
-        ipcMain.handle('storage:createAudioFromText', (_, path, text, voice) => this.createAudioFromText(path, text, voice))
-        ipcMain.handle('storage:saveSet', (_, path, location, config) => this.saveSet(path, location, config))
-        ipcMain.handle('storage:moveSet', (_, path, location) => this.moveSet(path, location))
-        ipcMain.handle('storage:mkdir', (_, path) => this.mkdir(path))
-        ipcMain.handle('storage:rmdir', (_, path) => this.rmdir(path))
-
-
-        ipcMain.handle('storage:selectImage', (_, path) => {
-            win = BrowserWindow.fromWebContents(_.sender)
-
-            return this.selectImage(path)
-        })
-        ipcMain.handle('storage:selectAudio', (_, path) => {
-            win = BrowserWindow.fromWebContents(_.sender)
-
-            return this.selectAudio(path)
-        })
+       const methods = ICloudStorage.getMethods()
+        for (const method of methods) {
+            ipcMain.handle('storage:'+method, (_, ...args) => {
+                win = BrowserWindow.fromWebContents(_.sender)
+                //@ts-ignore
+                return this[method](...args)
+            })
+            
+        }
+        
     }
     init() {
 
@@ -58,7 +42,9 @@ export class CardsStorage extends ICloudStorage {
         }
     }
 
-
+    async showItemInFolder(path: string){
+        shell.showItemInFolder(this.checkPath(path))
+    }
     async getFiles(path = ""): Promise<(Directory)> {
         const dir = this.checkPath(path)
         const files = (await readdir(dir)).map((f) => join(dir, f))

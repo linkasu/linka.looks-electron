@@ -4,6 +4,7 @@
         {{ title||'LINKa. смотри' }}
     </v-app-bar-title>
     <v-spacer />
+    <share-button/>
     <rmdir-button/>
     <mkdir-button />
     <v-btn flat icon :to="newHref">
@@ -19,10 +20,11 @@
 import { Vue, prop, Options } from "vue-class-component";
 import MkdirButton from "@/components/HomeView/MkdirButton.vue";
 import RmdirButton from "@/components/HomeView/RmdirButton.vue";
+import ShareButton from "@/components/ShareButton.vue";
 class Props {}
 
 @Options({
-  components: { MkdirButton, RmdirButton },
+  components: { MkdirButton, RmdirButton, ShareButton },
 })
 export default class HomeViewAppBar extends Vue.with(Props) {
   public get root(): string {

@@ -4,6 +4,9 @@ import { ICloudStorage } from "../abstract";
 import { Directory } from "@/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
+    showItemInFolder(file: string): Promise<void> {
+        return ipcRenderer.invoke('storage:showItemInFolder', file)
+    }
     mkdir(file: string): Promise<void> {
         return ipcRenderer.invoke("storage:mkdir", file);
     }

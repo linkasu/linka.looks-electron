@@ -32,6 +32,7 @@
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </v-btn>
     <v-spacer />
+    <share-button/>
     <v-btn flat icon :to="editLink">
       <v-icon>mdi-pencil</v-icon>
     </v-btn>
@@ -46,12 +47,14 @@ import DeleteButton from "@/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/components/SetExplorer/NotesButton.vue";
 import { storageService } from "@/CardsStorage/frontend";
+import ShareButton from "@/components/ShareButton.vue";
 
 @Options({
   components: {
     DeleteButton,
     FolderButton,
-    NotesButton
+    NotesButton,
+    ShareButton
   },
 })
 export default class SetExplorerViewAppBar extends Vue {
