@@ -23,7 +23,7 @@ class Props {}
   components: { KeyBinding },
 })
 export default class InputSettings extends Vue.with(Props) {
-    sides = Object.keys( store.state.keyMaping)
+    sides = Object.keys( store.state.keyMapping)
   mounted(): void {}
 }
 </script>
