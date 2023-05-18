@@ -45,7 +45,7 @@
             v-if="!isQuiz"
           ></v-checkbox>
           <v-checkbox
-            label="Скрыть строку вывода при работе с набором"
+            label="Скрыть строку вывода и озвучивать карточку сразу при нажатии на нее"
             v-model="isDirectSet"
             v-if="!isQuiz"
           ></v-checkbox>
