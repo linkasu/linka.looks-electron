@@ -1,4 +1,4 @@
-version=v0.6.0
+version=v0.6.1
 echo $version
 git commit -am $version
 git tag $version
