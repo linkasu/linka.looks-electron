@@ -197,7 +197,8 @@ export class PageWatcher {
     }
 
     private getElementUnderGaze(elements: HTMLCollectionOf<Element>, point: GazeData) {
-        for (const element of elements) {
+        for (let index = elements.length - 1; index >= 0; index--   ) {
+            const element = elements[index];
             let rect = element.getBoundingClientRect();
             if (point.x > rect.left && point.x < rect.right && point.y > rect.top && point.y < rect.bottom) {
                 return element;
