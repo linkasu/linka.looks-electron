@@ -43,6 +43,7 @@ async function createWindow() {
     tobii.start();
     let lastSend = 0;
     tobii.on("point", (point) => {
+      
       if ((+new Date) - lastSend < (1000 / 30)) return;
       lastSend = +new Date()
       sendPoint(win, point);
