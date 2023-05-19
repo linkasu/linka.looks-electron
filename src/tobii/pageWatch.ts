@@ -16,9 +16,25 @@ export class PageWatcher {
     private lastTS = 0;
     private enterTs?: number;
     private exitTs?: number;
+    private lastInpuTs = 0;
+    lock: boolean = false;
     constructor() {
         ipcRenderer.on('eye-point', (event, point: GazeData) => {
+           
+            if(this.lastInpuTs>point.ts){
+                
+                return
+            }
+            this.lastInpuTs = point.ts;
+            
+            if(this.lock) {
+                console.log('lock');
+                
+                return;}
+            this.lock = true
+
             this.onGaze(point);
+            this.lock = false
         });
         window.addEventListener('keydown', (event) => {
             if (!(event.target instanceof HTMLInputElement)) {
