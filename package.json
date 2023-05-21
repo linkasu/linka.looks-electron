@@ -1,6 +1,7 @@
 {
   "name": "linka.looks-electron",
   "version": "0.8.0",
+  "main": "backgrounds.js",
   "private": true,
   "repository": {
     "type": "git",
