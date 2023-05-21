@@ -9,6 +9,7 @@ import { GazeData } from "tobiiee/build/GazeData";
 import { CardsStorage } from "./CardsStorage/backend";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
+import { BackWatch } from "./tobii/backWatch";
 
 Store.initRenderer();
 new CardsStorage()
@@ -35,35 +36,7 @@ async function createWindow() {
     }
   })
 
-  if (platform() === 'win32') {
-
-    const tobii = new TobiiProcess({
-      path: join(__dirname, '.\\..\\extraResources\\bin\\GazePointLogger.exe')
-    })
-    tobii.start();
-    let lastSend = 0;
-    tobii.on("point", (point) => {
-      
-      if ((+new Date) - lastSend < (1000 / 30)) return;
-      lastSend = +new Date()
-      sendPoint(win, point);
-    })
-  }
-  else if (platform() == 'darwin') {
-
-    setInterval(() => {
-      const coords = screen.getCursorScreenPoint()
-
-
-      sendPoint(win, {
-        ...coords,
-        ts: +new Date()
-
-      })
-    }, 1000 / 30)
-
-  }
-
+  new BackWatch(win)
   ipcMain.on('app_version', (event) => {
     event.sender.send('app_version', { version: app.getVersion() });
   });
@@ -136,15 +109,5 @@ if (isDevelopment) {
   }
 }
 function sendPoint(win: BrowserWindow, point: GazeData) {
-  if (!win || win.isDestroyed() || !win.isFocused()) return;
-  const rect = win.getContentBounds();
-  const pointInWindow = {
-    x: Math.floor(point.x - rect.x),
-    y: Math.floor(point.y - rect.y),
-    ts: point.ts
-  };
-  if (pointInWindow.x > 0 && pointInWindow.x < rect.width && pointInWindow.y > 0 && pointInWindow.y < rect.height) {
-    win.webContents.send("eye-point", pointInWindow);
-  }
 }
 

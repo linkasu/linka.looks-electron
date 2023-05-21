@@ -1,8 +1,10 @@
+import { BrowserElementsState, PageElementsState } from '@/interfaces/PageElementsState';
 import store from '@/store';
 import { Side } from '@/store/LINKaStore';
 import { getDistance } from '@/utils/getDistance';
 import { ipcRenderer } from 'electron';
 import { GazeData } from "tobiiee/build/GazeData";
+import { uuid } from 'uuidv4';
 
 
 
@@ -18,24 +20,54 @@ export class PageWatcher {
     private exitTs?: number;
     private lastInpuTs = 0;
     lock: boolean = false;
-    constructor() {
-        ipcRenderer.on('eye-point', (event, point: GazeData) => {
-           
-            if(this.lastInpuTs>point.ts){
-                
-                return
-            }
-            this.lastInpuTs = point.ts;
-            
-            if(this.lock) {
-                console.log('lock');
-                
-                return;}
-            this.lock = true
 
-            this.onGaze(point);
-            this.lock = false
+    private elements: BrowserElementsState = {
+        id: '',
+        elements: [],
+        bounds: [] as DOMRect[]
+    }
+
+    constructor() {
+        this.watchElementsChange()
+        window.addEventListener('resize', ()=>this.watchElementsChange())
+        const observer = new MutationObserver((m) => {
+            this.watchElementsChange();
+            
         });
+        
+        observer.observe(document, {
+            childList: true,
+            subtree: true
+        });
+
+        ipcRenderer.on('eye-enter', (event, data)=>{
+            if(data.id!=this.elements.id) return
+            const element = this.elements.elements[data.elementIndex]
+            if(this.lastElement!=element){
+                this.exitWatch(element)
+            }
+            this.enterWatch(element)
+            ;
+            
+        })
+
+        ipcRenderer.on('eye-exit', (event, data)=>{
+            if(data?.id!=this.elements.id) return
+
+            const element = this.elements.elements[data.elementIndex]
+                        
+            this.exitWatch(element)
+            ;
+            
+        })
+        ipcRenderer.on('eye-stay', (event, data)=>{
+            if(data?.id!=this.elements.id) return
+            const element = this.elements.elements[data.elementIndex]
+            this.stayWatch(element, data.time)
+            ;
+            
+        })
+
         window.addEventListener('keydown', (event) => {
             if (!(event.target instanceof HTMLInputElement)) {
                 if (this.onKeyboard(event.code)) {
@@ -45,6 +77,18 @@ export class PageWatcher {
             }
         })
     }
+    private watchElementsChange() {
+        const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
+        const bounds = eyes.map((el) => el.getBoundingClientRect());
+
+        this.elements = {
+            elements: eyes,
+            bounds,
+            id: uuid()
+        };
+        ipcRenderer.send('eye-elements', JSON.parse( JSON.stringify(this.elements)))
+    }
+
     onKeyboard(code: string) {
         if (!store.state.button.keyboardActivation) return;
         const elements = document.getElementsByClassName(PageWatcher.CLASS);
@@ -94,6 +138,36 @@ export class PageWatcher {
         return true
     }
 
+    stayWatch(el: Element, ts: number) {
+        
+        const e = new CustomEvent('eye-stay', {
+            detail: {
+                time: ts 
+            }
+        })
+        el.dispatchEvent(e)
+    }
+    enterWatch(el: Element) {
+        if(this.lastElement!=undefined) return
+        this.lastElement = el;
+
+        const e = new CustomEvent('eye-enter', {
+            detail: {
+                eye: true
+            }
+        })
+        el.dispatchEvent(e)
+    }
+    exitWatch(element:Element){
+            const e = new CustomEvent('eye-exit', {
+                detail: {
+                    eye: true
+                }
+            })
+            element.dispatchEvent(e)
+            this.lastElement = undefined
+    }
+    
     private findNear(elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {
         if (!this.lastElement) return null;
         const currentRect = this.lastElement.getBoundingClientRect();
@@ -144,82 +218,4 @@ export class PageWatcher {
         return next;
     }
 
-    private onGaze(point: GazeData) {
-        if (point.ts - this.lastTS > PageWatcher.TIMEOUT) {
-            if (this.lastElement) this.exitWatch(point.ts, true)
-            this.reset();
-        }
-        this.lastTS = point.ts
-        const elements = document.getElementsByClassName(PageWatcher.CLASS);
-        const el = this.getElementUnderGaze(elements, point);
-        if (!this.lastElement && el) {
-            this.enterWatch(el, point.ts)
-        }
-        if (this.lastElement && !el) {
-            this.exitWatch(point.ts)
-        }
-        if (this.lastElement && el) {
-            if (this.lastElement !== el) {
-                const isExit = this.exitWatch(point.ts)
-                if (isExit) {
-                    this.enterWatch(el, point.ts)
-                }
-            } else {
-                this.stayWatch(el, point.ts)
-            }
-        }
-    }
-    stayWatch(el: Element, ts: number) {
-        if (!this.enterTs) return;
-        const e = new CustomEvent('eye-stay', {
-            detail: {
-                time: ts - this.enterTs
-            }
-        })
-        el.dispatchEvent(e)
-    }
-    enterWatch(el: Element, time: number) {
-        this.lastElement = el;
-        this.enterTs = time;
-        const e = new CustomEvent('eye-enter', {
-            detail: {
-                eye: true
-            }
-        })
-        el.dispatchEvent(e)
-    }
-    exitWatch(time: number, important = false) {
-        if (!this.exitTs && !important) {
-            this.exitTs = time;
-            return false
-        }
-
-        if (important || (this.exitTs && time - this.exitTs > PageWatcher.EXIT_TIMEOUT)) {
-            const e = new CustomEvent('eye-exit', {
-                detail: {
-                    eye: true
-                }
-            })
-            this.lastElement?.dispatchEvent(e)
-            this.reset()
-            return true
-        }
-        return false
-    }
-    reset() {
-        this.lastElement = undefined
-        this.enterTs = undefined;
-        this.exitTs = undefined;
-    }
-
-    private getElementUnderGaze(elements: HTMLCollectionOf<Element>, point: GazeData) {
-        for (let index = elements.length - 1; index >= 0; index--   ) {
-            const element = elements[index];
-            let rect = element.getBoundingClientRect();
-            if (point.x > rect.left && point.x < rect.right && point.y > rect.top && point.y < rect.bottom) {
-                return element;
-            }
-        }
-        return null;
-    }
 }

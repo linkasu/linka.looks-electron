@@ -15,7 +15,6 @@
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
-  "main": "background.js",
   "dependencies": {
     "@mdi/font": "5.9.55",
     "@sindresorhus/chunkify": "^0.2.0",

@@ -8,7 +8,7 @@
     <slot />
     <div
       class="overlay"
-      v-if="isInside || (!buttonEnabled && !lock)"
+      v-show="isInside || (!buttonEnabled && !lock)"
       :class="{ disabled: !buttonEnabled && !lock }"
     >
       <div
@@ -65,6 +65,7 @@ export default class EyeButton extends Vue.with(Props) {
       if (this.buttonEnabled || this.lock) this.onEnter();
     });
     el.addEventListener("eye-exit", () => {
+      
       this.onExit();
     });
     el.addEventListener("eye-stay", (event) => {

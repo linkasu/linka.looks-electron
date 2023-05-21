@@ -10,7 +10,7 @@ new PageWatcher()
 
 loadFonts()
 
-createApp(App)
+const vue = createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
