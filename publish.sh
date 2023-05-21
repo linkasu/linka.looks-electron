@@ -1,4 +1,4 @@
-version=v0.7.0
+version=$(node -p "'v'+require('./package.json').version")
 echo $version
 git commit -am $version
 git tag $version
