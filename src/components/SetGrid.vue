@@ -62,7 +62,6 @@ export default class SetGrid extends Vue.with(Props) {
   }
 
   get current() {
-    console.log(this.config.cards);
     
     return this.config.cards.slice(
       this.pageSize * this.page,

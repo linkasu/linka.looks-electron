@@ -94,7 +94,6 @@ export default class SetExplorerViewAppBar extends Vue {
   async move(location: string){
     const target = await storageService.moveSet(this.file, location)
     const url = target.slice(target.lastIndexOf('LINKa')+5).replaceAll('/', '§').replace('\\', `§`)
-    console.log(url);
     
     this.$router.push('/set/'+url)
   }

@@ -8,7 +8,7 @@
     <slot />
     <div
       class="overlay"
-      v-show="isInside || (!buttonEnabled && !lock)"
+      v-if="isInside || (!buttonEnabled && !lock)"
       :class="{ disabled: !buttonEnabled && !lock }"
     >
       <div
@@ -52,6 +52,7 @@ export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   countOfClicks = 0;
   circle = false;
+timer?: NodeJS.Timeout;
   get borderWidth() {
     return this.$store.state.button.borders + "px";
   }
@@ -75,19 +76,33 @@ export default class EyeButton extends Vue.with(Props) {
   }
   onStay(time: number) {
     this.circle = true;
+    if(this.timer) clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      console.log('timeout');
+      
+      this.onExit()
+    }, 100);
     if (!this.$store.state.button.eyeActivation) return;
     const stayCount = Math.floor(time / this.buttonTimeout);
 
     if (this.countOfClicks < stayCount) {
       (this.$el as HTMLButtonElement).dispatchEvent(new Event("click"));
+     
       this.countOfClicks = stayCount;
     }
   }
   onExit() {
     this.isInside = false;
     this.circle = false;
+    
+    
   }
   onEnter() {
+    this.timer = setTimeout(() => {
+      console.log('timeout');
+      
+      this.onExit()
+    }, 100);
     if (!this.$store.state.button.eyeSelect) return;
     this.isInside = true;
     this.countOfClicks = 0;

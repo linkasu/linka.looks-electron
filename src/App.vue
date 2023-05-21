@@ -8,7 +8,7 @@
     <v-footer class="footer">
       <update-status-bar />
     </v-footer>
-    <bubble />
+    <!-- <bubble /> -->
   </v-app>
 </template>
 

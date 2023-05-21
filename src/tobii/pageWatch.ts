@@ -29,43 +29,46 @@ export class PageWatcher {
 
     constructor() {
         this.watchElementsChange()
-        window.addEventListener('resize', ()=>this.watchElementsChange())
+        window.addEventListener('resize', () => this.watchElementsChange())
         const observer = new MutationObserver((m) => {
             this.watchElementsChange();
-            
+
         });
-        
+
         observer.observe(document, {
             childList: true,
             subtree: true
         });
 
-        ipcRenderer.on('eye-enter', (event, data)=>{
-            if(data.id!=this.elements.id) return
+        ipcRenderer.on('eye-enter', (event, data) => {
+            if (data.id != this.elements.id) return
+            
             const element = this.elements.elements[data.elementIndex]
-            if(this.lastElement!=element){
+            if (this.lastElement != element) {
                 this.exitWatch(element)
             }
-            this.enterWatch(element)
-            ;
-            
+            this.enterWatch(element)                ;
+
         })
 
-        ipcRenderer.on('eye-exit', (event, data)=>{
-            if(data?.id!=this.elements.id) return
-
+        ipcRenderer.on('eye-exit', (event, data) => {
+            if (data?.id != this.elements.id) {
+                
+                return
+            }
+            
             const element = this.elements.elements[data.elementIndex]
-                        
+
             this.exitWatch(element)
-            ;
-            
+                ;
+
         })
-        ipcRenderer.on('eye-stay', (event, data)=>{
-            if(data?.id!=this.elements.id) return
+        ipcRenderer.on('eye-stay', (event, data) => {
+            if (data?.id != this.elements.id) return
             const element = this.elements.elements[data.elementIndex]
             this.stayWatch(element, data.time)
-            ;
-            
+                ;
+
         })
 
         window.addEventListener('keydown', (event) => {
@@ -86,7 +89,7 @@ export class PageWatcher {
             bounds,
             id: uuid()
         };
-        ipcRenderer.send('eye-elements', JSON.parse( JSON.stringify(this.elements)))
+        ipcRenderer.send('eye-elements', JSON.parse(JSON.stringify(this.elements)))
     }
 
     onKeyboard(code: string) {
@@ -139,16 +142,16 @@ export class PageWatcher {
     }
 
     stayWatch(el: Element, ts: number) {
-        
+
         const e = new CustomEvent('eye-stay', {
             detail: {
-                time: ts 
+                time: ts
             }
         })
         el.dispatchEvent(e)
     }
     enterWatch(el: Element) {
-        if(this.lastElement!=undefined) return
+        if (this.lastElement != undefined) return
         this.lastElement = el;
 
         const e = new CustomEvent('eye-enter', {
@@ -158,16 +161,16 @@ export class PageWatcher {
         })
         el.dispatchEvent(e)
     }
-    exitWatch(element:Element){
-            const e = new CustomEvent('eye-exit', {
-                detail: {
-                    eye: true
-                }
-            })
-            element.dispatchEvent(e)
-            this.lastElement = undefined
+    exitWatch(element: Element) {
+        const e = new CustomEvent('eye-exit', {
+            detail: {
+                eye: true
+            }
+        })
+        element?.dispatchEvent(e)
+        this.lastElement = undefined
     }
-    
+
     private findNear(elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {
         if (!this.lastElement) return null;
         const currentRect = this.lastElement.getBoundingClientRect();

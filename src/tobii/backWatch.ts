@@ -4,6 +4,7 @@ import { join } from "path";
 import { BrowserWindow, ipcMain, screen } from "electron";
 import { GazeData } from "tobiiee/build/GazeData";
 import { PageElementsState } from "../interfaces/PageElementsState";
+import delay from "delay";
 
 //const
 const SIGNAL_TIMEOUT = 500;
@@ -18,7 +19,7 @@ let lastTS = -1;
 let lastElementId = -1
 let lastEnterTs = 0
 let lastExitTs = 0
-
+let lock = false
 let window: BrowserWindow;
 export class BackWatch {
     constructor(win: BrowserWindow) {
@@ -30,10 +31,10 @@ export class BackWatch {
             })
             tobii.start();
             let lastSend = 0;
-            tobii.on("point", (point) => {
+            tobii.on("point", (point:GazeData) => {
 
                 if ((+new Date) - lastSend < (1000 / 30)) return;
-                lastSend = +new Date()
+                lastSend = point.ts
                 this.onPoint(win, point);
             })
         }
@@ -54,17 +55,20 @@ export class BackWatch {
             this.reset()
         })
     }
-    onPoint(win: BrowserWindow, point: GazeData) {
+    async onPoint(win: BrowserWindow, point: GazeData) {
+        if(lock) return;
         if (!win || win.isDestroyed() || !win.isFocused() || !elements) return;
         if (point.ts - lastTS > SIGNAL_TIMEOUT) {
             win.webContents.send("eye-exit", {
                 elementIndex: lastElementId,
                 id: elements.id,
             })
+
             lastTS = point.ts
             this.reset();
             return
         }
+        lock = true
         lastTS = point.ts
         const rect = win.getContentBounds();
         const pointInWindow = {
@@ -76,29 +80,27 @@ export class BackWatch {
         const currentRectIndex = this.getElementUnderGaze(elements.bounds, pointInWindow)
 
         //exit
-        if (lastElementId !== -1 && currentRectIndex !== lastElementId){
-            if (lastExitTs === 0) {
+        if (lastElementId !== -1 && currentRectIndex != lastElementId){
+            if (lastExitTs == 0) {
                 lastExitTs = point.ts;
             }
-            if (point.ts - lastExitTs > EXIT_TIMEOUT) {
+            if ((point.ts - lastExitTs) > EXIT_TIMEOUT) {
                 win.webContents.send("eye-exit", {
                     elementIndex: lastElementId,
                     id: elements.id,
                 })
                 this.reset()
             }
-
+            
         }
-
         //stay
         else if (lastElementId > -1 && lastElementId === currentRectIndex) {
-
             win.webContents.send("eye-stay", {
-
                 elementIndex: currentRectIndex,
                 id: elements.id,
                 time: lastTS - lastEnterTs
             })
+            lastExitTs =0
 
         }
         //enter
@@ -106,7 +108,6 @@ export class BackWatch {
             win.webContents.send("eye-enter", {
                 elementIndex: currentRectIndex,
                 id: elements.id
-
             });
             lastEnterTs = point.ts
             lastElementId = currentRectIndex
@@ -117,7 +118,7 @@ export class BackWatch {
             win.webContents.send("eye-point", pointInWindow);
         }
 
-
+        lock = false
     }
     private reset() {
         lastExitTs = -1;
