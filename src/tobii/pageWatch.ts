@@ -2,8 +2,8 @@ import { BrowserElementsState, PageElementsState } from '@/interfaces/PageElemen
 import store from '@/store';
 import { Side } from '@/store/LINKaStore';
 import { getDistance } from '@/utils/getDistance';
+import { log } from 'console';
 import { ipcRenderer } from 'electron';
-import { GazeData } from "tobiiee/build/GazeData";
 import { uuid } from 'uuidv4';
 
 
@@ -14,11 +14,6 @@ export class PageWatcher {
     static EXIT_TIMEOUT: number = 150;
 
     private lastElement?: Element;
-
-    private lastTS = 0;
-    private enterTs?: number;
-    private exitTs?: number;
-    private lastInpuTs = 0;
     lock: boolean = false;
 
     private elements: BrowserElementsState = {
@@ -40,33 +35,29 @@ export class PageWatcher {
             subtree: true
         });
 
-        ipcRenderer.on('eye-enter', (event, data) => {
+        ipcRenderer.on('eye-enter', (event, data) => {       
             if (data.id != this.elements.id) return
-            
             const element = this.elements.elements[data.elementIndex]
-            if (this.lastElement != element) {
-                this.exitWatch(element)
-            }
-            this.enterWatch(element)                ;
+            this.enterWatch(element);
 
         })
 
         ipcRenderer.on('eye-exit', (event, data) => {
             if (data?.id != this.elements.id) {
-                
+
                 return
             }
-            
-            const element = this.elements.elements[data.elementIndex]
 
-            this.exitWatch(element)
+            this.exitWatch()
                 ;
 
         })
-        ipcRenderer.on('eye-stay', (event, data) => {
+        ipcRenderer.on('eye-click', (event, data) => {
+            console.log(data.id==this.elements.id);
+            
             if (data?.id != this.elements.id) return
             const element = this.elements.elements[data.elementIndex]
-            this.stayWatch(element, data.time)
+            this.clickWatch(element, data.count)
                 ;
 
         })
@@ -83,7 +74,12 @@ export class PageWatcher {
     private watchElementsChange() {
         const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
         const bounds = eyes.map((el) => el.getBoundingClientRect());
-
+        const equals = bounds.length==this.elements.bounds.length&&!bounds.map((b, index)=>{
+            const a = this.elements.bounds[index];
+            
+            return a.x===b.x&&a.y===b.y&&a.width===b.width&&a.height===b.height
+        }).includes(false)
+        if(equals) return;
         this.elements = {
             elements: eyes,
             bounds,
@@ -141,19 +137,18 @@ export class PageWatcher {
         return true
     }
 
-    stayWatch(el: Element, ts: number) {
+    clickWatch(el: Element, ts: number) {
 
-        const e = new CustomEvent('eye-stay', {
-            detail: {
-                time: ts
-            }
-        })
-        el.dispatchEvent(e)
+        console.log('click');
+        
+        let e = new CustomEvent('click', { detail: {} })
+        el?.dispatchEvent(e)
     }
     enterWatch(el: Element) {
-        if (this.lastElement != undefined) return
+        if(!el) return;
         this.lastElement = el;
-
+        console.log('enter', el)
+        
         const e = new CustomEvent('eye-enter', {
             detail: {
                 eye: true
@@ -161,13 +156,13 @@ export class PageWatcher {
         })
         el.dispatchEvent(e)
     }
-    exitWatch(element: Element) {
+    exitWatch() {
         const e = new CustomEvent('eye-exit', {
             detail: {
                 eye: true
             }
         })
-        element?.dispatchEvent(e)
+        this.lastElement?.dispatchEvent(e)
         this.lastElement = undefined
     }
 

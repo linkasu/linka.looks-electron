@@ -12,6 +12,7 @@ import Store from "electron-store";
 import { BackWatch } from "./tobii/backWatch";
 
 Store.initRenderer();
+
 new CardsStorage()
 
 const isDevelopment = process.env.NODE_ENV !== 'production'

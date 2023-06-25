@@ -3,6 +3,7 @@ import { createStore, } from 'vuex'
 import { LINKaStore, Side } from './LINKaStore'
 import { storageService } from '@/CardsStorage/frontend'
 import { eStore } from './eStore'
+import { ipcRenderer } from 'electron'
 
 
 const fields = [
@@ -148,7 +149,7 @@ const store = createStore<LINKaStore>({
       editor.description = value
     },
     button_timeout({ button }, value) {
-
+      ipcRenderer.send('button_timeout', value)
       button.timeout = value
     },
     button_enabled({ button }, value) {
@@ -292,6 +293,7 @@ const store = createStore<LINKaStore>({
         if (!fields.find(({ commit }) => {
           return mutation.type === commit
         })) return
+        
         eStore.set(mutation.type, mutation.payload)
       })
     }
