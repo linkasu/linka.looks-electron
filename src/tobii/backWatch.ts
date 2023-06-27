@@ -19,7 +19,7 @@ export class BackWatch {
             tobii.on('click', this.onClick)
             ipcMain.on('eye-elements', (event, data: PageElementsState) => {
                 hid = data.id
-                const winBounds = win.getBounds()
+                const winBounds = win.getContentBounds()
                 const bounds: Bound[] = data.bounds.map((el) => {
                     return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el=>Math.floor(el)))
                 })
