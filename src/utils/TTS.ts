@@ -1,5 +1,6 @@
 import { storageService } from "@/CardsStorage/frontend";
 import { Card } from "@/interfaces/ConfigFile";
+import { tts } from "./TTSServer";
 
 
 export class TTS {
@@ -35,33 +36,17 @@ export class TTS {
         }
         this.isPlaying = false
     }
-    public playText(text: string): Promise<void> {
-
-        return new Promise((resolve, reject) => {
-            text = text.trim();
-            if (text.length == 0) {
-                resolve();
-                return
-            }
-            if (this.isPlaying) {
-                this.isPlaying = false;
-                window.speechSynthesis.cancel();
-                return resolve();
-            }
-            this.isPlaying = true;
-            const speech = new SpeechSynthesisUtterance();
-            speech.text = text;
-            window.speechSynthesis.speak(speech);
-            speech.onend = () => {
-                this.isPlaying = false;
-                resolve();
-            };
-            speech.onerror = (event) => {
-                this.isPlaying = false;
-                reject(event.error);
-            };
-        });
+    public async playText(text: string, voice='alena'): Promise<void> {
+        if(this.isPlaying) {this.audio.pause(); return}
+        this.isPlaying=true
+        const buffer = await tts(text, voice)
+        const url = URL.createObjectURL(
+            new Blob([buffer], { type: "audio/wav" } /* (1) */)
+        );
+        await this.playUrl(url);
+        this.isPlaying=false
     }
+
 
 
     private playUrl(url: string) {

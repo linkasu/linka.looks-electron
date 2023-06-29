@@ -33,6 +33,9 @@
           Создать
         </v-btn>
         <v-btn color="primary" @click="dialog = false"> Отмена </v-btn>
+
+        <v-spacer></v-spacer>
+        <v-btn color="success" @click="playExample">Послушать результат</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -40,6 +43,7 @@
 
 <script lang="ts">
 import { storageService } from "@/CardsStorage/frontend";
+import { TTS } from "@/utils/TTS";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
@@ -77,6 +81,9 @@ export default class TTSDialog extends Vue.with(Props) {
     if(!v){
         this.text = ""
     }
+  }
+  playExample(){
+    TTS.instance.playText(this.text, this.voice)
   }
 }
 </script>
