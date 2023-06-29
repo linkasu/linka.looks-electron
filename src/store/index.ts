@@ -7,6 +7,7 @@ import { ipcRenderer } from 'electron'
 
 
 const fields = [
+  { commit: 'pcHash', default: 'unknow' } as Field<string>,
   { commit: 'colors_primary', default: '#197377' } as Field<string>,
   { commit: 'colors_accent', default: '#7DF6FA' } as Field<string>,
   { commit: 'colors_secondary', default: '#AD9F4E' } as Field<string>,
@@ -29,6 +30,7 @@ const fields = [
 
 const store = createStore<LINKaStore>({
   state: {
+    pcHash: 'unknow',
     colors: {
       secondary: '',
       accent: '',
@@ -185,6 +187,9 @@ const store = createStore<LINKaStore>({
     interface_outputLine({ ui }, value) {
       ui.outputLine = value
     },
+    pcHash(state, hash) {
+      state.pcHash = hash
+    }
 
   },
 
@@ -285,7 +290,7 @@ const store = createStore<LINKaStore>({
         }
       }
 
-    }
+    } 
   },
   plugins: [
     (store) => {
@@ -293,7 +298,7 @@ const store = createStore<LINKaStore>({
         if (!fields.find(({ commit }) => {
           return mutation.type === commit
         })) return
-        
+
         eStore.set(mutation.type, mutation.payload)
       })
     }

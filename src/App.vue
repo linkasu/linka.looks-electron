@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app v-if="pcHash != 'unknow'">
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
     <v-main style="margin-bottom: 40px">
@@ -10,6 +10,11 @@
     </v-footer>
     <!-- <bubble /> -->
   </v-app>
+  <v-app v-else>
+    <v-main>
+      <register-form />
+    </v-main>
+  </v-app>
 </template>
 
 <script lang="ts" setup>
@@ -18,7 +23,10 @@ import { Vue } from "vue-class-component";
 import store from "./store";
 import { computed } from "vue";
 import Bubble from "@/components/bubble.vue";
+import RegisterForm from '@/views/RegisterForm.vue'
 import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
+
+const pcHash = computed(() => store.state.pcHash)
 
 const primary = computed(() => {
   return hexToRGB(store.state.colors.primary);
@@ -47,11 +55,13 @@ function hexToRGB(input: string) {
   height: 100vh;
   overflow: scroll;
 }
+
 * {
   --v-theme-primary: v-bind(primary) !important;
   --v-theme-accent: v-bind(accent) !important;
   --v-theme-secondary: v-bind(secondary) !important;
 }
+
 .footer {
   position: fixed;
   bottom: 0;
