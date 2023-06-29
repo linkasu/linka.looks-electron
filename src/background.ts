@@ -44,8 +44,13 @@ async function createWindow() {
 
   autoUpdater.on('update-available', () => {
     win.webContents.send('update_available');
-  });
+    autoUpdater.downloadUpdate()
 
+  });
+  autoUpdater.on('download-progress', (info)=>{
+    win.webContents.send('update_info', info);
+    
+  })
   autoUpdater.on('update-downloaded', () => {
     win.webContents.send('update_downloaded');
   });

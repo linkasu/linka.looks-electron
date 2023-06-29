@@ -1,7 +1,7 @@
 <template>
   <section>
     <span> Версия приложения: {{ version }}. </span>
-    <span v-if="available"> Доступно обновление! Идет загрузка. </span>
+    <span v-if="available"> Доступно обновление! Идет загрузка. {{percent}}%. </span>
     <v-layout row justify-center>
       <v-dialog v-model="downloaded" persistent max-width="290">
         <v-card>
@@ -30,12 +30,14 @@
 
 <script lang="ts">
 import { ipcRenderer } from "electron";
+import { ProgressInfo } from "electron-updater";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {}
 
 @Options({})
 export default class UpdateStatusBar extends Vue.with(Props) {
+  percent: number = 0;
   update() {
     ipcRenderer.send("restart_app");
   }
@@ -46,6 +48,9 @@ export default class UpdateStatusBar extends Vue.with(Props) {
     ipcRenderer.send("app_version");
     ipcRenderer.on("app_version", (event, data) => {
       this.version = data.version;
+    });
+    ipcRenderer.on("update_info", (event, data: ProgressInfo) => {
+      this.percent = data.percent;
     });
 
     ipcRenderer.on("update_available", () => {
