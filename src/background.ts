@@ -53,6 +53,7 @@ async function createWindow() {
   ipcMain.on('restart_app', () => {
     autoUpdater.quitAndInstall();
   });
+  win.maximize()
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string)
@@ -93,6 +94,7 @@ app.on('ready', async () => {
     }
   }
   createWindow()
+  
 })
 
 // Exit cleanly on request from parent process in development mode.
