@@ -48,6 +48,7 @@ async function createWindow() {
 
   });
   autoUpdater.on('download-progress', (info)=>{
+    
     win.webContents.send('update_info', info);
     
   })

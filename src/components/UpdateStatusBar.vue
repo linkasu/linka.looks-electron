@@ -1,7 +1,7 @@
 <template>
   <section>
     <span> Версия приложения: {{ version }}. </span>
-    <span v-if="available"> Доступно обновление! Идет загрузка. {{percent}}%. </span>
+    <span v-if="available"> Доступно обновление! Идет загрузка. {{percent.toFixed(1)}}%. </span>
     <v-layout row justify-center>
       <v-dialog v-model="downloaded" persistent max-width="290">
         <v-card>

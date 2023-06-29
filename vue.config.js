@@ -13,14 +13,16 @@ module.exports = defineConfig({
       builderOptions: {
         productName: 'LINKa. смотри',
         appId: 'su.linka.looks',
-        fileAssociations:[{
-          ext:'linka'
+        fileAssociations: [{
+          ext: 'linka'
         }],
         publish: ["github"],
         win: {
           "icon": "build/icons/icon.ico",
-          "publisherName": "LINKa Ltd"
-
+          "publisherName": "LINKa Ltd",
+          signingHashAlgorithms: ['sha256'],
+          signAndEditExecutable: true,
+          verifyUpdateCodeSignature: false
         },
         extraResources: [
           {
