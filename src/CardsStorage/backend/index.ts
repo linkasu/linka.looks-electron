@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync } from "fs";
-import { join, basename, extname } from "path";
+import { join, basename, extname , normalize} from "path";
 import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
@@ -43,7 +43,10 @@ export class CardsStorage extends ICloudStorage {
     }
 
     async showItemInFolder(path: string){
-        shell.showItemInFolder(this.checkPath(path))
+        const s = this.checkPath(path)
+        console.log(s);
+        
+        shell.showItemInFolder(s)
     }
     async getFiles(path = ""): Promise<(Directory)> {
         const dir = this.checkPath(path)
@@ -90,7 +93,7 @@ export class CardsStorage extends ICloudStorage {
     }
 
     private checkPath(path: string): string {
-        return (path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path)).replace(/§/g, '/');
+        return normalize (path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path).replace(/§/g, '/'));
     }
     getImage(path: string, entry: string) {
         if (!path) return null
