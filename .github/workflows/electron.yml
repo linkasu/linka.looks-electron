@@ -13,6 +13,8 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+        cache: 'npm'
+
     - name: Install deps
       run: npm i
     - name: Unit tests
