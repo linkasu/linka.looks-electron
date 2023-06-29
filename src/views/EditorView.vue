@@ -5,33 +5,16 @@
       <v-card xs8 fill-height fluid v-if="filename">
         <v-card-title> Карточки </v-card-title>
         <v-card-text>
-          <v-text-field
-            v-if="isQuiz"
-            label="Введите вопрос для этой страницы"
-            v-model="questions[page]"
-          ></v-text-field>
+          <v-text-field v-if="isQuiz" label="Введите вопрос для этой страницы" v-model="questions[page]"></v-text-field>
         </v-card-text>
         <v-card-text class="cards-wrapper">
-          <draggable
-            v-model="current"
-            item-key="id"
-            class="cards"
-            :style="{ '--rows': rows, '--columns': columns }"
-          >
+          <draggable v-model="current" item-key="id" class="cards" :style="{ '--rows': rows, '--columns': columns }">
             <template #item="{ element, index }">
-              
-              <set-grid-button
-                :key="element.id"
-                :file="filename"
-                :card="element"
-                :enabled="false"
-                :class="{
-                  selected: selected?.id === element?.id,
-                  nonValid: !isValid(element),
-                }"
-                :dot="!!element.answer"
-                @click="select(index)"
-              />
+
+              <set-grid-button :key="element.id" :file="filename" :card="element" :enabled="false" :class="{
+                selected: selected?.id === element?.id,
+                nonValid: !isValid(element),
+              }" :dot="!!element.answer" @click="select(index)" />
             </template>
           </draggable>
         </v-card-text>
@@ -49,12 +32,7 @@
                 </v-btn>
               </v-col>
               <v-col xs4>
-                <v-btn
-                  block
-                  color="orange"
-                  @click="page++"
-                  :disabled="emptyPage"
-                >
+                <v-btn block color="orange" @click="page++" :disabled="emptyPage">
                   <v-icon>mdi-arrow-right</v-icon>
                 </v-btn>
               </v-col>
@@ -63,25 +41,18 @@
         </v-card-text>
       </v-card>
       <v-card v-if="selected">
+        <v-btn v-if="selected.cardType != 3" title="Сбросить карточку" icon absolute color="error" class="delete"
+          @click="selected.cardType = 3"><v-icon>mdi-delete</v-icon></v-btn>
         <v-card-title primary-title> Редактировать карточку </v-card-title>
         <v-card-text>
           <v-form>
             <v-row>
-              <v-select
-                :items="cardTypes"
-                v-model="selected.cardType"
-                label="Тип карточки"
-                item-title="text"
-                item-value="value"
-              ></v-select>
+              <v-select :items="cardTypes" v-model="selected.cardType" label="Тип карточки" item-title="text"
+                item-value="value"></v-select>
             </v-row>
             <section v-if="selected.cardType == 0">
               <v-row>
-                <v-text-field
-                  outline
-                  label="Название карточки"
-                  v-model="selected.title"
-                ></v-text-field>
+                <v-text-field outline label="Название карточки" v-model="selected.title"></v-text-field>
               </v-row>
               <v-row>
                 <v-card width="100%">
@@ -96,11 +67,8 @@
                         </v-btn>
                       </v-row>
                       <v-row>
-                        <create-from-text-dialog
-                          block
-                          :file="filename"
-                          @image="(path:string) => (selected.imagePath = path)"
-                        />
+                        <create-from-text-dialog block :file="filename"
+                          @image="(path: string) => (selected.imagePath = path)" />
                       </v-row>
                     </v-container>
                   </v-card-text>
@@ -112,10 +80,7 @@
                   <v-card-text>
                     <v-container>
                       <v-row>
-                        <tts-dialog
-                          :file="filename"
-                          @audio="(src) => (selected.audioPath = src)"
-                        />
+                        <tts-dialog :file="filename" @audio="(src) => (selected.audioPath = src)" />
                       </v-row>
                       <v-row>
                         <v-btn block @click="selectAudio">
@@ -123,9 +88,7 @@
                         </v-btn>
                       </v-row>
                       <v-row v-if="selected.audioPath">
-                        <v-btn block @click="playAudio"
-                          >Послушать озвучку</v-btn
-                        >
+                        <v-btn block @click="playAudio">Послушать озвучку</v-btn>
                       </v-row>
                     </v-container>
                   </v-card-text>
@@ -173,7 +136,7 @@ import { storageService } from "@/CardsStorage/frontend";
 import { uuid } from "uuidv4";
 import { TTS } from "@/utils/TTS";
 import draggable from "vuedraggable";
-class Props {}
+class Props { }
 
 @Options({
   components: {
@@ -278,7 +241,7 @@ export default class EditorView extends Vue.with(Props) {
   public set page(v: number) {
     this.mpage = Math.max(0, v);
     this.selected = null;
-    if(!this.cards) return
+    if (!this.cards) return
     const arr = this.cards?.slice(
       this.pageSize * this.page,
       this.pageSize * (this.page + 1)
@@ -303,7 +266,7 @@ export default class EditorView extends Vue.with(Props) {
     return true;
   }
 
-  get questions():string[]{
+  get questions(): string[] {
     return this.$store.state.editor.questions
   }
 
@@ -389,25 +352,30 @@ export default class EditorView extends Vue.with(Props) {
   height: calc(100vh - 104px);
   padding: 10px;
 }
+
 .editor-body {
   height: 100%;
   display: grid;
   grid-template-columns: 8fr 4fr;
 }
+
 .cards {
   height: 60%;
   display: grid;
   grid-template-rows: repeat(var(--rows), 1fr);
   grid-template-columns: repeat(var(--columns), 1fr);
 }
+
 .cards-wrapper {
   height: 100%;
 }
+
 .buttons {
   position: absolute;
   bottom: 0;
   width: 100%;
 }
+
 .selected {
   background: yellow !important;
   border: 1px solid yellow;
@@ -415,5 +383,11 @@ export default class EditorView extends Vue.with(Props) {
 
 .nonValid {
   border: 3px solid red;
+}
+
+.delete {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 </style>
