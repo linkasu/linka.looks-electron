@@ -20,9 +20,12 @@ export class BackWatch {
             ipcMain.on('eye-elements', (event, data: PageElementsState) => {
                 hid = data.id
                 const winBounds = win.getContentBounds()
+                const scale = screen.getPrimaryDisplay().scaleFactor 
+                
                 const bounds: Bound[] = data.bounds.map((el) => {
-                    return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el=>Math.floor(el)))
-                })
+                    return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el=>Math.round(el*scale)))
+                }) 
+                
                 tobii.setBounds(bounds)
             })
             ipcMain.on('button_timeout', (event, value)=>{
