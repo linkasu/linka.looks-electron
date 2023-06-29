@@ -125,7 +125,7 @@ export class CardsStorage extends ICloudStorage {
         return rm(this.checkPath(file), { force: true, recursive: true })
     }
     public moveToTrash(path: string): Promise<void> {
-        return unlink(this.checkPath(path))
+        return shell.trashItem (this.checkPath(path))
     }
     public async copyToTemp(path: string): Promise<string> {
         path = this.checkPath(path)
