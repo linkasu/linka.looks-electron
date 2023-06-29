@@ -49,11 +49,11 @@
             v-model="isDirectSet"
             v-if="!isQuiz"
           ></v-checkbox>
-          <v-checkbox
+          <!-- <v-checkbox
             label="Набор для викторины"
             v-if="!isDirectSet"
             v-model="isQuiz"
-          ></v-checkbox>
+          ></v-checkbox> -->
           <section v-if="isQuiz">
             <v-subheader> Настройки викторины </v-subheader>
             <v-checkbox
