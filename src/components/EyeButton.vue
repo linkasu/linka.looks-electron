@@ -1,7 +1,7 @@
 <template>
   <button
     class="eyebtn"
-    :class="{ eye: enabled, isInside }"
+    :class="{ eye: enabled, isInside, lock }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
     @click="click()"
   >

@@ -35,7 +35,7 @@ export class PageWatcher {
             subtree: true
         });
 
-        ipcRenderer.on('eye-enter', (event, data) => {       
+        ipcRenderer.on('eye-enter', (event, data) => {
             if (data.id != this.elements.id) return
             const element = this.elements.elements[data.elementIndex]
             this.enterWatch(element);
@@ -53,9 +53,10 @@ export class PageWatcher {
 
         })
         ipcRenderer.on('eye-click', (event, data) => {
-            console.log(data.id==this.elements.id);
-            
+
+
             if (data?.id != this.elements.id) return
+
             const element = this.elements.elements[data.elementIndex]
             this.clickWatch(element, data.count)
                 ;
@@ -74,12 +75,12 @@ export class PageWatcher {
     private watchElementsChange() {
         const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
         const bounds = eyes.map((el) => el.getBoundingClientRect());
-        const equals = bounds.length==this.elements.bounds.length&&!bounds.map((b, index)=>{
+        const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
             const a = this.elements.bounds[index];
-            
-            return a.x===b.x&&a.y===b.y&&a.width===b.width&&a.height===b.height
+
+            return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
         }).includes(false)
-        if(equals) return;
+        if (equals) return;
         this.elements = {
             elements: eyes,
             bounds,
@@ -130,7 +131,8 @@ export class PageWatcher {
 
         } else {
             let e = new CustomEvent('click', { detail: {} })
-            this.lastElement.dispatchEvent(e)
+            if (store.state.button.enabled)
+                this.lastElement.dispatchEvent(e)
 
 
         }
@@ -139,16 +141,16 @@ export class PageWatcher {
 
     clickWatch(el: Element, ts: number) {
 
-        console.log('click');
-        
+
+        if (!store.state.button.enabled && !el.classList.contains('lock'))
+            return
         let e = new CustomEvent('click', { detail: {} })
         el?.dispatchEvent(e)
     }
     enterWatch(el: Element) {
-        if(!el) return;
+        if (!el) return;
         this.lastElement = el;
-        console.log('enter', el)
-        
+
         const e = new CustomEvent('eye-enter', {
             detail: {
                 eye: true
