@@ -8,17 +8,24 @@ module.exports = defineConfig({
   },
   pluginOptions: {
     electronBuilder: {
-        nodeIntegration: true,
-        builderOptions: {
-          publish: ["github"],
-          extraResources: [
-            {
-              from: "./extraResources/",
-              to: "extraResources",
-              filter: ["**/*"],
-            },
-          ],
+      nodeIntegration: true,
+
+      builderOptions: {
+        productName: 'LINKa. смотри',
+        publish: ["github"],
+        win: {
+          "icon": "build/icons/icon.ico",
+          "publisherName": "LINKa Ltd"
+
         },
+        extraResources: [
+          {
+            from: "./extraResources/",
+            to: "extraResources",
+            filter: ["**/*"],
+          },
+        ],
       },
     },
+  },
 });
