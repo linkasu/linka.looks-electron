@@ -78,25 +78,27 @@ export default class SetGridButton extends Vue.with(Props) {
 .content {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 3em;
-  gap: 1em;
+  grid-template-rows: auto  1em;
+  gap: 10px;
+  padding: 8px;
 }
 .icon {
   height: 100%;
   font-size: 5em;
+  
 }
 .img {
   background-image: var(--image);
   background-position: center;
   background-repeat: no-repeat;
-  height: 80%;
-  width: 80%;
-  margin: 10%;
+  height: 100%;
+  width: 100%;
   background-size: contain;
 }
 .text {
   height: 100%;
   overflow: hidden;
+  font-size: 1em;
 }
 .dot{
   --size: 24px;
