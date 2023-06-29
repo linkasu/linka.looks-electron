@@ -49,10 +49,12 @@ async function createWindow() {
   autoUpdater.on('update-downloaded', () => {
     win.webContents.send('update_downloaded');
   });
-
+  console.log(autoUpdater.getFeedURL())
   ipcMain.on('restart_app', () => {
     autoUpdater.quitAndInstall();
+
   });
+  autoUpdater.checkForUpdatesAndNotify()
   win.maximize()
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
