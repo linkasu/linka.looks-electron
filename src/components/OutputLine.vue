@@ -19,7 +19,7 @@
         mdi-account-voice
       </v-icon>
       <div class="output-text" ref="text">
-        <div class="text" v-if="withoutSpace">{{ text }}</div>
+        <div class="text" v-if="withoutSpace">{{ text }}<span class="cursor">|</span></div>
         <div v-else class="cards">
           <set-grid-button
             v-for="(card, i) in clone"
@@ -165,4 +165,22 @@ export default class OutpuiLine extends Vue.with(Props) {
   height: 100%;
   width: 150px;
 }
+
+.cursor{
+  animation: blink 1s linear ;
+  animation-iteration-count: infinite;
+  animation-timing-function:step-start;
+}
+@keyframes blink {
+  0%{
+    color: #000;
+  }
+  50%{
+    color: rgba(255, 255, 255, 0);
+  }
+  100%{
+    color: #000;
+  }
+}
+
 </style>
