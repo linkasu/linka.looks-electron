@@ -1,6 +1,6 @@
-import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, shell } from "electron";
-import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync } from "fs";
-import { join, basename, extname , normalize} from "path";
+import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, ipcRenderer, shell } from "electron";
+import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWriteStream, WriteStream } from "fs";
+import { join, basename, extname, normalize } from "path";
 import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
@@ -10,6 +10,7 @@ import { Directory } from "@/interfaces/Directory";
 import { ICloudStorage } from "../abstract";
 import { appendZip } from "@/utils/addToZip";
 import { tts } from "@/utils/TTSServer";
+import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/utils/ImageFromText";
 import { HOME_DIR } from "../constants";
@@ -19,20 +20,20 @@ const DEFAULT_SETS = join(__dirname, './../extraResources/defaultSets')
 
 let win: BrowserWindow | null = null;
 
-export class CardsStorage extends ICloudStorage { 
+export class CardsStorage extends ICloudStorage {
     constructor() {
         super()
         this.init()
-       const methods = ICloudStorage.getMethods()
+        const methods = ICloudStorage.getMethods()
         for (const method of methods) {
-            ipcMain.handle('storage:'+method, (_, ...args) => {
+            ipcMain.handle('storage:' + method, (_, ...args) => {
                 win = BrowserWindow.fromWebContents(_.sender)
                 //@ts-ignore
                 return this[method](...args)
             })
-            
+
         }
-        
+
     }
     init() {
 
@@ -42,10 +43,10 @@ export class CardsStorage extends ICloudStorage {
         }
     }
 
-    async showItemInFolder(path: string){
+    async showItemInFolder(path: string) {
         const s = this.checkPath(path)
         console.log(s);
-        
+
         shell.showItemInFolder(s)
     }
     async getFiles(path = ""): Promise<(Directory)> {
@@ -93,7 +94,7 @@ export class CardsStorage extends ICloudStorage {
     }
 
     private checkPath(path: string): string {
-        return normalize (path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path).replace(/§/g, '/'));
+        return normalize(path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path).replace(/§/g, '/'));
     }
     getImage(path: string, entry: string) {
         if (!path) return null
@@ -125,13 +126,17 @@ export class CardsStorage extends ICloudStorage {
         return rm(this.checkPath(file), { force: true, recursive: true })
     }
     public moveToTrash(path: string): Promise<void> {
-        return shell.trashItem (this.checkPath(path))
+        return shell.trashItem(this.checkPath(path))
     }
     public async copyToTemp(path: string): Promise<string> {
         path = this.checkPath(path)
-        const tmp = join(tmpdir(), basename(path));
+        const tmp = this.getTmpFilename(path);
         await copyFile(path, tmp)
         return tmp
+    }
+
+    private getTmpFilename(path: string) {
+        return join(tmpdir(), basename(path));
     }
 
     public async selectImage(path: string) {
@@ -212,7 +217,7 @@ export class CardsStorage extends ICloudStorage {
 
         } catch (error) {
             console.error(error);
-            
+
             return
         }
         await delay(500)
@@ -261,6 +266,55 @@ export class CardsStorage extends ICloudStorage {
         const file = name + '.' + ext!
         await appendZip(path, file, buff)
         return file
+    }
+
+    async downloadAndUnpack(url: string): Promise<void> {
+
+        const file = this.getTmpFilename(basename(url))
+        const stream = createWriteStream(file)
+        await this.downloadToStream(url, stream)
+        await this.unpack(file, HOME_DIR)
+
+    }
+    private unpack(file: string, target: string) {
+        return new Promise((resolve, reject) => {
+
+            const zip = new AdmZip(file)
+            zip.extractAllToAsync(target, true, undefined, (error) => {
+                if (error) {
+                    reject(error)
+                    return
+                }
+                resolve(void 0)
+            })
+        });
+
+    }
+    private downloadToStream(url: string, stream: WriteStream) {
+        return new Promise((resolve, reject) => {
+            const request = get(url, (response) => {
+                if (!response.headers['content-length']) return;
+                const len = parseInt(response.headers['content-length'], 10);
+                let cur = 0;
+
+                response.pipe(stream)
+                response.on("data", (chunk) => {
+                    cur += chunk.length;
+                    if(win)
+                    win.webContents.send('download_progress', (100.0 * cur / len).toFixed(2));
+                });
+
+                response.on("end", () => {
+                    resolve(void 0);
+                });
+
+                request.on("error", (e) => {
+                    reject(e);
+                });
+
+            })
+
+        });
     }
 
     private copyFolderSync(srcPath: string, destPath: string) {

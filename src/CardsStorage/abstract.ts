@@ -6,6 +6,9 @@ import { getMethods } from "@/utils/getMethods";
 export abstract class ICloudStorage {
     static getMethods() {
         return getMethods(class extends ICloudStorage {
+            downloadAndUnpack(url: string): Promise<void> {
+                throw new Error("Method not implemented.");
+            }
             getFiles(path: string): Promise<Directory | null> {
                 throw new Error("Method not implemented.");
             }
@@ -76,6 +79,8 @@ export abstract class ICloudStorage {
 
     abstract mkdir(file: string): Promise<void>
     abstract rmdir(file: string): Promise<void>
+
+    abstract downloadAndUnpack(url: string): Promise<void>
 
     abstract showItemInFolder(file: string): Promise<void>;
 }

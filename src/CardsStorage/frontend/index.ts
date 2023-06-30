@@ -4,6 +4,9 @@ import { ICloudStorage } from "../abstract";
 import { Directory } from "@/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
+    downloadAndUnpack(url: string): Promise<void> {
+        return ipcRenderer.invoke('storage:downloadAndUnpack', url)
+    }
     showItemInFolder(file: string): Promise<void> {
         return ipcRenderer.invoke('storage:showItemInFolder', file)
     }

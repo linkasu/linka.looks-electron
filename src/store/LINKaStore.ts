@@ -9,7 +9,8 @@ interface KeyMap {
 }
 export type Side = keyof KeyMap
 export interface LINKaStore {
-    pcHash: string
+    pcHash: string,
+    defaultSetsDownloaded: boolean
     colors: {
         primary: string,
         accent: string,
