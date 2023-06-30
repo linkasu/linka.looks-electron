@@ -33,6 +33,7 @@ export default class KeyBinding extends Vue.with(Props) {
 
   mounted(): void {
     document.addEventListener("keydown", this.onKeyDown);
+    document.addEventListener('joystick-keydown', console.log)
   }
 
   unmounted(): void {

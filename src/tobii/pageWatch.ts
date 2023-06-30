@@ -4,9 +4,8 @@ import { Side } from '@/store/LINKaStore';
 import { getDistance } from '@/utils/getDistance';
 import { log } from 'console';
 import { ipcRenderer } from 'electron';
+import { GamepadWrapper } from 'gamepad-wrapper';
 import { uuid } from 'uuidv4';
-
-
 
 export class PageWatcher {
     private static CLASS = 'eye';
@@ -21,6 +20,8 @@ export class PageWatcher {
         elements: [],
         bounds: [] as DOMRect[]
     }
+    gamepadButtonsMap = new Map<string, boolean[]>();
+    cycle?: NodeJS.Timer;
 
     constructor() {
         this.watchElementsChange()
@@ -58,7 +59,7 @@ export class PageWatcher {
             if (data?.id != this.elements.id) return
 
             const element = this.elements.elements[data.elementIndex]
-            this.clickWatch(element, data.count)
+            this.clickWatch(element, true)
                 ;
 
         })
@@ -71,6 +72,40 @@ export class PageWatcher {
                 }
             }
         })
+
+        this.joystickCycle()
+
+
+    }
+    joystickCycle() {
+
+        const gamepads = navigator.getGamepads()
+        for (const gamepad of gamepads) {
+            if (!gamepad) continue;
+            const buttons = gamepad.buttons.map(({ value }) => !!value)
+            const axes = gamepad.axes
+            //todo
+            
+
+            const lasts = this.gamepadButtonsMap.get(gamepad.id)
+            if (lasts) {
+                for (let index = 0; index < buttons.length; index++) {
+                    const element = buttons[index];
+                    const last = lasts[index]
+                    if (!last && element) {
+                        const key = 'joy' + index;
+                        this.onKeyboard(key)
+                        const e = new KeyboardEvent('keydown', {code: key})
+                        document.dispatchEvent(e)
+
+                    }
+                }
+            }
+
+
+            this.gamepadButtonsMap.set(gamepad.id, buttons)
+        }
+        requestAnimationFrame(() => this.joystickCycle())
     }
     private watchElementsChange() {
         const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
@@ -90,7 +125,10 @@ export class PageWatcher {
     }
 
     onKeyboard(code: string) {
-        if (!store.state.button.keyboardActivation) return;
+        
+        const joy = code.startsWith('joy')
+        if ((!joy && !store.state.button.keyboardActivation) || (joy && !store.state.button.joystickActivation)) return;
+        
         const elements = document.getElementsByClassName(PageWatcher.CLASS);
         const map = store.state.keyMapping;
         let action: Side | null = null
@@ -130,25 +168,26 @@ export class PageWatcher {
             this.lastElement.dispatchEvent(e)
 
         } else {
-            let e = new CustomEvent('click', { detail: {} })
-            if (store.state.button.enabled)
-                this.lastElement.dispatchEvent(e)
-
+            this.clickWatch(this.lastElement, false)
 
         }
         return true
     }
 
-    clickWatch(el: Element, ts: number) {
+    clickWatch(el: Element, eye: boolean) {
 
-
-        if (!store.state.button.enabled && !el.classList.contains('lock'))
-            return
+        if (!el.classList.contains('lock')) {
+            if (eye && !store.state.button.eyeActivation)
+                return
+            if (!eye && !store.state.button.keyboardActivation)
+                return;
+        }
         let e = new CustomEvent('click', { detail: {} })
         el?.dispatchEvent(e)
     }
     enterWatch(el: Element) {
         if (!el) return;
+        if (!store.state.button.eyeSelect) return
         this.lastElement = el;
 
         const e = new CustomEvent('eye-enter', {
@@ -164,6 +203,7 @@ export class PageWatcher {
                 eye: true
             }
         })
+        if (!store.state.button.eyeSelect) return
         this.lastElement?.dispatchEvent(e)
         this.lastElement = undefined
     }

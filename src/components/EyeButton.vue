@@ -61,26 +61,31 @@ timer?: NodeJS.Timeout;
 
   mounted() {
     const el = this.$el as Element;
-    el.addEventListener("eye-enter", () => {
-      if (this.buttonEnabled || this.lock) this.onEnter();
+    el.addEventListener("eye-enter", (event) => {
+      const e = event as CustomEvent
+      const eye = !!e.detail.eye;
+      
+      
+      if (this.buttonEnabled || this.lock) this.onEnter(eye);
     });
     el.addEventListener("eye-exit", () => {
       
       this.onExit();
     });
   }
-  onStay(time: number) {
-  }
+
   onExit() {
     this.isInside = false;
     this.circle = false;
     
     
   }
-  onEnter() {
-    if (!this.$store.state.button.eyeSelect) return;
+  onEnter(eye:boolean) {
+    if (eye&&!this.$store.state.button.eyeSelect) return;
+    if (!eye&&!this.$store.state.button.keyboardActivation) return;
+    if (!eye&&!this.$store.state.button.joystickActivation) return;
     this.isInside = true;
-    this.circle = true;
+    this.circle =  this.$store.state.button.eyeActivation&&eye;
       }
 
   get buttonEnabled() {

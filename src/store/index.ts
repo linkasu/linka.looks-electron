@@ -19,7 +19,6 @@ const fields = [
   { commit: 'button_keyboardActivation', default: true } as Field<boolean>,
   { commit: 'button_mouseActivation', default: true } as Field<boolean>,
   { commit: 'button_borders', default: 1 } as Field<number>,
-  { commit: 'button_enabled', default: true } as Field<boolean>,
   { commit: 'button_clickSound', default: true } as Field<boolean>,
   { commit: 'ui_exitButton', default: true } as Field<boolean>,
   { commit: 'keyMapping_up', default: ['ArrowUp'] } as Field<string[]>,
