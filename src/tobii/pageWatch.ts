@@ -59,6 +59,7 @@ export class PageWatcher {
             if (data?.id != this.elements.id) return
 
             const element = this.elements.elements[data.elementIndex]
+            if(data.count>1) return;
             this.clickWatch(element, true)
                 ;
 
