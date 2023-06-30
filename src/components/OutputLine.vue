@@ -173,9 +173,6 @@ export default class OutpuiLine extends Vue.with(Props) {
 }
 @keyframes blink {
   0%{
-    color: #000;
-  }
-  50%{
     color: rgba(255, 255, 255, 0);
   }
   100%{
