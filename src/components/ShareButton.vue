@@ -7,6 +7,7 @@
 
 <script lang="ts">
 import { storageService } from '@/CardsStorage/frontend';
+import { Metric } from '@/utils/Metric';
 import {Vue, prop, Options} from 'vue-class-component'
 
 class Props{
@@ -20,7 +21,7 @@ export default class ShareButton extends Vue.with(Props){
 share(){
 
     storageService.showItemInFolder(this.$route.params.path.toString());
-    
+    Metric.registerEvent('share')
 }
 }
 </script>   

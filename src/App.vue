@@ -25,8 +25,13 @@ import { computed } from "vue";
 import Bubble from "@/components/bubble.vue";
 import RegisterForm from '@/views/RegisterForm.vue'
 import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
+import { Metric } from "./utils/Metric";
 
 const pcHash = computed(() => store.state.pcHash)
+
+if(pcHash.value.length==36){
+  Metric.registerEvent('start')
+}
 
 const primary = computed(() => {
   return hexToRGB(store.state.colors.primary);

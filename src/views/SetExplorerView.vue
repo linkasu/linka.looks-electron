@@ -40,6 +40,7 @@ import SetGrid from "@/components/SetGrid.vue";
 import { Card, ConfigFile } from "@/interfaces/ConfigFile";
 import { storageService } from "@/CardsStorage/frontend";
 import { TTS } from "@/utils/TTS";
+import { Metric } from "@/utils/Metric";
 @Options({
   components: {
     OutputLine,
@@ -70,8 +71,10 @@ export default class SetExplorerView extends Vue {
   mounted() {
     this.filename = this.$route.params.path.toString();
     this.$store.dispatch("open_file", this.filename);
+    Metric.registerEvent('openSet', {filename: this.filename})
   }
   addCard(card: Card) {
+    Metric.registerEvent('cardClick', {card})
     if (this.isQuiz) {
       if (card.answer) {
         this.quizPage++;

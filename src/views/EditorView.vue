@@ -136,6 +136,7 @@ import { storageService } from "@/CardsStorage/frontend";
 import { uuid } from "uuidv4";
 import { TTS } from "@/utils/TTS";
 import draggable from "vuedraggable";
+import { Metric } from "@/utils/Metric";
 class Props { }
 
 @Options({
@@ -289,6 +290,7 @@ export default class EditorView extends Vue.with(Props) {
     if (this.path.endsWith("new")) {
       (this.$refs.newFile as NewFileDialog).show();
     } else this.loadSet();
+    Metric.registerEvent('openEditor')
   }
   async newFileName(text: string) {
     await this.$store.dispatch(

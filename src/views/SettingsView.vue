@@ -85,6 +85,7 @@
 import { Vue, prop, Options } from "vue-class-component";
 import ColorSettings from "@/components/Settings/ColorsSettings.vue";
 import InputSettings from "@/components/Settings/InputSettings.vue";
+import { Metric } from "@/utils/Metric";
 class Props {}
 
 @Options({
@@ -149,6 +150,9 @@ export default class SettingsView extends Vue.with(Props) {
   }
   set enabled(value: boolean) {
     this.$store.commit("button_enabled", value);
+  }
+  mounted(): void {
+      Metric.registerEvent('openSettings')
   }
 }
 </script>

@@ -48,6 +48,7 @@ import FolderButton from "@/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/components/SetExplorer/NotesButton.vue";
 import { storageService } from "@/CardsStorage/frontend";
 import ShareButton from "@/components/ShareButton.vue";
+import { Metric } from "@/utils/Metric";
 
 @Options({
   components: {
@@ -90,12 +91,14 @@ export default class SetExplorerViewAppBar extends Vue {
   async del() {
     await storageService.moveToTrash(this.file);
     this.back();
+    Metric.registerEvent('trash')
   }
   async move(location: string){
     const target = await storageService.moveSet(this.file, location)
     const url = target.slice(target.lastIndexOf('LINKa')+5).replaceAll('/', '§').replace('\\', `§`)
     
     this.$router.push('/set/'+url)
+    Metric.registerEvent('move')
   }
 }
 </script>

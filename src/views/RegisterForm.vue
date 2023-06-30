@@ -31,14 +31,14 @@
                 Мы отправили шестизначный проверолчный код на вашу почту <b>{{ email }}</b>.
             </v-card-text>
             <v-card-text>
-                <v-form>
-                    <v-text-field label="Код" v-model="code" required></v-text-field>
+                <v-form @submit="checkCode">
+                    <v-text-field label="Код" v-model="code" required :rules="[(s)=>s.length===6]"></v-text-field>
                 </v-form>
             </v-card-text>
             <v-card-actions>
                 <v-btn @click="step = 0">Указать другой e-mail</v-btn>
                 <v-spacer></v-spacer>
-                <v-btn @click="checkCode()">
+                <v-btn v-if="code.length===6" @click="checkCode()">
                     Проверить код
                 </v-btn>
             </v-card-actions>
@@ -79,6 +79,7 @@ export default class RegisterFoorm extends Vue.with(Props) {
 
     }
     async checkCode() {
+        if(this.code.length!==6) return;
         try {
             const pcHash = await Metric.activateAccount(this.email, this.code)
             if (pcHash) {

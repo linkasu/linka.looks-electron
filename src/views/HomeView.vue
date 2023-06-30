@@ -21,6 +21,7 @@ import ExplorerGridButton from "@/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@/interfaces/Directory";
 import { basename } from "path";
 import { storageService } from "@/CardsStorage/frontend";
+import { Metric } from "@/utils/Metric";
 
 @Options({
   components: {
@@ -70,6 +71,7 @@ export default class HomeView extends Vue {
   select(item: DirectoryFile) {
     if (item.directory) {
       this.root += "§" + basename(item.file);
+      Metric.registerEvent('openFolder', {folder: item.file})
     } else {
       this.$router.push('/set/'+this.root.replace(/\//g,'§')+'§'+basename(item.file))
     }

@@ -4,6 +4,7 @@ import { LINKaStore, Side } from './LINKaStore'
 import { storageService } from '@/CardsStorage/frontend'
 import { eStore } from './eStore'
 import { ipcRenderer } from 'electron'
+import { Metric } from '@/utils/Metric'
 
 
 const fields = [
@@ -81,6 +82,8 @@ const store = createStore<LINKaStore>({
     },
     ui_exitButton(state, value) {
       state.ui.exitButton = value
+      Metric.registerEvent('settingsToggleEyeExit', {value})
+
     },
     keyMapping_up({ keyMapping: keyMapping }, value) {
 
@@ -156,20 +159,28 @@ const store = createStore<LINKaStore>({
     },
     button_enabled({ button }, value) {
       button.enabled = value
+      Metric.registerEvent('toggleGazeLock', {value})
     },
     button_eyeSelect({ button }, value) {
 
       button.eyeSelect = value
+      Metric.registerEvent('settingsToggleEyeChoose', {value})
+
     },
     button_eyeActivation({ button }, value) {
 
       button.eyeActivation = value
+      Metric.registerEvent('settingsToggleEyeActivation', {value})
+
     },
     button_joystickActivation({ button }, value) {
+
+      Metric.registerEvent('settingsToggleJoystickActivation', {value})
 
       button.joystickActivation = value
     },
     button_keyboardActivation({ button }, value) {
+      Metric.registerEvent('settingsToggleKeyboardActivation', {value})
 
       button.keyboardActivation = value
     },
@@ -183,9 +194,12 @@ const store = createStore<LINKaStore>({
     },
     button_clickSound({ button }, value) {
       button.clickSound = value
+      Metric.registerEvent('settingsToggleTypeSound', {value})
+
     },
     interface_outputLine({ ui }, value) {
       ui.outputLine = value
+      Metric.registerEvent('toggleOutputLine' , value)
     },
     pcHash(state, hash) {
       state.pcHash = hash

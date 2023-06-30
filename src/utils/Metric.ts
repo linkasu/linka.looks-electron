@@ -1,18 +1,19 @@
 import store from '@/store';
 import { eStore } from '@/store/eStore';
 import axios, { AxiosResponse } from 'axios';
+import { MetricEvent } from './MetricEvents';
 
 export class Metric {
   private static serverUrl = 'https://metric.linka.su'; // Replace with the actual URL of the metric server
 
-  public static async registerEvent(eventName: string, eventData?: any): Promise<void> {
+  public static async registerEvent(eventName: MetricEvent, eventData?: any): Promise<void> {
     try {
-        const pcHash = store.state.pcHash
+      const pcHash = store.state.pcHash
+      if (pcHash.length !== 36) return;
       const endpoint = `${this.serverUrl}/registerEvent`;
       const data = { hash: pcHash, eventName, eventData };
 
       await axios.post(endpoint, data);
-      console.log('Event registered successfully:', eventName);
     } catch (error) {
       console.error('Failed to register event:', error);
     }
@@ -20,14 +21,11 @@ export class Metric {
 
   public static async sendActivationEmail(email: string): Promise<void> {
     const endpoint = `${this.serverUrl}/requestActivation`;
-      console.log(endpoint);
-      console.log(email);
-      
-      const data = { email };
+    const data = { email };
 
-      await axios.post(endpoint, data, {
-      });
-      
+    await axios.post(endpoint, data, {
+    });
+
   }
 
   public static async activateAccount(email: string, code: string): Promise<string | undefined> {
@@ -37,7 +35,6 @@ export class Metric {
 
       const response = await axios.post(endpoint, data);
 
-      console.log('Account activated successfully:', email);
       return response.data.hash;
     } catch (error) {
       console.error('Failed to activate account:', error);
