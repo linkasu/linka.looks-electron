@@ -1,6 +1,6 @@
 {
   "name": "linka.looks-electron",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "author": "ibakaidov",
   "main": "background.js",
   "private": true,
