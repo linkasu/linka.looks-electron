@@ -11,7 +11,7 @@
         </v-btn>
       </template>
       <v-card>
-        <v-toolbar dark color="primary">
+        <v-toolbar >
           <v-btn icon dark @click="dialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -92,7 +92,7 @@
       c=join(c)
       const parts = c.split('/')
       .filter(p=>!!p)
-      if (parts[parts.length-1] != 'LINKa')
+      if (c.replace(HOME_DIR, '').length>1)
         dirs.unshift({
           directory: true,
           file: this.current + "/..",
