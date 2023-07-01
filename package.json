@@ -1,6 +1,6 @@
 {
-  "name": "linka.смотри",
-  "version": "2.0.1",
+  "name": "linka.looks",
+  "version": "2.0.2",
   "author": "ibakaidov",
   "main": "background.js",
   "private": true,
