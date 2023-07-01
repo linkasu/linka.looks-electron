@@ -4,7 +4,7 @@
       <v-icon>mdi-arrow-left</v-icon>
     </v-btn>
     <v-app-bar-title>
-      {{ title }}
+      {{  title }}
     </v-app-bar-title>
     <v-spacer />
     <notes-button
@@ -49,6 +49,8 @@ import NotesButton from "@/components/SetExplorer/NotesButton.vue";
 import { storageService } from "@/CardsStorage/frontend";
 import ShareButton from "@/components/ShareButton.vue";
 import { Metric } from "@/utils/Metric";
+import { basename } from "path";
+import { HOME_DIR } from "@/CardsStorage/constants";
 
 @Options({
   components: {
@@ -66,11 +68,15 @@ export default class SetExplorerViewAppBar extends Vue {
     return this.$route.params.path.toString();
   }
   back() {
+    if(this.file.includes(':')){
+      this.$router.push('/')
+      return
+    }
     this.$router.push("/" + this.file.split("§").slice(0, -1).join("§"));
   }
   get title() {
     const arr = this.file.split("§");
-    return arr[arr.length - 1];
+    return basename( arr[arr.length - 1]);
   }
   get editLink() {
     return this.$route.fullPath.replace("set", "edit");

@@ -76,6 +76,7 @@ export class CardsStorage extends ICloudStorage {
             }
             return null
         }).filter(f => f != null) as Directory
+
     }
 
     getConfigFile(path: string) {
@@ -94,6 +95,7 @@ export class CardsStorage extends ICloudStorage {
     }
 
     private checkPath(path: string): string {
+        if(path[1]===":") return path
         return normalize(path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path).replace(/§/g, '/'));
     }
     getImage(path: string, entry: string) {
@@ -331,6 +333,8 @@ export class CardsStorage extends ICloudStorage {
             }
         });
     };
-
+    async getArgv(): Promise<string[]> {
+        return process.argv
+    }
 }
 
