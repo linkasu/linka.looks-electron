@@ -11,6 +11,7 @@ module.exports = defineConfig({
       nodeIntegration: true,
 
       builderOptions: {
+        productName: 'LINKa. смотри',
         appId: 'su.linka.looks',
         fileAssociations: [{
           ext: 'linka'
