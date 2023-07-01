@@ -12,7 +12,7 @@ const fields = [
   { commit: 'defaultSetsDownloaded', default: false } as Field<boolean>,
   { commit: 'colors_primary', default: '#197377' } as Field<string>,
   { commit: 'colors_accent', default: '#7DF6FA' } as Field<string>,
-  { commit: 'colors_secondary', default: '#AD9F4E' } as Field<string>,
+  { commit: 'colors_secondary', default: '#FFAF00' } as Field<string>,
   { commit: 'button_timeout', default: 1000 } as Field<number>,
   { commit: 'button_eyeSelect', default: true } as Field<boolean>,
   { commit: 'button_eyeActivation', default: true } as Field<boolean>,

@@ -2,8 +2,8 @@
   <eye-button>
     <div class="content">
       <div align-center>
-        <v-icon v-if="back" class="icon"> mdi-arrow-up </v-icon>
-        <v-icon v-else-if="file&&file.directory" class="icon"> mdi-folder </v-icon>
+        <v-icon v-if="back" class="icon" color="primary"> mdi-arrow-up </v-icon>
+        <v-icon v-else-if="file&&file.directory" class="icon" color="primary"> mdi-folder </v-icon>
         <div v-else class="img" :style="{'--image': image}" />
       </div>
       <div>
