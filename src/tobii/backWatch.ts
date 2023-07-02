@@ -36,6 +36,7 @@ export class BackWatch {
         }
     }
     onClick(index: number, count: number) {
+        if(!window.isFocused()) return
         window.webContents.send("eye-click", {
             elementIndex: index,
             count,
