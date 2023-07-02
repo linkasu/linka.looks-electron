@@ -1,6 +1,7 @@
 <template>
   <v-app v-if="pcHash != 'unknow'">
     <download-default-sets-dialog/>
+    <notification-popup/>
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
     <v-main style="margin-bottom: 40px">
@@ -26,6 +27,7 @@ import { computed } from "vue";
 import Bubble from "@/components/bubble.vue";
 import RegisterForm from '@/views/RegisterForm.vue'
 import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
+import NotificationPopup from "@/components/NotificationPopup.vue";
 import DownloadDefaultSetsDialog from "@/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
 
