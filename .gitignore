@@ -24,3 +24,7 @@ pnpm-debug.log*
 
 #Electron-builder output
 /dist_electron
+
+# .lock files to prevent ppl from overriding dep-trees and lighten the load of cloning the repo
+yarn.lock
+package-lock.json
