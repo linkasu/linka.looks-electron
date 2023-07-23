@@ -1,8 +1,10 @@
-name: Electron build
+name: Electron test
 
 on:
-  push:
-    branches: [ "main" ]
+  pull_request:
+    types: [opened, reopened, edited]
+    branches: ['main']
+
 jobs:
   build:
     runs-on: windows-latest
@@ -19,7 +21,3 @@ jobs:
       run: yarn install
     - name: Unit tests
       run: yarn test:unit
-    - name: Build
-      run: yarn electron:build  -- -p always
-      env:
-        GH_TOKEN: ${{secrets.GH_TOKEN}}
