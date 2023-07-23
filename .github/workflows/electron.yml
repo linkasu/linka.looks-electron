@@ -13,13 +13,13 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-        cache: 'npm'
+        cache: 'yarn'
 
     - name: Install deps
-      run: npm i
+      run: yarn install
     - name: Unit tests
-      run: npm run test:unit
+      run: yarn test:unit
     - name: Build
-      run: npm run electron:build  -- -p always
+      run: yarn electron:build  -- -p always
       env:
         GH_TOKEN: ${{secrets.GH_TOKEN}}
