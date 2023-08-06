@@ -12,7 +12,7 @@ export class BackWatch {
     constructor(win: BrowserWindow) {
         this.window = win;
         if (platform() === 'win32') {
-
+            this.tobii = new TobiiProcess(join(__dirname, '.\\..\\extraResources\\bin\\EyeLog.exe'));
             this.tobii?.on('enter', this.onEnter)
             this.tobii?.on('exit', this.onExit)
             this.tobii?.on('click', this.onClick)
