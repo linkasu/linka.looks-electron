@@ -52,7 +52,7 @@
             </v-row>
             <section v-if="selected.cardType == 0">
               <v-row>
-                <v-text-field outline label="Название карточки" v-model="selected.title"></v-text-field>
+                <v-text-field outline label="Название карточки" v-model="selected.title" maxLength="30"></v-text-field>
               </v-row>
               <v-row>
                 <v-card width="100%">
