@@ -7,7 +7,7 @@
     <div class="content" v-else>
       <div align-center>
         <div
-          v-if="card.cardType == 0"
+          v-if="card.cardType == 0 && animationEnabled"
           class="img"
           :style="{ '--image': image }"
         />
@@ -53,7 +53,7 @@ class Props {
 export default class SetGridButton extends Vue.with(Props) {
   image?: string = "";
 
-  onCard (card: Card) {
+  onCard(card: Card) {
     if (card && card.imagePath) {
       if (card.cardType == 0) {
         storageService.getImage(this.file, card.imagePath).then((buffer) => {
@@ -67,8 +67,14 @@ export default class SetGridButton extends Vue.with(Props) {
     }
   }
 
-  mounted () {
+  mounted() {
+    
+
     this.onCard(this.card);
+  }
+
+  get animationEnabled() {
+    return this.$store.state.animation.enabled;
   }
 }
 </script>

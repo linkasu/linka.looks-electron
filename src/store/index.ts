@@ -51,6 +51,9 @@ const store = createStore<LINKaStore>({
       clickSound: true,
       borders: 1
     },
+    animation: {
+      enabled: true,
+    },
     ui: {
       outputLine: true,
       exitButton: true
@@ -212,7 +215,11 @@ const store = createStore<LINKaStore>({
     },
     pcHash(state, hash) {
       state.pcHash = hash
-    }
+    },
+    animation_enabled({ animation }, value) {
+      animation.enabled = value
+      Metric.registerEvent('toggleGazeLock', {value})
+    },
 
   },
 
@@ -236,6 +243,10 @@ const store = createStore<LINKaStore>({
 
     button_enabled({ state }) {
       state.button.enabled = !state.button.enabled
+    },
+
+    animation_enabled({ state }) {
+      state.animation.enabled = !state.animation.enabled
     },
 
     async editor_new_file({ state, dispatch }, file: string) {

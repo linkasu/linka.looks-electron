@@ -31,6 +31,15 @@
     >
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </v-btn>
+    <v-btn
+      flat
+      :color="animationEnabled ? 'primary' : ''"
+      @click="switchAnimationEnabled"
+      :title="
+        (animationEnabled ? 'Выключить' : 'Включить') + ' анимацию'
+      "
+    >
+    </v-btn>
     <v-spacer />
     <share-button/>
     <v-btn flat icon :to="editLink">
@@ -100,6 +109,12 @@ export default class SetExplorerViewAppBar extends Vue {
 
   switchButtonEnabled () {
     this.$store.dispatch("button_enabled");
+  }
+  get animationEnabled() {
+    return this.$store.state.animation.enabled;
+  }
+  switchAnimationEnabled() {
+    this.$store.dispatch("animation_enabled");
   }
 
   async del () {

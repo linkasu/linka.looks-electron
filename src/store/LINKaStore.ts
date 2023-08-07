@@ -31,6 +31,9 @@ export interface LINKaStore {
         enabled: boolean;
         clickSound: boolean
     },
+    animation: {
+        enabled: boolean;
+    },
     ui: {
         outputLine: boolean,
         exitButton: boolean
