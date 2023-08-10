@@ -57,7 +57,7 @@
               color="green darken-1"
               @click="
                   startDialog = false;
-                
+
               "
             >
               Начать
@@ -77,14 +77,15 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   config = prop<ConfigFile>({
-    required: true,
+    required: true
   });
+
   page = prop<number>({
-    required: true,
+    required: true
   });
 
   errors = prop<number>({
-    required: true,
+    required: true
   });
 }
 
@@ -92,22 +93,23 @@ class Props {
 export default class QuizOutputLine extends Vue.with(Props) {
   startDialog = true;
   endDialog = false;
-  get question() {
+  get question () {
     const text = this.readQuestion();
     return text;
   }
-  readQuestion() {
+
+  readQuestion () {
     if (!this.config.questions) return "";
     const text = this.config.questions[this.page];
 
     if (this.config.quizReadQuestion && !this.startDialog) {
       TTS.instance.playText(text)
-      .catch(console.error);
+        .catch(console.error);
     }
     return text;
   }
 
-  get end() {
+  get end () {
     if (!this.config.questions) return false;
     const isEnd = this.page >= this.config.questions.length;
     this.endDialog = isEnd;

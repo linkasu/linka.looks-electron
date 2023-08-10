@@ -91,68 +91,84 @@ class Props {}
 @Options({
   components: {
     ColorSettings,
-    InputSettings,
-  },
+    InputSettings
+  }
 })
 export default class SettingsView extends Vue.with(Props) {
-  get timeout() {
+  get timeout () {
     return this.$store.state.button.timeout / 1000;
   }
-  set timeout(value: number) {
+
+  set timeout (value: number) {
     this.$store.commit("button_timeout", value * 1000);
   }
-  get eyeSelect() {
+
+  get eyeSelect () {
     return this.$store.state.button.eyeSelect;
   }
-  set eyeSelect(value: boolean) {
+
+  set eyeSelect (value: boolean) {
     this.$store.commit("button_eyeSelect", value);
   }
-  get clickSound() {
+
+  get clickSound () {
     return this.$store.state.button.clickSound;
   }
-  set clickSound(value: boolean) {
+
+  set clickSound (value: boolean) {
     this.$store.commit("button_clickSound", value);
   }
-  get eyeActivation() {
+
+  get eyeActivation () {
     return this.$store.state.button.eyeActivation;
   }
-  set eyeActivation(value: boolean) {
+
+  set eyeActivation (value: boolean) {
     this.$store.commit("button_eyeActivation", value);
   }
-  get joystickActivation() {
+
+  get joystickActivation () {
     return this.$store.state.button.joystickActivation;
   }
-  set joystickActivation(value: boolean) {
+
+  set joystickActivation (value: boolean) {
     this.$store.commit("button_joystickActivation", value);
   }
-  get keyboardActivation() {
+
+  get keyboardActivation () {
     return this.$store.state.button.keyboardActivation;
   }
-  set keyboardActivation(value: boolean) {
+
+  set keyboardActivation (value: boolean) {
     this.$store.commit("button_keyboardActivation", value);
   }
-  get mouseActivation() {
+
+  get mouseActivation () {
     return this.$store.state.button.mouseActivation;
   }
-  set mouseActivation(value: boolean) {
+
+  set mouseActivation (value: boolean) {
     this.$store.commit("button_mouseActivation", value);
   }
 
-  get isExitButton() {
+  get isExitButton () {
     return this.$store.state.ui.exitButton;
   }
-  set isExitButton(value: boolean) {
+
+  set isExitButton (value: boolean) {
     this.$store.commit("ui_exitButton", value);
   }
 
-  get enabled() {
+  get enabled () {
     return this.$store.state.button.enabled;
   }
-  set enabled(value: boolean) {
+
+  set enabled (value: boolean) {
     this.$store.commit("button_enabled", value);
   }
-  mounted(): void {
-      Metric.registerEvent('openSettings')
+
+  mounted (): void {
+    Metric.registerEvent("openSettings");
   }
 }
 </script>

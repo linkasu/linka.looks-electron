@@ -25,55 +25,56 @@ import { Metric } from "@/utils/Metric";
 
 @Options({
   components: {
-    ExplorerGridButton,
-  },
+    ExplorerGridButton
+  }
 })
 export default class HomeView extends Vue {
   files: Directory = [];
   private mroot = "";
-  size: number = 5;
+  size = 5;
 
-  public get sorted(): Directory {
+  public get sorted (): Directory {
     return this.files.sort((a) => (a.directory ? -1 : 1));
   }
 
-  back() {
+  back () {
     this.root = this.root.split("§").slice(0, -1).join("§");
   }
-  get isHome() {
+
+  get isHome () {
     return this.root == "§";
   }
 
-  public get root(): string {
+  public get root (): string {
     return this.mroot;
   }
 
-  public set root(v: string) {
+  public set root (v: string) {
     this.mroot = v;
     this.$router.push(v);
     this.loadSets();
   }
 
-  mounted() {
+  mounted () {
     this.root = this.$route.params.path.toString();
-  } 
+  }
 
-  private loadSets() {
+  private loadSets () {
     storageService
-    .getFiles(this.root)
+      .getFiles(this.root)
       .then((files) => {
-        if(!files) return;
+        if (!files) return;
         this.files = files;
         this.size = Math.max(Math.ceil(Math.sqrt(files.length + 1)), 4);
       });
   }
 
-  select(item: DirectoryFile) {
+  select (item: DirectoryFile) {
     if (item.directory) {
       this.root += "§" + basename(item.file);
-      Metric.registerEvent('openFolder', {folder: item.file})
+      Metric.registerEvent("openFolder", { folder: item.file });
     } else {
-      this.$router.push('/set/'+this.root.replace(/\//g,'§')+'§'+basename(item.file))
+      this.$router.push("/set/" + this.root.replace(/\//g, "§") + "§" + basename(item.file));
     }
   }
 }

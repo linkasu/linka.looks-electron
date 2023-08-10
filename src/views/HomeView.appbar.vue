@@ -24,16 +24,18 @@ import ShareButton from "@/components/ShareButton.vue";
 class Props {}
 
 @Options({
-  components: { MkdirButton, RmdirButton, ShareButton },
+  components: { MkdirButton, RmdirButton, ShareButton }
 })
 export default class HomeViewAppBar extends Vue.with(Props) {
-  public get root(): string {
+  public get root (): string {
     return this.$route.params.path.toString();
   }
-  public get title(){
-    return this.root.slice(this.root.lastIndexOf('§')+1)
+
+  public get title () {
+    return this.root.slice(this.root.lastIndexOf("§") + 1);
   }
-  public get newHref(): string {
+
+  public get newHref (): string {
     return "/edit/" + this.root.replace(/\//g, "§") + "§" + "new";
   }
 }

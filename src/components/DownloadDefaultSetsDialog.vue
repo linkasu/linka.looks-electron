@@ -6,7 +6,7 @@
 
             </v-card-title>
             <v-card-title v-else>
-                Идет загрузка. 
+                Идет загрузка.
             </v-card-title>
             <v-card-text v-if="!downloading">
                 <o> Совсем скоро вы сможете начать пользоваться программой LINKa смотри, однако, сейчас в ней только два
@@ -20,10 +20,10 @@
                 </p>
             </v-card-text>
             <v-card-text v-if="downloading">
-                
+
                 <v-progress-linear color="green" :model-value="progress"></v-progress-linear>
             </v-card-text>
-        
+
             <v-card-actions v-if="!downloading">
                 <v-spacer></v-spacer>
                 <v-btn color="error" variant="text" @click="dialog = false">
@@ -38,44 +38,43 @@
 </template>
 
 <script lang="ts">
-import { storageService } from '@/CardsStorage/frontend'
-import { ipcRenderer } from 'electron'
-import { Vue, prop, Options } from 'vue-class-component'
+import { storageService } from "@/CardsStorage/frontend";
+import { ipcRenderer } from "electron";
+import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
 
 }
 
 @Options({
-    watch: {
-        dialog: 'onDialog'
-    }
+  watch: {
+    dialog: "onDialog"
+  }
 })
 
 export default class DownloadDefaultSetsDialog extends Vue.with(Props) {
-    dialog = false
-    downloading = false
-    progress = 0
-    mounted(): void {
+  dialog = false;
+  downloading = false;
+  progress = 0;
+  mounted (): void {
+    this.dialog = !this.$store.state.defaultSetsDownloaded;
+    // this.dialog = true
+    this.$store.commit("button_enabled", !this.dialog);
+    ipcRenderer.on("download_progress", (event, progress) => {
+      this.progress = progress;
+    });
+  }
 
-       this.dialog = !this.$store.state.defaultSetsDownloaded
-// this.dialog = true
-        this.$store.commit('button_enabled', !this.dialog)
-        ipcRenderer.on('download_progress', (event, progress)=>{
-            this.progress = progress
-        })
-    }
+  async download () {
+    this.downloading = true;
+    await storageService.downloadAndUnpack("https://linka.su/sets.zip");
+    this.dialog = false;
+    window.location.reload();
+  }
 
-    async download(){
-        this.downloading = true
-        await storageService.downloadAndUnpack("https://linka.su/sets.zip")
-        this.dialog = false
-        window.location.reload()
-    }
-
-    onDialog(v: boolean) {
-        this.$store.commit('button_enabled', !v)
-        this.$store.commit('defaultSetsDownloaded', !v)
-    }
+  onDialog (v: boolean) {
+    this.$store.commit("button_enabled", !v);
+    this.$store.commit("defaultSetsDownloaded", !v);
+  }
 }
 </script>

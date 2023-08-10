@@ -32,13 +32,13 @@ class Props {}
 
 @Options({
   components: {
-    InputDialog,
-  },
+    InputDialog
+  }
 })
 export default class MkdirButton extends Vue.with(Props) {
-  error: boolean = false;
+  error = false;
 
-  async create(name: string) {
+  async create (name: string) {
     const root = this.$route.params.path.toString();
     try {
       await storageService.mkdir(root + "§" + name);

@@ -31,26 +31,29 @@ class Props {}
     ExitButton,
     SaveButton,
     SetSettings,
-    NotesButton,
-  },
+    NotesButton
+  }
 })
 export default class EditorViewAppBar extends Vue.with(Props) {
-  get path(): string {
+  get path (): string {
     return this.$store.state.editor.current;
   }
-  get filename(): string | null {
+
+  get filename (): string | null {
     return this.$store.state.editor.temp;
   }
 
-  get title() {
+  get title () {
     const arr = this.path.split("§");
     return arr[arr.length - 1];
   }
-  async save() {
+
+  async save () {
     await this.$store.dispatch("editor_save");
     this.$router.back();
   }
-  async saveAs(title: string) {
+
+  async saveAs (title: string) {
     const newLink = await this.$store.dispatch("editor_save_as", title);
     this.$router.push("/set/" + newLink);
   }

@@ -30,59 +30,57 @@ import SetGridButton from "@/components/SetGridButton.vue";
 
 class Props {
   config: ConfigFile = prop({
-    required: true,
+    required: true
   });
+
   file: string = prop({
     required: true
-  })
+  });
+
   quizPage?:number = prop({
     required: false
-  })
+  });
 }
 
 @Options({
   components: {
     EyeButton,
-    SetGridButton,
+    SetGridButton
   },
-  watch:{
-    quizPage:'onQuizPage'
+  watch: {
+    quizPage: "onQuizPage"
   }
 })
 export default class SetGrid extends Vue.with(Props) {
   private mpage = 0;
-  public get page() {
+  public get page () {
     return this.mpage;
   }
-  public set page(value) {
+
+  public set page (value) {
     this.mpage = Math.max(
       0,
-      Math.min(Math.ceil(this.config.cards.length / this.pageSize)-1, value)
+      Math.min(Math.ceil(this.config.cards.length / this.pageSize) - 1, value)
     );
   }
 
-  get current() {
-    
+  get current () {
     return this.config.cards.slice(
       this.pageSize * this.page,
       this.pageSize * (this.page + 1)
     );
   }
 
-  public get pageSize(): number {
+  public get pageSize (): number {
     return this.config.columns * this.config.rows;
   }
 
-  get isExitButton(){
+  get isExitButton () {
     return this.$store.state.ui.exitButton && !this.$store.state.ui.outputLine;
   }
- 
-  mounted() {
-    if (!this.config) return;
-    
-  }
-  onQuizPage(p:number){
-    this.page = p
+
+  onQuizPage (p:number) {
+    this.page = p;
   }
 }
 </script>

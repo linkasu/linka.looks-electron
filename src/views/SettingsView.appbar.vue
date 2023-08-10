@@ -16,8 +16,8 @@ class Props {}
 
 @Options({
   components: {
-    ExitButton,
-  },
+    ExitButton
+  }
 })
 export default class SettingsViewAppBar extends Vue.with(Props) {}
 </script>

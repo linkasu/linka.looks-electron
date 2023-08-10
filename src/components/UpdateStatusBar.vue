@@ -37,14 +37,15 @@ class Props {}
 
 @Options({})
 export default class UpdateStatusBar extends Vue.with(Props) {
-  percent: number = 0;
-  update() {
+  percent = 0;
+  update () {
     ipcRenderer.send("restart_app");
   }
+
   version = "";
   available = false;
   downloaded = false;
-  mounted(): void {
+  mounted (): void {
     ipcRenderer.send("app_version");
     ipcRenderer.on("app_version", (event, data) => {
       this.version = data.version;

@@ -48,42 +48,44 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   file: string = prop({
-    required: true,
+    required: true
   });
 }
 
 @Options({
-    watch:{
-        dialog: 'onDialog'
-    }
+  watch: {
+    dialog: "onDialog"
+  }
 })
 export default class TTSDialog extends Vue.with(Props) {
   dialog = false;
   text = "";
   voice = "alena";
   voices = [
-      { value: 'zahar', text: 'Захар' },
-      { value: 'ermil', text: 'Емиль' },
-      { value: 'jane', text: 'Джейн' },
-      { value: 'oksana', text: 'Оксана' },
-      { value: 'alena', text: 'Алёна' },
-      { value: 'filipp', text: 'Филипп' },
-      { value: 'omazh', text: 'Ома' },
+    { value: "zahar", text: "Захар" },
+    { value: "ermil", text: "Емиль" },
+    { value: "jane", text: "Джейн" },
+    { value: "oksana", text: "Оксана" },
+    { value: "alena", text: "Алёна" },
+    { value: "filipp", text: "Филипп" },
+    { value: "omazh", text: "Ома" }
 
-  ]
-  create() {
+  ];
+
+  create () {
     storageService.createAudioFromText(this.file, this.text, this.voice).then((value) => {
       this.$emit("audio", value);
     });
   }
-  onDialog(v: boolean){
 
-    if(!v){
-        this.text = ""
+  onDialog (v: boolean) {
+    if (!v) {
+      this.text = "";
     }
   }
-  playExample(){
-    TTS.instance.playText(this.text, this.voice)
+
+  playExample () {
+    TTS.instance.playText(this.text, this.voice);
   }
 }
 </script>

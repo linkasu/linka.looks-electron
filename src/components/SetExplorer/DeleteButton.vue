@@ -28,9 +28,9 @@
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
-    file: string = prop({
-        required: true
-    })
+  file: string = prop({
+    required: true
+  });
 }
 
 @Options({})

@@ -35,33 +35,36 @@ import isValidPath from "is-valid-path";
 
 class Props {
   title: string = prop({
-    required: true,
+    required: true
   });
+
   label: string = prop({
-    required: true,
+    required: true
   });
+
   buttonText?: string = prop({});
   icon?: string = prop({});
   comfirmText: string = prop({
-    required: true,
+    required: true
   });
+
   cancelText?: string = prop({});
   checkFilePath = prop({
-    default: false,
+    default: false
   });
 }
 
 @Options({
   watch: {
-    dialog: "onDialog",
-  },
+    dialog: "onDialog"
+  }
 })
 export default class CreateFromTextDialog extends Vue.with(Props) {
   dialog = false;
   noCancel = false;
   text = "";
 
-  onDialog(v: boolean) {
+  onDialog (v: boolean) {
     if (!v) {
       if (!this.noCancel) this.$emit("cancel");
       this.noCancel = false;
@@ -69,12 +72,14 @@ export default class CreateFromTextDialog extends Vue.with(Props) {
       this.text = "";
     }
   }
-  public show() {
+
+  public show () {
     this.dialog = true;
   }
-  async submit() {
-    if(this.isValid(this.text)!==true){
-      return 
+
+  async submit () {
+    if (this.isValid(this.text) !== true) {
+      return;
     }
     this.noCancel = true;
 
@@ -82,12 +87,13 @@ export default class CreateFromTextDialog extends Vue.with(Props) {
 
     this.dialog = false;
   }
-  isValid(text: string) {
-    if(!this.checkFilePath) return true
-    if(text.includes('/')||!isValidPath(text)){
-      return 'Название содержит спецсимволы'
+
+  isValid (text: string) {
+    if (!this.checkFilePath) return true;
+    if (text.includes("/") || !isValidPath(text)) {
+      return "Название содержит спецсимволы";
     }
-    return true
+    return true;
   }
 }
 </script>

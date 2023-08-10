@@ -145,56 +145,59 @@ class Props { }
     draggable,
     CreateFromTextDialog,
     NewFileDialog,
-    "tts-dialog": TTSDialog,
+    "tts-dialog": TTSDialog
   },
   watch: {
     columns: "onColumns",
-    rows: "onRows",
-  },
+    rows: "onRows"
+  }
 })
 export default class EditorView extends Vue.with(Props) {
   mcurrent: (Card | NewCard)[] = [];
-  get columns(): number {
+  get columns (): number {
     return this.$store.state.editor.columns;
   }
 
-  public set columns(v: number) {
+  public set columns (v: number) {
     this.$store.commit("editor_columns", v);
   }
-  get rows(): number {
+
+  get rows (): number {
     return this.$store.state.editor.rows;
   }
 
-  public set rows(v: number) {
+  public set rows (v: number) {
     this.$store.commit("editor_rows", v);
   }
 
   mpage = 0;
 
-  get cards(): (Card | NewCard)[] {
+  get cards (): (Card | NewCard)[] {
     return this.$store.state.editor.cards;
   }
 
-  public set cards(v: (Card | NewCard)[]) {
+  public set cards (v: (Card | NewCard)[]) {
     this.$store.commit("editor_cards", v);
   }
 
-  get filename(): string | null {
+  get filename (): string | null {
     return this.$store.state.editor.temp;
   }
+
   selected: Card | NewCard | null = null;
 
   cardTypes = [
     { text: "Обычная", value: 0 },
     { text: "Пустая ", value: 2 },
     { text: "Пробел", value: 1 },
-    { text: "Новая карточка", value: 3 },
+    { text: "Новая карточка", value: 3 }
   ];
 
-  get current(): (Card | NewCard)[] {
+  get current (): (Card | NewCard)[] {
     return this.mcurrent;
   }
-  set current(v: (Card | NewCard)[]) {
+
+  set current (v: (Card | NewCard)[]) {
     if (v.length == this.mcurrent.length) {
       const cids = this.mcurrent
         .map(({ id }) => id.toString())
@@ -212,37 +215,43 @@ export default class EditorView extends Vue.with(Props) {
       this.mcurrent = v;
     }
   }
-  get isWithoutSpace(): boolean {
+
+  get isWithoutSpace (): boolean {
     return this.$store.state.editor.isWithoutSpace;
   }
-  set isWithoutSpace(v: boolean) {
+
+  set isWithoutSpace (v: boolean) {
     this.$store.commit("editor_isWithoutSpace", v);
   }
-  get isDirectSet(): boolean {
+
+  get isDirectSet (): boolean {
     return this.$store.state.editor.isDirectSet;
   }
-  set isDirectSet(v: boolean) {
+
+  set isDirectSet (v: boolean) {
     this.$store.commit("editor_isDirectSet", v);
   }
 
-  get isQuiz(): boolean {
+  get isQuiz (): boolean {
     return this.$store.state.editor.quiz;
   }
-  set isQuiz(v: boolean) {
+
+  set isQuiz (v: boolean) {
     this.$store.commit("editor_isQuiz", v);
   }
 
-  get pageSize(): number {
+  get pageSize (): number {
     return this.columns * this.rows;
   }
 
-  public get page(): number {
+  public get page (): number {
     return this.mpage;
   }
-  public set page(v: number) {
+
+  public set page (v: number) {
     this.mpage = Math.max(0, v);
     this.selected = null;
-    if (!this.cards) return
+    if (!this.cards) return;
     const arr = this.cards?.slice(
       this.pageSize * this.page,
       this.pageSize * (this.page + 1)
@@ -260,18 +269,18 @@ export default class EditorView extends Vue.with(Props) {
     this.current = arr;
   }
 
-  get emptyPage() {
+  get emptyPage () {
     for (const card of this.current) {
       if (card.cardType !== 3) return false;
     }
     return true;
   }
 
-  get questions(): string[] {
-    return this.$store.state.editor.questions
+  get questions (): string[] {
+    return this.$store.state.editor.questions;
   }
 
-  isValid(card: Card) {
+  isValid (card: Card) {
     if (card.cardType == 0) {
       if (!card.imagePath || !card.imagePath || !card.title) {
         return false;
@@ -279,35 +288,40 @@ export default class EditorView extends Vue.with(Props) {
     }
     return true;
   }
-  onRows() {
-    this.page = 0;
-  }
-  onColumns() {
+
+  onRows () {
     this.page = 0;
   }
 
-  mounted() {
+  onColumns () {
+    this.page = 0;
+  }
+
+  mounted () {
     if (this.path.endsWith("new")) {
       (this.$refs.newFile as NewFileDialog).show();
     } else this.loadSet();
-    Metric.registerEvent('openEditor')
+    Metric.registerEvent("openEditor");
   }
-  async newFileName(text: string) {
+
+  async newFileName (text: string) {
     await this.$store.dispatch(
       "editor_new_file",
       this.path.slice(0, -3) + text
     );
     this.page = 0;
   }
-  async loadSet() {
+
+  async loadSet () {
     await this.$store.dispatch("editor_current", this.path);
     this.page = 0;
   }
-  private get path(): string {
+
+  private get path (): string {
     return this.$route.params.path.toString();
   }
 
-  select(index: number) {
+  select (index: number) {
     console.log(index);
 
     let card = this.cards[this.pageSize * this.page + index];
@@ -318,33 +332,30 @@ export default class EditorView extends Vue.with(Props) {
     this.selected = card;
   }
 
-  getNewCard(): NewCard {
+  getNewCard (): NewCard {
     return {
       cardType: 3,
-      id: uuid(),
+      id: uuid()
     };
   }
 
-  async selectImage() {
+  async selectImage () {
     if (!this.filename) return;
     const id = await storageService.selectImage(this.filename);
     console.log(id);
 
-    if (this.selected && this.selected.cardType === 0)
-      this.selected.imagePath = id;
+    if (this.selected && this.selected.cardType === 0) { this.selected.imagePath = id; }
   }
 
-  async selectAudio() {
+  async selectAudio () {
     if (!this.filename) return;
     const id = await storageService.selectAudio(this.filename);
 
-    if (this.selected && this.selected.cardType === 0 && id)
-      this.selected.audioPath = id;
+    if (this.selected && this.selected.cardType === 0 && id) { this.selected.audioPath = id; }
   }
 
-  playAudio() {
-    if (this.filename && this.selected && this.selected.cardType == 0)
-      TTS.instance.playCards(this.filename, [this.selected]);
+  playAudio () {
+    if (this.filename && this.selected && this.selected.cardType == 0) { TTS.instance.playCards(this.filename, [this.selected]); }
   }
 }
 </script>

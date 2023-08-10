@@ -58,53 +58,62 @@ import { HOME_DIR } from "@/CardsStorage/constants";
     FolderButton,
     NotesButton,
     ShareButton
-  },
+  }
 })
 export default class SetExplorerViewAppBar extends Vue {
-  get config(){
-    return this.$store.state.explorer.config
+  get config () {
+    return this.$store.state.explorer.config;
   }
-  get file(): string {
+
+  get file (): string {
     return this.$route.params.path.toString();
   }
-  back() {
-    if(this.file.includes(':')){
-      this.$router.push('/')
-      return
+
+  back () {
+    if (this.file.includes(":")) {
+      this.$router.push("/");
+      return;
     }
     this.$router.push("/" + this.file.split("§").slice(0, -1).join("§"));
   }
-  get title() {
+
+  get title () {
     const arr = this.file.split("§");
-    return basename( arr[arr.length - 1]);
+    return basename(arr[arr.length - 1]);
   }
-  get editLink() {
+
+  get editLink () {
     return this.$route.fullPath.replace("set", "edit");
   }
-  get interfaceOutputLine() {
+
+  get interfaceOutputLine () {
     return this.$store.state.ui.outputLine;
   }
-  switchInterfaceOutputLine() {
+
+  switchInterfaceOutputLine () {
     this.$store.dispatch("interface_outputLine");
   }
-  get buttonEnabled() {
+
+  get buttonEnabled () {
     return this.$store.state.button.enabled;
   }
-  switchButtonEnabled() {
+
+  switchButtonEnabled () {
     this.$store.dispatch("button_enabled");
   }
 
-  async del() {
+  async del () {
     await storageService.moveToTrash(this.file);
     this.back();
-    Metric.registerEvent('trash')
+    Metric.registerEvent("trash");
   }
-  async move(location: string){
-    const target = await storageService.moveSet(this.file, location)
-    const url = target.slice(target.lastIndexOf('LINKa')+5).replaceAll('/', '§').replace('\\', `§`)
-    
-    this.$router.push('/set/'+url)
-    Metric.registerEvent('move')
+
+  async move (location: string) {
+    const target = await storageService.moveSet(this.file, location);
+    const url = target.slice(target.lastIndexOf("LINKa") + 5).replaceAll("/", "§").replace("\\", "§");
+
+    this.$router.push("/set/" + url);
+    Metric.registerEvent("move");
   }
 }
 </script>

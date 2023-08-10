@@ -45,36 +45,42 @@ import { Metric } from "@/utils/Metric";
   components: {
     OutputLine,
     SetGrid,
-    QuizOutputLine,
-  },
+    QuizOutputLine
+  }
 })
 export default class SetExplorerView extends Vue {
   filename: string | null = null;
-  get config() {
+  get config () {
     return this.$store.state.explorer.config;
   }
+
   cards: Card[] = [];
   quizPage = 0;
   errors = 0;
-  get interfaceOutputLine() {
+  get interfaceOutputLine () {
     return this.$store.state.ui.outputLine;
   }
-  get isQuiz() {
+
+  get isQuiz () {
     return this.config?.quiz;
   }
-  get quizAutoNext() {
+
+  get quizAutoNext () {
     return this.config?.quizAutoNext;
   }
-  get quizReadQuestion() {
+
+  get quizReadQuestion () {
     return this.config?.quizReadQuestion;
   }
-  mounted() {
+
+  mounted () {
     this.filename = this.$route.params.path.toString();
     this.$store.dispatch("open_file", this.filename);
-    Metric.registerEvent('openSet', {filename: this.filename})
+    Metric.registerEvent("openSet", { filename: this.filename });
   }
-  addCard(card: Card) {
-    Metric.registerEvent('cardClick', {card})
+
+  addCard (card: Card) {
+    Metric.registerEvent("cardClick", { card });
     if (this.isQuiz) {
       if (card.answer) {
         this.quizPage++;
@@ -90,8 +96,7 @@ export default class SetExplorerView extends Vue {
       if (
         (this.config?.withoutSpace && card.cardType < 2) ||
         (!this.config?.withoutSpace && card.cardType == 0)
-      )
-        this.cards.push(card);
+      ) { this.cards.push(card); }
     } else {
       if (this.filename) TTS.instance.playCards(this.filename, [card], true);
     }

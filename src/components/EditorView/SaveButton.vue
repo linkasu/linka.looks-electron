@@ -49,14 +49,14 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   title: string = prop({
-    required: true,
+    required: true
   });
 }
 
 @Options({})
 export default class DeleteButton extends Vue.with(Props) {
   dialog = false;
-  saveAsNew: boolean = false;
+  saveAsNew = false;
   newTitle = this.title.slice(0, -6);
 }
 </script>
