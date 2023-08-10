@@ -33,12 +33,14 @@
     </v-btn>
     <v-btn
       flat
+      icon
       :color="animationEnabled ? 'primary' : ''"
       @click="switchAnimationEnabled"
       :title="
         (animationEnabled ? 'Выключить' : 'Включить') + ' анимацию'
       "
     >
+    <v-icon>{{ animationEnabled ? "mdi-pause" : "mdi-play" }}</v-icon>
     </v-btn>
     <v-spacer />
     <share-button/>
