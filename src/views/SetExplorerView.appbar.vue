@@ -37,7 +37,7 @@
       :color="animation ? 'primary' : ''"
       @click="switchAnimation"
       :title="
-        (animation ? 'Выключить' : 'Включить') + ' анимацию'
+        (animation ? 'Выключить' : 'Включить') + ' анимацию изображений'
       "
     >
     <v-icon>{{ animation? "mdi-pause" : "mdi-play" }}</v-icon>

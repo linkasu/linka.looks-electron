@@ -212,7 +212,7 @@ const store = createStore<LINKaStore>({
     },
     pcHash(state, hash) {
       state.pcHash = hash
-    },
+    }
   },
 
   actions: {

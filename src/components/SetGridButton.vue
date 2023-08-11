@@ -70,7 +70,7 @@ export default class SetGridButton extends Vue.with(Props) {
           if (this.cardHasGIF(card)) {
             this.createStaticImage(url);
           }
-        })
+        });
       }
     }
   }
