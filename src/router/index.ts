@@ -39,7 +39,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/settings',
-    components : {
+    components: {
       default: SettingsView,
       appbar: SettingsViewAppBar
     }
@@ -51,9 +51,9 @@ const router = createRouter({
   routes
 })
 storageService.getArgv()
-.then((argv)=>{
-  if(!argv[1])  return
-  router.push('/set/'+argv[1])
-})
+  .then((argv) => {
+    if (!argv[1] || !argv[1].endsWith('linka')) return
+    router.push('/set/' + argv[1])
+  })
 
 export default router
