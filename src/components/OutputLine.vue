@@ -50,71 +50,80 @@ import { TTS } from "@/utils/TTS";
 
 class Props {
   file: string = prop({
-    required: true,
+    required: true
   });
+
   cards: Card[] = prop({
-    required: true,
+    required: true
   });
+
   config: ConfigFile = prop({
-    required: true,
+    required: true
   });
 }
 @Options({
   components: {
     EyeButton,
-    SetGridButton,
-  },
+    SetGridButton
+  }
 })
 export default class OutpuiLine extends Vue.with(Props) {
-  get isExitButton() {
+  get isExitButton () {
     return this.$store.state.ui.exitButton;
   }
 
-  get buttonEnabled() {
+  get buttonEnabled () {
     return this.$store.state.button.enabled;
   }
-  switchButtonEnabled() {
+
+  switchButtonEnabled () {
     this.$store.dispatch("button_enabled");
   }
 
-  get withoutSpace() {
+  get withoutSpace () {
     return this.config?.withoutSpace;
   }
-  get text() {
+
+  get text () {
     return this.clone
       .map((c) => {
         return c.cardType == 0 ? c.title : " ";
       })
       .join("");
   }
-  get clone() {
+
+  get clone () {
     this.scrollEnd();
 
     return [...this.cards];
   }
-  scrollEnd() {
+
+  scrollEnd () {
     setTimeout(() => {
       const el = this.$refs.text as HTMLButtonElement;
-      if (el && el.firstElementChild)
+      if (el && el.firstElementChild) {
         el.scrollTo({
-          left: el.firstElementChild.scrollWidth + 100,
+          left: el.firstElementChild.scrollWidth + 100
         });
+      }
     }, 50);
   }
 
-  clear() {
+  clear () {
     this.$emit("value", []);
   }
 
-  backspace() {
+  backspace () {
     this.$emit("value", this.clone.slice(0, -1));
   }
-  async say() {
+
+  async say () {
     this.isPlaying = true;
     if (this.config.withoutSpace) await TTS.instance.playText(this.text);
     else await TTS.instance.playCards(this.file, this.cards);
     this.isPlaying = false;
   }
+
   isPlaying = false;
 }
 </script>

@@ -76,7 +76,7 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   defaultOpen = prop({
-    default: false,
+    default: false
   });
 }
 
@@ -84,49 +84,59 @@ class Props {
 export default class SetSettings extends Vue.with(Props) {
   dialog = this.defaultOpen;
 
-  get columns(): number {
+  get columns (): number {
     return this.$store.state.editor.columns;
   }
 
-  public set columns(v: number) {
+  public set columns (v: number) {
     this.$store.commit("editor_columns", v);
   }
-  get rows(): number {
+
+  get rows (): number {
     return this.$store.state.editor.rows;
   }
 
-  public set rows(v: number) {
+  public set rows (v: number) {
     this.$store.commit("editor_rows", v);
   }
-  get isWithoutSpace(): boolean {
+
+  get isWithoutSpace (): boolean {
     return this.$store.state.editor.isWithoutSpace;
   }
-  set isWithoutSpace(v: boolean) {
+
+  set isWithoutSpace (v: boolean) {
     this.$store.commit("editor_isWithoutSpace", v);
   }
-  get isDirectSet(): boolean {
+
+  get isDirectSet (): boolean {
     return this.$store.state.editor.isDirectSet;
   }
-  set isDirectSet(v: boolean) {
+
+  set isDirectSet (v: boolean) {
     this.$store.commit("editor_isDirectSet", v);
   }
 
-  get isQuiz(): boolean {
+  get isQuiz (): boolean {
     return this.$store.state.editor.quiz;
   }
-  set isQuiz(v: boolean) {
+
+  set isQuiz (v: boolean) {
     this.$store.commit("editor_isQuiz", v);
   }
-  get editor_quizReadQuestion(): boolean {
+
+  get editor_quizReadQuestion (): boolean {
     return this.$store.state.editor.quizReadQuestion;
   }
-  set editor_quizReadQuestion(v: boolean) {
+
+  set editor_quizReadQuestion (v: boolean) {
     this.$store.commit("editor_quizReadQuestion", v);
   }
-  get editor_quizAutoNext(): boolean {
+
+  get editor_quizAutoNext (): boolean {
     return this.$store.state.editor.quizAutoNext;
   }
-  set editor_quizAutoNext(v: boolean) {
+
+  set editor_quizAutoNext (v: boolean) {
     this.$store.commit("editor_quizAutoNext", v);
   }
 }

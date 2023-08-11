@@ -24,7 +24,7 @@
           step="0.1"
           min="0"
           max="5"
-          
+
         ></v-slider>
       </v-card-text>
     </v-card>
@@ -47,38 +47,46 @@ class Props {}
 
 @Options({})
 export default class extends Vue.with(Props) {
-  get borders() {
+  get borders () {
     return this.$store.state.button.borders;
   }
-  set borders(value: number) {
+
+  set borders (value: number) {
     this.$store.commit("button_borders", value);
   }
-  get colorPrimary() {
+
+  get colorPrimary () {
     return this.$store.state.colors.primary;
   }
-  set colorPrimary(v: string) {
+
+  set colorPrimary (v: string) {
     this.$store.commit("colors_primary", v);
   }
-  get colorAccent() {
+
+  get colorAccent () {
     return this.$store.state.colors.accent;
   }
-  set colorAccent(v: string) {
+
+  set colorAccent (v: string) {
     this.$store.commit("colors_accent", v);
   }
-  get colorSecondary() {
+
+  get colorSecondary () {
     return this.$store.state.colors.secondary;
   }
-  set colorSecondary(v: string) {
+
+  set colorSecondary (v: string) {
     this.$store.commit("colors_secondary", v);
   }
 
-  makeDefault() {
+  makeDefault () {
     this.colorPrimary = "#197377";
     this.colorAccent = "#7DF6FA";
     this.colorSecondary = "#FFD200";
     this.borders = 1;
   }
-  makeBG() {
+
+  makeBG () {
     this.colorPrimary = "#DDDDDD";
     this.colorAccent = "#FFFFFF";
     this.colorSecondary = "#000000";

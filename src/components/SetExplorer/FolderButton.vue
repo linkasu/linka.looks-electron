@@ -44,63 +44,65 @@
     </v-dialog>
   </template>
 
-  <script lang="ts">
-  import { HOME_DIR } from "@/CardsStorage/constants";
-  import { storageService } from "@/CardsStorage/frontend";
-  import { Directory } from "@/interfaces/Directory";
-  import { basename, join, normalize } from "path";
-  import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts">
+import { HOME_DIR } from "@/CardsStorage/constants";
+import { storageService } from "@/CardsStorage/frontend";
+import { Directory } from "@/interfaces/Directory";
+import { basename, join, normalize } from "path";
+import { Vue, prop, Options } from "vue-class-component";
 
-  class Props {
-    file: string = prop({
-      required: true,
-    });
-  }
+class Props {
+  file: string = prop({
+    required: true
+  });
+}
 
   @Options({
     watch: {
-      dialog: "onDialog",
-    },
-  })
-  export default class FolderButton extends Vue.with(Props) {
-    dialog = false;
-    dirs: Directory = [];
-    current: string = this.file.split("§").slice(0, -1).join("/");;
-    mounted(): void {}
-    onDialog(v: boolean) {
-      this.$store.commit("button_enabled", !v);
-      if (v) {
-        this.current = this.file.split("§").slice(0, -1).join("/");
-        this.loadSet();
-      }
+      dialog: "onDialog"
     }
-    open(file: string) {
-      this.current = normalize( file);
+  })
+export default class FolderButton extends Vue.with(Props) {
+  dialog = false;
+  dirs: Directory = [];
+  current: string = this.file.split("§").slice(0, -1).join("/");
+  onDialog (v: boolean) {
+    this.$store.commit("button_enabled", !v);
+    if (v) {
+      this.current = this.file.split("§").slice(0, -1).join("/");
       this.loadSet();
     }
-
-    async loadSet() {
-      if (!this.current) return;
-      const dirs = (await storageService.getFiles(this.current))?.filter(
-        (f) => f.directory
-      );
-      if (!dirs) return;
-      let c = this.current
-      if(!c.includes(HOME_DIR)){
-        c=join(HOME_DIR, c)
-      }
-      c=join(c)
-      const parts = c.split('/')
-      .filter(p=>!!p)
-      if (c.replace(HOME_DIR, '').length>1)
-        dirs.unshift({
-          directory: true,
-          file: this.current + "/..",
-        });
-      this.dirs = dirs;
-    }
-    basename(s: string) {
-      return basename(s);
-    }
   }
-  </script>
+
+  open (file: string) {
+    this.current = normalize(file);
+    this.loadSet();
+  }
+
+  async loadSet () {
+    if (!this.current) return;
+    const dirs = (await storageService.getFiles(this.current))?.filter(
+      (f) => f.directory
+    );
+    if (!dirs) return;
+    let c = this.current;
+    if (!c.includes(HOME_DIR)) {
+      c = join(HOME_DIR, c);
+    }
+    c = join(c);
+    const parts = c.split("/")
+      .filter(p => !!p);
+    if (c.replace(HOME_DIR, "").length > 1) {
+      dirs.unshift({
+        directory: true,
+        file: this.current + "/.."
+      });
+    }
+    this.dirs = dirs;
+  }
+
+  basename (s: string) {
+    return basename(s);
+  }
+}
+</script>

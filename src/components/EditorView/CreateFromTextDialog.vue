@@ -17,17 +17,17 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   file: string = prop({
-    required: true,
+    required: true
   });
 }
 
 @Options({
   components: {
-    InputDialog,
-  },
+    InputDialog
+  }
 })
 export default class CreateFromTextDialog extends Vue.with(Props) {
-  create(text: string) {
+  create (text: string) {
     storageService.createImageFromText(this.file, text).then((value) => {
       this.$emit("image", value);
     });

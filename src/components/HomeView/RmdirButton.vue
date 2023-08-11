@@ -42,37 +42,40 @@ class Props {}
 
 @Options({
   watch: {
-    dialog: "onDialog",
-  },
+    dialog: "onDialog"
+  }
 })
 export default class ExitButton extends Vue.with(Props) {
   dialog = false;
   directories?: DirectoryFile[] | null = null;
   directory?: string | null = null;
-  get titles() {
+  get titles () {
     return this.directories?.map(({ file }) => {
       return file.split("/").slice(-1)[0];
     });
   }
-  get root(){
-    return this.$route.params.path.toString()
+
+  get root () {
+    return this.$route.params.path.toString();
   }
-  onDialog(value: boolean) {
+
+  onDialog (value: boolean) {
     if (value) {
       this.load();
     }
   }
-  async load() {
+
+  async load () {
     this.directories = (
       await storageService.getFiles(this.root)
     )?.filter(({ directory }) => directory);
     if (this.titles) this.directory = this.titles[0];
   }
 
-  async remove() {
-    await storageService.rmdir(this.root+'§'+this.directory)
+  async remove () {
+    await storageService.rmdir(this.root + "§" + this.directory);
     setTimeout(() => {
-        window.location.reload()
+      window.location.reload();
     }, 100);
   }
 }

@@ -26,36 +26,37 @@ class Props {
   file?: DirectoryFile = prop({
     required: false
   });
+
   back: WithDefault<boolean> = prop({
-    default: false,
+    default: false
   });
 }
 @Options({
   components: {
-    EyeButton,
-  },
+    EyeButton
+  }
 })
 export default class ExplorerGridButton extends Vue.with(Props) {
   image?: string = "";
 
-  mounted() {
-    
+  mounted () {
     if (this.back) {
-    return
-    } 
+      return;
+    }
     if (this.file && !this.file.directory) {
       storageService
-      .getDefaultImage(this.file.file)
+        .getDefaultImage(this.file.file)
         .then((buffer) => {
-          if(!buffer) return;
+          if (!buffer) return;
           const url = URL.createObjectURL(
             new Blob([buffer], { type: "image/png" } /* (1) */)
           );
-          this.image = `url("${url}"`
+          this.image = `url("${url}"`;
         });
     }
   }
-  basename(path: string) {
+
+  basename (path: string) {
     return basename(path);
   }
 }

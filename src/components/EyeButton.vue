@@ -32,83 +32,84 @@ import { Vue, Options, prop } from "vue-class-component";
 
 class Props {
   enabled = prop({
-    default: true,
+    default: true
   });
+
   lock = prop({
-    default: false,
+    default: false
   });
+
   color = prop({
-    required: false,
+    required: false
   });
+
   path = prop({
-    default: false,
+    default: false
   });
 }
 
 @Options({
-  components: {},
+  components: {}
 })
 export default class EyeButton extends Vue.with(Props) {
   isInside = false;
   circle = false;
-timer?: NodeJS.Timeout;
-  get borderWidth() {
+  timer?: NodeJS.Timeout;
+  get borderWidth () {
     return this.$store.state.button.borders + "px";
   }
-  get buttonTimeout(): number {
+
+  get buttonTimeout (): number {
     return this.$store.state.button.timeout;
   }
 
-  mounted() {
+  mounted () {
     const el = this.$el as Element;
     el.addEventListener("eye-enter", (event) => {
-      const e = event as CustomEvent
+      const e = event as CustomEvent;
       const eye = !!e.detail.eye;
-      
-      
+
       if (this.buttonEnabled || this.lock) this.onEnter(eye);
     });
     el.addEventListener("eye-exit", () => {
-      
       this.onExit();
     });
   }
 
-  onExit() {
+  onExit () {
     this.isInside = false;
     this.circle = false;
-    
-    
   }
-  onEnter(eye:boolean) {
-    if (eye&&!this.$store.state.button.eyeSelect) return;
-    if (!eye&&!this.$store.state.button.keyboardActivation) return;
-    if (!eye&&!this.$store.state.button.joystickActivation) return;
-    this.isInside = true;
-    this.circle =  this.$store.state.button.eyeActivation&&eye;
-      }
 
-  get buttonEnabled() {
+  onEnter (eye:boolean) {
+    if (eye && !this.$store.state.button.eyeSelect) return;
+    if (!eye && !this.$store.state.button.keyboardActivation) return;
+    if (!eye && !this.$store.state.button.joystickActivation) return;
+    this.isInside = true;
+    this.circle = this.$store.state.button.eyeActivation && eye;
+  }
+
+  get buttonEnabled () {
     return this.$store.state.button.enabled;
   }
 
-  get size() {
+  get size () {
     if (!this.$el) return 0 + "px";
     const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
     return Math.min(rect.width, rect.height) * 0.8 + "px";
   }
 
-  public get seconds(): string {
+  public get seconds (): string {
     return this.buttonTimeout / 1000 + "s";
   }
-  click() {
-    if(!this.$store.state.button.clickSound) return;
-    const el = document.getElementById('button_audio') as HTMLAudioElement
-    el.pause()
-    el.currentTime = 0
-    el.play()
-  }
 
+  click () {
+    if (!this.$store.state.button.clickSound) return;
+    const el = document.getElementById("button_audio") as HTMLAudioElement;
+    el.pause();
+    el.currentTime = 0;
+    el.play();
+  }
 }
 </script>
 

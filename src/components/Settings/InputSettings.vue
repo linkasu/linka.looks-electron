@@ -20,10 +20,9 @@ import store from "@/store";
 class Props {}
 
 @Options({
-  components: { KeyBinding },
+  components: { KeyBinding }
 })
 export default class InputSettings extends Vue.with(Props) {
-    sides = Object.keys( store.state.keyMapping)
-  mounted(): void {}
+  sides = Object.keys(store.state.keyMapping);
 }
 </script>

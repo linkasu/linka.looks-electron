@@ -28,31 +28,32 @@ import { Card } from "@/interfaces/ConfigFile";
 
 class Props {
   card: Card = prop({
-    required: true,
+    required: true
   });
+
   file: string = prop({
-    required: true,
+    required: true
   });
+
   dot = prop({
     default: false
-  })
+  });
 }
 @Options({
   components: {
-    EyeButton,
+    EyeButton
   },
   watch: {
     card: {
       handler: "onCard",
-      deep: true,
-    },
-  },
+      deep: true
+    }
+  }
 })
 export default class SetGridButton extends Vue.with(Props) {
   image?: string = "";
 
-
-  onCard(card: Card) {
+  onCard (card: Card) {
     if (card && card.imagePath) {
       if (card.cardType == 0) {
         storageService.getImage(this.file, card.imagePath).then((buffer) => {
@@ -66,9 +67,7 @@ export default class SetGridButton extends Vue.with(Props) {
     }
   }
 
-  mounted() {
-    
-    
+  mounted () {
     this.onCard(this.card);
   }
 }
@@ -85,7 +84,7 @@ export default class SetGridButton extends Vue.with(Props) {
 .icon {
   height: 100%;
   font-size: 5em;
-  
+
 }
 .img {
   background-image: var(--image);

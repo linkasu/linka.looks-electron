@@ -28,29 +28,32 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   config = prop<ConfigFile>({
-    required: true,
+    required: true
   });
+
   edit = prop({
-    default: false,
+    default: false
   });
 }
 
 @Options({
   watch: {
-    dialog: "onDialog",
-  },
+    dialog: "onDialog"
+  }
 })
 export default class NotesButton extends Vue.with(Props) {
   dialog = false;
-  get description() {
+  get description () {
     return this.edit
       ? this.$store.state.editor.description
       : this.config.description;
   }
-  set description(text: string | undefined) {
+
+  set description (text: string | undefined) {
     this.$store.commit("editor_description", text);
   }
-  onDialog(value: boolean) {
+
+  onDialog (value: boolean) {
     this.$store.commit("button_enabled", !this.dialog);
   }
 }

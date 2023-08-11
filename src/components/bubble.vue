@@ -5,27 +5,26 @@
 </template>
 
 <script lang="ts">
-import { ipcRenderer } from 'electron';
-import { GazeData } from 'tobiiee/build/GazeData';
-import {Vue, prop, Options} from 'vue-class-component'
+import { ipcRenderer } from "electron";
+import { GazeData } from "tobiiee/build/GazeData";
+import { Vue, prop, Options } from "vue-class-component";
 
-class Props{
+class Props {
 
 }
 
 @Options({
 
 })
-export default class Bubble extends Vue.with(Props){
-    left ='0px';
-    top = '0px'
-    mounted(): void {
-        
-        ipcRenderer.on('eye-point', (event, point: GazeData) => {
-           this.left = point.x+'px'
-           this.top = point.y+'px'
-        });
-    }
+export default class Bubble extends Vue.with(Props) {
+  left = "0px";
+  top = "0px";
+  mounted (): void {
+    ipcRenderer.on("eye-point", (event, point: GazeData) => {
+      this.left = point.x + "px";
+      this.top = point.y + "px";
+    });
+  }
 }
 </script>
 

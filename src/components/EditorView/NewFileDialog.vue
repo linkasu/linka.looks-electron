@@ -20,14 +20,15 @@ class Props {}
 
 @Options({
   components: {
-    InputDialog,
-  },
+    InputDialog
+  }
 })
 export default class NewFileDialog extends Vue.with(Props) {
-  show() {
+  show () {
     (this.$refs.dialog as InputDialog).show();
   }
-  cancel() {
+
+  cancel () {
     this.$router.back();
   }
 }

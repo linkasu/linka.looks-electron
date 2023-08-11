@@ -18,7 +18,7 @@ import { Vue, prop, Options } from "vue-class-component";
 
 class Props {
   side: Side = prop({
-    required: true,
+    required: true
   });
 }
 @Options({})
@@ -28,40 +28,45 @@ export default class KeyBinding extends Vue.with(Props) {
     down: "Вниз",
     left: "Влево",
     right: "Вправо",
-    enter: "Выбрать",
+    enter: "Выбрать"
   };
 
-  mounted(): void {
+  mounted (): void {
     document.addEventListener("keydown", this.onKeyDown);
-    document.addEventListener('joystick-keydown', console.log)
+    document.addEventListener("joystick-keydown", console.log);
   }
 
-  unmounted(): void {
+  unmounted (): void {
     document.removeEventListener("keydown", this.onKeyDown);
   }
-  onKeyDown(ev: KeyboardEvent) {
+
+  onKeyDown (ev: KeyboardEvent) {
     if (this.isCurrent) {
       this.$store.dispatch("keymap_push", { side: this.side, code: ev.code });
     }
   }
-  remove(code: string) {
-      this.$store.dispatch("keymap_remove", { side: this.side, code });
+
+  remove (code: string) {
+    this.$store.dispatch("keymap_remove", { side: this.side, code });
   }
 
-  get keys() {
+  get keys () {
     return this.$store.state.keyMapping[this.side];
   }
 
-  get selected() {
+  get selected () {
     return this.$store.state.selectedKey;
   }
-  set selected(side: Side|undefined) {
+
+  set selected (side: Side|undefined) {
     this.$store.commit("selectedKey", side);
   }
-  get isCurrent() {
+
+  get isCurrent () {
     return this.selected == this.side;
   }
-  select() {
+
+  select () {
     this.selected = this.side;
   }
 }
