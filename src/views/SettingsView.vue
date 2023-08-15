@@ -51,15 +51,7 @@
                 <v-col xs="6">
                   <v-checkbox
                     v-model="clickSound"
-                    label="Звук щелчка при активации кнопки"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="animation"
-                    label="Анимация изображений"
+                    label="звук щелчка при активации кнопки"
                   />
                 </v-col>
               </v-row>
@@ -157,14 +149,6 @@ export default class SettingsView extends Vue.with(Props) {
 
   set mouseActivation (value: boolean) {
     this.$store.commit("button_mouseActivation", value);
-  }
-
-  get animation () {
-    return this.$store.state.button.animation;
-  }
-
-  set animation (value: boolean) {
-    this.$store.dispatch("button_animation");
   }
 
   get isExitButton () {
