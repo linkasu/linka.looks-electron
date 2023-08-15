@@ -29,7 +29,8 @@ export interface LINKaStore {
         mouseActivation: boolean,
         borders: number;
         enabled: boolean;
-        clickSound: boolean
+        clickSound: boolean;
+        animation: boolean
     },
     ui: {
         outputLine: boolean,

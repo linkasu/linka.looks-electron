@@ -22,6 +22,7 @@ const fields = [
   { commit: 'button_mouseActivation', default: true } as Field<boolean>,
   { commit: 'button_borders', default: 1 } as Field<number>,
   { commit: 'button_clickSound', default: true } as Field<boolean>,
+  { commit: 'button_animation', default: true } as Field<boolean>,
   { commit: 'ui_exitButton', default: true } as Field<boolean>,
   { commit: 'keyMapping_up', default: ['ArrowUp'] } as Field<string[]>,
   { commit: 'keyMapping_down', default: ['ArrowDown'] } as Field<string[]>,
@@ -49,7 +50,8 @@ const store = createStore<LINKaStore>({
       keyboardActivation: true,
       mouseActivation: true,
       clickSound: true,
-      borders: 1
+      borders: 1,
+      animation: true
     },
     ui: {
       outputLine: true,
@@ -198,13 +200,11 @@ const store = createStore<LINKaStore>({
       button.mouseActivation = value
     },
     button_borders({ button }, value) {
-
       button.borders = value
     },
     button_clickSound({ button }, value) {
       button.clickSound = value
       Metric.registerEvent('settingsToggleTypeSound', {value})
-
     },
     interface_outputLine({ ui }, value) {
       ui.outputLine = value
@@ -213,7 +213,6 @@ const store = createStore<LINKaStore>({
     pcHash(state, hash) {
       state.pcHash = hash
     }
-
   },
 
   actions: {
@@ -236,6 +235,10 @@ const store = createStore<LINKaStore>({
 
     button_enabled({ state }) {
       state.button.enabled = !state.button.enabled
+    },
+
+    button_animation( {state}) {
+      state.button.animation = !state.button.animation
     },
 
     async editor_new_file({ state, dispatch }, file: string) {
