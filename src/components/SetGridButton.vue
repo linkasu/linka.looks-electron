@@ -94,17 +94,19 @@ export default class SetGridButton extends Vue.with(Props) {
     img.src = url;
     img.onload = function () {
       const ratio = img.naturalWidth / img.naturalHeight;
-      const newWidth = containerHeight * ratio;    
-      const newHeight = containerHeight;
+      const newWidth = containerHeight * ratio;
+      
+      const finalWidth = newWidth>containerWidth? containerWidth : newWidth;
+      const finalHeight = finalWidth / ratio;
 
-      const xOffset = (canvas.width - newWidth) / 2;
-      const yOffset = (canvas.height - newHeight) / 2;
+      const xOffset = (canvas.width - finalWidth) / 2;
+      const yOffset = (canvas.height - finalHeight) / 2;
 
       const ctx = canvas.getContext("2d");
       // @ts-ignore
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // @ts-ignore
-      ctx.drawImage(img, xOffset, yOffset, newWidth, newHeight);
+      ctx.drawImage(img, xOffset, yOffset, finalWidth, finalHeight);
     };
   }
 
