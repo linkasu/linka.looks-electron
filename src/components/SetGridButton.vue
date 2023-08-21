@@ -11,6 +11,7 @@
             :class="animation ? 'canvas img_hidden' : 'canvas'"
             ref="canvasRef"
           ></canvas>
+          <div ref="clearfixRef" class="canvasClearfix"></div>
           <div
             v-if="card.cardType == 0"
             :class="animation || !this.cardHasGIF(card) ? 'img' : 'img img_hidden'"
@@ -84,18 +85,28 @@ export default class SetGridButton extends Vue.with(Props) {
 
   createStaticImage(url: string) {
     const canvas = this.$refs.canvasRef as HTMLCanvasElement;
+    const clearfixContainer = this.$refs.clearfixRef as HTMLCanvasElement;
+    const containerWidth = clearfixContainer.offsetWidth;
+    const containerHeight = clearfixContainer.offsetHeight;
+    canvas.height = containerHeight;
+    canvas.width = containerWidth;
     let img = new Image();
     img.src = url;
     img.onload = function () {
       const ratio = img.naturalWidth / img.naturalHeight;
-      const newHeight = canvas.height;
-      const newWidth = newHeight * ratio;
-      const xOffset = (canvas.width - newWidth) / 2;
+      const newWidth = containerHeight * ratio;
+      
+      const finalWidth = newWidth>containerWidth? containerWidth : newWidth;
+      const finalHeight = finalWidth / ratio;
+
+      const xOffset = (canvas.width - finalWidth) / 2;
+      const yOffset = (canvas.height - finalHeight) / 2;
+
       const ctx = canvas.getContext("2d");
       // @ts-ignore
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // @ts-ignore
-      ctx.drawImage(img, xOffset, 0, newWidth, newHeight);
+      ctx.drawImage(img, xOffset, yOffset, finalWidth, finalHeight);
     };
   }
 
@@ -135,11 +146,19 @@ export default class SetGridButton extends Vue.with(Props) {
 .img_hidden {
     display: none;
   }
+.canvasClearfix {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 100%;
+  width: 100%;
+  transform: translate(-50%, -50%);
+}
 .canvas {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
-  height: 100%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 .text {
   height: 100%;
