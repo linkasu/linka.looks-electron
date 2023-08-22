@@ -1,4 +1,4 @@
-import { Card, ConfigFile } from "@/interfaces/ConfigFile"
+import { Card, ConfigFile } from "@/interfaces/ConfigFile";
 
 interface KeyMap {
     up: string[]

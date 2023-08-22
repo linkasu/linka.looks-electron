@@ -1,32 +1,31 @@
 
-
 const events = [
-    "start", //
+  "start", //
 
-    "openSettings", //
-    "openSet",  //
-    "openFolder",  //
-    "openEditor", //
+  "openSettings", //
+  "openSet", //
+  "openFolder", //
+  "openEditor", //
 
-    "cardClick", //
-    "toggleOutputLine",//
-    "toggleGazeLock", //
+  "cardClick", //
+  "toggleOutputLine", //
+  "toggleGazeLock", //
 
-    "share",  //
-    "move", //
-    "trash", //
+  "share", //
+  "move", //
+  "trash", //
 
-    "editorAddImage", //
-    "editorAddAudio", //
+  "editorAddImage", //
+  "editorAddAudio", //
 
-    "settingsToggleEyeExit", //
-    "settingsToggleEyeChoose", // 
-    "settingsToggleEyeActivation", //
-    "settingsToggleKeyboardActivation", //
-    "settingsToggleJoystickActivation", //
-    "settingsToggleTypeSound", //
-    "settingsSetTimeout", //
+  "settingsToggleEyeExit", //
+  "settingsToggleEyeChoose", //
+  "settingsToggleEyeActivation", //
+  "settingsToggleKeyboardActivation", //
+  "settingsToggleJoystickActivation", //
+  "settingsToggleTypeSound", //
+  "settingsSetTimeout" //
 
-] as const
+] as const;
 
 export type MetricEvent = typeof events[number]

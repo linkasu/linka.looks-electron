@@ -112,10 +112,12 @@ export default class SetExplorerViewAppBar extends Vue {
   switchButtonEnabled () {
     this.$store.dispatch("button_enabled");
   }
-  get animation() {
+
+  get animation () {
     return this.$store.state.button.animation;
   }
-  switchAnimation() {
+
+  switchAnimation () {
     this.$store.dispatch("button_animation");
   }
 

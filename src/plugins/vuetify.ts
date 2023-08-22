@@ -1,12 +1,9 @@
 // Styles
-import '@mdi/font/css/materialdesignicons.css'
-import 'vuetify/styles'
-import store from '@/store'
+import "@mdi/font/css/materialdesignicons.css";
+import "vuetify/styles";
+import store from "@/store";
 // Vuetify
-import { createVuetify } from 'vuetify'
-
-
-
+import { createVuetify } from "vuetify";
 
 export default createVuetify(
   {
@@ -16,10 +13,10 @@ export default createVuetify(
           colors: {
             primary: store.state.colors.primary,
             secondary: store.state.colors.secondary,
-            accent: store.state.colors.accent,
-          },
+            accent: store.state.colors.accent
+          }
         }
-      },
-    },
+      }
+    }
   }
-)
+);

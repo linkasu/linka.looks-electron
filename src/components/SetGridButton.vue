@@ -1,20 +1,20 @@
 <template>
     <eye-button>
       <div class="dot" v-if="dot">
-  
+
       </div>
       <v-icon v-if="card.cardType == 3"> mdi-plus </v-icon>
       <div class="content" v-else>
         <div class="cardContainer" align-center>
           <canvas
-            v-if="card.cardType == 0 && this.cardHasGIF(card)"
+            v-if="card.cardType == 0 && cardHasGIF(card)"
             :class="animation ? 'canvas img_hidden' : 'canvas'"
             ref="canvasRef"
           ></canvas>
           <div ref="clearfixRef" class="canvasClearfix"></div>
           <div
             v-if="card.cardType == 0"
-            :class="animation || !this.cardHasGIF(card) ? 'img' : 'img img_hidden'"
+            :class="animation || !cardHasGIF(card) ? 'img' : 'img img_hidden'"
             :style="{ '--image': image }"
           />
           <h1 v-if="card.cardType == 1" class="img">⎵</h1>
@@ -76,27 +76,27 @@ export default class SetGridButton extends Vue.with(Props) {
     }
   }
 
-  cardHasGIF(card: Card): boolean {
+  cardHasGIF (card: Card): boolean {
     if (card && card.imagePath) {
       return card.imagePath.includes("gif");
     }
-      return false;
+    return false;
   }
 
-  createStaticImage(url: string) {
+  createStaticImage (url: string) {
     const canvas = this.$refs.canvasRef as HTMLCanvasElement;
     const clearfixContainer = this.$refs.clearfixRef as HTMLCanvasElement;
     const containerWidth = clearfixContainer.offsetWidth;
     const containerHeight = clearfixContainer.offsetHeight;
     canvas.height = containerHeight;
     canvas.width = containerWidth;
-    let img = new Image();
+    const img = new Image();
     img.src = url;
     img.onload = function () {
       const ratio = img.naturalWidth / img.naturalHeight;
       const newWidth = containerHeight * ratio;
-      
-      const finalWidth = newWidth>containerWidth? containerWidth : newWidth;
+
+      const finalWidth = newWidth > containerWidth ? containerWidth : newWidth;
       const finalHeight = finalWidth / ratio;
 
       const xOffset = (canvas.width - finalWidth) / 2;
@@ -110,11 +110,11 @@ export default class SetGridButton extends Vue.with(Props) {
     };
   }
 
-  mounted() {
+  mounted () {
     this.onCard(this.card);
   }
 
-  get animation() {
+  get animation () {
     return this.$store.state.button.animation;
   }
 }

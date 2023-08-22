@@ -1,45 +1,44 @@
-import { createStore, } from 'vuex'
+import { createStore } from "vuex";
 
-import { LINKaStore, Side } from './LINKaStore'
-import { storageService } from '@/CardsStorage/frontend'
-import { eStore } from './eStore'
-import { ipcRenderer } from 'electron'
-import { Metric } from '@/utils/Metric'
-
+import { LINKaStore, Side } from "./LINKaStore";
+import { storageService } from "@/CardsStorage/frontend";
+import { eStore } from "./eStore";
+import { ipcRenderer } from "electron";
+import { Metric } from "@/utils/Metric";
 
 const fields = [
-  { commit: 'pcHash', default: 'unknow' } as Field<string>,
-  { commit: 'popupVersion', default: 0 } as Field<number>,
-  { commit: 'defaultSetsDownloaded', default: false } as Field<boolean>,
-  { commit: 'colors_primary', default: '#197377' } as Field<string>,
-  { commit: 'colors_accent', default: '#7DF6FA' } as Field<string>,
-  { commit: 'colors_secondary', default: '#FFAF00' } as Field<string>,
-  { commit: 'button_timeout', default: 1000 } as Field<number>,
-  { commit: 'button_eyeSelect', default: true } as Field<boolean>,
-  { commit: 'button_eyeActivation', default: true } as Field<boolean>,
-  { commit: 'button_joystickActivation', default: true } as Field<boolean>,
-  { commit: 'button_keyboardActivation', default: true } as Field<boolean>,
-  { commit: 'button_mouseActivation', default: true } as Field<boolean>,
-  { commit: 'button_borders', default: 1 } as Field<number>,
-  { commit: 'button_clickSound', default: true } as Field<boolean>,
-  { commit: 'button_animation', default: true } as Field<boolean>,
-  { commit: 'ui_exitButton', default: true } as Field<boolean>,
-  { commit: 'keyMapping_up', default: ['ArrowUp'] } as Field<string[]>,
-  { commit: 'keyMapping_down', default: ['ArrowDown'] } as Field<string[]>,
-  { commit: 'keyMapping_left', default: ['ArrowLeft'] } as Field<string[]>,
-  { commit: 'keyMapping_right', default: ['ArrowRight'] } as Field<string[]>,
-  { commit: 'keyMapping_enter', default: ['Enter'] } as Field<string[]>,
-]
+  { commit: "pcHash", default: "unknow" } as Field<string>,
+  { commit: "popupVersion", default: 0 } as Field<number>,
+  { commit: "defaultSetsDownloaded", default: false } as Field<boolean>,
+  { commit: "colors_primary", default: "#197377" } as Field<string>,
+  { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
+  { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
+  { commit: "button_timeout", default: 1000 } as Field<number>,
+  { commit: "button_eyeSelect", default: true } as Field<boolean>,
+  { commit: "button_eyeActivation", default: true } as Field<boolean>,
+  { commit: "button_joystickActivation", default: true } as Field<boolean>,
+  { commit: "button_keyboardActivation", default: true } as Field<boolean>,
+  { commit: "button_mouseActivation", default: true } as Field<boolean>,
+  { commit: "button_borders", default: 1 } as Field<number>,
+  { commit: "button_clickSound", default: true } as Field<boolean>,
+  { commit: "button_animation", default: true } as Field<boolean>,
+  { commit: "ui_exitButton", default: true } as Field<boolean>,
+  { commit: "keyMapping_up", default: ["ArrowUp"] } as Field<string[]>,
+  { commit: "keyMapping_down", default: ["ArrowDown"] } as Field<string[]>,
+  { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
+  { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
+  { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>
+];
 
 const store = createStore<LINKaStore>({
   state: {
     popupVersion: 0,
     defaultSetsDownloaded: false,
-    pcHash: 'unknow',
+    pcHash: "unknow",
     colors: {
-      secondary: '',
-      accent: '',
-      primary: '#197377'
+      secondary: "",
+      accent: "",
+      primary: "#197377"
     },
     button: {
       timeout: 1000,
@@ -59,15 +58,15 @@ const store = createStore<LINKaStore>({
     },
     selectedKey: undefined,
     keyMapping: {
-      up: ['ArrowUp'],
-      down: ['ArrowDown'],
-      left: ['ArrowLeft'],
-      right: ['ArrowRight'],
-      enter: ['Enter']
+      up: ["ArrowUp"],
+      down: ["ArrowDown"],
+      left: ["ArrowLeft"],
+      right: ["ArrowRight"],
+      enter: ["Enter"]
     },
     editor: {
-      current: '',
-      temp: '',
+      current: "",
+      temp: "",
       cards: [],
       quiz: false,
       questions: [],
@@ -75,200 +74,184 @@ const store = createStore<LINKaStore>({
       quizReadQuestion: true,
       columns: 3,
       rows: 3,
-      isDirectSet: false, isWithoutSpace: false
+      isDirectSet: false,
+      isWithoutSpace: false
     },
     explorer: {
 
     }
   },
   mutations: {
-    popupVersion(state,value){
-      state.popupVersion = value
+    popupVersion (state, value) {
+      state.popupVersion = value;
     },
-    selectedKey(state, value) {
-      state.selectedKey = value
+    selectedKey (state, value) {
+      state.selectedKey = value;
     },
-    defaultSetsDownloaded(state, value) {
-      state.defaultSetsDownloaded = value
+    defaultSetsDownloaded (state, value) {
+      state.defaultSetsDownloaded = value;
     },
-    ui_exitButton(state, value) {
-      state.ui.exitButton = value
-      Metric.registerEvent('settingsToggleEyeExit', {value})
+    ui_exitButton (state, value) {
+      state.ui.exitButton = value;
+      Metric.registerEvent("settingsToggleEyeExit", { value });
+    },
+    keyMapping_up ({ keyMapping }, value) {
+      keyMapping.up = value;
+    },
+    keyMapping_down ({ keyMapping }, value) {
+      keyMapping.down = value;
+    },
+    keyMapping_left ({ keyMapping }, value) {
+      keyMapping.left = value;
+    },
+    keyMapping_right ({ keyMapping }, value) {
+      keyMapping.right = value;
+    },
+    keyMapping_enter ({ keyMapping }, value) {
+      keyMapping.enter = value;
+    },
+    colors_primary ({ colors }, value) {
+      colors.primary = value;
+    },
+    colors_accent ({ colors }, value) {
+      colors.accent = value;
+    },
+    colors_secondary ({ colors }, value) {
+      colors.secondary = value;
+    },
+    editor_current ({ editor }, value) {
+      editor.current = value;
+    },
+    editor_temp ({ editor }, value) {
+      editor.temp = value;
+    },
+    editor_cards ({ editor }, value) {
+      editor.cards = value;
+    },
+    editor_columns ({ editor }, value) {
+      editor.columns = value;
+    },
+    editor_rows ({ editor }, value) {
+      editor.rows = value;
+    },
+    editor_isDirectSet ({ editor }, value) {
+      editor.isDirectSet = value;
+    },
+    editor_isWithoutSpace ({ editor }, value) {
+      editor.isWithoutSpace = value;
+    },
+    editor_isQuiz ({ editor }, value) {
+      editor.quiz = value;
+    },
+    editor_questions ({ editor }, value) {
+      editor.questions = value;
+    },
+    editor_quizAutoNext ({ editor }, value) {
+      editor.quizAutoNext = value;
+    },
+    editor_quizReadQuestion ({ editor }, value) {
+      editor.quizReadQuestion = value;
+    },
+    editor_description ({ editor }, value) {
+      editor.description = value;
+    },
+    button_timeout ({ button }, value) {
+      ipcRenderer.send("button_timeout", value);
+      button.timeout = value;
+    },
+    button_enabled ({ button }, value) {
+      button.enabled = value;
+      Metric.registerEvent("toggleGazeLock", { value });
+    },
+    button_eyeSelect ({ button }, value) {
+      button.eyeSelect = value;
+      Metric.registerEvent("settingsToggleEyeChoose", { value });
+    },
+    button_eyeActivation ({ button }, value) {
+      button.eyeActivation = value;
+      Metric.registerEvent("settingsToggleEyeActivation", { value });
+    },
+    button_joystickActivation ({ button }, value) {
+      Metric.registerEvent("settingsToggleJoystickActivation", { value });
 
+      button.joystickActivation = value;
     },
-    keyMapping_up({ keyMapping: keyMapping }, value) {
+    button_keyboardActivation ({ button }, value) {
+      Metric.registerEvent("settingsToggleKeyboardActivation", { value });
 
-      keyMapping.up = value
+      button.keyboardActivation = value;
     },
-    keyMapping_down({ keyMapping: keyMapping }, value) {
-
-      keyMapping.down = value
+    button_mouseActivation ({ button }, value) {
+      button.mouseActivation = value;
     },
-    keyMapping_left({ keyMapping: keyMapping }, value) {
-
-      keyMapping.left = value
+    button_borders ({ button }, value) {
+      button.borders = value;
     },
-    keyMapping_right({ keyMapping: keyMapping }, value) {
-
-      keyMapping.right = value
+    button_clickSound ({ button }, value) {
+      button.clickSound = value;
+      Metric.registerEvent("settingsToggleTypeSound", { value });
     },
-    keyMapping_enter({ keyMapping: keyMapping }, value) {
-
-      keyMapping.enter = value
+    interface_outputLine ({ ui }, value) {
+      ui.outputLine = value;
+      Metric.registerEvent("toggleOutputLine", value);
     },
-    colors_primary({ colors }, value) {
-
-      colors.primary = value
-    },
-    colors_accent({ colors }, value) {
-
-      colors.accent = value
-    },
-    colors_secondary({ colors }, value) {
-
-      colors.secondary = value
-    },
-    editor_current({ editor }, value) {
-      editor.current = value
-    },
-    editor_temp({ editor }, value) {
-      editor.temp = value
-    },
-    editor_cards({ editor }, value) {
-      editor.cards = value
-    },
-    editor_columns({ editor }, value) {
-      editor.columns = value
-    },
-    editor_rows({ editor }, value) {
-      editor.rows = value
-    },
-    editor_isDirectSet({ editor }, value) {
-      editor.isDirectSet = value
-    },
-    editor_isWithoutSpace({ editor }, value) {
-      editor.isWithoutSpace = value
-    },
-    editor_isQuiz({ editor }, value) {
-      editor.quiz = value
-    },
-    editor_questions({ editor }, value) {
-      editor.questions = value
-    },
-    editor_quizAutoNext({ editor }, value) {
-      editor.quizAutoNext = value
-    },
-    editor_quizReadQuestion({ editor }, value) {
-      editor.quizReadQuestion = value
-    },
-    editor_description({ editor }, value) {
-      editor.description = value
-    },
-    button_timeout({ button }, value) {
-      ipcRenderer.send('button_timeout', value)
-      button.timeout = value
-    },
-    button_enabled({ button }, value) {
-      button.enabled = value
-      Metric.registerEvent('toggleGazeLock', {value})
-    },
-    button_eyeSelect({ button }, value) {
-
-      button.eyeSelect = value
-      Metric.registerEvent('settingsToggleEyeChoose', {value})
-
-    },
-    button_eyeActivation({ button }, value) {
-
-      button.eyeActivation = value
-      Metric.registerEvent('settingsToggleEyeActivation', {value})
-
-    },
-    button_joystickActivation({ button }, value) {
-
-      Metric.registerEvent('settingsToggleJoystickActivation', {value})
-
-      button.joystickActivation = value
-    },
-    button_keyboardActivation({ button }, value) {
-      Metric.registerEvent('settingsToggleKeyboardActivation', {value})
-
-      button.keyboardActivation = value
-    },
-    button_mouseActivation({ button }, value) {
-
-      button.mouseActivation = value
-    },
-    button_borders({ button }, value) {
-      button.borders = value
-    },
-    button_clickSound({ button }, value) {
-      button.clickSound = value
-      Metric.registerEvent('settingsToggleTypeSound', {value})
-    },
-    interface_outputLine({ ui }, value) {
-      ui.outputLine = value
-      Metric.registerEvent('toggleOutputLine' , value)
-    },
-    pcHash(state, hash) {
-      state.pcHash = hash
+    pcHash (state, hash) {
+      state.pcHash = hash;
     }
   },
 
   actions: {
 
-    keymap_push({ state, commit }, { side, code }: { side: Side, code: string }) {
+    keymap_push ({ state, commit }, { side, code }: { side: Side, code: string }) {
       if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
-        state.keyMapping[side].push(code)
+        state.keyMapping[side].push(code);
       }
-      commit('keyMapping_' + side, state.keyMapping[side])
-      state.selectedKey = undefined
+      commit("keyMapping_" + side, state.keyMapping[side]);
+      state.selectedKey = undefined;
     },
-    keymap_remove({ state, commit }, { side, code }: { side: Side, code: string }) {
-      commit('keyMapping_' + side, state.keyMapping[side].filter((c) => c !== code))
-      state.selectedKey = undefined
-    },
-
-    interface_outputLine({ state, commit }) {
-      commit('interface_outputLine', !state.ui.outputLine)
+    keymap_remove ({ state, commit }, { side, code }: { side: Side, code: string }) {
+      commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
+      state.selectedKey = undefined;
     },
 
-    button_enabled({ state }) {
-      state.button.enabled = !state.button.enabled
+    interface_outputLine ({ state, commit }) {
+      commit("interface_outputLine", !state.ui.outputLine);
     },
 
-    button_animation( {state}) {
-      state.button.animation = !state.button.animation
+    button_enabled ({ state }) {
+      state.button.enabled = !state.button.enabled;
     },
 
-    async editor_new_file({ state, dispatch }, file: string) {
-      file += '.linka'
+    button_animation ({ state }) {
+      state.button.animation = !state.button.animation;
+    },
+
+    async editor_new_file ({ state, dispatch }, file: string) {
+      file += ".linka";
       state.editor.current = file;
-      state.editor.temp = await storageService.defaultToTemp(file)
-      dispatch('editor_load_set')
+      state.editor.temp = await storageService.defaultToTemp(file);
+      dispatch("editor_load_set");
     },
 
-    async editor_current({ state, dispatch }, file: string) {
+    async editor_current ({ state, dispatch }, file: string) {
       state.editor.current = file;
-      state.editor.temp = await storageService.copyToTemp(file)
-      dispatch('editor_load_set')
-
+      state.editor.temp = await storageService.copyToTemp(file);
+      dispatch("editor_load_set");
     },
-    async editor_load_set({ state, commit }) {
+    async editor_load_set ({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp!);
       if (config) {
-        commit('editor_columns', config.columns);
-        commit('editor_rows', config.rows);
-        commit('editor_cards', config.cards);
-        commit('editor_description', config.description);
-        commit('editor_isWithoutSpace', config.withoutSpace);
-        commit('editor_isDirectSet', !!config.directSet);
-        commit('editor_isQuiz', !!config.quiz);
-        commit('editor_questions', config.questions ?? []);
+        commit("editor_columns", config.columns);
+        commit("editor_rows", config.rows);
+        commit("editor_cards", config.cards);
+        commit("editor_description", config.description);
+        commit("editor_isWithoutSpace", config.withoutSpace);
+        commit("editor_isDirectSet", !!config.directSet);
+        commit("editor_isQuiz", !!config.quiz);
+        commit("editor_questions", config.questions ?? []);
       }
-    }
-    ,
-    async editor_save({ state, commit }) {
+    },
+    async editor_save ({ state, commit }) {
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: state.editor.cards,
         columns: state.editor.columns,
@@ -280,14 +263,13 @@ const store = createStore<LINKaStore>({
         quizAutoNext: state.editor.quizAutoNext,
         quizReadQuestion: state.editor.quizReadQuestion,
         description: state.editor.description,
-        version: '2.0'
-      })
+        version: "2.0"
+      });
     },
-    async editor_save_as({ state, commit }, title) {
-
-      const parts = state.editor.current.split(`§`)
-      parts[parts.length - 1] = title
-      const current = parts.join('§')
+    async editor_save_as ({ state, commit }, title) {
+      const parts = state.editor.current.split("§");
+      parts[parts.length - 1] = title;
+      const current = parts.join("§");
       await storageService.saveSet(state.editor.temp, current, {
         cards: state.editor.cards,
         columns: state.editor.columns,
@@ -299,13 +281,12 @@ const store = createStore<LINKaStore>({
         quiz: state.editor.quiz,
         quizAutoNext: state.editor.quizAutoNext,
         quizReadQuestion: state.editor.quizReadQuestion,
-        version: '2.0'
-      })
-      return current
+        version: "2.0"
+      });
+      return current;
     },
-    async open_file({ state, commit }, filename) {
-
-      const config = await storageService.getConfigFile(filename)
+    async open_file ({ state, commit }, filename) {
+      const config = await storageService.getConfigFile(filename);
 
       if (config) {
         state.explorer.config = config;
@@ -315,29 +296,26 @@ const store = createStore<LINKaStore>({
           commit("interface_outputLine", true);
         }
       }
-
-    } 
+    }
   },
   plugins: [
     (store) => {
       store.subscribe((mutation, state) => {
         if (!fields.find(({ commit }) => {
-          return mutation.type === commit
-        })) return
+          return mutation.type === commit;
+        })) return;
 
-        eStore.set(mutation.type, mutation.payload)
-      })
+        eStore.set(mutation.type, mutation.payload);
+      });
     }
   ]
-})
+});
 
-export default store
-
+export default store;
 
 for (const field of fields) {
-  store.commit(field.commit, eStore.get(field.commit, field.default))
+  store.commit(field.commit, eStore.get(field.commit, field.default));
 }
-
 
 interface Field<T> {
   commit: string;

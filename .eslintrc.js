@@ -24,6 +24,9 @@ module.exports = {
         }
     },
     rules: {
+        "@typescript-eslint/ban-ts-comment": "warn",
+        "no-async-promise-executor": "warn",
+        "no-void": "off",
         semi: "error",
         eqeqeq: "warn",
         strict: "off",

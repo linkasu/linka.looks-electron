@@ -1,20 +1,19 @@
-export type Card = StandardCard 
-
+export type Card = StandardCard
 
 interface StandardCard {
   id: string;
-  cardType: 0|1|2
+  cardType: 0|1|2|3;
   imagePath?: string;
   title?: string;
   audioPath?: string;
   answer?: true
-};
+}
 export interface NewCard {
   id: string,
   cardType: 3
 }
 
-export   interface ConfigFile {
+export interface ConfigFile {
     version: string;
     columns: number;
     rows: number;
@@ -26,4 +25,4 @@ export   interface ConfigFile {
     quizReadQuestion?: boolean,
     cards: Card[];
     description?: string
-}  
+}
