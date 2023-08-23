@@ -11,7 +11,8 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "eslint --fix --ext .js,.vue src",
+    "lint-fix": "eslint --fix --ext .js,.vue,.ts src",
+    "lint": "eslint --ext .js,.vue,.ts src",
     "test:unit": "vue-cli-service test:unit",
     "electron:build": "vue-cli-service electron:build",
     "electron:serve": "vue-cli-service electron:serve",
