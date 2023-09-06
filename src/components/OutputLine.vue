@@ -120,11 +120,8 @@ export default class OutpuiLine extends Vue.with(Props) {
   async say () {
     this.isPlaying = true;
     if (this.config.withoutSpace) {
-      if (!!this.text) {
-        await TTS.instance.playText(this.text);
-      }
-    }
-    else await TTS.instance.playCards(this.file, this.cards);
+      if (this.text) await TTS.instance.playText(this.text);
+    } else await TTS.instance.playCards(this.file, this.cards);
     this.isPlaying = false;
   }
 
