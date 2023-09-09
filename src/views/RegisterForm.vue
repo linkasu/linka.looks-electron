@@ -31,7 +31,7 @@
                 Мы отправили шестизначный проверолчный код на вашу почту <b>{{ email }}</b>.
             </v-card-text>
             <v-card-text>
-                <v-form @submit="checkCode">
+                <v-form @submit.prevent="checkCode">
                     <v-text-field label="Код" v-model="code" required :rules="[(s)=>s.length===6]"></v-text-field>
                 </v-form>
             </v-card-text>
