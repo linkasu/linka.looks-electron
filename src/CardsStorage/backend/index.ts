@@ -14,10 +14,6 @@ import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/utils/ImageFromText";
 import { HOME_DIR } from "../constants";
-import { array2Tuple } from "@/utils/array2Tuple";
-
-type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
 
