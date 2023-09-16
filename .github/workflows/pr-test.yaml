@@ -1,9 +1,8 @@
 name: Electron test
 
 on:
-  push
   pull_request:
-    types: [opened, reopened, edited]
+    types: [opened, reopened, edited, synchronize]
     branches: ['main']
 
 jobs:
