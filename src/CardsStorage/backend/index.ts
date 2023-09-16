@@ -14,7 +14,6 @@ import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/utils/ImageFromText";
 import { HOME_DIR } from "../constants";
-import { getMethods } from "@/utils/getMethods";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
 
@@ -24,12 +23,20 @@ export class CardsStorage extends ICloudStorage {
   constructor () {
     super();
     this.init();
-    const methods = ICloudStorage.getMethods();
+    const methods: Array<keyof ICloudStorage> = ICloudStorage.getMethods();
+    // binding dispatched events from the frontend-process
+    // to the corresponding handlers in the backend-process
+    // (backend-process has its own implementation of the same interface)
+    // ((you're looking at it rn btw))
     for (const method of methods) {
-      ipcMain.handle("storage:" + method, (_, ...args) => {
+      ipcMain.handle("storage:" + method, (_, ...args: any) => {
+        function tuple<T extends any[]> (...args: T): T {
+          return args;
+        }
         win = BrowserWindow.fromWebContents(_.sender);
-        // @ts-ignore
-        return this[method](...args);
+        const argsAsTuple = tuple<any>(...args);
+
+        return (this[method] as (...args: Array<string | ConfigFile>) => void)(...argsAsTuple);
       });
     }
   }

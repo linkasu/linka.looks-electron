@@ -47,16 +47,14 @@ export class PageWatcher {
         return;
       }
 
-      this.exitWatch()
-      ;
+      this.exitWatch();
     });
     ipcRenderer.on("eye-click", (event, data) => {
       if (data?.id != this.elements.id) return;
 
       const element = this.elements.elements[data.elementIndex];
       if (data.count > 1) return;
-      this.clickWatch(element, true)
-      ;
+      this.clickWatch(element, true);
     });
 
     window.addEventListener("keydown", (event) => {
