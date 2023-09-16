@@ -4,8 +4,6 @@ import { app, protocol, BrowserWindow, screen, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 import { join } from "path";
-import { TobiiProcess } from "tobiiee";
-import { GazeData } from "tobiiee/build/GazeData";
 import { CardsStorage } from "./CardsStorage/backend";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
