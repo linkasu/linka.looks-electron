@@ -41,7 +41,7 @@ export class CardsStorage extends ICloudStorage {
         win = BrowserWindow.fromWebContents(_.sender);        
         const argsAsTuple = tuple<any>(...args);
 
-        return this[method](...argsAsTuple);
+        return (this[method] as (...args: Array<string | ConfigFile>) => void) (...argsAsTuple);
       });
     }
   }
