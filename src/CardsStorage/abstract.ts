@@ -3,8 +3,8 @@ import { Directory } from "@/interfaces/Directory";
 import { getMethods } from "@/utils/getMethods";
 
 export abstract class ICloudStorage {
-  static getMethods () {
-    return getMethods(class extends ICloudStorage {
+  static getMethods (): Array<keyof ICloudStorage> {
+    const mockImplementation = class extends ICloudStorage {
       getArgv (): Promise<string[]> {
         throw new Error("Method not implemented.");
       }
@@ -80,30 +80,31 @@ export abstract class ICloudStorage {
       showItemInFolder (file: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
-    });
+    };
+    return getMethods<ICloudStorage>(mockImplementation);
   }
 
-    abstract getFiles(path: string): Promise<(Directory | null)>;
-    abstract getConfigFile(path: string): ConfigFile | null | Promise<ConfigFile | null>;
-    abstract getDefaultImage(path: string): Buffer | null | Promise<Uint8Array | null>;
-    abstract getImage(path: string, entry: string): Buffer | null | Promise<Uint8Array | null>;
-    abstract getAudio(path: string, entry: string): Buffer | null | Promise<Uint8Array | null>;
-    abstract moveToTrash(path: string): Promise<void>;
-    abstract copyToTemp(path: string): Promise<string>;
-    abstract selectImage(path: string): Promise<string | null>;
-    abstract selectAudio(path: string): Promise<string | null>;
-    abstract createImageFromText(path: string, text: string): Promise<string | null>;
-    abstract createAudioFromText(path: string, text: string, voice: string): Promise<string | null>;
-    abstract defaultToTemp(file: string): string | Promise<string>;
-    abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>
-    abstract moveSet(file: string, location: string): Promise<string>;
+  abstract getFiles(path: string): Promise<(Directory | null)>;
+  abstract getConfigFile(path: string): ConfigFile | null | Promise<ConfigFile | null>;
+  abstract getDefaultImage(path: string): Buffer | null | Promise<Uint8Array | null>;
+  abstract getImage(path: string, entry: string): Buffer | null | Promise<Uint8Array | null>;
+  abstract getAudio(path: string, entry: string): Buffer | null | Promise<Uint8Array | null>;
+  abstract moveToTrash(path: string): Promise<void>;
+  abstract copyToTemp(path: string): Promise<string>;
+  abstract selectImage(path: string): Promise<string | null>;
+  abstract selectAudio(path: string): Promise<string | null>;
+  abstract createImageFromText(path: string, text: string): Promise<string | null>;
+  abstract createAudioFromText(path: string, text: string, voice: string): Promise<string | null>;
+  abstract defaultToTemp(file: string): string | Promise<string>;
+  abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>;
+  abstract moveSet(file: string, location: string): Promise<string>;
 
-    abstract mkdir(file: string): Promise<void>
-    abstract rmdir(file: string): Promise<void>
+  abstract mkdir(file: string): Promise<void>;
+  abstract rmdir(file: string): Promise<void>;
 
-    abstract downloadAndUnpack(url: string): Promise<void>
+  abstract downloadAndUnpack(url: string): Promise<void>;
 
-    abstract showItemInFolder(file: string): Promise<void>;
+  abstract showItemInFolder(file: string): Promise<void>;
 
-    abstract getArgv(): Promise<string[]>
+  abstract getArgv(): Promise<string[]>;
 }
