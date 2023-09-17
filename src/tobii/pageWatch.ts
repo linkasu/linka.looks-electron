@@ -1,11 +1,10 @@
-import { BrowserElementsState, PageElementsState } from "@/interfaces/PageElementsState";
-import store from "@/store";
-import { Side } from "@/store/LINKaStore";
-import { getDistance } from "@/utils/getDistance";
-import { log } from "console";
+import { BrowserElementsState, PageElementsState } from "electron/interfaces/PageElementsState";
+import store from "../store";
+import { Side } from "../store/LINKaStore";
+import { getDistance } from "../utils/getDistance";
+import { randomUUID } from "crypto";
 import { ipcRenderer } from "electron";
-import { GamepadWrapper } from "gamepad-wrapper";
-import { uuid } from "uuidv4";
+
 
 export class PageWatcher {
   private static CLASS = "eye";
@@ -24,7 +23,7 @@ export class PageWatcher {
   gamepadButtonsMap = new Map<string, boolean[]>();
   cycle?: NodeJS.Timer;
 
-  constructor () {
+  constructor() {
     this.watchElementsChange();
     window.addEventListener("resize", () => this.watchElementsChange());
     const observer = new MutationObserver((m) => {
@@ -69,7 +68,7 @@ export class PageWatcher {
     this.joystickCycle();
   }
 
-  joystickCycle () {
+  joystickCycle() {
     const gamepads = navigator.getGamepads();
     for (const gamepad of gamepads) {
       if (!gamepad) continue;
@@ -96,8 +95,8 @@ export class PageWatcher {
     requestAnimationFrame(() => this.joystickCycle());
   }
 
-  private watchElementsChange () {
-    const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
+  private watchElementsChange() {
+    const eyes = Array.from(document.getElementsByClassName(PageWatcher.CLASS));
     const bounds = eyes.map((el) => el.getBoundingClientRect());
     const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
       const a = this.elements.bounds[index];
@@ -108,16 +107,16 @@ export class PageWatcher {
     this.elements = {
       elements: eyes,
       bounds,
-      id: uuid()
+      id: randomUUID()
     };
     ipcRenderer.send("eye-elements", JSON.parse(JSON.stringify(this.elements)));
   }
 
-  onKeyboard (code: string) {
+  onKeyboard(code: string) {
     const joy = code.startsWith("joy");
     if ((!joy && !store.state.button.keyboardActivation) || (joy && !store.state.button.joystickActivation)) return;
 
-    const elements = document.getElementsByClassName(PageWatcher.CLASS);
+    const elements = Array.from(document.getElementsByClassName(PageWatcher.CLASS));
     const map = store.state.keyMapping;
     let action: Side | null = null;
     for (const key in map) {
@@ -158,7 +157,7 @@ export class PageWatcher {
     return true;
   }
 
-  clickWatch (el: Element, eye: boolean) {
+  clickWatch(el: Element, eye: boolean) {
     if (!el.classList.contains("lock")) {
       if (eye && !store.state.button.eyeActivation) { return; }
       if (!eye && !store.state.button.keyboardActivation) { return; }
@@ -167,7 +166,7 @@ export class PageWatcher {
     el?.dispatchEvent(e);
   }
 
-  enterWatch (el: Element) {
+  enterWatch(el: Element) {
     if (!el) return;
     if (!store.state.button.eyeSelect) return;
     this.lastElement = el;
@@ -180,7 +179,7 @@ export class PageWatcher {
     el.dispatchEvent(e);
   }
 
-  exitWatch () {
+  exitWatch() {
     const e = new CustomEvent("eye-exit", {
       detail: {
         eye: true
@@ -191,7 +190,7 @@ export class PageWatcher {
     this.lastElement = undefined;
   }
 
-  private findNear (elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {
+  private findNear(elements: Element[], where: Side, strict = false): Element | null {
     if (!this.lastElement) return null;
     const currentRect = this.lastElement.getBoundingClientRect();
     let distance = Number.MAX_VALUE;

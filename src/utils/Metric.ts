@@ -1,5 +1,5 @@
-import store from "@/store";
-import { eStore } from "@/store/eStore";
+import store from "../store";
+import { eStore } from "../store/eStore";
 import axios, { AxiosResponse } from "axios";
 import { MetricEvent } from "./MetricEvents";
 

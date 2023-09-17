@@ -7,7 +7,7 @@ import EditorView from "../views/EditorView.vue";
 import EditorViewAppBar from "../views/EditorView.appbar.vue";
 import SettingsView from "../views/SettingsView.vue";
 import SettingsViewAppBar from "../views/SettingsView.appbar.vue";
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "../CardsStorage/frontend";
 
 const routes: Array<RouteRecordRaw> = [
   {
