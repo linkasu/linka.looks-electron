@@ -152,6 +152,7 @@ const newFile = ref(null);
 if (route.params.path.toString().endsWith("new")) {
   ($refs.newFile as NewFileDialog).show();
 } else loadSet();
+
 Metric.registerEvent("openEditor");
 
 const cardTypes = [

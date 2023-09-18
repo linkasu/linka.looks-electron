@@ -17,7 +17,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build && electron-builder",
     "preview": "vite preview",
-    "lint": "eslint --fix"
+    "lint": "eslint ./src --ext .vue,.ts --fix"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.3.3",
@@ -44,7 +44,9 @@
     "eyelog": "https://github.com/linkasu/node-eyelog.git",
     "pinia": "^2.1.6",
     "platform-folders": "^0.6.0",
+    "uuidv4": "^6.2.13",
     "vue-router": "^4.2.4",
+    "vuedraggable": "^2.24.3",
     "vuetify": "^3.3.16",
     "vuex": "^4.1.0",
     "webfontloader": "^1.6.28"

@@ -32,10 +32,6 @@ const path = computed((): string => {
   return store.state.editor.current;
 }); 
 
-const filename = computed((): string | null  => {
-  return store.state.editor.temp;
-})
-
 const title = computed(() => {
   const arr = path.value.split("§");
   return arr[arr.length - 1];

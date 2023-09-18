@@ -1,5 +1,6 @@
-import { BrowserElementsState, PageElementsState } from "electron/interfaces/PageElementsState";
+import type { BrowserElementsState } from "@electron/interfaces/PageElementsState";
 import store from "../store";
+
 import { Side } from "../store/LINKaStore";
 import { getDistance } from "../utils/getDistance";
 import { randomUUID } from "crypto";

@@ -6,11 +6,12 @@ import vuetify from "./plugins/vuetify";
 import { loadFonts } from "./plugins/webfontloader";
 import { PageWatcher } from "./tobii/pageWatch";
 import "./store/eStore";
-const pageWatcher = new PageWatcher();
+
+new PageWatcher();
 
 loadFonts();
 
-const vue = createApp(App)
+createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)

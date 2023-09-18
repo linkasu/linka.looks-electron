@@ -1,11 +1,7 @@
 module.exports = {
     root: true,
     extends: [
-        "@electron-internal",
         "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:vue/base",
-        // "vue-preset/vue/vue3-recommended-e"
     ],
     globals: {
         NodeJS: true
@@ -14,7 +10,6 @@ module.exports = {
         browser: true,
         node: true
     },
-    parser: "vue-eslint-parser",
     parserOptions: {
         "parser": "@typescript-eslint/parser",
         ecmaVersion: 6,
@@ -24,9 +19,8 @@ module.exports = {
         }
     },
     rules: {
-        indent: "error",
+        "indent": ["error", 2],
         semi: "error",
-        "@typescript-eslint/ban-ts-comment": "warn",
         "no-async-promise-executor": "warn",
         "no-void": "off",
         semi: "error",

@@ -20,7 +20,7 @@ import type { Ref } from "vue";
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import ExplorerGridButton from "@/components/HomeView/ExplorerGridButton.vue";
+import ExplorerGridButton from "@frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@common/interfaces/Directory";
 import { basename } from "path";
 import { storageService } from "@frontend/CardsStorage/index";

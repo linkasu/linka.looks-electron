@@ -6,6 +6,8 @@ import renderer from 'vite-plugin-electron-renderer'
 import { notBundle } from 'vite-plugin-electron/plugin'
 import pkg from './package.json'
 import * as path from 'path';
+import eslint from 'vite-plugin-eslint';
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -17,15 +19,20 @@ export default defineConfig(({ command }) => {
 
   return {
     resolve: {
-      alias: [
-          { find: '@frontend', replacement: path.resolve(__dirname, "./src/") },
-          { find: '@electron', replacement: path.resolve(__dirname, "./electron/") },
-          { find: '@common', replacement: path.resolve(__dirname, "./common/") },
-      ],
+      alias: {
+        '@frontend': path.resolve(__dirname, "./src/"),
+        '@electron': path.resolve(__dirname, "./electron/"),
+        '@common': path.resolve(__dirname, "./common/"),
+      },
     },
     plugins: [
       vue(),
-      eslint(),
+      // eslint({
+      //   fix: true,
+      //   exclude: [
+      //     path.resolve(__dirname, './src/tobii/pageWatch.ts')
+      //   ],
+      // }),
       electron([
         {
           // Main process entry file of the Electron App.

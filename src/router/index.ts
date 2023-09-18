@@ -12,7 +12,6 @@ import { storageService } from "../CardsStorage";
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
-
     redirect: "/§"
   },
   {
