@@ -20,15 +20,16 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from "vue";
-import { Vue } from "vue-class-component";
-import store from "./store";
-import Bubble from "@frontend/components/bubble.vue";
+import { computed } from "vue";
+import { useStore } from "vuex";
+
 import RegisterForm from "@frontend/views/RegisterForm.vue";
 import UpdateStatusBar from "@frontend/components/UpdateStatusBar.vue";
 import NotificationPopup from "@frontend/components/NotificationPopup.vue";
 import DownloadDefaultSetsDialog from "@frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
+
+const store = useStore();
 
 const pcHash = computed(() => store.state.pcHash);
 

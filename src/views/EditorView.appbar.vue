@@ -15,47 +15,39 @@
   </v-app-bar>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
+
 import SaveButton from "@frontend/components/EditorView/SaveButton.vue";
 import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
 import SetSettings from "@frontend/components/EditorView/SetSettings.vue";
 import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
 
-import { storageService } from "@frontend/CardsStorage/index";
+const router = useRouter();
+const store = useStore();
 
-class Props {}
+const path = computed((): string => {
+  return store.state.editor.current;
+}); 
 
-@Options({
-  components: {
-    ExitButton,
-    SaveButton,
-    SetSettings,
-    NotesButton
-  }
+const filename = computed((): string | null  => {
+  return store.state.editor.temp;
 })
-export default class EditorViewAppBar extends Vue.with(Props) {
-  get path (): string {
-    return this.$store.state.editor.current;
-  }
 
-  get filename (): string | null {
-    return this.$store.state.editor.temp;
-  }
+const title = computed(() => {
+  const arr = path.value.split("§");
+  return arr[arr.length - 1];
+})
 
-  get title () {
-    const arr = this.path.split("§");
-    return arr[arr.length - 1];
-  }
+async function save () {
+  await store.dispatch("editor_save");
+  router.back();
+}
 
-  async save () {
-    await this.$store.dispatch("editor_save");
-    this.$router.back();
-  }
-
-  async saveAs (title: string) {
-    const newLink = await this.$store.dispatch("editor_save_as", title);
-    this.$router.push("/set/" + newLink);
-  }
+async function saveAs (title: string) {
+  const newLink = await store.dispatch("editor_save_as", title);
+  router.push("/set/" + newLink);
 }
 </script>

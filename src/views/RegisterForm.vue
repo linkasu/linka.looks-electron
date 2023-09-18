@@ -47,44 +47,40 @@
     </v-dialog>
 </template>
 
-<script lang="ts">
-import { Metric } from "@frontend/utils/Metric";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref } from "vue";
+import { useStore } from "vuex";
+import { Metric } from "../utils/Metric";
 
-class Props {
+const store = useStore();
 
+const step = ref(0);
+const code = ref("");
+const email: Ref<string> = ref("");
+const error: Ref<string> = ref("");
+
+async function getCode () {
+    try {
+        await Metric.sendActivationEmail(email.value);
+        step.value = 1;
+        error.value = "";
+    } catch (err) {
+        email.value = "";
+        console.error(err);
+        error.value = "Ошибка запроса";
+    }
 }
 
-@Options({
-
-})
-export default class RegisterFoorm extends Vue.with(Props) {
-  step = 0;
-  code = "";
-  email = "";
-  error = "";
-  async getCode () {
+async function checkCode () {
+    if (code.value.length !== 6) return;
     try {
-      await Metric.sendActivationEmail(this.email);
-      this.step = 1;
-      this.error = "";
-    } catch (error) {
-      this.email = "";
-      console.error(error);
-      this.error = "Ошибка запроса";
+        const pcHash = await Metric.activateAccount(email.value, code.value);
+        if (pcHash) {
+            store.commit("pcHash", pcHash);
+        }
+    } catch (err) {
+        error.value = "Ошибка запроса";
     }
-  }
-
-  async checkCode () {
-    if (this.code.length !== 6) return;
-    try {
-      const pcHash = await Metric.activateAccount(this.email, this.code);
-      if (pcHash) {
-        this.$store.commit("pcHash", pcHash);
-      }
-    } catch (error) {
-      this.error = "Ошибка запроса";
-    }
-  }
 }
 </script>

@@ -125,237 +125,226 @@
   </div>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+import { useRoute } from "vue-router";
+
 import SetGridButton from "@frontend/components/SetGridButton.vue";
 import CreateFromTextDialog from "@frontend/components/EditorView/CreateFromTextDialog.vue";
 import NewFileDialog from "@frontend/components/EditorView/NewFileDialog.vue";
-import TTSDialog from "@frontend/components/EditorView/TTSDialog.vue";
-import { Card, ConfigFile, NewCard } from "@common/interfaces/ConfigFile";
+
+import type { Card,  NewCard } from "@common/interfaces/ConfigFile";
 import { storageService } from "@frontend/CardsStorage/index";
 import { uuid } from "uuidv4";
 import { TTS } from "@electron/utils/TTS";
 import draggable from "vuedraggable";
 import { Metric } from "@frontend/utils/Metric";
-class Props { }
+import { watch } from "original-fs";
 
-@Options({
-  components: {
-    SetGridButton,
-    draggable,
-    CreateFromTextDialog,
-    NewFileDialog,
-    "tts-dialog": TTSDialog
+const store = useStore();
+const route = useRoute();
+
+const newFile = ref(null);
+
+// todo: turn this into a simple check and pass the 'open' flag via props
+if (route.params.path.toString().endsWith("new")) {
+  ($refs.newFile as NewFileDialog).show();
+} else loadSet();
+Metric.registerEvent("openEditor");
+
+const cardTypes = [
+  { text: "Обычная", value: 0 },
+  { text: "Пустая ", value: 2 },
+  { text: "Пробел", value: 1 },
+  { text: "Новая карточка", value: 3 }
+];
+
+const mcurrent: Ref<(Card | NewCard)[]> = ref([]);
+const mpage = ref(0);
+const selected: Ref<Card | NewCard | null> = ref(null);
+
+const path = computed(() => {
+  return route.params.path.toString();
+});
+
+const columns = computed({
+  get () {
+    return store.state.editor.columns;
   },
-  watch: {
-    columns: "onColumns",
-    rows: "onRows"
+  set (v: number) {
+    store.commit("editor_columns", v);
+    onColumns();
+  },
+});
+
+const rows = computed({
+  get () { return store.state.editor.rows; },
+  set (v: number) {
+    store.commit("editor_rows", v);
+    onRows();
   }
 })
-export default class EditorView extends Vue.with(Props) {
-  mcurrent: (Card | NewCard)[] = [];
-  get columns (): number {
-    return this.$store.state.editor.columns;
+
+const cards = computed({
+  get () { return store.state.editor.cards;},
+  set (v: (Card | NewCard)[]) {
+    store.commit("editor_cards", v);
   }
+})
 
-  public set columns (v: number) {
-    this.$store.commit("editor_columns", v);
-  }
+const filename = computed(() => { return store.state.editor.temp; });
 
-  get rows (): number {
-    return this.$store.state.editor.rows;
-  }
-
-  public set rows (v: number) {
-    this.$store.commit("editor_rows", v);
-  }
-
-  mpage = 0;
-
-  get cards (): (Card | NewCard)[] {
-    return this.$store.state.editor.cards;
-  }
-
-  public set cards (v: (Card | NewCard)[]) {
-    this.$store.commit("editor_cards", v);
-  }
-
-  get filename (): string | null {
-    return this.$store.state.editor.temp;
-  }
-
-  selected: Card | NewCard | null = null;
-
-  cardTypes = [
-    { text: "Обычная", value: 0 },
-    { text: "Пустая ", value: 2 },
-    { text: "Пробел", value: 1 },
-    { text: "Новая карточка", value: 3 }
-  ];
-
-  get current (): (Card | NewCard)[] {
-    return this.mcurrent;
-  }
-
-  set current (v: (Card | NewCard)[]) {
-    if (v.length == this.mcurrent.length) {
-      const cids = this.mcurrent
+const current = computed({
+  get (): (Card | NewCard)[] { return mcurrent.value; },
+  set (v: (Card | NewCard)[]) {
+    if (v.length == mcurrent.value.length) {
+      const cids = mcurrent.value
         .map(({ id }) => id.toString())
         .reduce((a, b) => a + b);
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
-      this.mcurrent = v;
+      mcurrent.value = v;
 
       if (cids != nids) {
         for (let index = 0; index < v.length; index++) {
           const element = v[index];
-          this.cards[this.pageSize * this.page + index] = element;
+          cards.value[pageSize.value * page.value + index] = element;
         }
       }
     } else {
-      this.mcurrent = v;
+      mcurrent.value = v;
     }
   }
+});
 
-  get isWithoutSpace (): boolean {
-    return this.$store.state.editor.isWithoutSpace;
+
+const isWithoutSpace = computed({
+  get (): boolean {
+    return store.state.editor.isWithoutSpace;
+  },
+  set (v: boolean) {
+    store.commit("editor_isWithoutSpace", v);
   }
+});
 
-  set isWithoutSpace (v: boolean) {
-    this.$store.commit("editor_isWithoutSpace", v);
-  }
+const isDirectSet = computed({
+  get (): boolean { return store.state.editor.isDirectSet; },
+  set (v: boolean) { store.commit("editor_isDirectSet", v); },
+})
 
-  get isDirectSet (): boolean {
-    return this.$store.state.editor.isDirectSet;
-  }
+const isQuiz = computed({
+  get (): boolean { return store.state.editor.quiz; },
+  set (v: boolean) { store.commit("editor_isQuiz", v); },
+})
 
-  set isDirectSet (v: boolean) {
-    this.$store.commit("editor_isDirectSet", v);
-  }
+const pageSize = computed(() => {
+  return columns.value * rows.value;
+})
 
-  get isQuiz (): boolean {
-    return this.$store.state.editor.quiz;
-  }
-
-  set isQuiz (v: boolean) {
-    this.$store.commit("editor_isQuiz", v);
-  }
-
-  get pageSize (): number {
-    return this.columns * this.rows;
-  }
-
-  public get page (): number {
-    return this.mpage;
-  }
-
-  public set page (v: number) {
-    this.mpage = Math.max(0, v);
-    this.selected = null;
-    if (!this.cards) return;
-    const arr = this.cards?.slice(
-      this.pageSize * this.page,
-      this.pageSize * (this.page + 1)
+const page = computed({
+  get (): number { return mpage.value; },
+  set (v: number) {
+    mpage.value = Math.max(0, v);
+    selected.value = null;
+    if (!cards.value) return;
+    const arr = cards.value?.slice(
+      pageSize.value * page.value,
+      pageSize.value * (page.value + 1)
     );
     for (let i = 0; i < arr.length; i++) {
       const element = arr[i];
       if (!element) {
-        arr[i] = this.getNewCard();
+        arr[i] = getNewCard();
       }
     }
 
-    while (arr.length < this.pageSize) {
-      arr.push(this.getNewCard());
+    while (arr.length < pageSize.value) {
+      arr.push(getNewCard());
     }
-    this.current = arr;
-  }
+    current.value = arr;
+  },
+})
 
-  get emptyPage () {
-    for (const card of this.current) {
-      if (card.cardType !== 3) return false;
+
+const emptyPage = computed(() => {
+  for (const card of current.value) {
+    if (card.cardType !== 3) return false;
+  }
+  return true;
+})
+
+const questions = computed(() => {
+  return store.state.editor.questions;
+})
+
+function isValid (card: Card) {
+  if (card.cardType == 0) {
+    if (!card.imagePath || !card.imagePath || !card.title) {
+      return false;
     }
-    return true;
   }
+  return true;
+}
 
-  get questions (): string[] {
-    return this.$store.state.editor.questions;
+function onRows () {
+  page.value = 0;
+}
+
+function onColumns () {
+  page.value = 0;
+}
+
+
+async function newFileName (text: string) {
+  await store.dispatch(
+    "editor_new_file",
+    path.value.slice(0, -3) + text
+  );
+  page.value = 0;
+}
+
+async function loadSet () {
+  await store.dispatch("editor_current", path);
+  page.value = 0;
+}
+
+function select (index: number) {
+  console.log(index);
+
+  let card = cards.value[pageSize.value * page.value + index];
+  if (!card) {
+    card = cards.value[pageSize.value * page.value + index] =
+      current.value[index];
   }
+  selected.value = card;
+}
 
-  isValid (card: Card) {
-    if (card.cardType == 0) {
-      if (!card.imagePath || !card.imagePath || !card.title) {
-        return false;
-      }
-    }
-    return true;
-  }
+function getNewCard (): NewCard {
+  return {
+    cardType: 3,
+    id: uuid()
+  };
+}
 
-  onRows () {
-    this.page = 0;
-  }
+async function selectImage () {
+  if (!filename) return;
+  const id = await storageService.selectImage(filename);
+  console.log(id);
 
-  onColumns () {
-    this.page = 0;
-  }
+  if (selected && selected.value.cardType === 0) { selected.value.imagePath = id; }
+}
 
-  mounted () {
-    if (this.path.endsWith("new")) {
-      (this.$refs.newFile as NewFileDialog).show();
-    } else this.loadSet();
-    Metric.registerEvent("openEditor");
-  }
+async function selectAudio () {
+  if (!filename) return;
+  const id = await storageService.selectAudio(filename);
 
-  async newFileName (text: string) {
-    await this.$store.dispatch(
-      "editor_new_file",
-      this.path.slice(0, -3) + text
-    );
-    this.page = 0;
-  }
+  if (selected.value && selected.value.cardType === 0 && id) { selected.value.audioPath = id; }
+}
 
-  async loadSet () {
-    await this.$store.dispatch("editor_current", this.path);
-    this.page = 0;
-  }
-
-  private get path (): string {
-    return this.$route.params.path.toString();
-  }
-
-  select (index: number) {
-    console.log(index);
-
-    let card = this.cards[this.pageSize * this.page + index];
-    if (!card) {
-      card = this.cards[this.pageSize * this.page + index] =
-        this.current[index];
-    }
-    this.selected = card;
-  }
-
-  getNewCard (): NewCard {
-    return {
-      cardType: 3,
-      id: uuid()
-    };
-  }
-
-  async selectImage () {
-    if (!this.filename) return;
-    const id = await storageService.selectImage(this.filename);
-    console.log(id);
-
-    if (this.selected && this.selected.cardType === 0) { this.selected.imagePath = id; }
-  }
-
-  async selectAudio () {
-    if (!this.filename) return;
-    const id = await storageService.selectAudio(this.filename);
-
-    if (this.selected && this.selected.cardType === 0 && id) { this.selected.audioPath = id; }
-  }
-
-  playAudio () {
-    if (this.filename && this.selected && this.selected.cardType == 0) { TTS.instance.playCards(this.filename, [this.selected]); }
+function  playAudio () {
+  if (filename.value && selected.value && selected.value.cardType == 0) {
+    TTS.instance.playCards(filename.value, [selected.value]);
   }
 }
 </script>

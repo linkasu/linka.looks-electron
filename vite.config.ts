@@ -25,6 +25,7 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       vue(),
+      eslint(),
       electron([
         {
           // Main process entry file of the Electron App.

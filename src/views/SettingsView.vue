@@ -89,102 +89,69 @@
   </v-container>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+
 import ColorSettings from "@frontend/components/Settings/ColorsSettings.vue";
 import InputSettings from "@frontend/components/Settings/InputSettings.vue";
 import { Metric } from "@frontend/utils/Metric";
-class Props {}
 
-@Options({
-  components: {
-    ColorSettings,
-    InputSettings
-  }
-})
-export default class SettingsView extends Vue.with(Props) {
-  get timeout () {
-    return this.$store.state.button.timeout / 1000;
-  }
+const store = useStore();
 
-  set timeout (value: number) {
-    this.$store.commit("button_timeout", value * 1000);
-  }
+Metric.registerEvent("openSettings");
 
-  get eyeSelect () {
-    return this.$store.state.button.eyeSelect;
-  }
 
-  set eyeSelect (value: boolean) {
-    this.$store.commit("button_eyeSelect", value);
+const timeout = computed({
+  get() { return store.state.button.timeout / 1000; },
+  set (value: number) {
+    store.commit("button_timeout", value * 1000);
   }
+});
 
-  get clickSound () {
-    return this.$store.state.button.clickSound;
-  }
+const eyeSelect = computed({
+  get() { return store.state.button.eyeSelect; },
+  set (value: boolean) { store.commit("button_eyeSelect", value); },
+});
 
-  set clickSound (value: boolean) {
-    this.$store.commit("button_clickSound", value);
-  }
+const clickSound = computed({
+  get() { return store.state.button.clickSound; },
+  set(value: boolean) { store.commit("button_clickSound", value); },
+});
 
-  get eyeActivation () {
-    return this.$store.state.button.eyeActivation;
-  }
+const eyeActivation = computed({
+  get() { return store.state.button.eyeActivation; },
+  set(value: boolean) { store.commit("button_eyeActivation", value); },
+});
 
-  set eyeActivation (value: boolean) {
-    this.$store.commit("button_eyeActivation", value);
-  }
+const joystickActivation = computed({
+  get() { return store.state.button.joystickActivation; },
+  set(value: boolean) {
+  store.commit("button_joystickActivation", value);
+}})
 
-  get joystickActivation () {
-    return this.$store.state.button.joystickActivation;
-  }
+const keyboardActivation = computed({
+  get() { return store.state.button.keyboardActivation; },
+  set(value: boolean) { store.commit("button_keyboardActivation", value); },
+});
 
-  set joystickActivation (value: boolean) {
-    this.$store.commit("button_joystickActivation", value);
-  }
+const mouseActivation = computed({
+  get() { return store.state.button.mouseActivation; },
+  set(value: boolean) { store.commit("button_mouseActivation", value); },
+});
 
-  get keyboardActivation () {
-    return this.$store.state.button.keyboardActivation;
-  }
+const animation = computed({
+  get() { return store.state.button.animation; },
+  set(value: boolean) { store.dispatch("button_animation"); },
+});
 
-  set keyboardActivation (value: boolean) {
-    this.$store.commit("button_keyboardActivation", value);
-  }
+const isExitButton = computed({
+  get() { return store.state.ui.exitButton; },
+  set(value: boolean) { store.commit("ui_exitButton", value); },
+});
 
-  get mouseActivation () {
-    return this.$store.state.button.mouseActivation;
-  }
-
-  set mouseActivation (value: boolean) {
-    this.$store.commit("button_mouseActivation", value);
-  }
-
-  get animation () {
-    return this.$store.state.button.animation;
-  }
-
-  set animation (value: boolean) {
-    this.$store.dispatch("button_animation");
-  }
-
-  get isExitButton () {
-    return this.$store.state.ui.exitButton;
-  }
-
-  set isExitButton (value: boolean) {
-    this.$store.commit("ui_exitButton", value);
-  }
-
-  get enabled () {
-    return this.$store.state.button.enabled;
-  }
-
-  set enabled (value: boolean) {
-    this.$store.commit("button_enabled", value);
-  }
-
-  mounted (): void {
-    Metric.registerEvent("openSettings");
-  }
-}
+const enabled = computed({
+  get() { return store.state.button.enabled; },
+  set(value: boolean) { store.commit("button_enabled", value);},
+});
 </script>

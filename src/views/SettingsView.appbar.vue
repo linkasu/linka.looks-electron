@@ -7,17 +7,3 @@
     <v-btn flat disabled color="red">Настройки сохраняются автоматически</v-btn >
   </v-app-bar>
 </template>
-
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
-import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
-
-class Props {}
-
-@Options({
-  components: {
-    ExitButton
-  }
-})
-export default class SettingsViewAppBar extends Vue.with(Props) {}
-</script>

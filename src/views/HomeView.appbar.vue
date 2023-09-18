@@ -1,7 +1,7 @@
 <template>
   <v-app-bar>
     <v-app-bar-title>
-        {{ title||'LINKa. смотри' }}
+        {{ title || 'LINKa. смотри' }}
     </v-app-bar-title>
     <v-spacer />
     <share-button/>
@@ -16,27 +16,25 @@
   </v-app-bar>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { computed } from "vue";
+import { useRoute } from "vue-router";
+
 import MkdirButton from "@frontend/components/HomeView/MkdirButton.vue";
 import RmdirButton from "@frontend/components/HomeView/RmdirButton.vue";
 import ShareButton from "@frontend/components/ShareButton.vue";
-class Props {}
 
-@Options({
-  components: { MkdirButton, RmdirButton, ShareButton }
-})
-export default class HomeViewAppBar extends Vue.with(Props) {
-  public get root (): string {
-    return this.$route.params.path.toString();
-  }
+const route = useRoute();
 
-  public get title () {
-    return this.root.slice(this.root.lastIndexOf("§") + 1);
-  }
+const root = computed (() => {
+  return route.params.path.toString();
+});
 
-  public get newHref (): string {
-    return "/edit/" + this.root.replace(/\//g, "§") + "§" + "new";
-  }
-}
+const title = computed(() => {
+  return root.value.slice(root.value.lastIndexOf("§") + 1);
+});
+
+const newHref = computed(() => {
+  return "/edit/" + root.value.replace(/\//g, "§") + "§" + "new";
+});
 </script>

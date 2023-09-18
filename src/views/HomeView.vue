@@ -15,69 +15,68 @@
   </v-layout>
 </template>
 
-<script lang="ts">
-import { Vue, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
 import ExplorerGridButton from "@/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@common/interfaces/Directory";
 import { basename } from "path";
 import { storageService } from "@frontend/CardsStorage/index";
 import { Metric } from "../utils/Metric";
+import { ComputedRef } from "vue";
 
-@Options({
-  components: {
-    ExplorerGridButton
+
+const router = useRouter();
+const route = useRoute();
+
+const files: Ref<Directory> = ref([]);
+const mroot = ref("");
+const size = ref(5);
+
+mroot.value = route.params.path.toString();
+
+const sorted: ComputedRef<Directory> = computed (()=> {
+  return files.value.sort((f: DirectoryFile) => (f.directory ? -1 : 1));
+});
+
+const isHome = computed (() => {
+  return mroot.value == "§";
+});
+
+const root = computed({
+  get() { return mroot.value; },
+  set (v: string) {
+    mroot.value = v;
+    router.push(v);
+    loadSets();
   }
-})
-export default class HomeView extends Vue {
-  files: Directory = [];
-  private mroot = "";
-  size = 5;
+});
 
-  public get sorted (): Directory {
-    return this.files.sort((a) => (a.directory ? -1 : 1));
-  }
+function back () {
+  mroot.value = mroot.value.split("§").slice(0, -1).join("§");
+}
 
-  back () {
-    this.root = this.root.split("§").slice(0, -1).join("§");
-  }
+function loadSets () {
+  storageService
+    .getFiles(mroot.value)
+    .then((new_files: Directory) => {
+      if (!new_files) return;
+      files.value = new_files;
+      size.value = Math.max(Math.ceil(Math.sqrt(new_files.length + 1)), 4);
+    });
+}
 
-  get isHome () {
-    return this.root == "§";
-  }
-
-  public get root (): string {
-    return this.mroot;
-  }
-
-  public set root (v: string) {
-    this.mroot = v;
-    this.$router.push(v);
-    this.loadSets();
-  }
-
-  mounted () {
-    this.root = this.$route.params.path.toString();
-  }
-
-  private loadSets () {
-    storageService
-      .getFiles(this.root)
-      .then((files) => {
-        if (!files) return;
-        this.files = files;
-        this.size = Math.max(Math.ceil(Math.sqrt(files.length + 1)), 4);
-      });
-  }
-
-  select (item: DirectoryFile) {
-    if (item.directory) {
-      this.root += "§" + basename(item.file);
-      Metric.registerEvent("openFolder", { folder: item.file });
-    } else {
-      this.$router.push("/set/" + this.root.replace(/\//g, "§") + "§" + basename(item.file));
-    }
+function select (item: DirectoryFile) {
+  if (item.directory) {
+    mroot.value += "§" + basename(item.file);
+    Metric.registerEvent("openFolder", { folder: item.file });
+  } else {
+    router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + basename(item.file));
   }
 }
+
 </script>
 
 <style scoped>

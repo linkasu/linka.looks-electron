@@ -52,87 +52,79 @@
   </v-app-bar>
 </template>
 
-<script lang="ts">
-import { Options, Vue } from "vue-class-component";
+<script lang="ts" setup>
+import { ref, computed } from "vue";
 import DeleteButton from "@frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
+
+import { useStore } from "vuex";
+import { useRoute, useRouter } from "vue-router";
+
 import { storageService } from "@frontend/CardsStorage/index";
 import ShareButton from "@frontend/components/ShareButton.vue";
 import { Metric } from "@frontend/utils/Metric";
 import { basename } from "path";
-import { HOME_DIR } from "@electron/CardsStorage/constants";
 
-@Options({
-  components: {
-    DeleteButton,
-    FolderButton,
-    NotesButton,
-    ShareButton
-  }
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
+
+const file = computed(() => route.params.path.toString());
+const config = computed(() => store.state.explorer.config);
+
+const title = computed( () => {
+  const arr = file.value.split("§");
+  return basename(arr[arr.length - 1]);
 })
-export default class SetExplorerViewAppBar extends Vue {
-  get config () {
-    return this.$store.state.explorer.config;
-  }
 
-  get file (): string {
-    return this.$route.params.path.toString();
-  }
+const editLink = computed( ()=> {
+  return route.fullPath.replace("set", "edit");
+})
 
-  back () {
-    if (this.file.includes(":")) {
-      this.$router.push("/");
-      return;
-    }
-    this.$router.push("/" + this.file.split("§").slice(0, -1).join("§"));
-  }
+const interfaceOutputLine = computed( ()=> {
+  return store.state.ui.outputLine;
+})
 
-  get title () {
-    const arr = this.file.split("§");
-    return basename(arr[arr.length - 1]);
-  }
+const buttonEnabled = computed( () => {
+  return store.state.button.enabled;
+})
 
-  get editLink () {
-    return this.$route.fullPath.replace("set", "edit");
-  }
+const animation = computed( ()=> {
+  return store.state.button.animation;
+})
 
-  get interfaceOutputLine () {
-    return this.$store.state.ui.outputLine;
-  }
+function switchButtonEnabled () {
+  store.dispatch("button_enabled");
+}
 
-  switchInterfaceOutputLine () {
-    this.$store.dispatch("interface_outputLine");
-  }
+function switchInterfaceOutputLine () {
+  store.dispatch("interface_outputLine");
+}
 
-  get buttonEnabled () {
-    return this.$store.state.button.enabled;
+function back () {
+  if (file.value.includes(":")) {
+    router.push("/");
+    return;
   }
+  router.push("/" + file.value.split("§").slice(0, -1).join("§"));
+}
 
-  switchButtonEnabled () {
-    this.$store.dispatch("button_enabled");
-  }
+function switchAnimation () {
+  store.dispatch("button_animation");
+}
 
-  get animation () {
-    return this.$store.state.button.animation;
-  }
+async function del () {
+  await storageService.moveToTrash(file);
+  back();
+  Metric.registerEvent("trash");
+}
 
-  switchAnimation () {
-    this.$store.dispatch("button_animation");
-  }
+async function move (location: string) {
+  const target = await storageService.moveSet(file, location);
+  const url = target.slice(target.lastIndexOf("LINKa") + 5).replaceAll("/", "§").replace("\\", "§");
 
-  async del () {
-    await storageService.moveToTrash(this.file);
-    this.back();
-    Metric.registerEvent("trash");
-  }
-
-  async move (location: string) {
-    const target = await storageService.moveSet(this.file, location);
-    const url = target.slice(target.lastIndexOf("LINKa") + 5).replaceAll("/", "§").replace("\\", "§");
-
-    this.$router.push("/set/" + url);
-    Metric.registerEvent("move");
-  }
+  router.push("/set/" + url);
+  Metric.registerEvent("move");
 }
 </script>

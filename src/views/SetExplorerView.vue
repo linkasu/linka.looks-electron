@@ -8,7 +8,7 @@
       :cards="cards"
       :file="filename"
       :config="config"
-      @value="(cards:Card[] ) => (this.cards = cards)"
+      @value="(new_cards: Card[]) => (cards = new_cards)"
       v-if="interfaceOutputLine && !isQuiz"
     />
     <quiz-output-line
@@ -32,76 +32,76 @@
   </v-layout>
 </template>
 
-<script lang="ts">
-import { Vue, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+import { useRoute } from "vue-router";
 import OutputLine from "@frontend/components/OutputLine.vue";
 import QuizOutputLine from "@frontend/components/QuizOutputLine.vue";
 import SetGrid from "@frontend/components/SetGrid.vue";
-import { Card, ConfigFile } from "@common/interfaces/ConfigFile";
-import { storageService } from "@frontend/CardsStorage/index";
+import type { Card } from "@common/interfaces/ConfigFile";
 import { TTS } from "@electron/utils/TTS";
 import { Metric } from "@frontend/utils/Metric";
-@Options({
-  components: {
-    OutputLine,
-    SetGrid,
-    QuizOutputLine
-  }
+
+
+const store = useStore();
+const route = useRoute();
+
+
+const filename: Ref<string | null> = ref(null);
+const cards: Ref<Card[]> = ref([]);
+const quizPage = ref(0);
+const errors = ref(0);
+
+filename.value = route.params.path.toString();
+store.dispatch("open_file", filename);
+Metric.registerEvent("openSet", { filename: filename });
+
+const config = computed (() => {
+  return store.state.explorer.config;
 })
-export default class SetExplorerView extends Vue {
-  filename: string | null = null;
-  get config () {
-    return this.$store.state.explorer.config;
-  }
 
-  cards: Card[] = [];
-  quizPage = 0;
-  errors = 0;
-  get interfaceOutputLine () {
-    return this.$store.state.ui.outputLine;
-  }
+const interfaceOutputLine = computed (() => {
+  return store.state.ui.outputLine;
+})
 
-  get isQuiz () {
-    return this.config?.quiz;
-  }
+const isQuiz = computed (() => {
+  return config.value?.quiz;
+})
 
-  get quizAutoNext () {
-    return this.config?.quizAutoNext;
-  }
+const quizAutoNext = computed (() => {
+  return config.value?.quizAutoNext;
+})
 
-  get quizReadQuestion () {
-    return this.config?.quizReadQuestion;
-  }
+const quizReadQuestion = computed (() => {
+  return config.value?.quizReadQuestion;
+})
 
-  mounted () {
-    this.filename = this.$route.params.path.toString();
-    this.$store.dispatch("open_file", this.filename);
-    Metric.registerEvent("openSet", { filename: this.filename });
-  }
 
-  addCard (card: Card) {
-    Metric.registerEvent("cardClick", { card });
-    if (this.isQuiz) {
-      if (card.answer) {
-        this.quizPage++;
-      } else {
-        this.errors++;
-        if (this.quizAutoNext) {
-          this.quizPage++;
-        }
-      }
-      return;
-    }
-    if (this.interfaceOutputLine) {
-      if (
-        (this.config?.withoutSpace && card.cardType < 2) ||
-        (!this.config?.withoutSpace && card.cardType == 0)
-      ) { this.cards.push(card); }
+function addCard (card: Card) {
+  Metric.registerEvent("cardClick", { card });
+  if (isQuiz) {
+    if (card.answer) {
+      quizPage.value++;
     } else {
-      if (this.filename) TTS.instance.playCards(this.filename, [card], true);
+      errors.value++;
+      if (quizAutoNext) {
+        quizPage.value++;
+      }
     }
+    return;
+  }
+  if (interfaceOutputLine) {
+    if (
+      (config.value?.withoutSpace && card.cardType < 2) ||
+      (!config.value?.withoutSpace && card.cardType == 0)
+    ) { cards.value.push(card); }
+  } else {
+    if (filename) TTS.instance.playCards(filename, [card], true);
   }
 }
+
 </script>
 <style scoped>
 .root {
