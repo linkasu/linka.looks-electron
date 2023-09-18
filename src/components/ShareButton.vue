@@ -19,7 +19,7 @@ class Props {
 })
 export default class ShareButton extends Vue.with(Props) {
   share () {
-    storageService.showItemInFolder(this.$route.params.path.toString());
+    storageService.showItemInFolder(route.params.path.toString());
     Metric.registerEvent("share");
   }
 }

@@ -73,19 +73,19 @@ export default class TTSDialog extends Vue.with(Props) {
   ];
 
   create () {
-    storageService.createAudioFromText(this.file, this.text, this.voice).then((value) => {
-      this.$emit("audio", value);
+    storageService.createAudioFromText(file, text, voice).then((value) => {
+      $emit("audio", value);
     });
   }
 
   onDialog (v: boolean) {
     if (!v) {
-      this.text = "";
+      text = "";
     }
   }
 
   playExample () {
-    TTS.instance.playText(this.text, this.voice);
+    TTS.instance.playText(text, voice);
   }
 }
 </script>

@@ -48,21 +48,21 @@ export default class UpdateStatusBar extends Vue.with(Props) {
   mounted (): void {
     ipcRenderer.send("app_version");
     ipcRenderer.on("app_version", (event, data) => {
-      this.version = data.version;
+      version = data.version;
     });
     ipcRenderer.on("update_info", (event, data: ProgressInfo) => {
-      this.percent = data.percent;
+      percent = data.percent;
     });
 
     ipcRenderer.on("update_available", () => {
       ipcRenderer.removeAllListeners("update_available");
-      this.available = true;
+      available = true;
     });
 
     ipcRenderer.on("update_downloaded", () => {
       ipcRenderer.removeAllListeners("update_downloaded");
-      this.available = false;
-      this.downloaded = true;
+      available = false;
+      downloaded = true;
     });
   }
 }

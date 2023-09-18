@@ -41,92 +41,88 @@
   </v-layout>
 </template>
 
-<script lang="ts">
-import { Vue, Options, prop } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, computed, defineProps, defineEmits } from "vue";
+import { useStore } from "vuex";
+
 import EyeButton from "@frontend/components/EyeButton.vue";
 import SetGridButton from "@frontend/components/SetGridButton.vue";
-import { Card, ConfigFile } from "@common/interfaces/ConfigFile";
+import type { Card, ConfigFile } from "@common/interfaces/ConfigFile";
 import { TTS } from "@elevtron/utils/TTS";
 
-class Props {
-  file: string = prop({
-    required: true
-  });
+interface IOutputLineProps {
+  file: string;
+  cards: Card[];
+  config: ConfigFile
+};
 
-  cards: Card[] = prop({
-    required: true
-  });
+const props = defineProps<IOutputLineProps>();
+const store = useStore();
+const emit = defineEmits<{
+  (e: "value", payload: Card[]): void,
+}>();
 
-  config: ConfigFile = prop({
-    required: true
-  });
-}
-@Options({
-  components: {
-    EyeButton,
-    SetGridButton
-  }
+const isPlaying = ref(false);
+const outputTextRef: Ref<Element | null> = ref(null);
+
+const isExitButton = computed(() => {
+  return store.state.ui.exitButton;
 })
-export default class OutpuiLine extends Vue.with(Props) {
-  get isExitButton () {
-    return this.$store.state.ui.exitButton;
-  }
 
-  get buttonEnabled () {
-    return this.$store.state.button.enabled;
-  }
+const buttonEnabled = computed(() => {
+  return store.state.button.enabled;
+})
 
-  switchButtonEnabled () {
-    this.$store.dispatch("button_enabled");
-  }
+const withoutSpace = computed (() => {
+  return props.config?.withoutSpace;
+})
 
-  get withoutSpace () {
-    return this.config?.withoutSpace;
-  }
+const clone = computed(() => {
+  scrollEnd();
 
-  get text () {
-    return this.clone
-      .map((c) => {
-        return c.cardType == 0 ? c.title : " ";
-      })
-      .join("");
-  }
+  return [...props.cards];
+})
 
-  get clone () {
-    this.scrollEnd();
+const text = computed (() => {
+  return clone.value
+    .map((c: Card) => {
+      return c.cardType == 0 ? c.title : " ";
+    })
+    .join("");
+})
 
-    return [...this.cards];
-  }
-
-  scrollEnd () {
-    setTimeout(() => {
-      const el = this.$refs.text as HTMLButtonElement;
-      if (el && el.firstElementChild) {
-        el.scrollTo({
-          left: el.firstElementChild.scrollWidth + 100
-        });
-      }
-    }, 50);
-  }
-
-  clear () {
-    this.$emit("value", []);
-  }
-
-  backspace () {
-    this.$emit("value", this.clone.slice(0, -1));
-  }
-
-  async say () {
-    this.isPlaying = true;
-    if (this.config.withoutSpace) {
-      if (this.text) await TTS.instance.playText(this.text);
-    } else await TTS.instance.playCards(this.file, this.cards);
-    this.isPlaying = false;
-  }
-
-  isPlaying = false;
+function switchButtonEnabled () {
+  store.dispatch("button_enabled");
 }
+
+function scrollEnd () {
+  setTimeout(() => {
+    const el = outputTextRef.value as HTMLButtonElement;
+    if (el && el.firstElementChild) {
+      el.scrollTo({
+        left: el.firstElementChild.scrollWidth + 100
+      });
+    }
+  }, 50);
+}
+
+function clear () {
+  emit("value", []);
+}
+
+function backspace () {
+  emit("value", clone.value.slice(0, -1));
+}
+
+async function say () {
+  isPlaying.value = true;
+  if (props.config.withoutSpace) {
+    if (text) await TTS.instance.playText(text);
+  } else await TTS.instance.playCards(props.file, props.cards);
+  isPlaying.value = false;
+}
+
 </script>
 
 <style scoped>

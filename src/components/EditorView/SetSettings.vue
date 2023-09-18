@@ -82,62 +82,62 @@ class Props {
 
 @Options({})
 export default class SetSettings extends Vue.with(Props) {
-  dialog = this.defaultOpen;
+  dialog = defaultOpen;
 
   get columns (): number {
-    return this.$store.state.editor.columns;
+    return store.state.editor.columns;
   }
 
   public set columns (v: number) {
-    this.$store.commit("editor_columns", v);
+    store.commit("editor_columns", v);
   }
 
   get rows (): number {
-    return this.$store.state.editor.rows;
+    return store.state.editor.rows;
   }
 
   public set rows (v: number) {
-    this.$store.commit("editor_rows", v);
+    store.commit("editor_rows", v);
   }
 
   get isWithoutSpace (): boolean {
-    return this.$store.state.editor.isWithoutSpace;
+    return store.state.editor.isWithoutSpace;
   }
 
   set isWithoutSpace (v: boolean) {
-    this.$store.commit("editor_isWithoutSpace", v);
+    store.commit("editor_isWithoutSpace", v);
   }
 
   get isDirectSet (): boolean {
-    return this.$store.state.editor.isDirectSet;
+    return store.state.editor.isDirectSet;
   }
 
   set isDirectSet (v: boolean) {
-    this.$store.commit("editor_isDirectSet", v);
+    store.commit("editor_isDirectSet", v);
   }
 
   get isQuiz (): boolean {
-    return this.$store.state.editor.quiz;
+    return store.state.editor.quiz;
   }
 
   set isQuiz (v: boolean) {
-    this.$store.commit("editor_isQuiz", v);
+    store.commit("editor_isQuiz", v);
   }
 
   get editor_quizReadQuestion (): boolean {
-    return this.$store.state.editor.quizReadQuestion;
+    return store.state.editor.quizReadQuestion;
   }
 
   set editor_quizReadQuestion (v: boolean) {
-    this.$store.commit("editor_quizReadQuestion", v);
+    store.commit("editor_quizReadQuestion", v);
   }
 
   get editor_quizAutoNext (): boolean {
-    return this.$store.state.editor.quizAutoNext;
+    return store.state.editor.quizAutoNext;
   }
 
   set editor_quizAutoNext (v: boolean) {
-    this.$store.commit("editor_quizAutoNext", v);
+    store.commit("editor_quizAutoNext", v);
   }
 }
 </script>

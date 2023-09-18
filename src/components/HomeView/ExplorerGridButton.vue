@@ -40,18 +40,18 @@ export default class ExplorerGridButton extends Vue.with(Props) {
   image?: string = "";
 
   mounted () {
-    if (this.back) {
+    if (back) {
       return;
     }
-    if (this.file && !this.file.directory) {
+    if (file && !file.directory) {
       storageService
-        .getDefaultImage(this.file.file)
+        .getDefaultImage(file.file)
         .then((buffer) => {
           if (!buffer) return;
           const url = URL.createObjectURL(
             new Blob([buffer], { type: "image/png" } /* (1) */)
           );
-          this.image = `url("${url}"`;
+          image = `url("${url}"`;
         });
     }
   }

@@ -3,7 +3,7 @@
     buttonText="Cоздать из текста"
     title="Введите текст"
     label="Текст для картинки"
-    comfirmText="Создать"
+    confirmText="Создать"
     cancelText="Отмена"
     @confirm="create"
   />
@@ -28,8 +28,8 @@ class Props {
 })
 export default class CreateFromTextDialog extends Vue.with(Props) {
   create (text: string) {
-    storageService.createImageFromText(this.file, text).then((value) => {
-      this.$emit("image", value);
+    storageService.createImageFromText(file, text).then((value) => {
+      $emit("image", value);
     });
   }
 }

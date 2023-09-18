@@ -32,42 +32,42 @@ export default class KeyBinding extends Vue.with(Props) {
   };
 
   mounted (): void {
-    document.addEventListener("keydown", this.onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
     document.addEventListener("joystick-keydown", console.log);
   }
 
   unmounted (): void {
-    document.removeEventListener("keydown", this.onKeyDown);
+    document.removeEventListener("keydown", onKeyDown);
   }
 
   onKeyDown (ev: KeyboardEvent) {
-    if (this.isCurrent) {
-      this.$store.dispatch("keymap_push", { side: this.side, code: ev.code });
+    if (isCurrent) {
+      store.dispatch("keymap_push", { side: side, code: ev.code });
     }
   }
 
   remove (code: string) {
-    this.$store.dispatch("keymap_remove", { side: this.side, code });
+    store.dispatch("keymap_remove", { side: side, code });
   }
 
   get keys () {
-    return this.$store.state.keyMapping[this.side];
+    return store.state.keyMapping[side];
   }
 
   get selected () {
-    return this.$store.state.selectedKey;
+    return store.state.selectedKey;
   }
 
   set selected (side: Side|undefined) {
-    this.$store.commit("selectedKey", side);
+    store.commit("selectedKey", side);
   }
 
   get isCurrent () {
-    return this.selected == this.side;
+    return selected == side;
   }
 
   select () {
-    this.selected = this.side;
+    selected = side;
   }
 }
 </script>

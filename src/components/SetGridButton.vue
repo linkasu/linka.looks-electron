@@ -62,14 +62,14 @@ export default class SetGridButton extends Vue.with(Props) {
   onCard (card: Card) {
     if (card && card.imagePath) {
       if (card.cardType == 0) {
-        storageService.getImage(this.file, card.imagePath).then((buffer) => {
+        storageService.getImage(file, card.imagePath).then((buffer) => {
           if (!buffer) return;
           const url = URL.createObjectURL(
             new Blob([buffer], { type: "image/png" } /* (1) */)
           );
-          this.image = `url("${url}")`;
-          if (this.cardHasGIF(card)) {
-            this.createStaticImage(url);
+          image = `url("${url}")`;
+          if (cardHasGIF(card)) {
+            createStaticImage(url);
           }
         });
       }
@@ -84,8 +84,8 @@ export default class SetGridButton extends Vue.with(Props) {
   }
 
   createStaticImage (url: string) {
-    const canvas = this.$refs.canvasRef as HTMLCanvasElement;
-    const clearfixContainer = this.$refs.clearfixRef as HTMLCanvasElement;
+    const canvas = $refs.canvasRef as HTMLCanvasElement;
+    const clearfixContainer = $refs.clearfixRef as HTMLCanvasElement;
     const containerWidth = clearfixContainer.offsetWidth;
     const containerHeight = clearfixContainer.offsetHeight;
     canvas.height = containerHeight;
@@ -110,11 +110,11 @@ export default class SetGridButton extends Vue.with(Props) {
   }
 
   mounted () {
-    this.onCard(this.card);
+    onCard(card);
   }
 
   get animation () {
-    return this.$store.state.button.animation;
+    return store.state.button.animation;
   }
 }
 </script>

@@ -65,27 +65,27 @@ class Props {
 export default class FolderButton extends Vue.with(Props) {
   dialog = false;
   dirs: Directory = [];
-  current: string = this.file.split("§").slice(0, -1).join("/");
+  current: string = file.split("§").slice(0, -1).join("/");
   onDialog (v: boolean) {
-    this.$store.commit("button_enabled", !v);
+    store.commit("button_enabled", !v);
     if (v) {
-      this.current = this.file.split("§").slice(0, -1).join("/");
-      this.loadSet();
+      current = file.split("§").slice(0, -1).join("/");
+      loadSet();
     }
   }
 
   open (file: string) {
-    this.current = normalize(file);
-    this.loadSet();
+    current = normalize(file);
+    loadSet();
   }
 
-  async loadSet () {
-    if (!this.current) return;
-    const dirs = (await storageService.getFiles(this.current))?.filter(
+  async function loadSet () {
+    if (!current) return;
+    const dirs = (await storageService.getFiles(current))?.filter(
       (f) => f.directory
     );
     if (!dirs) return;
-    let c = this.current;
+    let c = current;
     if (!c.includes(HOME_DIR)) {
       c = join(HOME_DIR, c);
     }
@@ -95,10 +95,10 @@ export default class FolderButton extends Vue.with(Props) {
     if (c.replace(HOME_DIR, "").length > 1) {
       dirs.unshift({
         directory: true,
-        file: this.current + "/.."
+        file: current + "/.."
       });
     }
-    this.dirs = dirs;
+    dirs = dirs;
   }
 
   basename (s: string) {

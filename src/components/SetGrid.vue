@@ -54,33 +54,33 @@ class Props {
 export default class SetGrid extends Vue.with(Props) {
   private mpage = 0;
   public get page () {
-    return this.mpage;
+    return mpage;
   }
 
   public set page (value) {
-    this.mpage = Math.max(
+    mpage = Math.max(
       0,
-      Math.min(Math.ceil(this.config.cards.length / this.pageSize) - 1, value)
+      Math.min(Math.ceil(config.cards.length / pageSize) - 1, value)
     );
   }
 
   get current () {
-    return this.config.cards.slice(
-      this.pageSize * this.page,
-      this.pageSize * (this.page + 1)
+    return config.cards.slice(
+      pageSize * page,
+      pageSize * (page + 1)
     );
   }
 
   public get pageSize (): number {
-    return this.config.columns * this.config.rows;
+    return config.columns * config.rows;
   }
 
   get isExitButton () {
-    return this.$store.state.ui.exitButton && !this.$store.state.ui.outputLine;
+    return store.state.ui.exitButton && !store.state.ui.outputLine;
   }
 
   onQuizPage (p:number) {
-    this.page = p;
+    page = p;
   }
 }
 </script>

@@ -48,48 +48,48 @@ class Props {}
 @Options({})
 export default class extends Vue.with(Props) {
   get borders () {
-    return this.$store.state.button.borders;
+    return store.state.button.borders;
   }
 
   set borders (value: number) {
-    this.$store.commit("button_borders", value);
+    store.commit("button_borders", value);
   }
 
   get colorPrimary () {
-    return this.$store.state.colors.primary;
+    return store.state.colors.primary;
   }
 
   set colorPrimary (v: string) {
-    this.$store.commit("colors_primary", v);
+    store.commit("colors_primary", v);
   }
 
   get colorAccent () {
-    return this.$store.state.colors.accent;
+    return store.state.colors.accent;
   }
 
   set colorAccent (v: string) {
-    this.$store.commit("colors_accent", v);
+    store.commit("colors_accent", v);
   }
 
   get colorSecondary () {
-    return this.$store.state.colors.secondary;
+    return store.state.colors.secondary;
   }
 
   set colorSecondary (v: string) {
-    this.$store.commit("colors_secondary", v);
+    store.commit("colors_secondary", v);
   }
 
   makeDefault () {
-    this.colorPrimary = "#197377";
-    this.colorAccent = "#7DF6FA";
-    this.colorSecondary = "#FFD200";
-    this.borders = 1;
+    colorPrimary = "#197377";
+    colorAccent = "#7DF6FA";
+    colorSecondary = "#FFD200";
+    borders = 1;
   }
 
   makeBG () {
-    this.colorPrimary = "#DDDDDD";
-    this.colorAccent = "#FFFFFF";
-    this.colorSecondary = "#000000";
+    colorPrimary = "#DDDDDD";
+    colorAccent = "#FFFFFF";
+    colorSecondary = "#000000";
   }
 }
 </script>

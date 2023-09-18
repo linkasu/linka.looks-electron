@@ -94,15 +94,15 @@ export default class QuizOutputLine extends Vue.with(Props) {
   startDialog = true;
   endDialog = false;
   get question () {
-    const text = this.readQuestion();
+    const text = readQuestion();
     return text;
   }
 
   readQuestion () {
-    if (!this.config.questions) return "";
-    const text = this.config.questions[this.page];
+    if (!config.questions) return "";
+    const text = config.questions[page];
 
-    if (this.config.quizReadQuestion && !this.startDialog) {
+    if (config.quizReadQuestion && !startDialog) {
       TTS.instance.playText(text)
         .catch(console.error);
     }
@@ -110,9 +110,9 @@ export default class QuizOutputLine extends Vue.with(Props) {
   }
 
   get end () {
-    if (!this.config.questions) return false;
-    const isEnd = this.page >= this.config.questions.length;
-    this.endDialog = isEnd;
+    if (!config.questions) return false;
+    const isEnd = page >= config.questions.length;
+    endDialog = isEnd;
     return isEnd;
   }
 }

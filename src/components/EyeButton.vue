@@ -1,5 +1,6 @@
 <template>
   <button
+    ref="el"
     class="eyebtn"
     :class="{ eye: enabled, isInside, lock }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
@@ -26,90 +27,85 @@
   </button>
 </template>
 
-<script lang="ts">
-import { toHandlers } from "vue";
-import { Vue, Options, prop } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, onMounted, watch, defineProps, computed } from "vue";
+import { useStore } from "vuex";
 
-class Props {
-  enabled = prop({
-    default: true
-  });
-
-  lock = prop({
-    default: false
-  });
-
-  color = prop({
-    required: false
-  });
-
-  path = prop({
-    default: false
-  });
+interface IEyeButtonProps {
+  enabled: boolean;
+  lock: boolean;
+  color?: string;
+  path: boolean;
 }
 
-@Options({
-  components: {}
+const props = withDefaults(defineProps<IEyeButtonProps>(), {
+  enabled: true,
+  lock: false,
+  path: false,
+});
+
+const store = useStore();
+
+const elRef: Ref<Element | null> = ref(null);
+const isInside = ref(false);
+const circle = ref(false);
+const timer: Ref<NodeJS.Timeout | null> = ref(null);
+
+const borderWidth = computed(() => {
+  return store.state.button.borders + "px";
 })
-export default class EyeButton extends Vue.with(Props) {
-  isInside = false;
-  circle = false;
-  timer?: NodeJS.Timeout;
-  get borderWidth () {
-    return this.$store.state.button.borders + "px";
-  }
 
-  get buttonTimeout (): number {
-    return this.$store.state.button.timeout;
-  }
+const buttonTimeout = computed(() => {
+  return store.state.button.timeout;
+})
 
-  mounted () {
-    const el = this.$el as Element;
-    el.addEventListener("eye-enter", (event) => {
-      const e = event as CustomEvent;
-      const eye = !!e.detail.eye;
+onMounted(() => {
+  const el = elRef.value;
+  el?.addEventListener("eye-enter", (event) => {
+    const e = event as CustomEvent;
+    const eye = !!e.detail.eye;
 
-      if (this.buttonEnabled || this.lock) this.onEnter(eye);
-    });
-    el.addEventListener("eye-exit", () => {
-      this.onExit();
-    });
-  }
+    if (buttonEnabled.value || props.lock) onEnter(eye);
+  });
+  el?.addEventListener("eye-exit", () => {
+    onExit();
+  });
+})
 
-  onExit () {
-    this.isInside = false;
-    this.circle = false;
-  }
+const buttonEnabled = computed(() => {
+  return store.state.button.enabled;
+})
 
-  onEnter (eye:boolean) {
-    if (eye && !this.$store.state.button.eyeSelect) return;
-    if (!eye && !this.$store.state.button.keyboardActivation) return;
-    if (!eye && !this.$store.state.button.joystickActivation) return;
-    this.isInside = true;
-    this.circle = this.$store.state.button.eyeActivation && eye;
-  }
+const size = computed(() => {
+  if (!elRef.value) return 0 + "px";
+  const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect();
+  return Math.min(rect.width, rect.height) * 0.8 + "px";
+})
 
-  get buttonEnabled () {
-    return this.$store.state.button.enabled;
-  }
+const seconds = computed(() => {
+  return buttonTimeout.value / 1000 + "s";
+})
 
-  get size () {
-    if (!this.$el) return 0 + "px";
-    const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
-    return Math.min(rect.width, rect.height) * 0.8 + "px";
-  }
+function onExit () {
+  isInside.value = false;
+  circle.value = false;
+}
 
-  public get seconds (): string {
-    return this.buttonTimeout / 1000 + "s";
-  }
+function onEnter (eye:boolean) {
+  if (eye && !store.state.button.eyeSelect) return;
+  if (!eye && !store.state.button.keyboardActivation) return;
+  if (!eye && !store.state.button.joystickActivation) return;
+  isInside.value = true;
+  circle.value = store.state.button.eyeActivation && eye;
+}
 
-  click () {
-    if (!this.$store.state.button.clickSound) return;
-    const el = document.getElementById("button_audio") as HTMLAudioElement;
-    el.pause();
-    el.currentTime = 0;
-    el.play();
-  }
+function click () {
+  if (!store.state.button.clickSound) return;
+  const el = document.getElementById("button_audio") as HTMLAudioElement;
+  el.pause();
+  el.currentTime = 0;
+  el.play();
 }
 </script>
 

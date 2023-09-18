@@ -57,6 +57,6 @@ class Props {
 export default class DeleteButton extends Vue.with(Props) {
   dialog = false;
   saveAsNew = false;
-  newTitle = this.title.slice(0, -6);
+  newTitle = title.slice(0, -6);
 }
 </script>

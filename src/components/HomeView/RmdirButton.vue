@@ -50,30 +50,30 @@ export default class ExitButton extends Vue.with(Props) {
   directories?: DirectoryFile[] | null = null;
   directory?: string | null = null;
   get titles () {
-    return this.directories?.map(({ file }) => {
+    return directories?.map(({ file }) => {
       return file.split("/").slice(-1)[0];
     });
   }
 
   get root () {
-    return this.$route.params.path.toString();
+    return route.params.path.toString();
   }
 
   onDialog (value: boolean) {
     if (value) {
-      this.load();
+      load();
     }
   }
 
-  async load () {
-    this.directories = (
-      await storageService.getFiles(this.root)
+  async function load () {
+    directories = (
+      await storageService.getFiles(root)
     )?.filter(({ directory }) => directory);
-    if (this.titles) this.directory = this.titles[0];
+    if (titles) directory = titles[0];
   }
 
-  async remove () {
-    await storageService.rmdir(this.root + "§" + this.directory);
+  async function remove () {
+    await storageService.rmdir(root + "§" + directory);
     setTimeout(() => {
       window.location.reload();
     }, 100);

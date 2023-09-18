@@ -37,44 +37,41 @@
     </v-dialog>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import { ref, onMounted, watch } from "vue";
+import { useStore } from "vuex";
 import { storageService } from "@frontend/CardsStorage/index";
 import { ipcRenderer } from "electron";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
+const store = useStore();
 
-}
+const dialog = ref(false);
+const downloading = ref(false);
+const progress = ref(0);
 
-@Options({
-  watch: {
-    dialog: "onDialog"
-  }
+onMounted((): void => {
+  dialog.value = !store.state.defaultSetsDownloaded;
+  // dialog = true
+  store.commit("button_enabled", !dialog);
+  ipcRenderer.on("download_progress", (_, progress) => {
+    progress = progress;
+  });
 })
 
-export default class DownloadDefaultSetsDialog extends Vue.with(Props) {
-  dialog = false;
-  downloading = false;
-  progress = 0;
-  mounted (): void {
-    this.dialog = !this.$store.state.defaultSetsDownloaded;
-    // this.dialog = true
-    this.$store.commit("button_enabled", !this.dialog);
-    ipcRenderer.on("download_progress", (event, progress) => {
-      this.progress = progress;
-    });
-  }
-
-  async download () {
-    this.downloading = true;
-    await storageService.downloadAndUnpack("https://linka.su/sets.zip");
-    this.dialog = false;
-    window.location.reload();
-  }
-
-  onDialog (v: boolean) {
-    this.$store.commit("button_enabled", !v);
-    this.$store.commit("defaultSetsDownloaded", !v);
-  }
+async function download () {
+  downloading.value = true;
+  await storageService.downloadAndUnpack("https://linka.su/sets.zip");
+  dialog.value = false;
+  window.location.reload();
 }
+
+function onDialog (v: boolean) {
+  store.commit("button_enabled", !v);
+  store.commit("defaultSetsDownloaded", !v);
+}
+
+watch(
+  dialog,
+  onDialog
+);
 </script>

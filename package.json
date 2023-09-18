@@ -42,6 +42,7 @@
     "delay": "^6.0.0",
     "electron-store": "^8.1.0",
     "eyelog": "https://github.com/linkasu/node-eyelog.git",
+    "is-valid-path": "^0.1.1",
     "pinia": "^2.1.6",
     "platform-folders": "^0.6.0",
     "uuidv4": "^6.2.13",

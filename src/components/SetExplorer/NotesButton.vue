@@ -44,17 +44,17 @@ class Props {
 export default class NotesButton extends Vue.with(Props) {
   dialog = false;
   get description () {
-    return this.edit
-      ? this.$store.state.editor.description
-      : this.config.description;
+    return edit
+      ? store.state.editor.description
+      : config.description;
   }
 
   set description (text: string | undefined) {
-    this.$store.commit("editor_description", text);
+    store.commit("editor_description", text);
   }
 
   onDialog (value: boolean) {
-    this.$store.commit("button_enabled", !this.dialog);
+    store.commit("button_enabled", !dialog);
   }
 }
 </script>

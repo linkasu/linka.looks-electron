@@ -4,7 +4,7 @@
       icon="mdi-folder-plus"
       title="Введите название папки"
       label="Название папки"
-      comfirmText="Создать"
+      confirmText="Создать"
       cancelText="Отмена"
       @confirm="create"
       :checkFilePath="true"
@@ -38,13 +38,13 @@ class Props {}
 export default class MkdirButton extends Vue.with(Props) {
   error = false;
 
-  async create (name: string) {
-    const root = this.$route.params.path.toString();
+  async function create (name: string) {
+    const root = route.params.path.toString();
     try {
       await storageService.mkdir(root + "§" + name);
       window.location.reload();
     } catch (error) {
-      this.error = true;
+      error = true;
     }
   }
 }
