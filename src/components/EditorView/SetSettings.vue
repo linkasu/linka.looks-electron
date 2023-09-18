@@ -71,76 +71,65 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { defineProps, withDefaults, ref, computed } from "vue";
+import { useStore } from "vuex";
 
-class Props {
-  defaultOpen = prop({
-    default: false
-  });
-}
+const store = useStore();
 
-@Options({})
-export default class SetSettings extends Vue.with(Props) {
-  dialog = defaultOpen;
+const props = withDefaults(defineProps<{ defaultOpen: boolean }>(), { defaultOpen: false });
 
-  get columns (): number {
-    return store.state.editor.columns;
-  }
+const dialog = ref(props.defaultOpen);
 
-  public set columns (v: number) {
-    store.commit("editor_columns", v);
-  }
+const columns = computed({
+  get () { return store.state.editor.columns; },
+  set (v: number) { store.commit("editor_columns", v); }
+});
 
-  get rows (): number {
-    return store.state.editor.rows;
-  }
+const rows = computed({
+  get (): number { return store.state.editor.rows; },
+  set (v: number) { store.commit("editor_rows", v); }
+});
 
-  public set rows (v: number) {
-    store.commit("editor_rows", v);
-  }
 
-  get isWithoutSpace (): boolean {
-    return store.state.editor.isWithoutSpace;
-  }
+const isWithoutSpace = computed({
+  get (): boolean { return store.state.editor.isWithoutSpace; },
+  set (v: boolean) { store.commit("editor_isWithoutSpace", v); }
+});
 
-  set isWithoutSpace (v: boolean) {
-    store.commit("editor_isWithoutSpace", v);
-  }
+const isDirectSet = computed({
+  get (): boolean { return store.state.editor.isDirectSet; },
+  set (v: boolean) { store.commit("editor_isDirectSet", v); },
+});
 
-  get isDirectSet (): boolean {
-    return store.state.editor.isDirectSet;
-  }
-
-  set isDirectSet (v: boolean) {
-    store.commit("editor_isDirectSet", v);
-  }
-
-  get isQuiz (): boolean {
+const isQuiz = computed({
+  get (): boolean {
     return store.state.editor.quiz;
-  }
-
-  set isQuiz (v: boolean) {
+  },
+  set (v: boolean) {
     store.commit("editor_isQuiz", v);
-  }
+  },
+});
 
-  get editor_quizReadQuestion (): boolean {
+const editor_quizReadQuestion = computed({
+  get (): boolean {
     return store.state.editor.quizReadQuestion;
-  }
-
-  set editor_quizReadQuestion (v: boolean) {
+  },
+  set (v: boolean) {
     store.commit("editor_quizReadQuestion", v);
-  }
+  },
+});
 
-  get editor_quizAutoNext (): boolean {
+const editor_quizAutoNext = computed({
+  get (): boolean {
     return store.state.editor.quizAutoNext;
-  }
-
-  set editor_quizAutoNext (v: boolean) {
+  },
+  set (v: boolean) {
     store.commit("editor_quizAutoNext", v);
-  }
-}
+  },
+});
 </script>
+
 <style>
 .set-settings > .v-overlay__content {
   position: absolute;

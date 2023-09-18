@@ -41,51 +41,46 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import { ref, watch, defineProps, defineEmits } from "vue";
 import { storageService } from "@frontend/CardsStorage/index";
 import { TTS } from "@electron/utils/TTS";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
-  file: string = prop({
-    required: true
-  });
+const props = defineProps<{ file: string }>();
+const emit = defineEmits<{ (e: "audio", payload: string): void }>();
+
+const voices = [
+  { value: "zahar", text: "Захар" },
+  { value: "ermil", text: "Емиль" },
+  { value: "jane", text: "Джейн" },
+  { value: "oksana", text: "Оксана" },
+  { value: "alena", text: "Алёна" },
+  { value: "filipp", text: "Филипп" },
+  { value: "omazh", text: "Ома" }
+];
+const dialog = ref(false);
+const text = ref("");
+const voice = ref("alena");
+
+watch(
+  dialog,
+  onDialog,
+);
+
+function create () {
+  storageService.createAudioFromText(props.file, text, voice)
+    .then((value: string) => {
+      emit("audio", value);
+    });
 }
 
-@Options({
-  watch: {
-    dialog: "onDialog"
+function onDialog (v: boolean) {
+  if (!v) {
+    text.value = "";
   }
-})
-export default class TTSDialog extends Vue.with(Props) {
-  dialog = false;
-  text = "";
-  voice = "alena";
-  voices = [
-    { value: "zahar", text: "Захар" },
-    { value: "ermil", text: "Емиль" },
-    { value: "jane", text: "Джейн" },
-    { value: "oksana", text: "Оксана" },
-    { value: "alena", text: "Алёна" },
-    { value: "filipp", text: "Филипп" },
-    { value: "omazh", text: "Ома" }
+}
 
-  ];
-
-  create () {
-    storageService.createAudioFromText(file, text, voice).then((value) => {
-      $emit("audio", value);
-    });
-  }
-
-  onDialog (v: boolean) {
-    if (!v) {
-      text = "";
-    }
-  }
-
-  playExample () {
-    TTS.instance.playText(text, voice);
-  }
+function playExample () {
+  TTS.instance.playText(text.value, voice.value);
 }
 </script>

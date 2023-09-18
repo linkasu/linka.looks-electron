@@ -1,6 +1,6 @@
 <template>
   <input-dialog
-    buttonText="Cоздать из текста"
+    buttonText="Создать из текста"
     title="Введите текст"
     label="Текст для картинки"
     confirmText="Создать"
@@ -9,28 +9,21 @@
   />
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import { defineProps, defineEmits } from "vue";
 import InputDialog from "@frontend/components/InputDialog.vue";
 
 import { storageService } from "@frontend/CardsStorage/index";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
-  file: string = prop({
-    required: true
+
+const props = defineProps<{ file: string; }>();
+const emit = defineEmits<{
+  (e: "image", value: string): void;
+}>()
+
+function create (text: string) {
+  storageService.createImageFromText(props.file, text).then((value: string) => {
+    emit("image", value);
   });
-}
-
-@Options({
-  components: {
-    InputDialog
-  }
-})
-export default class CreateFromTextDialog extends Vue.with(Props) {
-  create (text: string) {
-    storageService.createImageFromText(file, text).then((value) => {
-      $emit("image", value);
-    });
-  }
 }
 </script>

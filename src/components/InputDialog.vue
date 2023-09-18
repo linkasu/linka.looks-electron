@@ -37,6 +37,7 @@ interface IInputDialogProps {
   title: string;
   label: string;
   confirmText: string;
+  show: boolean;
   checkFilePath: boolean;
   buttonText?: string;
   icon?: string;
@@ -44,7 +45,8 @@ interface IInputDialogProps {
 }
 
 const props = withDefaults(defineProps<IInputDialogProps>(), {
-  checkFilePath: false
+  checkFilePath: false,
+  show: false,
 })
 
 const emit = defineEmits<{
@@ -55,6 +57,15 @@ const emit = defineEmits<{
 const dialog = ref(false);
 const noCancel = ref(false);
 const text = ref("");
+
+watch(
+  dialog,
+  onDialog
+);
+watch(
+  () => props.show,
+  (new_val) => dialog.value = new_val,
+)
 
 function onDialog (v: boolean) {
   if (!v) {
@@ -87,9 +98,4 @@ function isValid (text: string) {
   }
   return true;
 }
-
-watch(
-  dialog,
-  onDialog
-)
 </script>

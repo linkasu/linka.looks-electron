@@ -13,7 +13,7 @@
         <v-btn
           color="error"
           @click="
-            $emit('exit');
+            emit('exit');
             dialog = false;
           "
           >Да</v-btn
@@ -24,14 +24,10 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref, defineEmits } from "vue";
 
-class Props {
-}
+const dialog = ref(false);
 
-@Options({})
-export default class ExitButton extends Vue.with(Props) {
-  dialog = false;
-}
+const emit = defineEmits<{ (e: "exit"): void }>();
 </script>

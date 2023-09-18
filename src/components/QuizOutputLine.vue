@@ -31,7 +31,7 @@
             <v-btn
               color="green darken-1"
               @click="
-                $emit('restart');
+                emit('restart');
                 endDialog = false;
               "
             >
@@ -55,10 +55,7 @@
             <v-spacer></v-spacer>
             <v-btn
               color="green darken-1"
-              @click="
-                  startDialog = false;
-
-              "
+              @click="startDialog = false;"
             >
               Начать
             </v-btn>
@@ -69,53 +66,48 @@
   </v-layout>
 </template>
 
-<script lang="ts">
-import { ConfigFile } from "@common/interfaces/ConfigFile";
+<script lang="ts" setup>
+import { defineProps, defineEmits, computed, ref } from "vue";
+import type { ConfigFile } from "@common/interfaces/ConfigFile";
 import { TTS } from "@electron/utils/TTS";
-import { updateFor } from "typescript";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
-  config = prop<ConfigFile>({
-    required: true
-  });
-
-  page = prop<number>({
-    required: true
-  });
-
-  errors = prop<number>({
-    required: true
-  });
+interface IQuizOutputLineProps {
+  config: ConfigFile;
+  page: number;
+  errors: number;
 }
 
-@Options({})
-export default class QuizOutputLine extends Vue.with(Props) {
-  startDialog = true;
-  endDialog = false;
-  get question () {
-    const text = readQuestion();
-    return text;
-  }
+const props = defineProps<IQuizOutputLineProps>();
+const emit = defineEmits<{
+  (e: "restart"): void,
+}>();
 
-  readQuestion () {
-    if (!config.questions) return "";
-    const text = config.questions[page];
+const startDialog = ref(true);
+const endDialog = ref(false);
 
-    if (config.quizReadQuestion && !startDialog) {
-      TTS.instance.playText(text)
-        .catch(console.error);
-    }
-    return text;
-  }
+const question = computed(() => {
+  const text = readQuestion();
+  return text;
+})
 
-  get end () {
-    if (!config.questions) return false;
-    const isEnd = page >= config.questions.length;
-    endDialog = isEnd;
-    return isEnd;
+const end = computed(() => {
+  if (!props.config.questions) return false;
+  const isEnd = props.page >= props.config.questions.length;
+  endDialog.value = isEnd;
+  return isEnd;
+})
+
+function readQuestion () {
+  if (!props.config.questions) return "";
+  const text = props.config.questions[props.page];
+
+  if (props.config.quizReadQuestion && !startDialog) {
+    TTS.instance.playText(text)
+      .catch(console.error);
   }
+  return text;
 }
+
 </script>
 
 <style scope>

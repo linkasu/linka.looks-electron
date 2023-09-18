@@ -13,7 +13,7 @@
         <v-btn
           color="error"
           @click="
-            $emit('delete');
+            emit('delete');
             dialog = false;
           "
           >Да</v-btn

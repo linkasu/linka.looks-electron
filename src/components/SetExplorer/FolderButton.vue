@@ -21,7 +21,7 @@
           <v-toolbar-title >{{basename( current==='/'?'LINKa':current)}}</v-toolbar-title>
           <v-spacer></v-spacer>
           <v-toolbar-items>
-            <v-btn variant="text" @click="$emit('move', current); dialog = false"> Переместить сюда</v-btn>
+            <v-btn variant="text" @click="emit('move', current); dialog = false"> Переместить сюда</v-btn>
           </v-toolbar-items>
         </v-toolbar>
         <v-card-text>

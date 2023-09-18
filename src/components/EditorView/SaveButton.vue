@@ -13,7 +13,7 @@
         <v-btn
           color="error"
           @click="
-            $emit('save');
+            emit('save');
             dialog = false;
           "
           >Сохранить</v-btn
@@ -33,7 +33,7 @@
         <v-btn
           color="error"
           @click="
-            if(newTitle) $emit('saveAs', newTitle+'.linka');
+            if(newTitle) emit('saveAs', newTitle+'.linka');
             dialog = false;
           "
           >Сохранить</v-btn
@@ -44,19 +44,17 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { defineProps, defineEmits, ref } from "vue";
 
-class Props {
-  title: string = prop({
-    required: true
-  });
-}
+const props = defineProps<{ title: string }>();
 
-@Options({})
-export default class DeleteButton extends Vue.with(Props) {
-  dialog = false;
-  saveAsNew = false;
-  newTitle = title.slice(0, -6);
-}
+const emit = defineEmits<{
+  (e: "save"): void,
+  (e: "saveAs", payload: string): void,
+}>();
+
+const dialog = ref(false);
+const saveAsNew = ref(false);
+const newTitle = ref(props.title.slice(0, -6));
 </script>
