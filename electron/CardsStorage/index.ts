@@ -5,16 +5,16 @@ import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promi
 import { tmpdir } from "os";
 import AdmZip from "adm-zip";
 import { get } from "https";
-import delay from "delay";
+import { delay } from "../utils/delay";
 import { randomUUID } from "crypto";
 
-import { ICloudStorage } from "../abstract";
-import { HOME_DIR } from "../constants";
-import { Directory } from "../../interfaces/Directory";
-import { ConfigFile } from "../../interfaces/ConfigFile";
-import { tts } from "../../utils/TTSServer";
-import { createImageFromText } from "../../utils/ImageFromText";
-import { appendZip } from "../../utils/addToZip";
+import { ICloudStorage } from "../../common/CardsStorage/abstract";
+import { HOME_DIR } from "./constants";
+import { Directory } from "../../common/interfaces/Directory";
+import { ConfigFile } from "../../common/interfaces/ConfigFile";
+import { tts } from "../utils/TTSServer";
+import { createImageFromText } from "../utils/ImageFromText";
+import { appendZip } from "../utils/addToZip";
 
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");

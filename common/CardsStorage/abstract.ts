@@ -1,6 +1,6 @@
 import { ConfigFile } from "../interfaces/ConfigFile";
 import { Directory } from "../interfaces/Directory";
-import { getMethods } from "../utils/getMethods";
+import { getMethods } from "../../electron/utils/getMethods";
 
 export abstract class ICloudStorage {
   static getMethods (): Array<keyof ICloudStorage> {

@@ -1,7 +1,7 @@
 import { platform } from "os";
 import { join } from "path";
 import { BrowserWindow, ipcMain, screen } from "electron";
-import { PageElementsState } from "../interfaces/PageElementsState";
+import { PageElementsState } from "../../common/interfaces/PageElementsState";
 import { TobiiProcess } from "eyelog";
 import { Bound } from "eyelog/dist/bound";
 

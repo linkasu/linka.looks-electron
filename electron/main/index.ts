@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { release } from 'node:os'
 import { join } from 'node:path'
 import { BackWatch } from './backWatch'
-import { CardsStorage } from '../CardsStorage/backend'
+import { CardsStorage } from '../CardsStorage'
 
 // The built directory structure
 //

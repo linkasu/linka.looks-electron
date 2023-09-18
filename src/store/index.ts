@@ -1,7 +1,7 @@
 import { createStore } from "vuex";
 
 import { LINKaStore, Side } from "./LINKaStore";
-import { storageService } from "../CardsStorage/frontend";
+import { storageService } from "../CardsStorage";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Metric } from "../utils/Metric";

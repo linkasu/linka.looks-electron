@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
-import HomeView from "../views/HomeView.vue";
+import HomeView from "../с/HomeView.vue";
 import HomeViewAppBar from "../views/HomeView.appbar.vue";
 import SetExplorerView from "../views/SetExplorerView.vue";
 import SetExplorerViewAppBar from "../views/SetExplorerView.appbar.vue";
@@ -7,7 +7,7 @@ import EditorView from "../views/EditorView.vue";
 import EditorViewAppBar from "../views/EditorView.appbar.vue";
 import SettingsView from "../views/SettingsView.vue";
 import SettingsViewAppBar from "../views/SettingsView.appbar.vue";
-import { storageService } from "../CardsStorage/frontend";
+import { storageService } from "../CardsStorage";
 
 const routes: Array<RouteRecordRaw> = [
   {
