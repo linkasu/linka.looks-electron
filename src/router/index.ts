@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
-import HomeView from "../с/HomeView.vue";
+import HomeView from "../views/HomeView.vue";
 import HomeViewAppBar from "../views/HomeView.appbar.vue";
 import SetExplorerView from "../views/SetExplorerView.vue";
 import SetExplorerViewAppBar from "../views/SetExplorerView.appbar.vue";
