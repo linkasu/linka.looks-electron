@@ -16,11 +16,11 @@
 
 <script lang="ts">
 import { Vue, Options, prop, WithDefault } from "vue-class-component";
-import EyeButton from "@/components/EyeButton.vue";
-import { DirectoryFile } from "@/interfaces/Directory";
+import EyeButton from "@frontend/components/EyeButton.vue";
+import { DirectoryFile } from "@common/interfaces/Directory";
 import { basename } from "path";
 import { ipcRenderer } from "electron";
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "@frontend/CardsStorage/index";
 
 class Props {
   file?: DirectoryFile = prop({

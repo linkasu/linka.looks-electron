@@ -38,7 +38,7 @@
 </template>
 
 <script lang="ts">
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "@frontend/CardsStorage/index";
 import { ipcRenderer } from "electron";
 import { Vue, prop, Options } from "vue-class-component";
 

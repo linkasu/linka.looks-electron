@@ -28,9 +28,9 @@
 
 <script lang="ts">
 import { Vue, Options, prop, WithDefault } from "vue-class-component";
-import EyeButton from "@/components/EyeButton.vue";
-import { storageService } from "@/CardsStorage/frontend";
-import { Card } from "@/interfaces/ConfigFile";
+import EyeButton from "@frontend/components/EyeButton.vue";
+import { storageService } from "@frontend/CardsStorage/index";
+import { Card } from "@common/interfaces/ConfigFile";
 
 class Props {
   card: Card = prop({

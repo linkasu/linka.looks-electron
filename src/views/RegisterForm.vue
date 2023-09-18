@@ -48,7 +48,7 @@
 </template>
 
 <script lang="ts">
-import { Metric } from "@/utils/Metric";
+import { Metric } from "@frontend/utils/Metric";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

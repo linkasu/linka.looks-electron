@@ -1,5 +1,5 @@
-import { storageService } from "@/CardsStorage/frontend";
-import { Card } from "@/interfaces/ConfigFile";
+import { Card } from "@common/interfaces/ConfigFile";
+import { storageService } from "@frontend/CardsStorage/index";
 import { tts } from "./TTSServer";
 
 export class TTS {

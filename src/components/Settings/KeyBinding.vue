@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { Side } from "@/store/LINKaStore";
+import { Side } from "@frontend/store/LINKaStore";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

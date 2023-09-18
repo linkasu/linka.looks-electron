@@ -34,8 +34,8 @@
 </template>
 
 <script lang="ts">
-import { storageService } from "@/CardsStorage/frontend";
-import { DirectoryFile } from "@/interfaces/Directory";
+import { storageService } from "@frontend/CardsStorage/index";
+import { DirectoryFile } from "@common/interfaces/Directory";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {}

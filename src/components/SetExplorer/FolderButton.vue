@@ -45,9 +45,9 @@
   </template>
 
 <script lang="ts">
-import { HOME_DIR } from "@/CardsStorage/constants";
-import { storageService } from "@/CardsStorage/frontend";
-import { Directory } from "@/interfaces/Directory";
+import { HOME_DIR } from "@electron/CardsStorage/constants";
+import { storageService } from "@frontend/CardsStorage/index";
+import { Directory } from "@common/interfaces/Directory";
 import { basename, join, normalize } from "path";
 import { Vue, prop, Options } from "vue-class-component";
 

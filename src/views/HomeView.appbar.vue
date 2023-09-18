@@ -18,9 +18,9 @@
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
-import MkdirButton from "@/components/HomeView/MkdirButton.vue";
-import RmdirButton from "@/components/HomeView/RmdirButton.vue";
-import ShareButton from "@/components/ShareButton.vue";
+import MkdirButton from "@frontend/components/HomeView/MkdirButton.vue";
+import RmdirButton from "@frontend/components/HomeView/RmdirButton.vue";
+import ShareButton from "@frontend/components/ShareButton.vue";
 class Props {}
 
 @Options({

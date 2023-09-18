@@ -43,10 +43,10 @@
 
 <script lang="ts">
 import { Vue, Options, prop } from "vue-class-component";
-import EyeButton from "@/components/EyeButton.vue";
-import SetGridButton from "@/components/SetGridButton.vue";
-import { Card, ConfigFile } from "@/interfaces/ConfigFile";
-import { TTS } from "@/utils/TTS";
+import EyeButton from "@frontend/components/EyeButton.vue";
+import SetGridButton from "@frontend/components/SetGridButton.vue";
+import { Card, ConfigFile } from "@common/interfaces/ConfigFile";
+import { TTS } from "@elevtron/utils/TTS";
 
 class Props {
   file: string = prop({

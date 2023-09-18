@@ -70,8 +70,8 @@
 </template>
 
 <script lang="ts">
-import { ConfigFile } from "@/interfaces/ConfigFile";
-import { TTS } from "@/utils/TTS";
+import { ConfigFile } from "@common/interfaces/ConfigFile";
+import { TTS } from "@electron/utils/TTS";
 import { updateFor } from "typescript";
 import { Vue, prop, Options } from "vue-class-component";
 

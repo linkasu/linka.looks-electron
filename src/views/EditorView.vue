@@ -127,16 +127,16 @@
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
-import SetGridButton from "@/components/SetGridButton.vue";
-import CreateFromTextDialog from "@/components/EditorView/CreateFromTextDialog.vue";
-import NewFileDialog from "@/components/EditorView/NewFileDialog.vue";
-import TTSDialog from "@/components/EditorView/TTSDialog.vue";
-import { Card, ConfigFile, NewCard } from "@/interfaces/ConfigFile";
-import { storageService } from "@/CardsStorage/frontend";
+import SetGridButton from "@frontend/components/SetGridButton.vue";
+import CreateFromTextDialog from "@frontend/components/EditorView/CreateFromTextDialog.vue";
+import NewFileDialog from "@frontend/components/EditorView/NewFileDialog.vue";
+import TTSDialog from "@frontend/components/EditorView/TTSDialog.vue";
+import { Card, ConfigFile, NewCard } from "@common/interfaces/ConfigFile";
+import { storageService } from "@frontend/CardsStorage/index";
 import { uuid } from "uuidv4";
-import { TTS } from "@/utils/TTS";
+import { TTS } from "@electron/utils/TTS";
 import draggable from "vuedraggable";
-import { Metric } from "@/utils/Metric";
+import { Metric } from "@frontend/utils/Metric";
 class Props { }
 
 @Options({

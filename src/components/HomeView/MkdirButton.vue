@@ -25,8 +25,8 @@
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
 
-import InputDialog from "@/components/InputDialog.vue";
-import { storageService } from "@/CardsStorage/frontend";
+import InputDialog from "@frontend/components/InputDialog.vue";
+import { storageService } from "@frontend/CardsStorage/index";
 
 class Props {}
 

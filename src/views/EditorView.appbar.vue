@@ -17,12 +17,12 @@
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
-import SaveButton from "@/components/EditorView/SaveButton.vue";
-import ExitButton from "@/components/EditorView/ExitButton.vue";
-import SetSettings from "@/components/EditorView/SetSettings.vue";
-import NotesButton from "@/components/SetExplorer/NotesButton.vue";
+import SaveButton from "@frontend/components/EditorView/SaveButton.vue";
+import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
+import SetSettings from "@frontend/components/EditorView/SetSettings.vue";
+import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
 
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "@frontend/CardsStorage/index";
 
 class Props {}
 

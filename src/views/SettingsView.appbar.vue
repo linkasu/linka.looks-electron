@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
-import ExitButton from "@/components/EditorView/ExitButton.vue";
+import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
 
 class Props {}
 

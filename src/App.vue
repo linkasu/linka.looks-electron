@@ -23,11 +23,11 @@
 import { ref, computed } from "vue";
 import { Vue } from "vue-class-component";
 import store from "./store";
-import Bubble from "@/components/bubble.vue";
-import RegisterForm from "@/views/RegisterForm.vue";
-import UpdateStatusBar from "@/components/UpdateStatusBar.vue";
-import NotificationPopup from "@/components/NotificationPopup.vue";
-import DownloadDefaultSetsDialog from "@/components/DownloadDefaultSetsDialog.vue";
+import Bubble from "@frontend/components/bubble.vue";
+import RegisterForm from "@frontend/views/RegisterForm.vue";
+import UpdateStatusBar from "@frontend/components/UpdateStatusBar.vue";
+import NotificationPopup from "@frontend/components/NotificationPopup.vue";
+import DownloadDefaultSetsDialog from "@frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
 
 const pcHash = computed(() => store.state.pcHash);

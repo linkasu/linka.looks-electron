@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-import InputDialog from "@/components/InputDialog.vue";
+import InputDialog from "@frontend/components/InputDialog.vue";
 
 import { Vue, prop, Options } from "vue-class-component";
 

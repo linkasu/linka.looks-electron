@@ -11,7 +11,12 @@
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@common": ["./common"],
+      "@backend": ["./backend"],
+      "@frontend": ["./src"],
+    }
   },
   "include": ["src", "electron", "common"],
   "references": [

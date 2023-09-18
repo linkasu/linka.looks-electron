@@ -34,13 +34,13 @@
 
 <script lang="ts">
 import { Vue, Options } from "vue-class-component";
-import OutputLine from "@/components/OutputLine.vue";
-import QuizOutputLine from "@/components/QuizOutputLine.vue";
-import SetGrid from "@/components/SetGrid.vue";
-import { Card, ConfigFile } from "@/interfaces/ConfigFile";
-import { storageService } from "@/CardsStorage/frontend";
-import { TTS } from "@/utils/TTS";
-import { Metric } from "@/utils/Metric";
+import OutputLine from "@frontend/components/OutputLine.vue";
+import QuizOutputLine from "@frontend/components/QuizOutputLine.vue";
+import SetGrid from "@frontend/components/SetGrid.vue";
+import { Card, ConfigFile } from "@common/interfaces/ConfigFile";
+import { storageService } from "@frontend/CardsStorage/index";
+import { TTS } from "@electron/utils/TTS";
+import { Metric } from "@frontend/utils/Metric";
 @Options({
   components: {
     OutputLine,

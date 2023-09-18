@@ -42,8 +42,8 @@
 </template>
 
 <script lang="ts">
-import { storageService } from "@/CardsStorage/frontend";
-import { TTS } from "@/utils/TTS";
+import { storageService } from "@frontend/CardsStorage/index";
+import { TTS } from "@electron/utils/TTS";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

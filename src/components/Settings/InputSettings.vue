@@ -16,7 +16,7 @@
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
 import KeyBinding from "./KeyBinding.vue";
-import store from "@/store";
+import store from "@frontend/store";
 class Props {}
 
 @Options({

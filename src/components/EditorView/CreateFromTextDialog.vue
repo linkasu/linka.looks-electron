@@ -10,9 +10,9 @@
 </template>
 
 <script lang="ts">
-import InputDialog from "@/components/InputDialog.vue";
+import InputDialog from "@frontend/components/InputDialog.vue";
 
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "@frontend/CardsStorage/index";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

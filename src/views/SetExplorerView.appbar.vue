@@ -54,14 +54,14 @@
 
 <script lang="ts">
 import { Options, Vue } from "vue-class-component";
-import DeleteButton from "@/components/SetExplorer/DeleteButton.vue";
-import FolderButton from "@/components/SetExplorer/FolderButton.vue";
-import NotesButton from "@/components/SetExplorer/NotesButton.vue";
-import { storageService } from "@/CardsStorage/frontend";
-import ShareButton from "@/components/ShareButton.vue";
-import { Metric } from "@/utils/Metric";
+import DeleteButton from "@frontend/components/SetExplorer/DeleteButton.vue";
+import FolderButton from "@frontend/components/SetExplorer/FolderButton.vue";
+import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
+import { storageService } from "@frontend/CardsStorage/index";
+import ShareButton from "@frontend/components/ShareButton.vue";
+import { Metric } from "@frontend/utils/Metric";
 import { basename } from "path";
-import { HOME_DIR } from "@/CardsStorage/constants";
+import { HOME_DIR } from "@electron/CardsStorage/constants";
 
 @Options({
   components: {

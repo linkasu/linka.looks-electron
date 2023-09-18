@@ -91,9 +91,9 @@
 
 <script lang="ts">
 import { Vue, prop, Options } from "vue-class-component";
-import ColorSettings from "@/components/Settings/ColorsSettings.vue";
-import InputSettings from "@/components/Settings/InputSettings.vue";
-import { Metric } from "@/utils/Metric";
+import ColorSettings from "@frontend/components/Settings/ColorsSettings.vue";
+import InputSettings from "@frontend/components/Settings/InputSettings.vue";
+import { Metric } from "@frontend/utils/Metric";
 class Props {}
 
 @Options({

@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts">
-import { ConfigFile } from "@/interfaces/ConfigFile";
+import { ConfigFile } from "@common/interfaces/ConfigFile";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

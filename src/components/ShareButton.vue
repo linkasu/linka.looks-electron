@@ -6,8 +6,8 @@
 </template>
 
 <script lang="ts">
-import { storageService } from "@/CardsStorage/frontend";
-import { Metric } from "@/utils/Metric";
+import { storageService } from "@fronend/CardsStorage/index";
+import { Metric } from "@frontend/utils/Metric";
 import { Vue, prop, Options } from "vue-class-component";
 
 class Props {

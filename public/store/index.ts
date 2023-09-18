@@ -1,10 +1,10 @@
 import { createStore } from "vuex";
 
 import { LINKaStore, Side } from "./LINKaStore";
-import { storageService } from "@/CardsStorage/frontend";
+import { storageService } from "@frontend/CardsStorage/index";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
-import { Metric } from "@/utils/Metric";
+import { Metric } from "@frontend/utils/Metric";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,

@@ -18,7 +18,9 @@ export default defineConfig(({ command }) => {
   return {
     resolve: {
       alias: [
-          { find: '@', replacement: path.resolve(__dirname) },
+          { find: '@frontend', replacement: path.resolve(__dirname, "src/") },
+          { find: '@electron', replacement: path.resolve(__dirname, "electron/") },
+          { find: '@common', replacement: path.resolve(__dirname, "common/") },
       ],
     },
     plugins: [
