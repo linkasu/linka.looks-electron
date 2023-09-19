@@ -22,39 +22,36 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import { defineProps, withDefaults, computed, ref, watch } from "vue";
+import { useStore } from "vuex";
 import { ConfigFile } from "@common/interfaces/ConfigFile";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
-  config = prop<ConfigFile>({
-    required: true
-  });
+const store = useStore();
 
-  edit = prop({
-    default: false
-  });
-}
+const props = withDefaults(defineProps<{ config: ConfigFile, edit: boolean }>(), {
+  edit: false,
+});
 
-@Options({
-  watch: {
-    dialog: "onDialog"
-  }
-})
-export default class NotesButton extends Vue.with(Props) {
-  dialog = false;
-  get description () {
-    return edit
+const dialog = ref(false);
+
+watch(
+  dialog,
+  onDialog,
+);
+
+const description = computed({
+  get() {
+    return props.edit
       ? store.state.editor.description
-      : config.description;
-  }
-
-  set description (text: string | undefined) {
+      : props.config.description;
+  },
+  set (text: string | undefined) {
     store.commit("editor_description", text);
-  }
+  },
+});
 
-  onDialog (value: boolean) {
-    store.commit("button_enabled", !dialog);
-  }
+function onDialog (value: boolean) {
+  store.commit("button_enabled", !dialog);
 }
 </script>

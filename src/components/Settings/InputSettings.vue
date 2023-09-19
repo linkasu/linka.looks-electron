@@ -13,16 +13,12 @@
   </v-card>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref } from "vue";
 import KeyBinding from "./KeyBinding.vue";
-import store from "@frontend/store";
-class Props {}
+import { useStore } from "vuex";
 
-@Options({
-  components: { KeyBinding }
-})
-export default class InputSettings extends Vue.with(Props) {
-  sides = Object.keys(store.state.keyMapping);
-}
+const store = useStore();
+
+const sides = ref(Object.keys(store.state.keyMapping));
 </script>

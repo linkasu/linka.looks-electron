@@ -18,7 +18,7 @@
           <v-btn icon @click="open('/')">
             <v-icon>mdi-home</v-icon>
           </v-btn>
-          <v-toolbar-title >{{basename( current==='/'?'LINKa':current)}}</v-toolbar-title>
+          <v-toolbar-title >{{toBasename( current==='/'?'LINKa':current)}}</v-toolbar-title>
           <v-spacer></v-spacer>
           <v-toolbar-items>
             <v-btn variant="text" @click="emit('move', current); dialog = false"> Переместить сюда</v-btn>
@@ -36,7 +36,7 @@
                 <v-icon>mdi-folder</v-icon>
               </template>
 
-              <v-list-item-title v-text="basename(item.file)"></v-list-item-title>
+              <v-list-item-title v-text="toBasename(item.file)"></v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card-text>
@@ -44,65 +44,67 @@
     </v-dialog>
   </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { defineProps, defineEmits, ref, watch } from "vue";
+import { useStore } from "vuex";
+
 import { HOME_DIR } from "@electron/CardsStorage/constants";
 import { storageService } from "@frontend/CardsStorage/index";
 import { Directory } from "@common/interfaces/Directory";
 import { basename, join, normalize } from "path";
-import { Vue, prop, Options } from "vue-class-component";
+import { DirectoryFile } from "../../../common/interfaces/Directory";
 
-class Props {
-  file: string = prop({
-    required: true
-  });
-}
 
-  @Options({
-    watch: {
-      dialog: "onDialog"
-    }
-  })
-export default class FolderButton extends Vue.with(Props) {
-  dialog = false;
-  dirs: Directory = [];
-  current: string = file.split("§").slice(0, -1).join("/");
-  onDialog (v: boolean) {
-    store.commit("button_enabled", !v);
-    if (v) {
-      current = file.split("§").slice(0, -1).join("/");
-      loadSet();
-    }
-  }
+const store = useStore();
+const props = defineProps<{ file: string }>();
+const emit = defineEmits<{ (e: 'move', payload: string): void }>();
 
-  open (file: string) {
-    current = normalize(file);
+const dialog = ref(false);
+const dirs: Directory = ref([]);
+const current: Ref<string> = ref(props.file.split("§").slice(0, -1).join("/"));
+
+watch(
+  dialog,
+  onDialog,
+);
+
+function onDialog (v: boolean) {
+  store.commit("button_enabled", !v);
+  if (v) {
+    current.value = props.file.split("§").slice(0, -1).join("/");
     loadSet();
   }
+}
 
-  async function loadSet () {
-    if (!current) return;
-    const dirs = (await storageService.getFiles(current))?.filter(
-      (f) => f.directory
-    );
-    if (!dirs) return;
-    let c = current;
-    if (!c.includes(HOME_DIR)) {
-      c = join(HOME_DIR, c);
-    }
-    c = join(c);
-    const parts = c.split("/")
-      .filter(p => !!p);
-    if (c.replace(HOME_DIR, "").length > 1) {
-      dirs.unshift({
-        directory: true,
-        file: current + "/.."
-      });
-    }
-    dirs = dirs;
-  }
+function open (file: string) {
+  current.value = normalize(file);
+  loadSet();
+}
 
-  basename (s: string) {
-    return basename(s);
+async function loadSet () {
+  if (!current.value) return;
+  const loadedDirectories = (await storageService.getFiles(current.value))?.filter(
+    (f: DirectoryFile) => f.directory
+  );
+  if (!loadedDirectories) return;
+  let c = current.value;
+  if (!c.includes(HOME_DIR)) {
+    c = join(HOME_DIR, c);
   }
+  c = join(c);
+  const parts = c.split("/")
+    .filter(p => !!p);
+  if (c.replace(HOME_DIR, "").length > 1) {
+    loadedDirectories.value.unshift({
+      directory: true,
+      file: current + "/.."
+    });
+  }
+  loadedDirectories.value = loadedDirectories;
+}
+
+function toBasename (s: string) {
+  return basename(s);
 }
 </script>

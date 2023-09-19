@@ -12,62 +12,56 @@
   </v-card>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import { defineProps, computed, onMounted, onUnmounted } from "vue";
+import { useStore } from "vuex";
 import { Side } from "@frontend/store/LINKaStore";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {
-  side: Side = prop({
-    required: true
-  });
+const store = useStore();
+
+const props = defineProps<{ side: Side }>();
+
+const  titles: { [key in Side]: string } = {
+  up: "Вверх",
+  down: "Вниз",
+  left: "Влево",
+  right: "Вправо",
+  enter: "Выбрать"
+};
+
+onMounted ((): void => {
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("joystick-keydown", console.log);
+})
+
+onUnmounted ((): void => {
+  document.removeEventListener("keydown", onKeyDown);
+})
+
+const keys = computed(() => {
+  return store.state.keyMapping[props.side];
+});
+
+const selected = computed({
+  get () { return store.state.selectedKey; },
+  set (side: Side|undefined) { store.commit("selectedKey", side); },
+});
+
+const isCurrent = computed(() => {
+  return selected == props.side;
+})
+
+function onKeyDown (ev: KeyboardEvent) {
+  if (isCurrent) {
+    store.dispatch("keymap_push", { side: props.side, code: ev.code });
+  }
 }
-@Options({})
-export default class KeyBinding extends Vue.with(Props) {
-  titles: { [key in Side]: string } = {
-    up: "Вверх",
-    down: "Вниз",
-    left: "Влево",
-    right: "Вправо",
-    enter: "Выбрать"
-  };
 
-  mounted (): void {
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("joystick-keydown", console.log);
-  }
+function remove (code: string) {
+  store.dispatch("keymap_remove", { side: props.side, code });
+}
 
-  unmounted (): void {
-    document.removeEventListener("keydown", onKeyDown);
-  }
-
-  onKeyDown (ev: KeyboardEvent) {
-    if (isCurrent) {
-      store.dispatch("keymap_push", { side: side, code: ev.code });
-    }
-  }
-
-  remove (code: string) {
-    store.dispatch("keymap_remove", { side: side, code });
-  }
-
-  get keys () {
-    return store.state.keyMapping[side];
-  }
-
-  get selected () {
-    return store.state.selectedKey;
-  }
-
-  set selected (side: Side|undefined) {
-    store.commit("selectedKey", side);
-  }
-
-  get isCurrent () {
-    return selected == side;
-  }
-
-  select () {
-    selected = side;
-  }
+function select () {
+  selected.value = props.side;
 }
 </script>

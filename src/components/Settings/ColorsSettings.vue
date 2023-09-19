@@ -40,56 +40,42 @@
   </v-sheet>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { computed } from "vue";
+import { useStore } from "vuex";
 
-class Props {}
+const store = useStore();
 
-@Options({})
-export default class extends Vue.with(Props) {
-  get borders () {
-    return store.state.button.borders;
-  }
+const borders = computed({
+  get () { return store.state.button.borders; },
+  set (value: number) { store.commit("button_borders", value); },
+});
 
-  set borders (value: number) {
-    store.commit("button_borders", value);
-  }
+const colorPrimary = computed({
+  get () { return store.state.colors.primary; },
+  set (v: string) { store.commit("colors_primary", v); },
+});
 
-  get colorPrimary () {
-    return store.state.colors.primary;
-  }
+const colorAccent = computed({
+  get () { return store.state.colors.accent; },
+  set (v: string) { store.commit("colors_accent", v); },
+})
 
-  set colorPrimary (v: string) {
-    store.commit("colors_primary", v);
-  }
+const colorSecondary = computed({
+  get () { return store.state.colors.secondary; },
+  set (v: string) { store.commit("colors_secondary", v); },
+});
 
-  get colorAccent () {
-    return store.state.colors.accent;
-  }
+function makeDefault () {
+  colorPrimary.value = "#197377";
+  colorAccent.value = "#7DF6FA";
+  colorSecondary.value = "#FFD200";
+  borders.value = 1;
+}
 
-  set colorAccent (v: string) {
-    store.commit("colors_accent", v);
-  }
-
-  get colorSecondary () {
-    return store.state.colors.secondary;
-  }
-
-  set colorSecondary (v: string) {
-    store.commit("colors_secondary", v);
-  }
-
-  makeDefault () {
-    colorPrimary = "#197377";
-    colorAccent = "#7DF6FA";
-    colorSecondary = "#FFD200";
-    borders = 1;
-  }
-
-  makeBG () {
-    colorPrimary = "#DDDDDD";
-    colorAccent = "#FFFFFF";
-    colorSecondary = "#000000";
-  }
+function makeBG () {
+  colorPrimary.value = "#DDDDDD";
+  colorAccent.value = "#FFFFFF";
+  colorSecondary.value = "#000000";
 }
 </script>

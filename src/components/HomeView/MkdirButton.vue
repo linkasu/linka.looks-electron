@@ -22,30 +22,24 @@
   </div>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref } from "vue";
+import { useRoute } from "vue-router";
 
 import InputDialog from "@frontend/components/InputDialog.vue";
 import { storageService } from "@frontend/CardsStorage/index";
 
-class Props {}
+const route = useRoute();
 
-@Options({
-  components: {
-    InputDialog
-  }
-})
-export default class MkdirButton extends Vue.with(Props) {
-  error = false;
+const error = ref(false);
 
-  async function create (name: string) {
-    const root = route.params.path.toString();
-    try {
-      await storageService.mkdir(root + "§" + name);
-      window.location.reload();
-    } catch (error) {
-      error = true;
-    }
+async function create (name: string) {
+  const root = route.params.path.toString();
+  try {
+    await storageService.mkdir(root + "§" + name);
+    window.location.reload();
+  } catch (error) {
+    error = true;
   }
 }
 </script>

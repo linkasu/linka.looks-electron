@@ -33,50 +33,52 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { ref, computed, watch } from "vue";
+
+import { useRoute } from "vue-router";
+
 import { storageService } from "@frontend/CardsStorage/index";
 import { DirectoryFile } from "@common/interfaces/Directory";
-import { Vue, prop, Options } from "vue-class-component";
 
-class Props {}
+const route = useRoute();
 
-@Options({
-  watch: {
-    dialog: "onDialog"
-  }
+const dialog = ref(false);
+const directories: Ref<DirectoryFile[] | null>  = ref(null);
+const directory: Ref<string | null> = ref(null);
+
+const titles = computed(() => {
+  return directories.value?.map(({ file }) => {
+    return file.split("/").slice(-1)[0];
+  });
+});
+const root = computed(() => {
+  return route.params.path.toString();
 })
-export default class ExitButton extends Vue.with(Props) {
-  dialog = false;
-  directories?: DirectoryFile[] | null = null;
-  directory?: string | null = null;
-  get titles () {
-    return directories?.map(({ file }) => {
-      return file.split("/").slice(-1)[0];
-    });
-  }
 
-  get root () {
-    return route.params.path.toString();
-  }
+watch(
+  dialog,
+  onDialog,
+);
 
-  onDialog (value: boolean) {
-    if (value) {
-      load();
-    }
+function onDialog (value: boolean) {
+  if (value) {
+    load();
   }
+}
 
-  async function load () {
-    directories = (
-      await storageService.getFiles(root)
-    )?.filter(({ directory }) => directory);
-    if (titles) directory = titles[0];
-  }
+async function load () {
+  directories.value = (
+    await storageService.getFiles(root.value)
+  )?.filter(({ directory }: DirectoryFile) => directory);
+  if (titles.value) directory.value = titles.value[0];
+}
 
-  async function remove () {
-    await storageService.rmdir(root + "§" + directory);
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  }
+async function remove () {
+  await storageService.rmdir(root.value + "§" + directory.value);
+  setTimeout(() => {
+    window.location.reload();
+  }, 100);
 }
 </script>

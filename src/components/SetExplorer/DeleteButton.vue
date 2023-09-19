@@ -7,7 +7,7 @@
     </template>
 
     <v-card min-width="300px">
-      <v-card-title primary-title> Удалить {{file}}? </v-card-title>
+      <v-card-title primary-title> Удалить {{ file }}? </v-card-title>
       <v-card-text> Вы уверены? </v-card-text>
       <v-card-actions>
         <v-btn
@@ -24,17 +24,11 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref, defineProps, defineEmits } from "vue";
 
-class Props {
-  file: string = prop({
-    required: true
-  });
-}
+const props = defineProps<{ file: string }>();
+const emit = defineEmits<{ (e: "delete"): void }>();
 
-@Options({})
-export default class DeleteButton extends Vue.with(Props) {
-  dialog = false;
-}
+const dialog = ref(false);
 </script>
