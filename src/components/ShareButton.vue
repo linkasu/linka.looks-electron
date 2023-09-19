@@ -6,7 +6,7 @@
 
 <script lang="ts" setup>
 import { useRoute } from "vue-router";
-import { storageService } from "@fronend/CardsStorage/index";
+import { storageService } from "@frontend/CardsStorage/index";
 import { Metric } from "@frontend/utils/Metric";
 
 const route = useRoute();

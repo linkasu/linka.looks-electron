@@ -7,58 +7,45 @@
         <div v-else class="img" :style="{'--image': image}" />
       </div>
       <div>
-        <span v-if="file">{{ basename(file.file).slice(0,25) }}</span>
+        <span v-if="file">{{ toBasename(file.file).slice(0,25) }}</span>
         <span v-if="back">Шаг назад</span>
       </div>
     </div>
   </eye-button>
 </template>
 
-<script lang="ts">
-import { Vue, Options, prop, WithDefault } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from "vue";
+import { defineProps, withDefaults, ref, onMounted } from "vue";
+
 import EyeButton from "@frontend/components/EyeButton.vue";
 import { DirectoryFile } from "@common/interfaces/Directory";
 import { basename } from "path";
-import { ipcRenderer } from "electron";
 import { storageService } from "@frontend/CardsStorage/index";
 
-class Props {
-  file?: DirectoryFile = prop({
-    required: false
-  });
+const props = withDefaults(defineProps<{ file?: DirectoryFile, back: boolean }>(), { back: false });
 
-  back: WithDefault<boolean> = prop({
-    default: false
-  });
-}
-@Options({
-  components: {
-    EyeButton
-  }
-})
-export default class ExplorerGridButton extends Vue.with(Props) {
-  image?: string = "";
+const image: Ref<string | null> = ref("");
 
-  mounted () {
-    if (back) {
-      return;
-    }
-    if (file && !file.directory) {
-      storageService
-        .getDefaultImage(file.file)
-        .then((buffer) => {
-          if (!buffer) return;
-          const url = URL.createObjectURL(
-            new Blob([buffer], { type: "image/png" } /* (1) */)
-          );
-          image = `url("${url}"`;
-        });
-    }
+onMounted (() => {
+  if (props.back) {
+    return;
   }
+  if (props.file && !props.file.directory) {
+    storageService
+      .getDefaultImage(props.file.file)
+      .then((buffer: string) => {
+        if (!buffer) return;
+        const url = URL.createObjectURL(
+          new Blob([buffer], { type: "image/png" } /* (1) */)
+        );
+        image.value = `url("${url}"`;
+      });
+  }
+});
 
-  basename (path: string) {
-    return basename(path);
-  }
+function toBasename (path: string) {
+  return basename(path);
 }
 </script>
 
