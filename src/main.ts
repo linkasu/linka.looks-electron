@@ -6,6 +6,7 @@ import vuetify from "./plugins/vuetify";
 import { loadFonts } from "./plugins/webfontloader";
 import { PageWatcher } from "./tobii/pageWatch";
 import "./store/eStore";
+console.log('hello, world');
 
 new PageWatcher();
 
