@@ -56,7 +56,7 @@ const errors = ref(0);
 
 filename.value = route.params.path.toString();
 store.dispatch("open_file", filename);
-Metric.registerEvent("openSet", { filename: filename });
+Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
 
 const config = computed (() => {
   return store.state.explorer.config;
@@ -80,7 +80,7 @@ const quizReadQuestion = computed (() => {
 
 
 function addCard (card: Card) {
-  Metric.registerEvent("cardClick", { card });
+  Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz) {
     if (card.answer) {
       quizPage.value++;

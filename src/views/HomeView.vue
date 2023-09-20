@@ -19,6 +19,7 @@
 import type { Ref } from "vue";
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useStore } from "vuex";
 
 import ExplorerGridButton from "@frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@common/interfaces/Directory";
@@ -27,6 +28,7 @@ import { storageService } from "@frontend/CardsStorage/index";
 import { Metric } from "../utils/Metric";
 import { ComputedRef } from "vue";
 
+const store = useStore();
 
 const router = useRouter();
 const route = useRoute();
@@ -71,7 +73,7 @@ function loadSets () {
 function select (item: DirectoryFile) {
   if (item.directory) {
     mroot.value += "§" + basename(item.file);
-    Metric.registerEvent("openFolder", { folder: item.file });
+    Metric.registerEvent(store.state.pcHash, "openFolder", { folder: item.file });
   } else {
     router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + basename(item.file));
   }

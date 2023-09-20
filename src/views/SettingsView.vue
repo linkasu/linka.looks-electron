@@ -99,7 +99,7 @@ import { Metric } from "@frontend/utils/Metric";
 
 const store = useStore();
 
-Metric.registerEvent("openSettings");
+Metric.registerEvent(store.state.pcHash, "openSettings");
 
 
 const timeout = computed({

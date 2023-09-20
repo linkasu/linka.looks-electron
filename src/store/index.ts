@@ -159,25 +159,25 @@ const store = createStore<LINKaStore>({
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
     },
-    button_enabled ({ button }, value) {
+    button_enabled ({ button,pcHash  }, value) {
       button.enabled = value;
-      Metric.registerEvent("toggleGazeLock", { value });
+      Metric.registerEvent(pcHash, "toggleGazeLock", { value });
     },
-    button_eyeSelect ({ button }, value) {
+    button_eyeSelect ({ button, pcHash }, value) {
       button.eyeSelect = value;
-      Metric.registerEvent("settingsToggleEyeChoose", { value });
+      Metric.registerEvent(pcHash, "settingsToggleEyeChoose", { value });
     },
-    button_eyeActivation ({ button }, value) {
+    button_eyeActivation ({ button, pcHash }, value) {
       button.eyeActivation = value;
-      Metric.registerEvent("settingsToggleEyeActivation", { value });
+      Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
     },
-    button_joystickActivation ({ button }, value) {
-      Metric.registerEvent("settingsToggleJoystickActivation", { value });
+    button_joystickActivation ({ button, pcHash }, value) {
+      Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });
 
       button.joystickActivation = value;
     },
-    button_keyboardActivation ({ button }, value) {
-      Metric.registerEvent("settingsToggleKeyboardActivation", { value });
+    button_keyboardActivation ({ button, pcHash }, value) {
+      Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
 
       button.keyboardActivation = value;
     },
@@ -187,13 +187,13 @@ const store = createStore<LINKaStore>({
     button_borders ({ button }, value) {
       button.borders = value;
     },
-    button_clickSound ({ button }, value) {
+    button_clickSound ({ button, pcHash }, value) {
       button.clickSound = value;
-      Metric.registerEvent("settingsToggleTypeSound", { value });
+      Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
     },
-    interface_outputLine ({ ui }, value) {
+    interface_outputLine ({ ui, pcHash }, value) {
       ui.outputLine = value;
-      Metric.registerEvent("toggleOutputLine", value);
+      Metric.registerEvent(pcHash, "toggleOutputLine", value);
     },
     pcHash (state, hash) {
       state.pcHash = hash;

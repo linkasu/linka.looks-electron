@@ -1,13 +1,11 @@
-import store from "../store";
 import { eStore } from "../store/eStore";
 import axios, { AxiosResponse } from "axios";
 import { MetricEvent } from "./MetricEvents";
 
 export const Metric  = {
-   serverUrl : "https://metric.linka.su", // Replace with the actual URL of the metric server
- async registerEvent (eventName: MetricEvent, eventData?: any): Promise<void> {
+  serverUrl : "https://metric.linka.su", // Replace with the actual URL of the metric server
+  async registerEvent (pcHash: string, eventName: MetricEvent, eventData?: any): Promise<void> {
     try {
-      const pcHash = store.state.pcHash;
       if (pcHash.length !== 36) return;
       const endpoint = `${this.serverUrl}/registerEvent`;
       const data = { hash: pcHash, eventName, eventData };
@@ -17,7 +15,7 @@ export const Metric  = {
       console.error("Failed to register event:", error);
     }
   },
-   async sendActivationEmail (email: string): Promise<void> {
+  async sendActivationEmail (email: string): Promise<void> {
     const endpoint = `${this.serverUrl}/requestActivation`;
     const data = { email };
 
@@ -25,7 +23,7 @@ export const Metric  = {
     });
   },
 
-   async activateAccount (email: string, code: string): Promise<string | undefined> {
+  async activateAccount (email: string, code: string): Promise<string | undefined> {
     try {
       const endpoint = `${this.serverUrl}/activate`;
       const data = { email, code };

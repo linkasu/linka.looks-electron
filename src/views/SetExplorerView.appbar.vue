@@ -117,7 +117,7 @@ function switchAnimation () {
 async function del () {
   await storageService.moveToTrash(file);
   back();
-  Metric.registerEvent("trash");
+  Metric.registerEvent(store.state.pcHash, "trash");
 }
 
 async function move (location: string) {
@@ -125,6 +125,6 @@ async function move (location: string) {
   const url = target.slice(target.lastIndexOf("LINKa") + 5).replaceAll("/", "§").replace("\\", "§");
 
   router.push("/set/" + url);
-  Metric.registerEvent("move");
+  Metric.registerEvent(store.state.pcHash, "move");
 }
 </script>

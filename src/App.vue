@@ -34,7 +34,7 @@ const store = useStore();
 const pcHash = computed(() => store.state.pcHash);
 
 if (pcHash.value.length == 36) {
-  Metric.registerEvent("start");
+  Metric.registerEvent(pcHash.value, "start");
 }
 
 const primary = computed(() => {
