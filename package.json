@@ -1,7 +1,7 @@
 {
   "name": "linka.looks",
   "version": "2.1.0",
-  "main": "dist-electron/main/index.js",
+  "main": "electron/main/index.ts",
   "author": "ibakaidov",
   "private": true,
   "repository": {
@@ -14,16 +14,17 @@
     }
   },
   "scripts": {
-    "dev": "vite",
+    "start": "electron-vite preview",
+    "electron:dev": "electron-vite dev",
     "build": "vue-tsc --noEmit && vite build && electron-builder",
     "preview": "vite preview",
-    "lint": "eslint ./src --ext .vue,.ts --fix",
-    "electron:start": "electron --trace-warnings ."
+    "lint": "eslint ./src --ext .vue,.ts --fix"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.3.3",
     "electron": "^26.0.0",
     "electron-builder": "^24.6.3",
+    "electron-vite": "^1.0.28",
     "eslint": "^8.49.0",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.6",
