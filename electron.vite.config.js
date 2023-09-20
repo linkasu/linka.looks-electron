@@ -1,54 +1,50 @@
-import { defineConfig } from 'electron-vite'
-import { resolve } from 'path'
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { resolve } from "path";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   main: {
+    plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@frontend': resolve(__dirname, "./src/"),
-        '@electron': resolve(__dirname, "./electron/"),
-        '@common': resolve(__dirname, "./common/"),
-      },
+        "@frontend": resolve(__dirname, "./src/renderer/src/"),
+        "@electron": resolve(__dirname, "./electron/"),
+        "@common": resolve(__dirname, "./common/")
+      }
     },
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'electron/main/index.ts')
+          index: resolve(__dirname, "electron/main/index.ts")
         }
       }
     }
   },
   preload: {
+    plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@frontend': resolve(__dirname, "./src/"),
-        '@electron': resolve(__dirname, "./electron/"),
-        '@common': resolve(__dirname, "./common/"),
-      },
+        "@frontend": resolve(__dirname, "./src/renderer/src/"),
+        "@electron": resolve(__dirname, "./electron/"),
+        "@common": resolve(__dirname, "./common/")
+      }
     },
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'electron/preload/index.ts')
+          index: resolve(__dirname, "electron/preload/index.ts")
         }
       }
     }
   },
   renderer: {
-    root: '.',
+    plugins: [vue()],
     resolve: {
       alias: {
-        '@frontend': resolve(__dirname, "./src/"),
-        '@electron': resolve(__dirname, "./electron/"),
-        '@common': resolve(__dirname, "./common/"),
-      },
-    },
-    build: {
-      rollupOptions: {
-        input: {
-          index: resolve(__dirname, 'index.html')
-        }
+        "@frontend": resolve(__dirname, "./src/renderer/src/"),
+        "@electron": resolve(__dirname, "./electron/"),
+        "@common": resolve(__dirname, "./common/")
       }
     }
   }
-})
+});
