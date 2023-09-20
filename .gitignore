@@ -7,12 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# dist and modules
 node_modules
 dist
 dist-ssr
 dist-electron
 release
 *.local
+out
 
 # Editor directories and files
 .vscode/.debug.env
@@ -28,3 +30,5 @@ release
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+#
