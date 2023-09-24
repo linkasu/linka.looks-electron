@@ -32,6 +32,7 @@ module.exports = {
     eqeqeq: "warn",
     strict: "off",
     quotes: [2, "double", { avoidEscape: true }],
-    "comma-dangle": ["error", "never"]
+    "comma-dangle": ["error", "never"],
+    camelcase: "off"
   }
-}
+};

@@ -32,7 +32,7 @@ import { useStore } from "vuex";
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { Metric } from "../utils/Metric";
 
 const store = useStore();
@@ -70,10 +70,10 @@ function back () {
 }
 
 function loadSets () {
-  storageService.getFiles(mroot.value).then((new_files: Directory) => {
-    if (!new_files) return;
-    files.value = new_files;
-    size.value = Math.max(Math.ceil(Math.sqrt(new_files.length + 1)), 4);
+  storageService.getFiles(mroot.value).then((newFiles: Directory) => {
+    if (!newFiles) return;
+    files.value = newFiles;
+    size.value = Math.max(Math.ceil(Math.sqrt(newFiles.length + 1)), 4);
   });
 }
 

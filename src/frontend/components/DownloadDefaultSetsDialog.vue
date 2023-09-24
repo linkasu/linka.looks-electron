@@ -56,7 +56,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from "vue";
 import { useStore } from "vuex";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { ipcRenderer } from "electron";
 
 const store = useStore();

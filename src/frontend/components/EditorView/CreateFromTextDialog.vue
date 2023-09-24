@@ -12,7 +12,7 @@
 <script lang="ts" setup>
 import { defineProps, defineEmits } from "vue";
 import InputDialog from "@/frontend/components/InputDialog.vue";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 
 const props = defineProps<{ file: string }>();
 const emit = defineEmits<{

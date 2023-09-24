@@ -74,7 +74,7 @@ import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
@@ -128,13 +128,13 @@ function switchAnimation () {
 }
 
 async function del () {
-  await storageService.moveToTrash(file);
+  await storageService.moveToTrash(file.value);
   back();
   Metric.registerEvent(store.state.pcHash, "trash");
 }
 
 async function move (location: string) {
-  const target = await storageService.moveSet(file, location);
+  const target = await storageService.moveSet(file.value, location);
   const url = target
     .slice(target.lastIndexOf("LINKa") + 5)
     .replaceAll("/", "§")

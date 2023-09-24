@@ -223,24 +223,23 @@ import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTex
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 
 import type { Card, NewCard } from "@/common/interfaces/ConfigFile";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { uuid } from "uuidv4";
-import { TTS } from "@/common/utils/TTS";
+import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
 import { Metric } from "@/frontend/utils/Metric";
-import { watch } from "original-fs";
 
 const store = useStore();
 const route = useRoute();
 
-const newFile = ref(null);
+const newFile = ref<InstanceType<typeof NewFileDialog> | null>(null)(null);
 
 // todo: turn this into a simple check and pass the 'open' flag via props
 if (route.params.path.toString().endsWith("new")) {
-  ($refs.newFile as NewFileDialog).show();
+  (newFile.value as typeof NewFileDialog).show();
 } else loadSet();
 
-Metric.registerEvent("openEditor");
+Metric.registerEvent(store.state.pcHash, "openEditor");
 
 const cardTypes = [
   { text: "Обычная", value: 0 },

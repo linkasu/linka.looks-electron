@@ -1,4 +1,4 @@
-import { storageService } from "@/frontend/services";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { Card } from "@/common/interfaces/ConfigFile";
 import { tts } from "./TTSServer";
 

@@ -72,8 +72,7 @@ const props = withDefaults(defineProps<IInputDialogProps>(), {
   show: false
 });
 
-const emit = defineEmits<{
-  (e: "confirm", payload: string): void
+const emit = defineEmits<{(e: "confirm", payload: string): void
   (e: "cancel"): void
 }>();
 
@@ -84,7 +83,7 @@ const text = ref("");
 watch(dialog, onDialog);
 watch(
   () => props.show,
-  (new_val) => (dialog.value = new_val)
+  (newVal) => (dialog.value = newVal)
 );
 
 function onDialog (v: boolean) {

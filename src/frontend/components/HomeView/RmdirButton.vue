@@ -52,7 +52,7 @@ import { ref, computed, watch } from "vue";
 
 import { useRoute } from "vue-router";
 
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { DirectoryFile } from "@/common/interfaces/Directory";
 
 const route = useRoute();

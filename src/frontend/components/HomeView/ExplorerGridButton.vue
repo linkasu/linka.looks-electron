@@ -37,7 +37,7 @@ import { defineProps, withDefaults, ref, onMounted } from "vue";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import { DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 
 const props = withDefaults(defineProps<{ file?: DirectoryFile; back: boolean }>(), { back: false });
 

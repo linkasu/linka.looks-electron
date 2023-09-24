@@ -7,15 +7,20 @@ module.exports = defineConfig({
     resolve: {
       symlinks: false,
       alias: {
-        "@frontend": resolve("./src/frontend"),
-        "@electron": resolve("./src/electron"),
-        "@common": resolve("./src/common")
+        "@frontend": resolve(__dirname, "./src/frontend/"),
+        "@electron": resolve(__dirname, "./src/electron/"),
+        "@common": resolve(__dirname, "./src/common/"),
+        "@": resolve(__dirname, "./src/")
       }
     }
   },
   pluginOptions: {
     electronBuilder: {
       nodeIntegration: true,
+      mainProcessFile: "src/electron/main.ts",
+      rendererProcessFile: "src/frontend/main.ts",
+      disableMainProcessTypescript: false, // Manually disable typescript plugin for main process. Enable if you want to use regular js for the main process (src/background.js by default).
+      mainProcessTypeChecking: false,
       builderOptions: {
         productName: "LINKa. смотри",
         appId: "su.linka.looks",

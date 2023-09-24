@@ -12,7 +12,7 @@
 <script lang="ts" setup>
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 import { Metric } from "@/frontend/utils/Metric";
 
 const store = useStore();

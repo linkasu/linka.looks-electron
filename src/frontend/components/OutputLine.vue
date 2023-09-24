@@ -77,7 +77,7 @@ import { useStore } from "vuex";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import type { Card, ConfigFile } from "@/common/interfaces/ConfigFile";
-import { TTS } from "@/common/utils/TTS";
+import { TTS } from "@/frontend/utils/TTS";
 
 interface IOutputLineProps {
   file: string

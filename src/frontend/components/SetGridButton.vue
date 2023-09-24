@@ -53,7 +53,7 @@ import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import type { Card } from "@/common/interfaces/ConfigFile";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 
 interface ISetGridButtonProps {
   card: Card

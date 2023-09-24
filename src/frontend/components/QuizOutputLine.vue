@@ -82,9 +82,9 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, defineEmits, computed, ref } from "vue";
+import { defineProps, defineEmits, computed, ref, watch } from "vue";
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
-import { TTS } from "@/common/utils/TTS";
+import { TTS } from "@/frontend/utils/TTS";
 
 interface IQuizOutputLineProps {
   config: ConfigFile
@@ -93,9 +93,7 @@ interface IQuizOutputLineProps {
 }
 
 const props = defineProps<IQuizOutputLineProps>();
-const emit = defineEmits<{
-  (e: "restart"): void
-}>();
+const emit = defineEmits<{(e: "restart"): void }>();
 
 const startDialog = ref(true);
 const endDialog = ref(false);
@@ -113,7 +111,7 @@ const end = computed(() => {
 
 watch(
   end,
-  () => endDialog.value = end.value
+  () => { endDialog.value = end.value; }
 );
 
 function readQuestion () {

@@ -34,7 +34,7 @@ import { ref } from "vue";
 import { useRoute } from "vue-router";
 
 import InputDialog from "@/frontend/components/InputDialog.vue";
-import { storageService } from "@/frontend/CardsStorage/index";
+import { storageService } from "@/frontend/services/card-storage-service";
 
 const route = useRoute();
 
