@@ -4,6 +4,10 @@
   "author": "ibakaidov",
   "main": "background.js",
   "private": true,
+  "engines" : { 
+    "yarn" : ">=1.22.0",
+    "node" : ">=16.17.0 <16.21.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/linkasu/linka.looks-electron.git"
