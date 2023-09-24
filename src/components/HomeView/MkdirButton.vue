@@ -4,17 +4,24 @@
       icon="mdi-folder-plus"
       title="Введите название папки"
       label="Название папки"
-      comfirmText="Создать"
-      cancelText="Отмена"
+      confirm-text="Создать"
+      cancel-text="Отмена"
+      :check-file-path="true"
       @confirm="create"
-      :checkFilePath="true"
     />
 
-    <v-snackbar v-model="error" :timeout="5000">
+    <v-snackbar
+      v-model="error"
+      :timeout="5000"
+    >
       Ошибка создания папки. Проверьте название на наличие спецсимволов.
 
-      <template v-slot:actions>
-        <v-btn color="blue" variant="text" @click="error = false">
+      <template #actions>
+        <v-btn
+          color="blue"
+          variant="text"
+          @click="error = false"
+        >
           Закрыть
         </v-btn>
       </template>
@@ -22,30 +29,24 @@
   </div>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 
-import InputDialog from "@/components/InputDialog.vue";
-import { storageService } from "@/CardsStorage/frontend";
+import InputDialog from '@frontend/components/InputDialog.vue'
+import { storageService } from '@frontend/CardsStorage/index'
 
-class Props {}
+const route = useRoute()
 
-@Options({
-  components: {
-    InputDialog
-  }
-})
-export default class MkdirButton extends Vue.with(Props) {
-  error = false;
+const error = ref(false)
 
-  async create (name: string) {
-    const root = this.$route.params.path.toString();
-    try {
-      await storageService.mkdir(root + "§" + name);
-      window.location.reload();
-    } catch (error) {
-      this.error = true;
-    }
+async function create(name: string) {
+  const root = route.params.path.toString()
+  try {
+    await storageService.mkdir(root + '§' + name)
+    window.location.reload()
+  } catch (err) {
+    error.value = true
   }
 }
 </script>

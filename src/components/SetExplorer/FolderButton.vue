@@ -1,108 +1,129 @@
-  <template>
-    <v-dialog
-      v-model="dialog"
-      fullscreen
-      :scrim="false"
-      transition="dialog-bottom-transition"
-    >
-      <template v-slot:activator="{ props }">
-        <v-btn icon v-bind="props" title="Переместить набор">
-          <v-icon>mdi-folder-swap</v-icon>
+<template>
+  <v-dialog
+    v-model="dialog"
+    fullscreen
+    :scrim="false"
+    transition="dialog-bottom-transition"
+  >
+    <template #activator="{ props: activator_props }">
+      <v-btn
+        icon
+        v-bind="activator_props"
+        title="Переместить набор"
+      >
+        <v-icon>mdi-folder-swap</v-icon>
+      </v-btn>
+    </template>
+    <v-card>
+      <v-toolbar>
+        <v-btn
+          icon
+          dark
+          @click="dialog = false"
+        >
+          <v-icon>mdi-close</v-icon>
         </v-btn>
-      </template>
-      <v-card>
-        <v-toolbar >
-          <v-btn icon dark @click="dialog = false">
-            <v-icon>mdi-close</v-icon>
+        <v-btn
+          icon
+          @click="open('/')"
+        >
+          <v-icon>mdi-home</v-icon>
+        </v-btn>
+        <v-toolbar-title>{{ toBasename(current === '/' ? 'LINKa' : current) }}</v-toolbar-title>
+        <v-spacer />
+        <v-toolbar-items>
+          <v-btn
+            variant="text"
+            @click="
+              emit('move', current),
+              dialog = false
+            "
+          >
+            Переместить сюда
           </v-btn>
-          <v-btn icon @click="open('/')">
-            <v-icon>mdi-home</v-icon>
-          </v-btn>
-          <v-toolbar-title >{{basename( current==='/'?'LINKa':current)}}</v-toolbar-title>
-          <v-spacer></v-spacer>
-          <v-toolbar-items>
-            <v-btn variant="text" @click="$emit('move', current); dialog = false"> Переместить сюда</v-btn>
-          </v-toolbar-items>
-        </v-toolbar>
-        <v-card-text>
-          <v-list density="compact" @click:open="">
-            <v-list-item
-              v-for="(item, i) in dirs"
-              :key="i"
-              :value="item"
-              @click="open(item.file)"
-            >
-              <template v-slot:prepend>
-                <v-icon>mdi-folder</v-icon>
-              </template>
+        </v-toolbar-items>
+      </v-toolbar>
+      <v-card-text>
+        <v-list
+          density="compact"
+          @click.prevent="open"
+        >
+          <v-list-item
+            v-for="(item, i) in dirs"
+            :key="i"
+            :value="item"
+            @click="open(item.file)"
+          >
+            <template #prepend>
+              <v-icon>mdi-folder</v-icon>
+            </template>
 
-              <v-list-item-title v-text="basename(item.file)"></v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-  </template>
+            <v-list-item-title>
+              {{ toBasename(item.file) }}
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+</template>
 
-<script lang="ts">
-import { HOME_DIR } from "@/CardsStorage/constants";
-import { storageService } from "@/CardsStorage/frontend";
-import { Directory } from "@/interfaces/Directory";
-import { basename, join, normalize } from "path";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from 'vue'
+import { defineProps, defineEmits, ref, watch } from 'vue'
+import { useStore } from 'vuex'
 
-class Props {
-  file: string = prop({
-    required: true
-  });
+import { HOME_DIR } from '@electron/CardsStorage/constants'
+import { storageService } from '@frontend/CardsStorage/index'
+import { Directory } from '@common/interfaces/Directory'
+import pathModule from 'path'
+import { DirectoryFile } from '../../../common/interfaces/Directory'
+
+const store = useStore()
+const props = defineProps<{ file: string }>()
+const emit = defineEmits<{ (e: 'move', payload: string): void }>()
+
+const dialog = ref(false)
+const dirs: Directory = ref([])
+const current: Ref<string> = ref(props.file.split('§').slice(0, -1).join('/'))
+
+watch(dialog, onDialog)
+
+function onDialog(v: boolean) {
+  store.commit('button_enabled', !v)
+  if (v) {
+    current.value = props.file.split('§').slice(0, -1).join('/')
+    loadSet()
+  }
 }
 
-  @Options({
-    watch: {
-      dialog: "onDialog"
-    }
-  })
-export default class FolderButton extends Vue.with(Props) {
-  dialog = false;
-  dirs: Directory = [];
-  current: string = this.file.split("§").slice(0, -1).join("/");
-  onDialog (v: boolean) {
-    this.$store.commit("button_enabled", !v);
-    if (v) {
-      this.current = this.file.split("§").slice(0, -1).join("/");
-      this.loadSet();
-    }
-  }
+function open(file: string) {
+  current.value = pathModule.normalize(file)
+  loadSet()
+}
 
-  open (file: string) {
-    this.current = normalize(file);
-    this.loadSet();
+async function loadSet() {
+  if (!current.value) return
+  const loadedDirectories = (await storageService.getFiles(current.value))?.filter(
+    (f: DirectoryFile) => f.directory
+  )
+  if (!loadedDirectories) return
+  let c = current.value
+  if (!c.includes(HOME_DIR)) {
+    c = pathModule.join(HOME_DIR, c)
   }
+  c = pathModule.join(c)
+  const parts = c.split('/').filter((p) => !!p)
+  if (c.replace(HOME_DIR, '').length > 1) {
+    loadedDirectories.value.unshift({
+      directory: true,
+      file: current.value + '/..'
+    })
+  }
+  loadedDirectories.value = loadedDirectories
+}
 
-  async loadSet () {
-    if (!this.current) return;
-    const dirs = (await storageService.getFiles(this.current))?.filter(
-      (f) => f.directory
-    );
-    if (!dirs) return;
-    let c = this.current;
-    if (!c.includes(HOME_DIR)) {
-      c = join(HOME_DIR, c);
-    }
-    c = join(c);
-    const parts = c.split("/")
-      .filter(p => !!p);
-    if (c.replace(HOME_DIR, "").length > 1) {
-      dirs.unshift({
-        directory: true,
-        file: this.current + "/.."
-      });
-    }
-    this.dirs = dirs;
-  }
-
-  basename (s: string) {
-    return basename(s);
-  }
+function toBasename(s: string) {
+  return pathModule.basename(s)
 }
 </script>

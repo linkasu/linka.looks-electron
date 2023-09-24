@@ -1,7 +1,14 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
-    <template v-slot:activator="{ props }">
-      <v-btn flat icon="" v-bind="props">
+  <v-dialog
+    v-model="dialog"
+    width="auto"
+  >
+    <template #activator="{ props }">
+      <v-btn
+        flat
+        icon=""
+        v-bind="props"
+      >
         <v-icon>mdi-folder-remove</v-icon>
       </v-btn>
     </template>
@@ -13,70 +20,75 @@
       <v-card-text>
         <v-select
           v-if="directories"
-          :items="titles"
           v-model="directory"
+          :items="titles"
           label="Папка"
-        ></v-select>
+        />
       </v-card-text>
       <v-card-actions>
         <v-btn
           color="primary"
           @click="
-            remove();
-            dialog = false;
+            remove(),
+            dialog = false
           "
-          >Удалить</v-btn
         >
-        <v-btn color="primary" @click="dialog = false">Отмена</v-btn>
+          Удалить
+        </v-btn>
+        <v-btn
+          color="primary"
+          @click="dialog = false"
+        >
+          Отмена
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { storageService } from "@/CardsStorage/frontend";
-import { DirectoryFile } from "@/interfaces/Directory";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 
-class Props {}
+import { useRoute } from 'vue-router'
 
-@Options({
-  watch: {
-    dialog: "onDialog"
-  }
+import { storageService } from '@frontend/CardsStorage/index'
+import { DirectoryFile } from '@common/interfaces/Directory'
+
+const route = useRoute()
+
+const dialog = ref(false)
+const directories: Ref<DirectoryFile[] | null> = ref(null)
+const directory: Ref<string | null> = ref(null)
+
+const titles = computed(() => {
+  return directories.value?.map(({ file }) => {
+    return file.split('/').slice(-1)[0]
+  })
 })
-export default class ExitButton extends Vue.with(Props) {
-  dialog = false;
-  directories?: DirectoryFile[] | null = null;
-  directory?: string | null = null;
-  get titles () {
-    return this.directories?.map(({ file }) => {
-      return file.split("/").slice(-1)[0];
-    });
-  }
+const root = computed(() => {
+  return route.params.path.toString()
+})
 
-  get root () {
-    return this.$route.params.path.toString();
-  }
+watch(dialog, onDialog)
 
-  onDialog (value: boolean) {
-    if (value) {
-      this.load();
-    }
+function onDialog(value: boolean) {
+  if (value) {
+    load()
   }
+}
 
-  async load () {
-    this.directories = (
-      await storageService.getFiles(this.root)
-    )?.filter(({ directory }) => directory);
-    if (this.titles) this.directory = this.titles[0];
-  }
+async function load() {
+  directories.value = (await storageService.getFiles(root.value))?.filter(
+    ({ directory }: DirectoryFile) => directory
+  )
+  if (titles.value) directory.value = titles.value[0]
+}
 
-  async remove () {
-    await storageService.rmdir(this.root + "§" + this.directory);
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  }
+async function remove() {
+  await storageService.rmdir(root.value + '§' + directory.value)
+  setTimeout(() => {
+    window.location.reload()
+  }, 100)
 }
 </script>

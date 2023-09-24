@@ -1,60 +1,73 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
-    <template v-slot:activator="{ props }">
-      <v-btn title="Заметки о наборе" flat icon="" v-bind="props">
+  <v-dialog
+    v-model="dialog"
+    width="auto"
+  >
+    <template #activator="{ props }">
+      <v-btn
+        title="Заметки о наборе"
+        flat
+        icon=""
+        v-bind="props"
+      >
         <v-icon>mdi-note-text</v-icon>
       </v-btn>
     </template>
 
-    <v-card min-width="600px" min-height="200px">
-      <v-card-title primary-title> Заметки к набору </v-card-title>
+    <v-card
+      min-width="600px"
+      min-height="200px"
+    >
+      <v-card-title primary-title>
+        Заметки к набору
+      </v-card-title>
       <v-card-text v-if="!edit">
         <pre>{{ description }} </pre>
       </v-card-text>
       <v-card-text v-else>
-        <v-textarea v-model="description" multi-line></v-textarea>
+        <v-textarea
+          v-model="description"
+          multi-line
+        />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" @click="dialog = false"> Закрыть </v-btn>
+        <v-btn
+          color="primary"
+          @click="dialog = false"
+        >
+          Закрыть
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { ConfigFile } from "@/interfaces/ConfigFile";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { defineProps, withDefaults, computed, ref, watch } from 'vue'
+import { useStore } from 'vuex'
+import { ConfigFile } from '@common/interfaces/ConfigFile'
 
-class Props {
-  config = prop<ConfigFile>({
-    required: true
-  });
+const store = useStore()
 
-  edit = prop({
-    default: false
-  });
-}
+const props = withDefaults(defineProps<{ config: ConfigFile; edit: boolean }>(), {
+  edit: false
+})
 
-@Options({
-  watch: {
-    dialog: "onDialog"
+const dialog = ref(false)
+
+watch(dialog, onDialog)
+
+const description = computed({
+  get() {
+    return props.edit ? store.state.editor.description : props.config.description
+  },
+  set(text: string | undefined) {
+    store.commit('editor_description', text)
   }
 })
-export default class NotesButton extends Vue.with(Props) {
-  dialog = false;
-  get description () {
-    return this.edit
-      ? this.$store.state.editor.description
-      : this.config.description;
-  }
 
-  set description (text: string | undefined) {
-    this.$store.commit("editor_description", text);
-  }
-
-  onDialog (value: boolean) {
-    this.$store.commit("button_enabled", !this.dialog);
-  }
+function onDialog(value: boolean) {
+  store.commit('button_enabled', !dialog.value)
 }
 </script>

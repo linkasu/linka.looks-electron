@@ -1,5 +1,6 @@
 <template>
   <button
+    ref="el"
     class="eyebtn"
     :class="{ eye: enabled, isInside, lock }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
@@ -7,8 +8,8 @@
   >
     <slot />
     <div
-      class="overlay"
       v-if="isInside || (!buttonEnabled && !lock)"
+      class="overlay"
       :class="{ disabled: !buttonEnabled && !lock }"
     >
       <div
@@ -20,96 +21,91 @@
           min="0"
           :max="buttonTimeout"
           style="visibility: hidden; height: 0; width: 0"
-        ></progress>
+        />
       </div>
     </div>
   </button>
 </template>
 
-<script lang="ts">
-import { toHandlers } from "vue";
-import { Vue, Options, prop } from "vue-class-component";
+<script lang="ts" setup>
+import type { Ref } from 'vue'
+import { ref, onMounted, watch, defineProps, computed } from 'vue'
+import { useStore } from 'vuex'
 
-class Props {
-  enabled = prop({
-    default: true
-  });
-
-  lock = prop({
-    default: false
-  });
-
-  color = prop({
-    required: false
-  });
-
-  path = prop({
-    default: false
-  });
+interface IEyeButtonProps {
+  enabled: boolean
+  lock: boolean
+  color?: string
+  path: boolean
 }
 
-@Options({
-  components: {}
+const props = withDefaults(defineProps<IEyeButtonProps>(), {
+  enabled: true,
+  lock: false,
+  path: false
 })
-export default class EyeButton extends Vue.with(Props) {
-  isInside = false;
-  circle = false;
-  timer?: NodeJS.Timeout;
-  get borderWidth () {
-    return this.$store.state.button.borders + "px";
-  }
 
-  get buttonTimeout (): number {
-    return this.$store.state.button.timeout;
-  }
+const store = useStore()
 
-  mounted () {
-    const el = this.$el as Element;
-    el.addEventListener("eye-enter", (event) => {
-      const e = event as CustomEvent;
-      const eye = !!e.detail.eye;
+const elRef: Ref<Element | null> = ref(null)
+const isInside = ref(false)
+const circle = ref(false)
+const timer: Ref<NodeJS.Timeout | null> = ref(null)
 
-      if (this.buttonEnabled || this.lock) this.onEnter(eye);
-    });
-    el.addEventListener("eye-exit", () => {
-      this.onExit();
-    });
-  }
+const borderWidth = computed(() => {
+  return store.state.button.borders + 'px'
+})
 
-  onExit () {
-    this.isInside = false;
-    this.circle = false;
-  }
+const buttonTimeout = computed(() => {
+  return store.state.button.timeout
+})
 
-  onEnter (eye:boolean) {
-    if (eye && !this.$store.state.button.eyeSelect) return;
-    if (!eye && !this.$store.state.button.keyboardActivation) return;
-    if (!eye && !this.$store.state.button.joystickActivation) return;
-    this.isInside = true;
-    this.circle = this.$store.state.button.eyeActivation && eye;
-  }
+onMounted(() => {
+  const el = elRef.value
+  el?.addEventListener('eye-enter', (event) => {
+    const e = event as CustomEvent
+    const eye = !!e.detail.eye
 
-  get buttonEnabled () {
-    return this.$store.state.button.enabled;
-  }
+    if (buttonEnabled.value || props.lock) onEnter(eye)
+  })
+  el?.addEventListener('eye-exit', () => {
+    onExit()
+  })
+})
 
-  get size () {
-    if (!this.$el) return 0 + "px";
-    const rect = (this.$el as HTMLButtonElement).getBoundingClientRect();
-    return Math.min(rect.width, rect.height) * 0.8 + "px";
-  }
+const buttonEnabled = computed(() => {
+  return store.state.button.enabled
+})
 
-  public get seconds (): string {
-    return this.buttonTimeout / 1000 + "s";
-  }
+const size = computed(() => {
+  if (!elRef.value) return 0 + 'px'
+  const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect()
+  return Math.min(rect.width, rect.height) * 0.8 + 'px'
+})
 
-  click () {
-    if (!this.$store.state.button.clickSound) return;
-    const el = document.getElementById("button_audio") as HTMLAudioElement;
-    el.pause();
-    el.currentTime = 0;
-    el.play();
-  }
+const seconds = computed(() => {
+  return buttonTimeout.value / 1000 + 's'
+})
+
+function onExit() {
+  isInside.value = false
+  circle.value = false
+}
+
+function onEnter(eye: boolean) {
+  if (eye && !store.state.button.eyeSelect) return
+  if (!eye && !store.state.button.keyboardActivation) return
+  if (!eye && !store.state.button.joystickActivation) return
+  isInside.value = true
+  circle.value = store.state.button.eyeActivation && eye
+}
+
+function click() {
+  if (!store.state.button.clickSound) return
+  const el = document.getElementById('button_audio') as HTMLAudioElement
+  el.pause()
+  el.currentTime = 0
+  el.play()
 }
 </script>
 
@@ -144,7 +140,7 @@ canvas {
   top: 0;
 }
 @property --progress-value {
-  syntax: "<integer>";
+  syntax: '<integer>';
   initial-value: 0;
   inherits: false;
 }
@@ -167,11 +163,7 @@ canvas {
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
-  background: radial-gradient(
-      closest-side,
-      transparent 79%,
-      transparent 80% 100%
-    ),
+  background: radial-gradient(closest-side, transparent 79%, transparent 80% 100%),
     conic-gradient(
       rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
       transparent 0

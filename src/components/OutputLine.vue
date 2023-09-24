@@ -4,7 +4,11 @@
     class="output-line"
     :class="{ 'output-line-back': isExitButton }"
   >
-    <eye-button color="accent" @click="$router.back()" v-if="isExitButton">
+    <eye-button
+      v-if="isExitButton"
+      color="accent"
+      @click="$router.back()"
+    >
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
     <eye-button
@@ -12,19 +16,37 @@
       :color="buttonEnabled ? 'accent' : ''"
       @click="switchButtonEnabled"
     >
-      <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
+      <v-icon>{{ buttonEnabled ? 'mdi-eye' : 'mdi-eye-off' }}</v-icon>
     </eye-button>
-    <eye-button class="output-block" @click="say">
-      <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''">
+    <eye-button
+      class="output-block"
+      @click="say"
+    >
+      <v-icon
+        block
+        class="speaker-icon"
+        :color="isPlaying ? 'success' : ''"
+      >
         mdi-account-voice
       </v-icon>
-      <div class="output-text" ref="text">
-        <div class="text" v-if="withoutSpace">{{ text }}<span class="cursor">|</span></div>
-        <div v-else class="cards">
+      <div
+        ref="text"
+        class="output-text"
+      >
+        <div
+          v-if="withoutSpace"
+          class="text"
+        >
+          {{ text }}<span class="cursor">|</span>
+        </div>
+        <div
+          v-else
+          class="cards"
+        >
           <set-grid-button
             v-for="(card, i) in clone"
-            :enabled="false"
             :key="i"
+            :enabled="false"
             :card="card"
             :file="file"
             class="card"
@@ -32,100 +54,101 @@
         </div>
       </div>
     </eye-button>
-    <eye-button @click="backspace" color="accent">
+    <eye-button
+      color="accent"
+      @click="backspace"
+    >
       <v-icon> mdi-backspace </v-icon>
     </eye-button>
-    <eye-button @click="clear" color="accent">
+    <eye-button
+      color="accent"
+      @click="clear"
+    >
       <v-icon> mdi-delete </v-icon>
     </eye-button>
   </v-layout>
 </template>
 
-<script lang="ts">
-import { Vue, Options, prop } from "vue-class-component";
-import EyeButton from "@/components/EyeButton.vue";
-import SetGridButton from "@/components/SetGridButton.vue";
-import { Card, ConfigFile } from "@/interfaces/ConfigFile";
-import { TTS } from "@/utils/TTS";
+<script lang="ts" setup>
+import type { Ref } from 'vue'
+import { ref, computed, defineProps, defineEmits } from 'vue'
+import { useStore } from 'vuex'
 
-class Props {
-  file: string = prop({
-    required: true
-  });
+import EyeButton from '@frontend/components/EyeButton.vue'
+import SetGridButton from '@frontend/components/SetGridButton.vue'
+import type { Card, ConfigFile } from '@common/interfaces/ConfigFile'
+import { TTS } from '@common/utils/TTS'
 
-  cards: Card[] = prop({
-    required: true
-  });
-
-  config: ConfigFile = prop({
-    required: true
-  });
+interface IOutputLineProps {
+  file: string
+  cards: Card[]
+  config: ConfigFile
 }
-@Options({
-  components: {
-    EyeButton,
-    SetGridButton
-  }
+
+const props = defineProps<IOutputLineProps>()
+const store = useStore()
+const emit = defineEmits<{
+  (e: 'value', payload: Card[]): void
+}>()
+
+const isPlaying = ref(false)
+const outputTextRef: Ref<Element | null> = ref(null)
+
+const isExitButton = computed(() => {
+  return store.state.ui.exitButton
 })
-export default class OutpuiLine extends Vue.with(Props) {
-  get isExitButton () {
-    return this.$store.state.ui.exitButton;
-  }
 
-  get buttonEnabled () {
-    return this.$store.state.button.enabled;
-  }
+const buttonEnabled = computed(() => {
+  return store.state.button.enabled
+})
 
-  switchButtonEnabled () {
-    this.$store.dispatch("button_enabled");
-  }
+const withoutSpace = computed(() => {
+  return props.config?.withoutSpace
+})
 
-  get withoutSpace () {
-    return this.config?.withoutSpace;
-  }
+const clone = computed(() => {
+  scrollEnd()
 
-  get text () {
-    return this.clone
-      .map((c) => {
-        return c.cardType == 0 ? c.title : " ";
+  return [...props.cards]
+})
+
+const text = computed(() => {
+  return clone.value
+    .map((c: Card) => {
+      return c.cardType == 0 ? c.title : ' '
+    })
+    .join('')
+})
+
+function switchButtonEnabled() {
+  store.dispatch('button_enabled')
+}
+
+function scrollEnd() {
+  setTimeout(() => {
+    const el = outputTextRef.value as HTMLButtonElement
+    if (el && el.firstElementChild) {
+      el.scrollTo({
+        left: el.firstElementChild.scrollWidth + 100
       })
-      .join("");
-  }
+    }
+  }, 50)
+}
 
-  get clone () {
-    this.scrollEnd();
+function clear() {
+  emit('value', [])
+}
 
-    return [...this.cards];
-  }
+function backspace() {
+  emit('value', clone.value.slice(0, -1))
+}
 
-  scrollEnd () {
-    setTimeout(() => {
-      const el = this.$refs.text as HTMLButtonElement;
-      if (el && el.firstElementChild) {
-        el.scrollTo({
-          left: el.firstElementChild.scrollWidth + 100
-        });
-      }
-    }, 50);
-  }
-
-  clear () {
-    this.$emit("value", []);
-  }
-
-  backspace () {
-    this.$emit("value", this.clone.slice(0, -1));
-  }
-
-  async say () {
-    this.isPlaying = true;
-    if (this.config.withoutSpace) {
-      if (this.text) await TTS.instance.playText(this.text);
-    } else await TTS.instance.playCards(this.file, this.cards);
-    this.isPlaying = false;
-  }
-
-  isPlaying = false;
+async function say() {
+  isPlaying.value = true
+  if (props.config.withoutSpace) {
+    if (text.value) await TTS.instance.playText(text)
+  } else await TTS.instance.playCards(props.file, props.cards)
+  isPlaying.value = false
 }
 </script>
 
@@ -176,18 +199,17 @@ export default class OutpuiLine extends Vue.with(Props) {
   width: 150px;
 }
 
-.cursor{
-  animation: blink 1s linear ;
+.cursor {
+  animation: blink 1s linear;
   animation-iteration-count: infinite;
-  animation-timing-function:step-start;
+  animation-timing-function: step-start;
 }
 @keyframes blink {
-  0%{
+  0% {
     color: rgba(255, 255, 255, 0);
   }
-  100%{
+  100% {
     color: #000;
   }
 }
-
 </style>

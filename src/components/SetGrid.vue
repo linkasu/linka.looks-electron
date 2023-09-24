@@ -1,92 +1,102 @@
 <template>
   <div class="grid">
     <div class="left-grid">
-      <eye-button color="accent" @click="$router.back()" v-if="isExitButton">
-      <v-icon>mdi-exit-run</v-icon>
-    </eye-button>
-    <eye-button @click="page--" color="primary" v-if="!config.quiz">
-      <v-icon> mdi-arrow-left </v-icon>
-    </eye-button>
-  </div>
+      <eye-button
+        v-if="isExitButton"
+        color="accent"
+        @click="$router.back()"
+      >
+        <v-icon>mdi-exit-run</v-icon>
+      </eye-button>
+      <eye-button
+        v-if="!config.quiz"
+        color="primary"
+        @click="page--"
+      >
+        <v-icon> mdi-arrow-left </v-icon>
+      </eye-button>
+    </div>
 
     <div
       class="cards"
       :style="{ '--rows': config.rows, '--columns': config.columns }"
     >
-      <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="$emit('card', card)" />
+      <set-grid-button
+        v-for="card in current"
+        :key="card.id"
+        :card="card"
+        :file="file"
+        @click="emit('card', card)"
+      />
     </div>
 
-    <eye-button @click="page++" color="primary" v-if="!config.quiz">
+    <eye-button
+      v-if="!config.quiz"
+      color="primary"
+      @click="page++"
+    >
       <v-icon> mdi-arrow-right </v-icon>
     </eye-button>
   </div>
 </template>
 
-<script lang="ts">
-import { ConfigFile } from "@/interfaces/ConfigFile";
-import { Vue, Options, prop } from "vue-class-component";
-import EyeButton from "@/components/EyeButton.vue";
-import SetGridButton from "@/components/SetGridButton.vue";
+<script lang="ts" setup>
+import { ref, computed, watch, defineProps } from 'vue'
 
-class Props {
-  config: ConfigFile = prop({
-    required: true
-  });
+import { useStore } from 'vuex'
 
-  file: string = prop({
-    required: true
-  });
+import type { ConfigFile } from '@common/interfaces/ConfigFile'
+import EyeButton from '@frontend/components/EyeButton.vue'
+import SetGridButton from '@frontend/components/SetGridButton.vue'
+import { Card } from '../../common/interfaces/ConfigFile'
 
-  quizPage?:number = prop({
-    required: false
-  });
+interface ISetGridProps {
+  config: ConfigFile
+  file: string
+  quizPage?: number
 }
 
-@Options({
-  components: {
-    EyeButton,
-    SetGridButton
+const store = useStore()
+
+const props = defineProps<ISetGridProps>()
+const emit = defineEmits<{
+  (e: 'card', payload: Card): void
+}>()
+
+const mpage = ref(0)
+
+watch(() => props.quizPage, onQuizPage)
+
+const page = computed({
+  get() {
+    return mpage.value
   },
-  watch: {
-    quizPage: "onQuizPage"
+  set(value) {
+    mpage.value = Math.max(
+      0,
+      Math.min(Math.ceil(props.config.cards.length / pageSize.value) - 1, value)
+    )
   }
 })
-export default class SetGrid extends Vue.with(Props) {
-  private mpage = 0;
-  public get page () {
-    return this.mpage;
-  }
 
-  public set page (value) {
-    this.mpage = Math.max(
-      0,
-      Math.min(Math.ceil(this.config.cards.length / this.pageSize) - 1, value)
-    );
-  }
+const current = computed(() => {
+  return props.config.cards.slice(pageSize.value * page.value, pageSize.value * (page.value + 1))
+})
 
-  get current () {
-    return this.config.cards.slice(
-      this.pageSize * this.page,
-      this.pageSize * (this.page + 1)
-    );
-  }
+const pageSize = computed((): number => {
+  return props.config.columns * props.config.rows
+})
 
-  public get pageSize (): number {
-    return this.config.columns * this.config.rows;
-  }
+const isExitButton = computed(() => {
+  return store.state.ui.exitButton && !store.state.ui.outputLine
+})
 
-  get isExitButton () {
-    return this.$store.state.ui.exitButton && !this.$store.state.ui.outputLine;
-  }
-
-  onQuizPage (p:number) {
-    this.page = p;
-  }
+function onQuizPage(p: number) {
+  page.value = p
 }
 </script>
 
 <style scoped>
-
 .grid {
   border-top: 1px solid black;
   display: grid;
@@ -101,11 +111,11 @@ export default class SetGrid extends Vue.with(Props) {
   grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
 }
 
-.left-grid{
+.left-grid {
   display: grid;
   grid-template-columns: 1fr;
 }
-.left-grid:has(button+button){
+.left-grid:has(button + button) {
   grid-template-rows: 2fr 10fr;
 }
 </style>

@@ -1,73 +1,83 @@
 <template>
   <v-card :color="isCurrent ? 'primary' : ''">
-    <v-card-title primary-title> {{ titles[side] }} </v-card-title>
+    <v-card-title primary-title>
+      {{ titles[side] }}
+    </v-card-title>
     <v-card-text>
-      <v-chip v-for="key of keys" closable @click:close="remove(key)">
+      <v-chip
+        v-for="key of keys"
+        :key="key"
+        closable
+        @click:close="remove(key)"
+      >
         {{ key }}
       </v-chip>
     </v-card-text>
     <v-card-actions>
-      <v-btn @click="select()" color="success">Назначить</v-btn>
+      <v-btn
+        color="success"
+        @click="select()"
+      >
+        Назначить
+      </v-btn>
     </v-card-actions>
   </v-card>
 </template>
 
-<script lang="ts">
-import { Side } from "@/store/LINKaStore";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { defineProps, computed, onMounted, onUnmounted } from 'vue'
+import { useStore } from 'vuex'
+import { Side } from '@frontend/store/LINKaStore'
 
-class Props {
-  side: Side = prop({
-    required: true
-  });
+const store = useStore()
+
+const props = defineProps<{ side: Side }>()
+
+const titles: { [key in Side]: string } = {
+  up: 'Вверх',
+  down: 'Вниз',
+  left: 'Влево',
+  right: 'Вправо',
+  enter: 'Выбрать'
 }
-@Options({})
-export default class KeyBinding extends Vue.with(Props) {
-  titles: { [key in Side]: string } = {
-    up: "Вверх",
-    down: "Вниз",
-    left: "Влево",
-    right: "Вправо",
-    enter: "Выбрать"
-  };
 
-  mounted (): void {
-    document.addEventListener("keydown", this.onKeyDown);
-    document.addEventListener("joystick-keydown", console.log);
-  }
+onMounted((): void => {
+  document.addEventListener('keydown', onKeyDown)
+  document.addEventListener('joystick-keydown', console.log)
+})
 
-  unmounted (): void {
-    document.removeEventListener("keydown", this.onKeyDown);
-  }
+onUnmounted((): void => {
+  document.removeEventListener('keydown', onKeyDown)
+})
 
-  onKeyDown (ev: KeyboardEvent) {
-    if (this.isCurrent) {
-      this.$store.dispatch("keymap_push", { side: this.side, code: ev.code });
-    }
-  }
+const keys = computed(() => {
+  return store.state.keyMapping[props.side]
+})
 
-  remove (code: string) {
-    this.$store.dispatch("keymap_remove", { side: this.side, code });
+const selected = computed({
+  get() {
+    return store.state.selectedKey
+  },
+  set(side: Side | undefined) {
+    store.commit('selectedKey', side)
   }
+})
 
-  get keys () {
-    return this.$store.state.keyMapping[this.side];
-  }
+const isCurrent = computed(() => {
+  return selected.value == props.side
+})
 
-  get selected () {
-    return this.$store.state.selectedKey;
+function onKeyDown(ev: KeyboardEvent) {
+  if (isCurrent.value) {
+    store.dispatch('keymap_push', { side: props.side, code: ev.code })
   }
+}
 
-  set selected (side: Side|undefined) {
-    this.$store.commit("selectedKey", side);
-  }
+function remove(code: string) {
+  store.dispatch('keymap_remove', { side: props.side, code })
+}
 
-  get isCurrent () {
-    return this.selected == this.side;
-  }
-
-  select () {
-    this.selected = this.side;
-  }
+function select() {
+  selected.value = props.side
 }
 </script>

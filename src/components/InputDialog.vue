@@ -1,27 +1,50 @@
 <template>
-  <v-dialog v-model="dialog" width="auto" @show="dialog = true">
-    <template v-slot:activator="{ props }" v-if="buttonText || icon">
-      <v-btn v-bind="props" :block="!!!icon" :icon="icon" :flat="!!icon">
-        {{ buttonText }} <v-icon v-if="icon">{{ icon }}</v-icon></v-btn
+  <v-dialog
+    v-model="dialog"
+    width="auto"
+    @show="dialog = true"
+  >
+    <template
+      v-if="buttonText || icon"
+      #activator="{ props }"
+    >
+      <v-btn
+        v-bind="props"
+        :block="!!!icon"
+        :icon="icon"
+        :flat="!!icon"
       >
+        {{ buttonText }} <v-icon v-if="icon">
+          {{ icon }}
+        </v-icon>
+      </v-btn>
     </template>
 
     <v-card min-width="300px">
-      <v-card-title primary-title> {{ title }} </v-card-title>
+      <v-card-title primary-title>
+        {{ title }}
+      </v-card-title>
       <v-card-text>
         <v-form @submit.prevent="submit()">
           <v-text-field
-            :label="label"
             v-model="text"
+            :label="label"
             :rules="[isValid]"
-          ></v-text-field>
+          />
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="submit()">
-          {{ comfirmText }}
+        <v-btn
+          color="primary"
+          @click="submit()"
+        >
+          {{ confirmText }}
         </v-btn>
-        <v-btn color="primary" @click="dialog = false" v-if="cancelText">
+        <v-btn
+          v-if="cancelText"
+          color="primary"
+          @click="dialog = false"
+        >
           {{ cancelText }}
         </v-btn>
       </v-card-actions>
@@ -29,71 +52,66 @@
   </v-dialog>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
-import isValidPath from "is-valid-path";
+<script lang="ts" setup>
+import { ref, watch } from 'vue'
+import isValidPath from 'is-valid-path'
 
-class Props {
-  title: string = prop({
-    required: true
-  });
-
-  label: string = prop({
-    required: true
-  });
-
-  buttonText?: string = prop({});
-  icon?: string = prop({});
-  comfirmText: string = prop({
-    required: true
-  });
-
-  cancelText?: string = prop({});
-  checkFilePath = prop({
-    default: false
-  });
+interface IInputDialogProps {
+  title: string
+  label: string
+  confirmText: string
+  show: boolean
+  checkFilePath: boolean
+  buttonText?: string
+  icon?: string
+  cancelText?: string
 }
 
-@Options({
-  watch: {
-    dialog: "onDialog"
-  }
+const props = withDefaults(defineProps<IInputDialogProps>(), {
+  checkFilePath: false,
+  show: false
 })
-export default class CreateFromTextDialog extends Vue.with(Props) {
-  dialog = false;
-  noCancel = false;
-  text = "";
 
-  onDialog (v: boolean) {
-    if (!v) {
-      if (!this.noCancel) this.$emit("cancel");
-      this.noCancel = false;
+const emit = defineEmits<{
+  (e: 'confirm', payload: string): void
+  (e: 'cancel'): void
+}>()
 
-      this.text = "";
-    }
+const dialog = ref(false)
+const noCancel = ref(false)
+const text = ref('')
+
+watch(dialog, onDialog)
+watch(
+  () => props.show,
+  (new_val) => (dialog.value = new_val)
+)
+
+function onDialog(v: boolean) {
+  if (!v) {
+    if (!noCancel.value) emit('cancel')
+    noCancel.value = false
+
+    text.value = ''
   }
+}
 
-  public show () {
-    this.dialog = true;
+async function submit() {
+  if (isValid(text.value) !== true) {
+    return
   }
+  noCancel.value = true
 
-  async submit () {
-    if (this.isValid(this.text) !== true) {
-      return;
-    }
-    this.noCancel = true;
+  emit('confirm', text.value)
 
-    this.$emit("confirm", this.text);
+  dialog.value = false
+}
 
-    this.dialog = false;
+function isValid(text: string) {
+  if (!props.checkFilePath) return true
+  if (text.includes('/') || !isValidPath(text)) {
+    return 'Название содержит спецсимволы'
   }
-
-  isValid (text: string) {
-    if (!this.checkFilePath) return true;
-    if (text.includes("/") || !isValidPath(text)) {
-      return "Название содержит спецсимволы";
-    }
-    return true;
-  }
+  return true
 }
 </script>

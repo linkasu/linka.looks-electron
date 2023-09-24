@@ -4,92 +4,105 @@
       <v-card-title> Настройки цвета </v-card-title>
       <v-card-text>
         <v-text-field
-          label="Цвет №1"
           v-model="colorPrimary"
+          label="Цвет №1"
           type="color"
-        ></v-text-field>
+        />
         <v-text-field
-          label="Цвет №2"
           v-model="colorAccent"
+          label="Цвет №2"
           type="color"
-        ></v-text-field>
+        />
         <v-text-field
-          label="Цвет границ"
           v-model="colorSecondary"
+          label="Цвет границ"
           type="color"
-        ></v-text-field>
+        />
         <v-slider
-          :label="`Ширина границ сетки ${borders.toFixed(1)}px`"
           v-model="borders"
+          :label="`Ширина границ сетки ${borders.toFixed(1)}px`"
           step="0.1"
           min="0"
           max="5"
-
-        ></v-slider>
+        />
       </v-card-text>
     </v-card>
     <v-card>
       <v-card-title> Шаблоны цветовых схем.</v-card-title>
       <v-card-text>
         <v-row>
-          <v-btn block color="success" @click="makeDefault">Стандартная</v-btn>
-          <v-btn block color="success" @click="makeBG">Черно-белая</v-btn>
+          <v-btn
+            block
+            color="success"
+            @click="makeDefault"
+          >
+            Стандартная
+          </v-btn>
+          <v-btn
+            block
+            color="success"
+            @click="makeBG"
+          >
+            Черно-белая
+          </v-btn>
         </v-row>
       </v-card-text>
     </v-card>
   </v-sheet>
 </template>
 
-<script lang="ts">
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { computed } from 'vue'
+import { useStore } from 'vuex'
 
-class Props {}
+const store = useStore()
 
-@Options({})
-export default class extends Vue.with(Props) {
-  get borders () {
-    return this.$store.state.button.borders;
+const borders = computed({
+  get() {
+    return store.state.button.borders
+  },
+  set(value: number) {
+    store.commit('button_borders', value)
   }
+})
 
-  set borders (value: number) {
-    this.$store.commit("button_borders", value);
+const colorPrimary = computed({
+  get() {
+    return store.state.colors.primary
+  },
+  set(v: string) {
+    store.commit('colors_primary', v)
   }
+})
 
-  get colorPrimary () {
-    return this.$store.state.colors.primary;
+const colorAccent = computed({
+  get() {
+    return store.state.colors.accent
+  },
+  set(v: string) {
+    store.commit('colors_accent', v)
   }
+})
 
-  set colorPrimary (v: string) {
-    this.$store.commit("colors_primary", v);
+const colorSecondary = computed({
+  get() {
+    return store.state.colors.secondary
+  },
+  set(v: string) {
+    store.commit('colors_secondary', v)
   }
+})
 
-  get colorAccent () {
-    return this.$store.state.colors.accent;
-  }
+function makeDefault() {
+  colorPrimary.value = '#197377'
+  colorAccent.value = '#7DF6FA'
+  colorSecondary.value = '#FFD200'
+  borders.value = 1
+}
 
-  set colorAccent (v: string) {
-    this.$store.commit("colors_accent", v);
-  }
-
-  get colorSecondary () {
-    return this.$store.state.colors.secondary;
-  }
-
-  set colorSecondary (v: string) {
-    this.$store.commit("colors_secondary", v);
-  }
-
-  makeDefault () {
-    this.colorPrimary = "#197377";
-    this.colorAccent = "#7DF6FA";
-    this.colorSecondary = "#FFD200";
-    this.borders = 1;
-  }
-
-  makeBG () {
-    this.colorPrimary = "#DDDDDD";
-    this.colorAccent = "#FFFFFF";
-    this.colorSecondary = "#000000";
-  }
+function makeBG() {
+  colorPrimary.value = '#DDDDDD'
+  colorAccent.value = '#FFFFFF'
+  colorSecondary.value = '#000000'
 }
 </script>

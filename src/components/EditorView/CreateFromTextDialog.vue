@@ -1,36 +1,29 @@
 <template>
   <input-dialog
-    buttonText="Cоздать из текста"
+    button-text="Создать из текста"
     title="Введите текст"
     label="Текст для картинки"
-    comfirmText="Создать"
-    cancelText="Отмена"
+    confirm-text="Создать"
+    cancel-text="Отмена"
     @confirm="create"
   />
 </template>
 
-<script lang="ts">
-import InputDialog from "@/components/InputDialog.vue";
+<script lang="ts" setup>
+// @ts-ignore  
+import { defineProps, defineEmits } from 'vue'
+import InputDialog from '@frontend/components/InputDialog.vue'
+// @ts-ignore  
+import { storageService } from '@frontend/CardsStorage/index'
 
-import { storageService } from "@/CardsStorage/frontend";
-import { Vue, prop, Options } from "vue-class-component";
+const props = defineProps<{ file: string }>()
+const emit = defineEmits<{
+  (e: 'image', value: string): void
+}>()
 
-class Props {
-  file: string = prop({
-    required: true
-  });
-}
-
-@Options({
-  components: {
-    InputDialog
-  }
-})
-export default class CreateFromTextDialog extends Vue.with(Props) {
-  create (text: string) {
-    storageService.createImageFromText(this.file, text).then((value) => {
-      this.$emit("image", value);
-    });
-  }
+function create(text: string) {
+  storageService.createImageFromText(props.file, text).then((value: string) => {
+    emit('image', value)
+  })
 }
 </script>

@@ -1,24 +1,38 @@
 <template>
   <v-layout>
-    <v-layout full-height class="output-line" v-if="!end">
+    <v-layout
+      v-if="!end"
+      full-height
+      class="output-line"
+    >
       <h1>
         <v-icon>mdi-head-question</v-icon>
       </h1>
 
       <h1>
-        <v-icon color="error" :icon="`mdi-numeric-${errors}-box`" />
+        <v-icon
+          color="error"
+          :icon="`mdi-numeric-${errors}-box`"
+        />
       </h1>
       <h1 v-if="config.questions && page != undefined && !end">
         {{ question }}
       </h1>
       <h1>
-        <v-icon color="green" :icon="`mdi-numeric-${page + 1}-box`" />/<v-icon
+        <v-icon
+          color="green"
+          :icon="`mdi-numeric-${page + 1}-box`"
+        />/<v-icon
           color="primary"
           :icon="`mdi-numeric-${config.questions?.length}-box`"
         />
       </h1>
     </v-layout>
-    <v-layout row justify-center style="position: absolute">
+    <v-layout
+      row
+      justify-center
+      style="position: absolute"
+    >
       <v-dialog v-model="endDialog">
         <v-card>
           <v-card-title>
@@ -27,19 +41,22 @@
           <v-card-text> Количество ошибок: {{ errors }} </v-card-text>
           <v-card-text> Хотите начать сначала? </v-card-text>
           <v-card-actions>
-            <v-spacer></v-spacer>
+            <v-spacer />
             <v-btn
               color="green darken-1"
               @click="
-                $emit('restart');
-                endDialog = false;
+                emit('restart'),
+                endDialog = false
               "
             >
               Да
             </v-btn>
-            <v-btn color="green darken-1" @click="endDialog = false">
-              Нет</v-btn
+            <v-btn
+              color="green darken-1"
+              @click="endDialog = false"
             >
+              Нет
+            </v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -48,17 +65,12 @@
           <v-card-title>
             <span class="headline">Этот набор викторина!</span>
           </v-card-title>
-          <v-card-text>
-            Вам будут предложены вопросы, выбирайте ответы
-          </v-card-text>
+          <v-card-text> Вам будут предложены вопросы, выбирайте ответы </v-card-text>
           <v-card-actions>
-            <v-spacer></v-spacer>
+            <v-spacer />
             <v-btn
               color="green darken-1"
-              @click="
-                  startDialog = false;
-
-              "
+              @click="startDialog = false"
             >
               Начать
             </v-btn>
@@ -69,52 +81,49 @@
   </v-layout>
 </template>
 
-<script lang="ts">
-import { ConfigFile } from "@/interfaces/ConfigFile";
-import { TTS } from "@/utils/TTS";
-import { updateFor } from "typescript";
-import { Vue, prop, Options } from "vue-class-component";
+<script lang="ts" setup>
+import { defineProps, defineEmits, computed, ref } from 'vue'
+import type { ConfigFile } from '@common/interfaces/ConfigFile'
+import { TTS } from '@common/utils/TTS'
 
-class Props {
-  config = prop<ConfigFile>({
-    required: true
-  });
-
-  page = prop<number>({
-    required: true
-  });
-
-  errors = prop<number>({
-    required: true
-  });
+interface IQuizOutputLineProps {
+  config: ConfigFile
+  page: number
+  errors: number
 }
 
-@Options({})
-export default class QuizOutputLine extends Vue.with(Props) {
-  startDialog = true;
-  endDialog = false;
-  get question () {
-    const text = this.readQuestion();
-    return text;
-  }
+const props = defineProps<IQuizOutputLineProps>()
+const emit = defineEmits<{
+  (e: 'restart'): void
+}>()
 
-  readQuestion () {
-    if (!this.config.questions) return "";
-    const text = this.config.questions[this.page];
+const startDialog = ref(true)
+const endDialog = ref(false)
 
-    if (this.config.quizReadQuestion && !this.startDialog) {
-      TTS.instance.playText(text)
-        .catch(console.error);
-    }
-    return text;
-  }
+const question = computed(() => {
+  const text = readQuestion()
+  return text
+})
 
-  get end () {
-    if (!this.config.questions) return false;
-    const isEnd = this.page >= this.config.questions.length;
-    this.endDialog = isEnd;
-    return isEnd;
+const end = computed(() => {
+  if (!props.config.questions) return false
+  const isEnd = props.page >= props.config.questions.length
+  return isEnd
+})
+
+watch(
+  end,
+  () => endDialog.value = end.value
+)
+
+function readQuestion() {
+  if (!props.config.questions) return ''
+  const text = props.config.questions[props.page]
+
+  if (props.config.quizReadQuestion && !startDialog.value) {
+    TTS.instance.playText(text).catch(console.error)
   }
+  return text
 }
 </script>
 
