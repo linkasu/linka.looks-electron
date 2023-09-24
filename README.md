@@ -1,54 +1,34 @@
-# linka.looks-electron
+# vue-ts
 
+An Electron application with Vue and TypeScript
 
+## Recommended IDE Setup
 
-<details>
-<summary>Локальная работа с проектом</summary>
+- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin)
 
-## Project setup
-```
-yarn install
-```
+## Project Setup
 
-### Development server start
-```
-yarn electron:serve
-```
+### Install
 
-### Compiles and minifies for production
-```
-yarn electron:build
+```bash
+$ pnpm install
 ```
 
-### Run your unit tests
+### Development
+
+```bash
+$ pnpm dev
 ```
-yarn test:unit
+
+### Build
+
+```bash
+# For windows
+$ pnpm build:win
+
+# For macOS
+$ pnpm build:mac
+
+# For Linux
+$ pnpm build:linux
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
-
-</details>
-
-
----
-
-<details>
-<summary>Как оформить багрепорт</summary>
-
-- заходите в issues https://github.com/linkasu/linka.looks-electron/issues
-- нажимаете на кнопку `new issue`
-- описываете проблему по шаблону:
-```
-Проблема возникла на странице
-...
-
-Ожидаемое поведение
-...
-
-Реальное поведение
-...
-```
-- после того, как issue создан, добавляете к нему label `bug`
-
-</details>
