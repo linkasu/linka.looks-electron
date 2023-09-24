@@ -1,6 +1,6 @@
-// @ts-ignore  
+// @ts-ignore
 import store from "@frontend/store";
-// @ts-ignore  
+// @ts-ignore
 import { eStore } from "@frontend/store/eStore";
 import axios, { AxiosResponse } from "axios";
 import { MetricEvent } from "./MetricEvents";

@@ -1,9 +1,9 @@
 import { BrowserElementsState, PageElementsState } from "@/common/interfaces/PageElementsState";
-// @ts-ignore  
+// @ts-ignore
 import store from "@frontend/store";
-// @ts-ignore  
+// @ts-ignore
 import { Side } from "@frontend/store/LINKaStore";
-// @ts-ignore  
+// @ts-ignore
 import { getDistance } from "@frontend/utils/getDistance";
 import { log } from "console";
 import { ipcRenderer } from "electron";

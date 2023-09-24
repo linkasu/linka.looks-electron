@@ -38,13 +38,13 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref, computed, onMounted } from 'vue'
+import type { Ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 
-import { useStore } from 'vuex'
+import { useStore } from "vuex";
 
-import axios from 'axios'
-import { shell } from 'electron'
+import axios from "axios";
+import { shell } from "electron";
 
 interface PopupData {
   version: number
@@ -55,29 +55,29 @@ interface PopupData {
 
 type Nullable<T> = T | null
 
-const store = useStore()
+const store = useStore();
 
-const pData: Ref<Nullable<PopupData>> = ref(null)
+const pData: Ref<Nullable<PopupData>> = ref(null);
 const showPopup = computed(() => {
-  return !!pData.value && pData.value.version > store.state.popupVersion
-})
+  return !!pData.value && pData.value.version > store.state.popupVersion;
+});
 
 onMounted((): void => {
-  fetch()
-})
+  fetch();
+});
 
-async function fetch() {
-  const request = await axios.get<PopupData>('https://linka.su/looks.popup.json')
-  console.log(request.data)
+async function fetch () {
+  const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
+  console.log(request.data);
 
-  pData.value = request.data
+  pData.value = request.data;
 }
 
-function closePopup() {
-  store.commit('popupVersion', pData.value?.version ?? 0)
+function closePopup () {
+  store.commit("popupVersion", pData.value?.version ?? 0);
 }
 
-function openLink(url: string) {
-  shell.openExternal(url)
+function openLink (url: string) {
+  shell.openExternal(url);
 }
 </script>

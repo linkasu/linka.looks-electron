@@ -70,39 +70,39 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref } from 'vue'
-import { useStore } from 'vuex'
-import { Metric } from '../utils/Metric'
+import type { Ref } from "vue";
+import { ref } from "vue";
+import { useStore } from "vuex";
+import { Metric } from "../utils/Metric";
 
-const store = useStore()
+const store = useStore();
 
-const step = ref(0)
-const code = ref('')
-const email: Ref<string> = ref('')
-const error: Ref<string> = ref('')
+const step = ref(0);
+const code = ref("");
+const email: Ref<string> = ref("");
+const error: Ref<string> = ref("");
 
-async function getCode() {
+async function getCode () {
   try {
-    await Metric.sendActivationEmail(email.value)
-    step.value = 1
-    error.value = ''
+    await Metric.sendActivationEmail(email.value);
+    step.value = 1;
+    error.value = "";
   } catch (err) {
-    email.value = ''
-    console.error(err)
-    error.value = 'Ошибка запроса'
+    email.value = "";
+    console.error(err);
+    error.value = "Ошибка запроса";
   }
 }
 
-async function checkCode() {
-  if (code.value.length !== 6) return
+async function checkCode () {
+  if (code.value.length !== 6) return;
   try {
-    const pcHash = await Metric.activateAccount(email.value, code.value)
+    const pcHash = await Metric.activateAccount(email.value, code.value);
     if (pcHash) {
-      store.commit('pcHash', pcHash)
+      store.commit("pcHash", pcHash);
     }
   } catch (err) {
-    error.value = 'Ошибка запроса'
+    error.value = "Ошибка запроса";
   }
 }
 </script>

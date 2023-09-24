@@ -30,23 +30,23 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref } from "vue";
+import { useRoute } from "vue-router";
 
-import InputDialog from '@frontend/components/InputDialog.vue'
-import { storageService } from '@frontend/CardsStorage/index'
+import InputDialog from "@frontend/components/InputDialog.vue";
+import { storageService } from "@frontend/CardsStorage/index";
 
-const route = useRoute()
+const route = useRoute();
 
-const error = ref(false)
+const error = ref(false);
 
-async function create(name: string) {
-  const root = route.params.path.toString()
+async function create (name: string) {
+  const root = route.params.path.toString();
   try {
-    await storageService.mkdir(root + '§' + name)
-    window.location.reload()
+    await storageService.mkdir(root + "§" + name);
+    window.location.reload();
   } catch (err) {
-    error.value = true
+    error.value = true;
   }
 }
 </script>

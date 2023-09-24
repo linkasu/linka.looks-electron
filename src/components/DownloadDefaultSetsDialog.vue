@@ -54,37 +54,37 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue'
-import { useStore } from 'vuex'
-import { storageService } from '@frontend/CardsStorage/index'
-import { ipcRenderer } from 'electron'
+import { ref, onMounted, watch } from "vue";
+import { useStore } from "vuex";
+import { storageService } from "@frontend/CardsStorage/index";
+import { ipcRenderer } from "electron";
 
-const store = useStore()
+const store = useStore();
 
-const dialog = ref(false)
-const downloading = ref(false)
-const progress = ref(0)
+const dialog = ref(false);
+const downloading = ref(false);
+const progress = ref(0);
 
 onMounted((): void => {
-  dialog.value = !store.state.defaultSetsDownloaded
+  dialog.value = !store.state.defaultSetsDownloaded;
   // dialog = true
-  store.commit('button_enabled', !dialog.value)
-  ipcRenderer.on('download_progress', (_, prog) => {
-    progress.value = prog
-  })
-})
+  store.commit("button_enabled", !dialog.value);
+  ipcRenderer.on("download_progress", (_, prog) => {
+    progress.value = prog;
+  });
+});
 
-async function download() {
-  downloading.value = true
-  await storageService.downloadAndUnpack('https://linka.su/sets.zip')
-  dialog.value = false
-  window.location.reload()
+async function download () {
+  downloading.value = true;
+  await storageService.downloadAndUnpack("https://linka.su/sets.zip");
+  dialog.value = false;
+  window.location.reload();
 }
 
-function onDialog(v: boolean) {
-  store.commit('button_enabled', !v)
-  store.commit('defaultSetsDownloaded', !v)
+function onDialog (v: boolean) {
+  store.commit("button_enabled", !v);
+  store.commit("defaultSetsDownloaded", !v);
 }
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 </script>

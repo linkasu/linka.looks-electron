@@ -41,14 +41,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, defineProps } from 'vue'
+import { ref, computed, watch, defineProps } from "vue";
 
-import { useStore } from 'vuex'
+import { useStore } from "vuex";
 
-import type { ConfigFile } from '@common/interfaces/ConfigFile'
-import EyeButton from '@frontend/components/EyeButton.vue'
-import SetGridButton from '@frontend/components/SetGridButton.vue'
-import { Card } from '../../common/interfaces/ConfigFile'
+import type { ConfigFile } from "@common/interfaces/ConfigFile";
+import EyeButton from "@frontend/components/EyeButton.vue";
+import SetGridButton from "@frontend/components/SetGridButton.vue";
+import { Card } from "../../common/interfaces/ConfigFile";
 
 interface ISetGridProps {
   config: ConfigFile
@@ -56,43 +56,43 @@ interface ISetGridProps {
   quizPage?: number
 }
 
-const store = useStore()
+const store = useStore();
 
-const props = defineProps<ISetGridProps>()
+const props = defineProps<ISetGridProps>();
 const emit = defineEmits<{
-  (e: 'card', payload: Card): void
-}>()
+  (e: "card", payload: Card): void
+}>();
 
-const mpage = ref(0)
+const mpage = ref(0);
 
-watch(() => props.quizPage, onQuizPage)
+watch(() => props.quizPage, onQuizPage);
 
 const page = computed({
-  get() {
-    return mpage.value
+  get () {
+    return mpage.value;
   },
-  set(value) {
+  set (value) {
     mpage.value = Math.max(
       0,
       Math.min(Math.ceil(props.config.cards.length / pageSize.value) - 1, value)
-    )
+    );
   }
-})
+});
 
 const current = computed(() => {
-  return props.config.cards.slice(pageSize.value * page.value, pageSize.value * (page.value + 1))
-})
+  return props.config.cards.slice(pageSize.value * page.value, pageSize.value * (page.value + 1));
+});
 
 const pageSize = computed((): number => {
-  return props.config.columns * props.config.rows
-})
+  return props.config.columns * props.config.rows;
+});
 
 const isExitButton = computed(() => {
-  return store.state.ui.exitButton && !store.state.ui.outputLine
-})
+  return store.state.ui.exitButton && !store.state.ui.outputLine;
+});
 
-function onQuizPage(p: number) {
-  page.value = p
+function onQuizPage (p: number) {
+  page.value = p;
 }
 </script>
 

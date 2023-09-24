@@ -16,34 +16,34 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useStore } from 'vuex'
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 
-import SaveButton from '@frontend/components/EditorView/SaveButton.vue'
-import ExitButton from '@frontend/components/EditorView/ExitButton.vue'
-import SetSettings from '@frontend/components/EditorView/SetSettings.vue'
-import NotesButton from '@frontend/components/SetExplorer/NotesButton.vue'
+import SaveButton from "@frontend/components/EditorView/SaveButton.vue";
+import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
+import SetSettings from "@frontend/components/EditorView/SetSettings.vue";
+import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
 
-const router = useRouter()
-const store = useStore()
+const router = useRouter();
+const store = useStore();
 
 const path = computed((): string => {
-  return store.state.editor.current
-})
+  return store.state.editor.current;
+});
 
 const title = computed(() => {
-  const arr = path.value.split('§')
-  return arr[arr.length - 1]
-})
+  const arr = path.value.split("§");
+  return arr[arr.length - 1];
+});
 
-async function save() {
-  await store.dispatch('editor_save')
-  router.back()
+async function save () {
+  await store.dispatch("editor_save");
+  router.back();
 }
 
-async function saveAs(title: string) {
-  const newLink = await store.dispatch('editor_save_as', title)
-  router.push('/set/' + newLink)
+async function saveAs (title: string) {
+  const newLink = await store.dispatch("editor_save_as", title);
+  router.push("/set/" + newLink);
 }
 </script>

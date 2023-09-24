@@ -66,81 +66,81 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import DeleteButton from '@frontend/components/SetExplorer/DeleteButton.vue'
-import FolderButton from '@frontend/components/SetExplorer/FolderButton.vue'
-import NotesButton from '@frontend/components/SetExplorer/NotesButton.vue'
+import { computed } from "vue";
+import DeleteButton from "@frontend/components/SetExplorer/DeleteButton.vue";
+import FolderButton from "@frontend/components/SetExplorer/FolderButton.vue";
+import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
 
-import { useStore } from 'vuex'
-import { useRoute, useRouter } from 'vue-router'
+import { useStore } from "vuex";
+import { useRoute, useRouter } from "vue-router";
 
-import { storageService } from '@frontend/CardsStorage/index'
-import ShareButton from '@frontend/components/ShareButton.vue'
-import { Metric } from '@frontend/utils/Metric'
-import pathModule from 'path'
+import { storageService } from "@frontend/CardsStorage/index";
+import ShareButton from "@frontend/components/ShareButton.vue";
+import { Metric } from "@frontend/utils/Metric";
+import pathModule from "path";
 
-const route = useRoute()
-const router = useRouter()
-const store = useStore()
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
 
-const file = computed(() => route.params.path.toString())
-const config = computed(() => store.state.explorer.config)
+const file = computed(() => route.params.path.toString());
+const config = computed(() => store.state.explorer.config);
 
 const title = computed(() => {
-  const arr = file.value.split('§')
-  return pathModule.basename(arr[arr.length - 1])
-})
+  const arr = file.value.split("§");
+  return pathModule.basename(arr[arr.length - 1]);
+});
 
 const editLink = computed(() => {
-  return route.fullPath.replace('set', 'edit')
-})
+  return route.fullPath.replace("set", "edit");
+});
 
 const interfaceOutputLine = computed(() => {
-  return store.state.ui.outputLine
-})
+  return store.state.ui.outputLine;
+});
 
 const buttonEnabled = computed(() => {
-  return store.state.button.enabled
-})
+  return store.state.button.enabled;
+});
 
 const animation = computed(() => {
-  return store.state.button.animation
-})
+  return store.state.button.animation;
+});
 
-function switchButtonEnabled() {
-  store.dispatch('button_enabled')
+function switchButtonEnabled () {
+  store.dispatch("button_enabled");
 }
 
-function switchInterfaceOutputLine() {
-  store.dispatch('interface_outputLine')
+function switchInterfaceOutputLine () {
+  store.dispatch("interface_outputLine");
 }
 
-function back() {
-  if (file.value.includes(':')) {
-    router.push('/')
-    return
+function back () {
+  if (file.value.includes(":")) {
+    router.push("/");
+    return;
   }
-  router.push('/' + file.value.split('§').slice(0, -1).join('§'))
+  router.push("/" + file.value.split("§").slice(0, -1).join("§"));
 }
 
-function switchAnimation() {
-  store.dispatch('button_animation')
+function switchAnimation () {
+  store.dispatch("button_animation");
 }
 
-async function del() {
-  await storageService.moveToTrash(file)
-  back()
-  Metric.registerEvent(store.state.pcHash, 'trash')
+async function del () {
+  await storageService.moveToTrash(file);
+  back();
+  Metric.registerEvent(store.state.pcHash, "trash");
 }
 
-async function move(location: string) {
-  const target = await storageService.moveSet(file, location)
+async function move (location: string) {
+  const target = await storageService.moveSet(file, location);
   const url = target
-    .slice(target.lastIndexOf('LINKa') + 5)
-    .replaceAll('/', '§')
-    .replace('\\', '§')
+    .slice(target.lastIndexOf("LINKa") + 5)
+    .replaceAll("/", "§")
+    .replace("\\", "§");
 
-  router.push('/set/' + url)
-  Metric.registerEvent(store.state.pcHash, 'move')
+  router.push("/set/" + url);
+  Metric.registerEvent(store.state.pcHash, "move");
 }
 </script>

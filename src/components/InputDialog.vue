@@ -53,8 +53,8 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
-import isValidPath from 'is-valid-path'
+import { ref, watch } from "vue";
+import isValidPath from "is-valid-path";
 
 interface IInputDialogProps {
   title: string
@@ -70,48 +70,48 @@ interface IInputDialogProps {
 const props = withDefaults(defineProps<IInputDialogProps>(), {
   checkFilePath: false,
   show: false
-})
+});
 
 const emit = defineEmits<{
-  (e: 'confirm', payload: string): void
-  (e: 'cancel'): void
-}>()
+  (e: "confirm", payload: string): void
+  (e: "cancel"): void
+}>();
 
-const dialog = ref(false)
-const noCancel = ref(false)
-const text = ref('')
+const dialog = ref(false);
+const noCancel = ref(false);
+const text = ref("");
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 watch(
   () => props.show,
   (new_val) => (dialog.value = new_val)
-)
+);
 
-function onDialog(v: boolean) {
+function onDialog (v: boolean) {
   if (!v) {
-    if (!noCancel.value) emit('cancel')
-    noCancel.value = false
+    if (!noCancel.value) emit("cancel");
+    noCancel.value = false;
 
-    text.value = ''
+    text.value = "";
   }
 }
 
-async function submit() {
+async function submit () {
   if (isValid(text.value) !== true) {
-    return
+    return;
   }
-  noCancel.value = true
+  noCancel.value = true;
 
-  emit('confirm', text.value)
+  emit("confirm", text.value);
 
-  dialog.value = false
+  dialog.value = false;
 }
 
-function isValid(text: string) {
-  if (!props.checkFilePath) return true
-  if (text.includes('/') || !isValidPath(text)) {
-    return 'Название содержит спецсимволы'
+function isValid (text: string) {
+  if (!props.checkFilePath) return true;
+  if (text.includes("/") || !isValidPath(text)) {
+    return "Название содержит спецсимволы";
   }
-  return true
+  return true;
 }
 </script>

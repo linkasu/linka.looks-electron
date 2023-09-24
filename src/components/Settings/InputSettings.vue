@@ -21,11 +21,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import KeyBinding from './KeyBinding.vue'
-import { useStore } from 'vuex'
+import { ref } from "vue";
+import KeyBinding from "./KeyBinding.vue";
+import { useStore } from "vuex";
 
-const store = useStore()
+const store = useStore();
 
-const sides = ref(Object.keys(store.state.keyMapping))
+const sides = ref(Object.keys(store.state.keyMapping));
 </script>

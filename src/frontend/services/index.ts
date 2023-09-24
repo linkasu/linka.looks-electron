@@ -1,9 +1,9 @@
 import { ipcRenderer } from "electron";
-// @ts-ignore  
+// @ts-ignore
 import { ConfigFile } from "@common/interfaces/ConfigFile";
-// @ts-ignore  
+// @ts-ignore
 import { ICloudStorage } from "@common/abstract";
-// @ts-ignore  
+// @ts-ignore
 import { Directory } from "@common/interfaces/Directory";
 
 class StorageService extends ICloudStorage {

@@ -7,7 +7,7 @@ import EditorView from "@frontend/views/EditorView.vue";
 import EditorViewAppBar from "@frontend/views/EditorView.appbar.vue";
 import SettingsView from "@frontend/views/SettingsView.vue";
 import SettingsViewAppBar from "@frontend/views/SettingsView.appbar.vue";
-// @ts-ignore  
+// @ts-ignore
 import { storageService } from "@frontend/services/index.ts";
 
 const routes: Array<RouteRecordRaw> = [

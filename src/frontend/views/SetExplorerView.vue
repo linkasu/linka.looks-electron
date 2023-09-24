@@ -33,71 +33,71 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref, computed } from 'vue'
-import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
-import OutputLine from '@frontend/components/OutputLine.vue'
-import QuizOutputLine from '@frontend/components/QuizOutputLine.vue'
-import SetGrid from '@frontend/components/SetGrid.vue'
-import type { Card } from '@common/interfaces/ConfigFile'
-import { TTS } from '@common/utils/TTS'
-import { Metric } from '@frontend/utils/Metric'
+import type { Ref } from "vue";
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
+import { useRoute } from "vue-router";
+import OutputLine from "@frontend/components/OutputLine.vue";
+import QuizOutputLine from "@frontend/components/QuizOutputLine.vue";
+import SetGrid from "@frontend/components/SetGrid.vue";
+import type { Card } from "@common/interfaces/ConfigFile";
+import { TTS } from "@common/utils/TTS";
+import { Metric } from "@frontend/utils/Metric";
 
-const store = useStore()
-const route = useRoute()
+const store = useStore();
+const route = useRoute();
 
-const filename: Ref<string | null> = ref(null)
-const cards: Ref<Card[]> = ref([])
-const quizPage = ref(0)
-const errors = ref(0)
+const filename: Ref<string | null> = ref(null);
+const cards: Ref<Card[]> = ref([]);
+const quizPage = ref(0);
+const errors = ref(0);
 
-filename.value = route.params.path.toString()
-store.dispatch('open_file', filename)
-Metric.registerEvent(store.state.pcHash, 'openSet', { filename: filename })
+filename.value = route.params.path.toString();
+store.dispatch("open_file", filename);
+Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
 
 const config = computed(() => {
-  return store.state.explorer.config
-})
+  return store.state.explorer.config;
+});
 
 const interfaceOutputLine = computed(() => {
-  return store.state.ui.outputLine
-})
+  return store.state.ui.outputLine;
+});
 
 const isQuiz = computed(() => {
-  return config.value?.quiz
-})
+  return config.value?.quiz;
+});
 
 const quizAutoNext = computed(() => {
-  return config.value?.quizAutoNext
-})
+  return config.value?.quizAutoNext;
+});
 
 const quizReadQuestion = computed(() => {
-  return config.value?.quizReadQuestion
-})
+  return config.value?.quizReadQuestion;
+});
 
-function addCard(card: Card) {
-  Metric.registerEvent(store.state.pcHash, 'cardClick', { card })
+function addCard (card: Card) {
+  Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz.value) {
     if (card.answer) {
-      quizPage.value++
+      quizPage.value++;
     } else {
-      errors.value++
+      errors.value++;
       if (quizAutoNext.value) {
-        quizPage.value++
+        quizPage.value++;
       }
     }
-    return
+    return;
   }
   if (interfaceOutputLine.value) {
     if (
       (config.value?.withoutSpace && card.cardType < 2) ||
       (!config.value?.withoutSpace && card.cardType == 0)
     ) {
-      cards.value.push(card)
+      cards.value.push(card);
     }
   } else {
-    if (filename.value) TTS.instance.playCards(filename, [card], true)
+    if (filename.value) TTS.instance.playCards(filename, [card], true);
   }
 }
 </script>

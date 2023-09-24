@@ -81,77 +81,77 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, withDefaults, ref, computed } from 'vue'
-import { useStore } from 'vuex'
+import { defineProps, withDefaults, ref, computed } from "vue";
+import { useStore } from "vuex";
 
-const store = useStore()
+const store = useStore();
 
-const props = withDefaults(defineProps<{ defaultOpen: boolean }>(), { defaultOpen: false })
+const props = withDefaults(defineProps<{ defaultOpen: boolean }>(), { defaultOpen: false });
 
-const dialog = ref(props.defaultOpen)
+const dialog = ref(props.defaultOpen);
 
 const columns = computed({
-  get() {
-    return store.state.editor.columns
+  get () {
+    return store.state.editor.columns;
   },
-  set(v: number) {
-    store.commit('editor_columns', v)
+  set (v: number) {
+    store.commit("editor_columns", v);
   }
-})
+});
 
 const rows = computed({
-  get(): number {
-    return store.state.editor.rows
+  get (): number {
+    return store.state.editor.rows;
   },
-  set(v: number) {
-    store.commit('editor_rows', v)
+  set (v: number) {
+    store.commit("editor_rows", v);
   }
-})
+});
 
 const isWithoutSpace = computed({
-  get(): boolean {
-    return store.state.editor.isWithoutSpace
+  get (): boolean {
+    return store.state.editor.isWithoutSpace;
   },
-  set(v: boolean) {
-    store.commit('editor_isWithoutSpace', v)
+  set (v: boolean) {
+    store.commit("editor_isWithoutSpace", v);
   }
-})
+});
 
 const isDirectSet = computed({
-  get(): boolean {
-    return store.state.editor.isDirectSet
+  get (): boolean {
+    return store.state.editor.isDirectSet;
   },
-  set(v: boolean) {
-    store.commit('editor_isDirectSet', v)
+  set (v: boolean) {
+    store.commit("editor_isDirectSet", v);
   }
-})
+});
 
 const isQuiz = computed({
-  get(): boolean {
-    return store.state.editor.quiz
+  get (): boolean {
+    return store.state.editor.quiz;
   },
-  set(v: boolean) {
-    store.commit('editor_isQuiz', v)
+  set (v: boolean) {
+    store.commit("editor_isQuiz", v);
   }
-})
+});
 
 const editor_quizReadQuestion = computed({
-  get(): boolean {
-    return store.state.editor.quizReadQuestion
+  get (): boolean {
+    return store.state.editor.quizReadQuestion;
   },
-  set(v: boolean) {
-    store.commit('editor_quizReadQuestion', v)
+  set (v: boolean) {
+    store.commit("editor_quizReadQuestion", v);
   }
-})
+});
 
 const editor_quizAutoNext = computed({
-  get(): boolean {
-    return store.state.editor.quizAutoNext
+  get (): boolean {
+    return store.state.editor.quizAutoNext;
   },
-  set(v: boolean) {
-    store.commit('editor_quizAutoNext', v)
+  set (v: boolean) {
+    store.commit("editor_quizAutoNext", v);
   }
-})
+});
 </script>
 
 <style>

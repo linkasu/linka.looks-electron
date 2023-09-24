@@ -62,41 +62,41 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, defineProps, defineEmits } from 'vue'
-import { storageService } from '@frontend/CardsStorage/index'
-import { TTS } from '@common/utils/TTS'
+import { ref, watch, defineProps, defineEmits } from "vue";
+import { storageService } from "@frontend/CardsStorage/index";
+import { TTS } from "@common/utils/TTS";
 
-const props = defineProps<{ file: string }>()
-const emit = defineEmits<{ (e: 'audio', payload: string): void }>()
+const props = defineProps<{ file: string }>();
+const emit = defineEmits<{(e: "audio", payload: string): void }>();
 
 const voices = [
-  { value: 'zahar', text: 'Захар' },
-  { value: 'ermil', text: 'Емиль' },
-  { value: 'jane', text: 'Джейн' },
-  { value: 'oksana', text: 'Оксана' },
-  { value: 'alena', text: 'Алёна' },
-  { value: 'filipp', text: 'Филипп' },
-  { value: 'omazh', text: 'Ома' }
-]
-const dialog = ref(false)
-const text = ref('')
-const voice = ref('alena')
+  { value: "zahar", text: "Захар" },
+  { value: "ermil", text: "Емиль" },
+  { value: "jane", text: "Джейн" },
+  { value: "oksana", text: "Оксана" },
+  { value: "alena", text: "Алёна" },
+  { value: "filipp", text: "Филипп" },
+  { value: "omazh", text: "Ома" }
+];
+const dialog = ref(false);
+const text = ref("");
+const voice = ref("alena");
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 
-function create() {
+function create () {
   storageService.createAudioFromText(props.file, text, voice).then((value: string) => {
-    emit('audio', value)
-  })
+    emit("audio", value);
+  });
 }
 
-function onDialog(v: boolean) {
+function onDialog (v: boolean) {
   if (!v) {
-    text.value = ''
+    text.value = "";
   }
 }
 
-function playExample() {
-  TTS.instance.playText(text.value, voice.value)
+function playExample () {
+  TTS.instance.playText(text.value, voice.value);
 }
 </script>

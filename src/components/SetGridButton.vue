@@ -47,13 +47,13 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { defineProps, withDefaults, ref, computed, watch, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import type { Ref } from "vue";
+import { defineProps, withDefaults, ref, computed, watch, onMounted } from "vue";
+import { useStore } from "vuex";
 
-import EyeButton from '@frontend/components/EyeButton.vue'
-import type { Card } from '@common/interfaces/ConfigFile'
-import { storageService } from '@frontend/CardsStorage/index'
+import EyeButton from "@frontend/components/EyeButton.vue";
+import type { Card } from "@common/interfaces/ConfigFile";
+import { storageService } from "@frontend/CardsStorage/index";
 
 interface ISetGridButtonProps {
   card: Card
@@ -63,70 +63,70 @@ interface ISetGridButtonProps {
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
   dot: false
-})
+});
 
-const store = useStore()
-const image: Ref<string | null> = ref('')
+const store = useStore();
+const image: Ref<string | null> = ref("");
 
-const canvasRef: Ref<Element | null> = ref(null)
-const clearfixRef: Ref<Element | null> = ref(null)
+const canvasRef: Ref<Element | null> = ref(null);
+const clearfixRef: Ref<Element | null> = ref(null);
 
 onMounted(() => {
-  onCard(props.card)
-})
+  onCard(props.card);
+});
 
-watch(() => props.card, onCard, { deep: true })
+watch(() => props.card, onCard, { deep: true });
 
 const animation = computed(() => {
-  return store.state.button.animation
-})
+  return store.state.button.animation;
+});
 
-function onCard(card: Card) {
+function onCard (card: Card) {
   if (card && card.imagePath) {
     if (card.cardType == 0) {
       storageService.getImage(props.file, card.imagePath).then((buffer: ArrayBuffer) => {
-        if (!buffer) return
-        const url = URL.createObjectURL(new Blob([buffer], { type: 'image/png' } /* (1) */))
-        image.value = `url("${url}")`
+        if (!buffer) return;
+        const url = URL.createObjectURL(new Blob([buffer], { type: "image/png" } /* (1) */));
+        image.value = `url("${url}")`;
         if (cardHasGIF(card)) {
-          createStaticImage(url)
+          createStaticImage(url);
         }
-      })
+      });
     }
   }
 }
 
-function cardHasGIF(card: Card): boolean {
+function cardHasGIF (card: Card): boolean {
   if (card && card.imagePath) {
-    return card.imagePath.includes('gif')
+    return card.imagePath.includes("gif");
   }
-  return false
+  return false;
 }
 
-function createStaticImage(url: string) {
-  const canvas = canvasRef.value as HTMLCanvasElement
-  const clearfixContainer = clearfixRef.value as HTMLCanvasElement
-  const containerWidth = clearfixContainer.offsetWidth
-  const containerHeight = clearfixContainer.offsetHeight
-  canvas.height = containerHeight
-  canvas.width = containerWidth
-  const img = new Image()
-  img.src = url
+function createStaticImage (url: string) {
+  const canvas = canvasRef.value as HTMLCanvasElement;
+  const clearfixContainer = clearfixRef.value as HTMLCanvasElement;
+  const containerWidth = clearfixContainer.offsetWidth;
+  const containerHeight = clearfixContainer.offsetHeight;
+  canvas.height = containerHeight;
+  canvas.width = containerWidth;
+  const img = new Image();
+  img.src = url;
   img.onload = function () {
-    const ratio = img.naturalWidth / img.naturalHeight
-    const newWidth = containerHeight * ratio
+    const ratio = img.naturalWidth / img.naturalHeight;
+    const newWidth = containerHeight * ratio;
 
-    const finalWidth = newWidth > containerWidth ? containerWidth : newWidth
-    const finalHeight = finalWidth / ratio
+    const finalWidth = newWidth > containerWidth ? containerWidth : newWidth;
+    const finalHeight = finalWidth / ratio;
 
-    const xOffset = (canvas.width - finalWidth) / 2
-    const yOffset = (canvas.height - finalHeight) / 2
+    const xOffset = (canvas.width - finalWidth) / 2;
+    const yOffset = (canvas.height - finalHeight) / 2;
 
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext("2d");
 
-    ctx?.clearRect(0, 0, canvas.width, canvas.height)
-    ctx?.drawImage(img, xOffset, yOffset, finalWidth, finalHeight)
-  }
+    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+    ctx?.drawImage(img, xOffset, yOffset, finalWidth, finalHeight);
+  };
 }
 </script>
 

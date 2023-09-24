@@ -69,61 +69,61 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { defineProps, defineEmits, ref, watch } from 'vue'
-import { useStore } from 'vuex'
+import type { Ref } from "vue";
+import { defineProps, defineEmits, ref, watch } from "vue";
+import { useStore } from "vuex";
 
-import { HOME_DIR } from '@electron/CardsStorage/constants'
-import { storageService } from '@frontend/CardsStorage/index'
-import { Directory } from '@common/interfaces/Directory'
-import pathModule from 'path'
-import { DirectoryFile } from '../../../common/interfaces/Directory'
+import { HOME_DIR } from "@electron/CardsStorage/constants";
+import { storageService } from "@frontend/CardsStorage/index";
+import { Directory } from "@common/interfaces/Directory";
+import pathModule from "path";
+import { DirectoryFile } from "../../../common/interfaces/Directory";
 
-const store = useStore()
-const props = defineProps<{ file: string }>()
-const emit = defineEmits<{ (e: 'move', payload: string): void }>()
+const store = useStore();
+const props = defineProps<{ file: string }>();
+const emit = defineEmits<{(e: "move", payload: string): void }>();
 
-const dialog = ref(false)
-const dirs: Directory = ref([])
-const current: Ref<string> = ref(props.file.split('§').slice(0, -1).join('/'))
+const dialog = ref(false);
+const dirs: Directory = ref([]);
+const current: Ref<string> = ref(props.file.split("§").slice(0, -1).join("/"));
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 
-function onDialog(v: boolean) {
-  store.commit('button_enabled', !v)
+function onDialog (v: boolean) {
+  store.commit("button_enabled", !v);
   if (v) {
-    current.value = props.file.split('§').slice(0, -1).join('/')
-    loadSet()
+    current.value = props.file.split("§").slice(0, -1).join("/");
+    loadSet();
   }
 }
 
-function open(file: string) {
-  current.value = pathModule.normalize(file)
-  loadSet()
+function open (file: string) {
+  current.value = pathModule.normalize(file);
+  loadSet();
 }
 
-async function loadSet() {
-  if (!current.value) return
+async function loadSet () {
+  if (!current.value) return;
   const loadedDirectories = (await storageService.getFiles(current.value))?.filter(
     (f: DirectoryFile) => f.directory
-  )
-  if (!loadedDirectories) return
-  let c = current.value
+  );
+  if (!loadedDirectories) return;
+  let c = current.value;
   if (!c.includes(HOME_DIR)) {
-    c = pathModule.join(HOME_DIR, c)
+    c = pathModule.join(HOME_DIR, c);
   }
-  c = pathModule.join(c)
-  const parts = c.split('/').filter((p) => !!p)
-  if (c.replace(HOME_DIR, '').length > 1) {
+  c = pathModule.join(c);
+  const parts = c.split("/").filter((p) => !!p);
+  if (c.replace(HOME_DIR, "").length > 1) {
     loadedDirectories.value.unshift({
       directory: true,
-      file: current.value + '/..'
-    })
+      file: current.value + "/.."
+    });
   }
-  loadedDirectories.value = loadedDirectories
+  loadedDirectories.value = loadedDirectories;
 }
 
-function toBasename(s: string) {
-  return pathModule.basename(s)
+function toBasename (s: string) {
+  return pathModule.basename(s);
 }
 </script>

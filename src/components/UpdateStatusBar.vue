@@ -43,37 +43,37 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
-import { ipcRenderer } from 'electron'
-import { ProgressInfo } from 'electron-updater'
+import { ref, onMounted } from "vue";
+import { ipcRenderer } from "electron";
+import { ProgressInfo } from "electron-updater";
 
-const percent = ref(0)
-const version = ref('')
-const available = ref(false)
-const downloaded = ref(false)
+const percent = ref(0);
+const version = ref("");
+const available = ref(false);
+const downloaded = ref(false);
 
 onMounted((): void => {
-  ipcRenderer.send('app_version')
-  ipcRenderer.on('app_version', (event, data) => {
-    version.value = data.version
-  })
-  ipcRenderer.on('update_info', (event, data: ProgressInfo) => {
-    percent.value = data.percent
-  })
+  ipcRenderer.send("app_version");
+  ipcRenderer.on("app_version", (event, data) => {
+    version.value = data.version;
+  });
+  ipcRenderer.on("update_info", (event, data: ProgressInfo) => {
+    percent.value = data.percent;
+  });
 
-  ipcRenderer.on('update_available', () => {
-    ipcRenderer.removeAllListeners('update_available')
-    available.value = true
-  })
+  ipcRenderer.on("update_available", () => {
+    ipcRenderer.removeAllListeners("update_available");
+    available.value = true;
+  });
 
-  ipcRenderer.on('update_downloaded', () => {
-    ipcRenderer.removeAllListeners('update_downloaded')
-    available.value = false
-    downloaded.value = true
-  })
-})
+  ipcRenderer.on("update_downloaded", () => {
+    ipcRenderer.removeAllListeners("update_downloaded");
+    available.value = false;
+    downloaded.value = true;
+  });
+});
 
-function update() {
-  ipcRenderer.send('restart_app')
+function update () {
+  ipcRenderer.send("restart_app");
 }
 </script>

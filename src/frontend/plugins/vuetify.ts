@@ -1,7 +1,7 @@
 // Styles
 import "@mdi/font/css/materialdesignicons.css";
 import "vuetify/styles";
-// @ts-ignore  
+// @ts-ignore
 import store from "@frontend/store";
 // Vuetify
 import { createVuetify } from "vuetify";

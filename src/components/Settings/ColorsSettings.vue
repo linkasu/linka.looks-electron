@@ -52,57 +52,57 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { useStore } from 'vuex'
+import { computed } from "vue";
+import { useStore } from "vuex";
 
-const store = useStore()
+const store = useStore();
 
 const borders = computed({
-  get() {
-    return store.state.button.borders
+  get () {
+    return store.state.button.borders;
   },
-  set(value: number) {
-    store.commit('button_borders', value)
+  set (value: number) {
+    store.commit("button_borders", value);
   }
-})
+});
 
 const colorPrimary = computed({
-  get() {
-    return store.state.colors.primary
+  get () {
+    return store.state.colors.primary;
   },
-  set(v: string) {
-    store.commit('colors_primary', v)
+  set (v: string) {
+    store.commit("colors_primary", v);
   }
-})
+});
 
 const colorAccent = computed({
-  get() {
-    return store.state.colors.accent
+  get () {
+    return store.state.colors.accent;
   },
-  set(v: string) {
-    store.commit('colors_accent', v)
+  set (v: string) {
+    store.commit("colors_accent", v);
   }
-})
+});
 
 const colorSecondary = computed({
-  get() {
-    return store.state.colors.secondary
+  get () {
+    return store.state.colors.secondary;
   },
-  set(v: string) {
-    store.commit('colors_secondary', v)
+  set (v: string) {
+    store.commit("colors_secondary", v);
   }
-})
+});
 
-function makeDefault() {
-  colorPrimary.value = '#197377'
-  colorAccent.value = '#7DF6FA'
-  colorSecondary.value = '#FFD200'
-  borders.value = 1
+function makeDefault () {
+  colorPrimary.value = "#197377";
+  colorAccent.value = "#7DF6FA";
+  colorSecondary.value = "#FFD200";
+  borders.value = 1;
 }
 
-function makeBG() {
-  colorPrimary.value = '#DDDDDD'
-  colorAccent.value = '#FFFFFF'
-  colorSecondary.value = '#000000'
+function makeBG () {
+  colorPrimary.value = "#DDDDDD";
+  colorAccent.value = "#FFFFFF";
+  colorSecondary.value = "#000000";
 }
 </script>

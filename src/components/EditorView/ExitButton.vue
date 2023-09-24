@@ -40,9 +40,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, defineEmits } from 'vue'
+import { ref, defineEmits } from "vue";
 
-const dialog = ref(false)
+const dialog = ref(false);
 
-const emit = defineEmits<{ (e: 'exit'): void }>()
+const emit = defineEmits<{(e: "exit"): void }>();
 </script>

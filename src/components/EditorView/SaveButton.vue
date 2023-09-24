@@ -77,22 +77,21 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, defineEmits, ref } from 'vue'
+import { defineProps, defineEmits, ref } from "vue";
 
-const props = defineProps<{ title: string }>()
+const props = defineProps<{ title: string }>();
 
 const emit = defineEmits<{
-  (e: 'save'): void
-  (e: 'saveAs', payload: string): void
-}>()
+  (e: "save"): void
+  (e: "saveAs", payload: string): void
+}>();
 
-const dialog = ref(false)
-const saveAsNew = ref(false)
-const newTitle = ref(props.title.slice(0, -6))
+const dialog = ref(false);
+const saveAsNew = ref(false);
+const newTitle = ref(props.title.slice(0, -6));
 
-function on_save_click() {
-  if (newTitle.value)
-    emit('saveAs', newTitle.value + '.linka')
-  dialog.value = false
+function on_save_click () {
+  if (newTitle.value) { emit("saveAs", newTitle.value + ".linka"); }
+  dialog.value = false;
 }
 </script>

@@ -82,9 +82,9 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, defineEmits, computed, ref } from 'vue'
-import type { ConfigFile } from '@common/interfaces/ConfigFile'
-import { TTS } from '@common/utils/TTS'
+import { defineProps, defineEmits, computed, ref } from "vue";
+import type { ConfigFile } from "@common/interfaces/ConfigFile";
+import { TTS } from "@common/utils/TTS";
 
 interface IQuizOutputLineProps {
   config: ConfigFile
@@ -92,38 +92,38 @@ interface IQuizOutputLineProps {
   errors: number
 }
 
-const props = defineProps<IQuizOutputLineProps>()
+const props = defineProps<IQuizOutputLineProps>();
 const emit = defineEmits<{
-  (e: 'restart'): void
-}>()
+  (e: "restart"): void
+}>();
 
-const startDialog = ref(true)
-const endDialog = ref(false)
+const startDialog = ref(true);
+const endDialog = ref(false);
 
 const question = computed(() => {
-  const text = readQuestion()
-  return text
-})
+  const text = readQuestion();
+  return text;
+});
 
 const end = computed(() => {
-  if (!props.config.questions) return false
-  const isEnd = props.page >= props.config.questions.length
-  return isEnd
-})
+  if (!props.config.questions) return false;
+  const isEnd = props.page >= props.config.questions.length;
+  return isEnd;
+});
 
 watch(
   end,
   () => endDialog.value = end.value
-)
+);
 
-function readQuestion() {
-  if (!props.config.questions) return ''
-  const text = props.config.questions[props.page]
+function readQuestion () {
+  if (!props.config.questions) return "";
+  const text = props.config.questions[props.page];
 
   if (props.config.quizReadQuestion && !startDialog.value) {
-    TTS.instance.playText(text).catch(console.error)
+    TTS.instance.playText(text).catch(console.error);
   }
-  return text
+  return text;
 }
 </script>
 

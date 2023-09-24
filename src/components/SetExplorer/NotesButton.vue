@@ -44,30 +44,30 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, withDefaults, computed, ref, watch } from 'vue'
-import { useStore } from 'vuex'
-import { ConfigFile } from '@common/interfaces/ConfigFile'
+import { defineProps, withDefaults, computed, ref, watch } from "vue";
+import { useStore } from "vuex";
+import { ConfigFile } from "@common/interfaces/ConfigFile";
 
-const store = useStore()
+const store = useStore();
 
 const props = withDefaults(defineProps<{ config: ConfigFile; edit: boolean }>(), {
   edit: false
-})
+});
 
-const dialog = ref(false)
+const dialog = ref(false);
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 
 const description = computed({
-  get() {
-    return props.edit ? store.state.editor.description : props.config.description
+  get () {
+    return props.edit ? store.state.editor.description : props.config.description;
   },
-  set(text: string | undefined) {
-    store.commit('editor_description', text)
+  set (text: string | undefined) {
+    store.commit("editor_description", text);
   }
-})
+});
 
-function onDialog(value: boolean) {
-  store.commit('button_enabled', !dialog.value)
+function onDialog (value: boolean) {
+  store.commit("button_enabled", !dialog.value);
 }
 </script>

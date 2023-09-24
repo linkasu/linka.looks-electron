@@ -1,7 +1,7 @@
-import { ConfigFile } from "./ConfigFile"
+import { ConfigFile } from "./ConfigFile";
 import { Derictory } from "./Directory";
 
-declare module '@common/**' {
+declare module "@common/**" {
     ConfigFile,
-    Derictory
+    Derictory;
 }

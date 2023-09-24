@@ -8,13 +8,13 @@ import AdmZip from "adm-zip";
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
 import { ICloudStorage } from "../common/abstract";
-// @ts-ignore  
+// @ts-ignore
 import { appendZip } from "@frontend/utils/addToZip";
-// @ts-ignore  
+// @ts-ignore
 import { tts } from "@frontend/utils/TTSServer";
 import { get } from "https";
 import delay from "delay";
-// @ts-ignore  
+// @ts-ignore
 import { createImageFromText } from "@frontend/utils/ImageFromText";
 import { HOME_DIR } from "../common/constants";
 

@@ -25,24 +25,24 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 
-import MkdirButton from '@frontend/components/HomeView/MkdirButton.vue'
-import RmdirButton from '@frontend/components/HomeView/RmdirButton.vue'
-import ShareButton from '@frontend/components/ShareButton.vue'
+import MkdirButton from "@frontend/components/HomeView/MkdirButton.vue";
+import RmdirButton from "@frontend/components/HomeView/RmdirButton.vue";
+import ShareButton from "@frontend/components/ShareButton.vue";
 
-const route = useRoute()
+const route = useRoute();
 
 const root = computed(() => {
-  return route.params.path.toString()
-})
+  return route.params.path.toString();
+});
 
 const title = computed(() => {
-  return root.value.slice(root.value.lastIndexOf('§') + 1)
-})
+  return root.value.slice(root.value.lastIndexOf("§") + 1);
+});
 
 const newHref = computed(() => {
-  return '/edit/' + root.value.replace(/\//g, '§') + '§' + 'new'
-})
+  return "/edit/" + root.value.replace(/\//g, "§") + "§" + "new";
+});
 </script>

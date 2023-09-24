@@ -47,48 +47,48 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref, computed, watch } from 'vue'
+import type { Ref } from "vue";
+import { ref, computed, watch } from "vue";
 
-import { useRoute } from 'vue-router'
+import { useRoute } from "vue-router";
 
-import { storageService } from '@frontend/CardsStorage/index'
-import { DirectoryFile } from '@common/interfaces/Directory'
+import { storageService } from "@frontend/CardsStorage/index";
+import { DirectoryFile } from "@common/interfaces/Directory";
 
-const route = useRoute()
+const route = useRoute();
 
-const dialog = ref(false)
-const directories: Ref<DirectoryFile[] | null> = ref(null)
-const directory: Ref<string | null> = ref(null)
+const dialog = ref(false);
+const directories: Ref<DirectoryFile[] | null> = ref(null);
+const directory: Ref<string | null> = ref(null);
 
 const titles = computed(() => {
   return directories.value?.map(({ file }) => {
-    return file.split('/').slice(-1)[0]
-  })
-})
+    return file.split("/").slice(-1)[0];
+  });
+});
 const root = computed(() => {
-  return route.params.path.toString()
-})
+  return route.params.path.toString();
+});
 
-watch(dialog, onDialog)
+watch(dialog, onDialog);
 
-function onDialog(value: boolean) {
+function onDialog (value: boolean) {
   if (value) {
-    load()
+    load();
   }
 }
 
-async function load() {
+async function load () {
   directories.value = (await storageService.getFiles(root.value))?.filter(
     ({ directory }: DirectoryFile) => directory
-  )
-  if (titles.value) directory.value = titles.value[0]
+  );
+  if (titles.value) directory.value = titles.value[0];
 }
 
-async function remove() {
-  await storageService.rmdir(root.value + '§' + directory.value)
+async function remove () {
+  await storageService.rmdir(root.value + "§" + directory.value);
   setTimeout(() => {
-    window.location.reload()
-  }, 100)
+    window.location.reload();
+  }, 100);
 }
 </script>

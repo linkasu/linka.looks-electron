@@ -28,9 +28,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref, onMounted, watch, defineProps, computed } from 'vue'
-import { useStore } from 'vuex'
+import type { Ref } from "vue";
+import { ref, onMounted, watch, defineProps, computed } from "vue";
+import { useStore } from "vuex";
 
 interface IEyeButtonProps {
   enabled: boolean
@@ -43,69 +43,69 @@ const props = withDefaults(defineProps<IEyeButtonProps>(), {
   enabled: true,
   lock: false,
   path: false
-})
+});
 
-const store = useStore()
+const store = useStore();
 
-const elRef: Ref<Element | null> = ref(null)
-const isInside = ref(false)
-const circle = ref(false)
-const timer: Ref<NodeJS.Timeout | null> = ref(null)
+const elRef: Ref<Element | null> = ref(null);
+const isInside = ref(false);
+const circle = ref(false);
+const timer: Ref<NodeJS.Timeout | null> = ref(null);
 
 const borderWidth = computed(() => {
-  return store.state.button.borders + 'px'
-})
+  return store.state.button.borders + "px";
+});
 
 const buttonTimeout = computed(() => {
-  return store.state.button.timeout
-})
+  return store.state.button.timeout;
+});
 
 onMounted(() => {
-  const el = elRef.value
-  el?.addEventListener('eye-enter', (event) => {
-    const e = event as CustomEvent
-    const eye = !!e.detail.eye
+  const el = elRef.value;
+  el?.addEventListener("eye-enter", (event) => {
+    const e = event as CustomEvent;
+    const eye = !!e.detail.eye;
 
-    if (buttonEnabled.value || props.lock) onEnter(eye)
-  })
-  el?.addEventListener('eye-exit', () => {
-    onExit()
-  })
-})
+    if (buttonEnabled.value || props.lock) onEnter(eye);
+  });
+  el?.addEventListener("eye-exit", () => {
+    onExit();
+  });
+});
 
 const buttonEnabled = computed(() => {
-  return store.state.button.enabled
-})
+  return store.state.button.enabled;
+});
 
 const size = computed(() => {
-  if (!elRef.value) return 0 + 'px'
-  const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect()
-  return Math.min(rect.width, rect.height) * 0.8 + 'px'
-})
+  if (!elRef.value) return 0 + "px";
+  const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect();
+  return Math.min(rect.width, rect.height) * 0.8 + "px";
+});
 
 const seconds = computed(() => {
-  return buttonTimeout.value / 1000 + 's'
-})
+  return buttonTimeout.value / 1000 + "s";
+});
 
-function onExit() {
-  isInside.value = false
-  circle.value = false
+function onExit () {
+  isInside.value = false;
+  circle.value = false;
 }
 
-function onEnter(eye: boolean) {
-  if (eye && !store.state.button.eyeSelect) return
-  if (!eye && !store.state.button.keyboardActivation) return
-  if (!eye && !store.state.button.joystickActivation) return
-  isInside.value = true
-  circle.value = store.state.button.eyeActivation && eye
+function onEnter (eye: boolean) {
+  if (eye && !store.state.button.eyeSelect) return;
+  if (!eye && !store.state.button.keyboardActivation) return;
+  if (!eye && !store.state.button.joystickActivation) return;
+  isInside.value = true;
+  circle.value = store.state.button.eyeActivation && eye;
 }
 
-function click() {
-  if (!store.state.button.clickSound) return
-  const el = document.getElementById('button_audio') as HTMLAudioElement
-  el.pause()
-  el.currentTime = 0
-  el.play()
+function click () {
+  if (!store.state.button.clickSound) return;
+  const el = document.getElementById("button_audio") as HTMLAudioElement;
+  el.pause();
+  el.currentTime = 0;
+  el.play();
 }
 </script>
 

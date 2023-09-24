@@ -100,104 +100,104 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
-import { useStore } from 'vuex'
+import { ref, computed } from "vue";
+import { useStore } from "vuex";
 
-import ColorSettings from '@frontend/components/Settings/ColorsSettings.vue'
-import InputSettings from '@frontend/components/Settings/InputSettings.vue'
-import { Metric } from '@frontend/utils/Metric'
+import ColorSettings from "@frontend/components/Settings/ColorsSettings.vue";
+import InputSettings from "@frontend/components/Settings/InputSettings.vue";
+import { Metric } from "@frontend/utils/Metric";
 
-const store = useStore()
+const store = useStore();
 
-Metric.registerEvent(store.state.pcHash, 'openSettings')
+Metric.registerEvent(store.state.pcHash, "openSettings");
 
 const timeout = computed({
-  get() {
-    return store.state.button.timeout / 1000
+  get () {
+    return store.state.button.timeout / 1000;
   },
-  set(value: number) {
-    store.commit('button_timeout', value * 1000)
+  set (value: number) {
+    store.commit("button_timeout", value * 1000);
   }
-})
+});
 
 const eyeSelect = computed({
-  get() {
-    return store.state.button.eyeSelect
+  get () {
+    return store.state.button.eyeSelect;
   },
-  set(value: boolean) {
-    store.commit('button_eyeSelect', value)
+  set (value: boolean) {
+    store.commit("button_eyeSelect", value);
   }
-})
+});
 
 const clickSound = computed({
-  get() {
-    return store.state.button.clickSound
+  get () {
+    return store.state.button.clickSound;
   },
-  set(value: boolean) {
-    store.commit('button_clickSound', value)
+  set (value: boolean) {
+    store.commit("button_clickSound", value);
   }
-})
+});
 
 const eyeActivation = computed({
-  get() {
-    return store.state.button.eyeActivation
+  get () {
+    return store.state.button.eyeActivation;
   },
-  set(value: boolean) {
-    store.commit('button_eyeActivation', value)
+  set (value: boolean) {
+    store.commit("button_eyeActivation", value);
   }
-})
+});
 
 const joystickActivation = computed({
-  get() {
-    return store.state.button.joystickActivation
+  get () {
+    return store.state.button.joystickActivation;
   },
-  set(value: boolean) {
-    store.commit('button_joystickActivation', value)
+  set (value: boolean) {
+    store.commit("button_joystickActivation", value);
   }
-})
+});
 
 const keyboardActivation = computed({
-  get() {
-    return store.state.button.keyboardActivation
+  get () {
+    return store.state.button.keyboardActivation;
   },
-  set(value: boolean) {
-    store.commit('button_keyboardActivation', value)
+  set (value: boolean) {
+    store.commit("button_keyboardActivation", value);
   }
-})
+});
 
 const mouseActivation = computed({
-  get() {
-    return store.state.button.mouseActivation
+  get () {
+    return store.state.button.mouseActivation;
   },
-  set(value: boolean) {
-    store.commit('button_mouseActivation', value)
+  set (value: boolean) {
+    store.commit("button_mouseActivation", value);
   }
-})
+});
 
 const animation = computed({
-  get() {
-    return store.state.button.animation
+  get () {
+    return store.state.button.animation;
   },
-  set(value: boolean) {
-    store.dispatch('button_animation')
+  set (value: boolean) {
+    store.dispatch("button_animation");
   }
-})
+});
 
 const isExitButton = computed({
-  get() {
-    return store.state.ui.exitButton
+  get () {
+    return store.state.ui.exitButton;
   },
-  set(value: boolean) {
-    store.commit('ui_exitButton', value)
+  set (value: boolean) {
+    store.commit("ui_exitButton", value);
   }
-})
+});
 
 const enabled = computed({
-  get() {
-    return store.state.button.enabled
+  get () {
+    return store.state.button.enabled;
   },
-  set(value: boolean) {
-    store.commit('button_enabled', value)
+  set (value: boolean) {
+    store.commit("button_enabled", value);
   }
-})
+});
 </script>

@@ -24,66 +24,65 @@
 </template>
 
 <script lang="ts" setup>
-import type { Ref } from 'vue'
-import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useStore } from 'vuex'
+import type { Ref } from "vue";
+import { ref, computed, ComputedRef } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useStore } from "vuex";
 
-import ExplorerGridButton from '@frontend/components/HomeView/ExplorerGridButton.vue'
-import { Directory, DirectoryFile } from '@common/interfaces/Directory'
-import pathModule from 'path'
-import { storageService } from '@frontend/CardsStorage/index'
-import { Metric } from '../utils/Metric'
-import { ComputedRef } from 'vue'
+import ExplorerGridButton from "@frontend/components/HomeView/ExplorerGridButton.vue";
+import { Directory, DirectoryFile } from "@common/interfaces/Directory";
+import pathModule from "path";
+import { storageService } from "@frontend/CardsStorage/index";
+import { Metric } from "../utils/Metric";
 
-const store = useStore()
+const store = useStore();
 
-const router = useRouter()
-const route = useRoute()
+const router = useRouter();
+const route = useRoute();
 
-const files: Ref<Directory> = ref([])
-const mroot = ref('')
-const size = ref(5)
+const files: Ref<Directory> = ref([]);
+const mroot = ref("");
+const size = ref(5);
 
-mroot.value = route.params.path.toString()
+mroot.value = route.params.path.toString();
 
 const sorted: ComputedRef<Directory> = computed(() => {
-  return files.value.map((f) => f).sort((f: DirectoryFile) => (f.directory ? -1 : 1))
-})
+  return files.value.map((f) => f).sort((f: DirectoryFile) => (f.directory ? -1 : 1));
+});
 
 const isHome = computed(() => {
-  return mroot.value == '§'
-})
+  return mroot.value == "§";
+});
 
 const root = computed({
-  get() {
-    return mroot.value
+  get () {
+    return mroot.value;
   },
-  set(v: string) {
-    mroot.value = v
-    router.push(v)
-    loadSets()
+  set (v: string) {
+    mroot.value = v;
+    router.push(v);
+    loadSets();
   }
-})
+});
 
-function back() {
-  mroot.value = mroot.value.split('§').slice(0, -1).join('§')
+function back () {
+  mroot.value = mroot.value.split("§").slice(0, -1).join("§");
 }
 
-function loadSets() {
+function loadSets () {
   storageService.getFiles(mroot.value).then((new_files: Directory) => {
-    if (!new_files) return
-    files.value = new_files
-    size.value = Math.max(Math.ceil(Math.sqrt(new_files.length + 1)), 4)
-  })
+    if (!new_files) return;
+    files.value = new_files;
+    size.value = Math.max(Math.ceil(Math.sqrt(new_files.length + 1)), 4);
+  });
 }
 
-function select(item: DirectoryFile) {
+function select (item: DirectoryFile) {
   if (item.directory) {
-    mroot.value += '§' + pathModule.basename(item.file)
-    Metric.registerEvent(store.state.pcHash, 'openFolder', { folder: item.file })
+    mroot.value += "§" + pathModule.basename(item.file);
+    Metric.registerEvent(store.state.pcHash, "openFolder", { folder: item.file });
   } else {
-    router.push('/set/' + mroot.value.replace(/\//g, '§') + '§' + pathModule.basename(item.file))
+    router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + pathModule.basename(item.file));
   }
 }
 </script>
