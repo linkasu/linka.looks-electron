@@ -4,8 +4,7 @@ import { LINKaStore, Side } from "./LINKaStore";
 import { storageService } from "@/frontend/services";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
-// @ts-ignore
-import { Metric } from "@frontend/utils/Metric";
+import { Metric } from "@/frontend/utils/Metric";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,

@@ -7,16 +7,13 @@ import { uuid } from "uuidv4";
 import AdmZip from "adm-zip";
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
-import { ICloudStorage } from "../common/abstract";
-// @ts-ignore
-import { appendZip } from "@frontend/utils/addToZip";
-// @ts-ignore
-import { tts } from "@frontend/utils/TTSServer";
+import { ICloudStorage } from "../../common/abstract";
+import { appendZip } from "@/frontend/utils/addToZip";
+import { tts } from "@/frontend/utils/TTSServer";
 import { get } from "https";
 import delay from "delay";
-// @ts-ignore
-import { createImageFromText } from "@frontend/utils/ImageFromText";
-import { HOME_DIR } from "../common/constants";
+import { createImageFromText } from "@/frontend/utils/ImageFromText";
+import { HOME_DIR } from "../../common/constants";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
 

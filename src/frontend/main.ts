@@ -4,7 +4,7 @@ import router from "./router";
 import store from "./store";
 import vuetify from "./plugins/vuetify";
 import { loadFonts } from "./plugins/webfontloader";
-import { PageWatcher } from "./tobii/pageWatch";
+import { PageWatcher } from "../electron/tobii/pageWatch";
 import "./store/eStore";
 const pageWatcher = new PageWatcher();
 

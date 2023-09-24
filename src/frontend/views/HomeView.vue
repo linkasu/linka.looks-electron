@@ -29,10 +29,10 @@ import { ref, computed, ComputedRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 
-import ExplorerGridButton from "@frontend/components/HomeView/ExplorerGridButton.vue";
-import { Directory, DirectoryFile } from "@common/interfaces/Directory";
+import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
+import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
-import { storageService } from "@frontend/CardsStorage/index";
+import { storageService } from "@/frontend/CardsStorage/index";
 import { Metric } from "../utils/Metric";
 
 const store = useStore();

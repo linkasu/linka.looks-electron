@@ -33,8 +33,8 @@
 import { ref } from "vue";
 import { useRoute } from "vue-router";
 
-import InputDialog from "@frontend/components/InputDialog.vue";
-import { storageService } from "@frontend/CardsStorage/index";
+import InputDialog from "@/frontend/components/InputDialog.vue";
+import { storageService } from "@/frontend/CardsStorage/index";
 
 const route = useRoute();
 

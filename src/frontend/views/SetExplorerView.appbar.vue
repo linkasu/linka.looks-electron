@@ -67,16 +67,16 @@
 
 <script lang="ts" setup>
 import { computed } from "vue";
-import DeleteButton from "@frontend/components/SetExplorer/DeleteButton.vue";
-import FolderButton from "@frontend/components/SetExplorer/FolderButton.vue";
-import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
+import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
+import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
+import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
 
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
-import { storageService } from "@frontend/CardsStorage/index";
-import ShareButton from "@frontend/components/ShareButton.vue";
-import { Metric } from "@frontend/utils/Metric";
+import { storageService } from "@/frontend/CardsStorage/index";
+import ShareButton from "@/frontend/components/ShareButton.vue";
+import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
 
 const route = useRoute();

@@ -1,10 +1,7 @@
 import { ipcRenderer } from "electron";
-// @ts-ignore
-import { ConfigFile } from "@common/interfaces/ConfigFile";
-// @ts-ignore
-import { ICloudStorage } from "@common/abstract";
-// @ts-ignore
-import { Directory } from "@common/interfaces/Directory";
+import { ConfigFile } from "@/common/interfaces/ConfigFile";
+import { ICloudStorage } from "@/common/abstract";
+import { Directory } from "@/common/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
   getArgv (): Promise<string[]> {

@@ -1,10 +1,7 @@
 import { BrowserElementsState, PageElementsState } from "@/common/interfaces/PageElementsState";
-// @ts-ignore
-import store from "@frontend/store";
-// @ts-ignore
-import { Side } from "@frontend/store/LINKaStore";
-// @ts-ignore
-import { getDistance } from "@frontend/utils/getDistance";
+import store from "@/frontend/store";
+import { Side } from "@/frontend/store/LINKaStore";
+import { getDistance } from "@/frontend/utils/getDistance";
 import { log } from "console";
 import { ipcRenderer } from "electron";
 import { GamepadWrapper } from "gamepad-wrapper";

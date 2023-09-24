@@ -1,5 +1,5 @@
 import { ICloudStorage } from "./abstract";
 
-declare module '@common/*' {
+declare module '@/common/*' {
     ICloudStorage,
 }

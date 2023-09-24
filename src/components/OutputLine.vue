@@ -74,10 +74,10 @@ import type { Ref } from "vue";
 import { ref, computed, defineProps, defineEmits } from "vue";
 import { useStore } from "vuex";
 
-import EyeButton from "@frontend/components/EyeButton.vue";
-import SetGridButton from "@frontend/components/SetGridButton.vue";
-import type { Card, ConfigFile } from "@common/interfaces/ConfigFile";
-import { TTS } from "@common/utils/TTS";
+import EyeButton from "@/frontend/components/EyeButton.vue";
+import SetGridButton from "@/frontend/components/SetGridButton.vue";
+import type { Card, ConfigFile } from "@/common/interfaces/ConfigFile";
+import { TTS } from "@/common/utils/TTS";
 
 interface IOutputLineProps {
   file: string

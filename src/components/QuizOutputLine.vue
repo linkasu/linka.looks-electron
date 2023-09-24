@@ -83,8 +83,8 @@
 
 <script lang="ts" setup>
 import { defineProps, defineEmits, computed, ref } from "vue";
-import type { ConfigFile } from "@common/interfaces/ConfigFile";
-import { TTS } from "@common/utils/TTS";
+import type { ConfigFile } from "@/common/interfaces/ConfigFile";
+import { TTS } from "@/common/utils/TTS";
 
 interface IQuizOutputLineProps {
   config: ConfigFile

@@ -7,26 +7,26 @@ module.exports = defineConfig({
     resolve: {
       symlinks: false,
       alias: {
-        '@frontend': resolve('./src/frontend'),
-        '@electron': resolve('./src/electron'),
-        '@common': resolve('./src/common'),
+        "@frontend": resolve("./src/frontend"),
+        "@electron": resolve("./src/electron"),
+        "@common": resolve("./src/common")
       }
-    },
+    }
   },
   pluginOptions: {
     electronBuilder: {
       nodeIntegration: true,
       builderOptions: {
-        productName: 'LINKa. смотри',
-        appId: 'su.linka.looks',
+        productName: "LINKa. смотри",
+        appId: "su.linka.looks",
         fileAssociations: [{
-          ext: 'linka'
+          ext: "linka"
         }],
         publish: ["github"],
         win: {
-          "icon": "build/icons/icon.ico",
-          "publisherName": "LINKa Ltd",
-          signingHashAlgorithms: ['sha256'],
+          icon: "build/icons/icon.ico",
+          publisherName: "LINKa Ltd",
+          signingHashAlgorithms: ["sha256"],
           signAndEditExecutable: true,
           verifyUpdateCodeSignature: false
         },
@@ -34,10 +34,10 @@ module.exports = defineConfig({
           {
             from: "./extraResources/",
             to: "extraResources",
-            filter: ["**/*"],
-          },
-        ],
-      },
-    },
-  },
+            filter: ["**/*"]
+          }
+        ]
+      }
+    }
+  }
 });

@@ -2,7 +2,7 @@
   "name": "linka.looks",
   "version": "2.1.0",
   "author": "ibakaidov",
-  "main": "background.js",
+  "main": "electron/main.js",
   "private": true,
   "repository": {
     "type": "git",

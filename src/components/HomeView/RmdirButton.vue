@@ -52,8 +52,8 @@ import { ref, computed, watch } from "vue";
 
 import { useRoute } from "vue-router";
 
-import { storageService } from "@frontend/CardsStorage/index";
-import { DirectoryFile } from "@common/interfaces/Directory";
+import { storageService } from "@/frontend/CardsStorage/index";
+import { DirectoryFile } from "@/common/interfaces/Directory";
 
 const route = useRoute();
 

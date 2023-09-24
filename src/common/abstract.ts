@@ -1,9 +1,6 @@
-// @ts-ignore
-import { ConfigFile } from "@common/interfaces/ConfigFile";
-// @ts-ignore
-import { Directory } from "@common/interfaces/Directory";
-// @ts-ignore
-import { getMethods } from "@frontend/utils/getMethods";
+import { ConfigFile } from "@/common/interfaces/ConfigFile";
+import { Directory } from "@/common/interfaces/Directory";
+import { getMethods } from "@/frontend/utils/getMethods";
 
 export abstract class ICloudStorage {
   static getMethods (): Array<keyof ICloudStorage> {

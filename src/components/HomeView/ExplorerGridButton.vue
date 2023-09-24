@@ -34,10 +34,10 @@
 import type { Ref } from "vue";
 import { defineProps, withDefaults, ref, onMounted } from "vue";
 
-import EyeButton from "@frontend/components/EyeButton.vue";
-import { DirectoryFile } from "@common/interfaces/Directory";
+import EyeButton from "@/frontend/components/EyeButton.vue";
+import { DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
-import { storageService } from "@frontend/CardsStorage/index";
+import { storageService } from "@/frontend/CardsStorage/index";
 
 const props = withDefaults(defineProps<{ file?: DirectoryFile; back: boolean }>(), { back: false });
 

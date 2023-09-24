@@ -37,12 +37,12 @@ import type { Ref } from "vue";
 import { ref, computed } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
-import OutputLine from "@frontend/components/OutputLine.vue";
-import QuizOutputLine from "@frontend/components/QuizOutputLine.vue";
-import SetGrid from "@frontend/components/SetGrid.vue";
-import type { Card } from "@common/interfaces/ConfigFile";
-import { TTS } from "@common/utils/TTS";
-import { Metric } from "@frontend/utils/Metric";
+import OutputLine from "@/frontend/components/OutputLine.vue";
+import QuizOutputLine from "@/frontend/components/QuizOutputLine.vue";
+import SetGrid from "@/frontend/components/SetGrid.vue";
+import type { Card } from "@/common/interfaces/ConfigFile";
+import { TTS } from "@/frontend/utils/TTS";
+import { Metric } from "@/frontend/utils/Metric";
 
 const store = useStore();
 const route = useRoute();

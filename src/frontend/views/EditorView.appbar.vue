@@ -20,10 +20,10 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 
-import SaveButton from "@frontend/components/EditorView/SaveButton.vue";
-import ExitButton from "@frontend/components/EditorView/ExitButton.vue";
-import SetSettings from "@frontend/components/EditorView/SetSettings.vue";
-import NotesButton from "@frontend/components/SetExplorer/NotesButton.vue";
+import SaveButton from "@/frontend/components/EditorView/SaveButton.vue";
+import ExitButton from "@/frontend/components/EditorView/ExitButton.vue";
+import SetSettings from "@/frontend/components/EditorView/SetSettings.vue";
+import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
 
 const router = useRouter();
 const store = useStore();

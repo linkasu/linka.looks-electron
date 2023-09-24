@@ -28,9 +28,9 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import MkdirButton from "@frontend/components/HomeView/MkdirButton.vue";
-import RmdirButton from "@frontend/components/HomeView/RmdirButton.vue";
-import ShareButton from "@frontend/components/ShareButton.vue";
+import MkdirButton from "@/frontend/components/HomeView/MkdirButton.vue";
+import RmdirButton from "@/frontend/components/HomeView/RmdirButton.vue";
+import ShareButton from "@/frontend/components/ShareButton.vue";
 
 const route = useRoute();
 

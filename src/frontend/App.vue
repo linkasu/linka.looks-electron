@@ -20,19 +20,17 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from "vue";
-import { Vue } from "vue-class-component";
+import { computed } from "vue";
 import store from "./store";
-import Bubble from "@frontend/components/bubble.vue";
-import RegisterForm from "@frontend/views/RegisterForm.vue";
-import UpdateStatusBar from "@frontend/components/UpdateStatusBar.vue";
-import NotificationPopup from "@frontend/components/NotificationPopup.vue";
-import DownloadDefaultSetsDialog from "@frontend/components/DownloadDefaultSetsDialog.vue";
+import RegisterForm from "@/frontend/views/RegisterForm.vue";
+import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
+import NotificationPopup from "@/frontend/components/NotificationPopup.vue";
+import DownloadDefaultSetsDialog from "@/frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
 
 const pcHash = computed(() => store.state.pcHash);
 
-if (pcHash.value.length == 36) {
+if (pcHash.value.length === 36) {
   Metric.registerEvent("start");
 }
 

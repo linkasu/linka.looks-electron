@@ -63,8 +63,8 @@
 
 <script lang="ts" setup>
 import { ref, watch, defineProps, defineEmits } from "vue";
-import { storageService } from "@frontend/CardsStorage/index";
-import { TTS } from "@common/utils/TTS";
+import { storageService } from "@/frontend/CardsStorage/index";
+import { TTS } from "@/common/utils/TTS";
 
 const props = defineProps<{ file: string }>();
 const emit = defineEmits<{(e: "audio", payload: string): void }>();

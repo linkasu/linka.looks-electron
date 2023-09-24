@@ -2,8 +2,7 @@ import { platform } from "os";
 import { TobiiProcess } from "eyelog/dist/TobiiProcess";
 import { join } from "path";
 import { BrowserWindow, ipcMain, screen } from "electron";
-// @ts-ignore
-import type { PageElementsState, DOMRect } from "@common/interfaces/PageElementsState";
+import type { PageElementsState } from "@/common/interfaces/PageElementsState";
 import { Bound } from "eyelog/dist/bound";
 
 export class BackWatch {

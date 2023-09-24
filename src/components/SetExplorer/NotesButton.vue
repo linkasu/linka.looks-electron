@@ -46,7 +46,7 @@
 <script lang="ts" setup>
 import { defineProps, withDefaults, computed, ref, watch } from "vue";
 import { useStore } from "vuex";
-import { ConfigFile } from "@common/interfaces/ConfigFile";
+import { ConfigFile } from "@/common/interfaces/ConfigFile";
 
 const store = useStore();
 

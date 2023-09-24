@@ -73,9 +73,9 @@ import type { Ref } from "vue";
 import { defineProps, defineEmits, ref, watch } from "vue";
 import { useStore } from "vuex";
 
-import { HOME_DIR } from "@electron/CardsStorage/constants";
-import { storageService } from "@frontend/CardsStorage/index";
-import { Directory } from "@common/interfaces/Directory";
+import { HOME_DIR } from "@/electron/CardsStorage/constants";
+import { storageService } from "@/frontend/CardsStorage/index";
+import { Directory } from "@/common/interfaces/Directory";
 import pathModule from "path";
 import { DirectoryFile } from "../../../common/interfaces/Directory";
 

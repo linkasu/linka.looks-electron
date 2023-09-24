@@ -1,11 +1,8 @@
 "use strict";
-import { platform } from "os";
 import { app, protocol, BrowserWindow, screen, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
-import { join } from "path";
-// @ts-ignore
-import { CardsStorage } from "@electron/CardsStorage";
+import { CardsStorage } from "@/electron/CardsStorage";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
 import { BackWatch } from "./tobii/backWatch";

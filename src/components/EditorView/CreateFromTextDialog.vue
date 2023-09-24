@@ -10,11 +10,9 @@
 </template>
 
 <script lang="ts" setup>
-// @ts-ignore
 import { defineProps, defineEmits } from "vue";
-import InputDialog from "@frontend/components/InputDialog.vue";
-// @ts-ignore
-import { storageService } from "@frontend/CardsStorage/index";
+import InputDialog from "@/frontend/components/InputDialog.vue";
+import { storageService } from "@/frontend/CardsStorage/index";
 
 const props = defineProps<{ file: string }>();
 const emit = defineEmits<{

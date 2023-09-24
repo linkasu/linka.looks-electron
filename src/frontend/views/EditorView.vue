@@ -218,16 +218,16 @@ import { ref, computed } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
-import SetGridButton from "@frontend/components/SetGridButton.vue";
-import CreateFromTextDialog from "@frontend/components/EditorView/CreateFromTextDialog.vue";
-import NewFileDialog from "@frontend/components/EditorView/NewFileDialog.vue";
+import SetGridButton from "@/frontend/components/SetGridButton.vue";
+import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTextDialog.vue";
+import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 
-import type { Card, NewCard } from "@common/interfaces/ConfigFile";
-import { storageService } from "@frontend/CardsStorage/index";
+import type { Card, NewCard } from "@/common/interfaces/ConfigFile";
+import { storageService } from "@/frontend/CardsStorage/index";
 import { uuid } from "uuidv4";
-import { TTS } from "@common/utils/TTS";
+import { TTS } from "@/common/utils/TTS";
 import draggable from "vuedraggable";
-import { Metric } from "@frontend/utils/Metric";
+import { Metric } from "@/frontend/utils/Metric";
 import { watch } from "original-fs";
 
 const store = useStore();

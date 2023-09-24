@@ -51,9 +51,9 @@ import type { Ref } from "vue";
 import { defineProps, withDefaults, ref, computed, watch, onMounted } from "vue";
 import { useStore } from "vuex";
 
-import EyeButton from "@frontend/components/EyeButton.vue";
-import type { Card } from "@common/interfaces/ConfigFile";
-import { storageService } from "@frontend/CardsStorage/index";
+import EyeButton from "@/frontend/components/EyeButton.vue";
+import type { Card } from "@/common/interfaces/ConfigFile";
+import { storageService } from "@/frontend/CardsStorage/index";
 
 interface ISetGridButtonProps {
   card: Card

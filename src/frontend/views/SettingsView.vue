@@ -100,12 +100,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useStore } from "vuex";
 
-import ColorSettings from "@frontend/components/Settings/ColorsSettings.vue";
-import InputSettings from "@frontend/components/Settings/InputSettings.vue";
-import { Metric } from "@frontend/utils/Metric";
+import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
+import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
+import { Metric } from "@/frontend/utils/Metric";
 
 const store = useStore();
 

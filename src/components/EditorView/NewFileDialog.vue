@@ -14,7 +14,7 @@
 <script lang="ts" setup>
 import { defineProps, withDefaults } from "vue";
 import { useRouter } from "vue-router";
-import InputDialog from "@frontend/components/InputDialog.vue";
+import InputDialog from "@/frontend/components/InputDialog.vue";
 
 const props = withDefaults(defineProps<{ show: boolean }>(), { show: false });
 

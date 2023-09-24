@@ -1,6 +1,5 @@
 import chai from "chai";
-// @ts-ignore
-import { tts } from "@frontend/utils/TTSServer";
+import { tts } from "@/frontend/utils/TTSServer";
 
 const expect = chai.expect;
 

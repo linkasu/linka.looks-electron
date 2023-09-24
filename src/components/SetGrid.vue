@@ -45,9 +45,9 @@ import { ref, computed, watch, defineProps } from "vue";
 
 import { useStore } from "vuex";
 
-import type { ConfigFile } from "@common/interfaces/ConfigFile";
-import EyeButton from "@frontend/components/EyeButton.vue";
-import SetGridButton from "@frontend/components/SetGridButton.vue";
+import type { ConfigFile } from "@/common/interfaces/ConfigFile";
+import EyeButton from "@/frontend/components/EyeButton.vue";
+import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import { Card } from "../../common/interfaces/ConfigFile";
 
 interface ISetGridProps {
