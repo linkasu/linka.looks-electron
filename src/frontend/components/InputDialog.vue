@@ -60,7 +60,7 @@ interface IInputDialogProps {
   title: string
   label: string
   confirmText: string
-  show: boolean
+  show?: boolean
   checkFilePath: boolean
   buttonText?: string
   icon?: string

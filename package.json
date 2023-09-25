@@ -2,7 +2,7 @@
   "name": "linka.looks",
   "version": "2.1.0",
   "author": "ibakaidov",
-  "main": "electron/main.js",
+  "main": "dist_electron/index.js",
   "private": true,
   "repository": {
     "type": "git",
@@ -46,7 +46,7 @@
     "vue-class-component": "^8.0.0-0",
     "vue-router": "^4.0.3",
     "vuedraggable": "^4.1.0",
-    "vuetify": "^3.0.0-beta.0",
+    "vuetify": "^3.0.0",
     "vuex": "^4.0.0",
     "webfontloader": "^1.0.0"
   },
