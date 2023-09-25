@@ -4,6 +4,7 @@ const { resolve } = require("path");
 module.exports = defineConfig({
   transpileDependencies: true,
   configureWebpack: {
+    devtool: "source-map",
     resolve: {
       symlinks: false,
       alias: {

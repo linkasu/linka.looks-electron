@@ -50,7 +50,7 @@ import { ConfigFile } from "@/common/interfaces/ConfigFile";
 
 const store = useStore();
 
-const props = withDefaults(defineProps<{ config: ConfigFile; edit: boolean }>(), {
+const props = withDefaults(defineProps<{ config?: ConfigFile; edit: boolean }>(), {
   edit: false
 });
 
@@ -60,7 +60,7 @@ watch(dialog, onDialog);
 
 const description = computed({
   get () {
-    return props.edit ? store.state.editor.description : props.config.description;
+    return props.edit ? store.state.editor.description : props.config?.description;
   },
   set (text: string | undefined) {
     store.commit("editor_description", text);

@@ -25,7 +25,7 @@
       </v-toolbar>
       <v-card-text>
         <v-form @submit.prevent="">
-          <v-subheader>Настройки размера сетки</v-subheader>
+          <v-card-subtitle>Настройки размера сетки</v-card-subtitle>
           <v-layout
             row
             wrap
@@ -47,7 +47,7 @@
               />
             </v-col>
           </v-layout>
-          <v-subheader> Настройки взаимодействия </v-subheader>
+          <v-card-subtitle> Настройки взаимодействия </v-card-subtitle>
           <v-checkbox
             v-if="!isQuiz"
             v-model="isWithoutSpace"
@@ -64,7 +64,7 @@
             v-model="isQuiz"
           ></v-checkbox> -->
           <section v-if="isQuiz">
-            <v-subheader> Настройки викторины </v-subheader>
+            <v-card-subtitle> Настройки викторины </v-card-subtitle>
             <v-checkbox
               v-model="editor_quizAutoNext"
               label="Переключать на следующий вопрос при любом ответе"
@@ -86,7 +86,7 @@ import { useStore } from "vuex";
 
 const store = useStore();
 
-const props = withDefaults(defineProps<{ defaultOpen: boolean }>(), { defaultOpen: false });
+const props = withDefaults(defineProps<{ defaultOpen?: boolean }>(), { defaultOpen: false });
 
 const dialog = ref(props.defaultOpen);
 

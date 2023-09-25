@@ -124,7 +124,8 @@ function back () {
 }
 
 function switchAnimation () {
-  store.dispatch("button_animation");
+  console.log("switchAnimation");
+  store.dispatch("button_animation_toggle");
 }
 
 async function del () {

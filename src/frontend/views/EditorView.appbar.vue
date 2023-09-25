@@ -5,7 +5,7 @@
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <notes-button edit="true" />
+    <notes-button edit />
     <set-settings />
     <save-button
       :title="title"

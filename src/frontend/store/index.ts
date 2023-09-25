@@ -187,6 +187,9 @@ const store = createStore<LINKaStore>({
     button_borders ({ button }, value) {
       button.borders = value;
     },
+    button_animation({ button }, value) {
+      button.animation = value;
+    },
     button_clickSound ({ button, pcHash }, value) {
       button.clickSound = value;
       Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
@@ -222,8 +225,8 @@ const store = createStore<LINKaStore>({
       state.button.enabled = !state.button.enabled;
     },
 
-    button_animation ({ state }) {
-      state.button.animation = !state.button.animation;
+    button_animation_toggle ({ state, commit }) {
+      commit("button_animation", !state.button.animation);
     },
 
     async editor_new_file ({ state, dispatch }, file: string) {

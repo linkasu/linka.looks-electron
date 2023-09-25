@@ -4,7 +4,7 @@
     class="editor"
   >
     <new-file-dialog
-      ref="newFile"
+      :show="newFileDialogShow"
       @text="newFileName"
     />
     <div class="editor-body">
@@ -151,7 +151,7 @@
                       <v-row>
                         <tts-dialog
                           :file="filename"
-                          @audio="(src) => (selected.audioPath = src)"
+                          @audio="(src: string) => (selected.audioPath = src)"
                         />
                       </v-row>
                       <v-row>
@@ -232,11 +232,10 @@ import { Metric } from "@/frontend/utils/Metric";
 const store = useStore();
 const route = useRoute();
 
-const newFile = ref<InstanceType<typeof NewFileDialog> | null>(null)(null);
-
+const newFileDialogShow = ref(false);
 // todo: turn this into a simple check and pass the 'open' flag via props
 if (route.params.path.toString().endsWith("new")) {
-  (newFile.value as typeof NewFileDialog).show();
+  newFileDialogShow.value = true;
 } else loadSet();
 
 Metric.registerEvent(store.state.pcHash, "openEditor");
@@ -294,7 +293,7 @@ const current = computed({
     return mcurrent.value;
   },
   set (v: (Card | NewCard)[]) {
-    if (v.length == mcurrent.value.length) {
+    if (v.length === mcurrent.value.length) {
       const cids = mcurrent.value.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       mcurrent.value = v;
