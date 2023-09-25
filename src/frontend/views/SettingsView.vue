@@ -179,7 +179,7 @@ const animation = computed({
     return store.state.button.animation;
   },
   set (value: boolean) {
-    store.dispatch("button_animation");
+    store.dispatch("button_animation", value);
   }
 });
 
