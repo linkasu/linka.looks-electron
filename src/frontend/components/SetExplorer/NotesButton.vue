@@ -50,7 +50,7 @@ import { ConfigFile } from "@/common/interfaces/ConfigFile";
 
 const store = useStore();
 
-const props = withDefaults(defineProps<{ config?: ConfigFile; edit: boolean }>(), {
+const props = withDefaults(defineProps<{ config?: ConfigFile; edit?: boolean }>(), {
   edit: false
 });
 

@@ -29,14 +29,14 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, onMounted, watch, defineProps, computed } from "vue";
+import { ref, onMounted, defineProps, computed } from "vue";
 import { useStore } from "vuex";
 
 interface IEyeButtonProps {
-  enabled: boolean
-  lock: boolean
+  enabled?: boolean
+  lock?: boolean
   color?: string
-  path: boolean
+  path?: boolean
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {

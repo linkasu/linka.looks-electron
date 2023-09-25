@@ -293,7 +293,7 @@ const store = createStore<LINKaStore>({
 
       if (config) {
         state.explorer.config = config;
-        if (config.directSet != undefined) {
+        if (config.directSet !== undefined) {
           commit("interface_outputLine", !config.directSet);
         } else {
           commit("interface_outputLine", true);

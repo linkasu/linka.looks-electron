@@ -58,7 +58,7 @@ import { storageService } from "@/frontend/services/card-storage-service";
 interface ISetGridButtonProps {
   card: Card
   file: string
-  dot: boolean
+  dot?: boolean
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {

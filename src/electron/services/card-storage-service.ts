@@ -29,14 +29,10 @@ export class CardsStorage extends ICloudStorage {
     // (backend-process has its own implementation of the same interface)
     // ((you're looking at it rn btw))
     for (const method of methods) {
-      ipcMain.handle("storage:" + method, (_, ...args: any) => {
-        function tuple<T extends any[]> (...args: T): T {
-          return args;
-        }
+      ipcMain.handle("storage:" + method, (_, ...args) => {
         win = BrowserWindow.fromWebContents(_.sender);
-        const argsAsTuple = tuple<any>(...args);
 
-        return (this[method] as (...args: Array<string | ConfigFile>) => void)(...argsAsTuple);
+        return (this[method] as (...args: Array<string | ConfigFile>) => void)(...args);
       });
     }
   }
@@ -81,6 +77,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   getConfigFile (path: string) {
+    console.log("getConfigFile(): path:", path);
     const zip = new AdmZip(this.checkPath(path));
     const raw = zip.readAsText("config.json");
     try {

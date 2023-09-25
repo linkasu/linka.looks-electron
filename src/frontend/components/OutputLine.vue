@@ -12,7 +12,7 @@
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
     <eye-button
-      :lock="true"
+      lock
       :color="buttonEnabled ? 'accent' : ''"
       @click="switchButtonEnabled"
     >
@@ -82,7 +82,7 @@ import { TTS } from "@/frontend/utils/TTS";
 interface IOutputLineProps {
   file: string
   cards: Card[]
-  config: ConfigFile
+  config?: ConfigFile
 }
 
 const props = defineProps<IOutputLineProps>();
@@ -115,7 +115,7 @@ const clone = computed(() => {
 const text = computed(() => {
   return clone.value
     .map((c: Card) => {
-      return c.cardType == 0 ? c.title : " ";
+      return c.cardType === 0 ? c.title : " ";
     })
     .join("");
 });
@@ -145,8 +145,8 @@ function backspace () {
 
 async function say () {
   isPlaying.value = true;
-  if (props.config.withoutSpace) {
-    if (text.value) await TTS.instance.playText(text);
+  if (props.config?.withoutSpace) {
+    if (text.value) await TTS.instance.playText(text.value);
   } else await TTS.instance.playCards(props.file, props.cards);
   isPlaying.value = false;
 }

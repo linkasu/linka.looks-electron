@@ -53,7 +53,7 @@ const quizPage = ref(0);
 const errors = ref(0);
 
 filename.value = route.params.path.toString();
-store.dispatch("open_file", filename);
+store.dispatch("open_file", filename.value);
 Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
 
 const config = computed(() => {
