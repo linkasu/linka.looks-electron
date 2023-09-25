@@ -25,7 +25,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, ComputedRef } from "vue";
+import { ref, computed, ComputedRef, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 
@@ -44,26 +44,36 @@ const files: Ref<Directory> = ref([]);
 const mroot = ref("");
 const size = ref(5);
 
-mroot.value = route.params.path.toString();
+onMounted(() => {
+  mroot.value = route.params.path.toString();
+});
 
 const sorted: ComputedRef<Directory> = computed(() => {
   return files.value.map((f) => f).sort((f: DirectoryFile) => (f.directory ? -1 : 1));
 });
 
 const isHome = computed(() => {
-  return mroot.value == "§";
+  return mroot.value === "§";
 });
 
-const root = computed({
-  get () {
-    return mroot.value;
-  },
-  set (v: string) {
-    mroot.value = v;
-    router.push(v);
+// const root = computed({
+//   get () {
+//     return mroot.value;
+//   },
+//   set (v: string) {
+//     mroot.value = v;
+//     router.push(v);
+//     loadSets();
+//   }
+// });
+
+watch(
+  mroot,
+  () => {
+    router.push(mroot.value);
     loadSets();
   }
-});
+);
 
 function back () {
   mroot.value = mroot.value.split("§").slice(0, -1).join("§");

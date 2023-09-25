@@ -30,7 +30,7 @@
     <v-card>
       <v-card-title> Шаблоны цветовых схем.</v-card-title>
       <v-card-text>
-        <v-row>
+        <v-row class="mt-1">
           <v-btn
             block
             color="success"
@@ -41,6 +41,7 @@
           <v-btn
             block
             color="success"
+            class="mt-1"
             @click="makeBG"
           >
             Черно-белая
