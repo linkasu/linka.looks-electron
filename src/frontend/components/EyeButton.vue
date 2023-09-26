@@ -1,6 +1,6 @@
 <template>
   <button
-    ref="el"
+    ref="elRef"
     class="eyebtn"
     :class="{ eye: enabled, isInside, lock }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
