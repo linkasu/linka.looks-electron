@@ -14,13 +14,13 @@
   </v-app>
   <v-app v-else>
     <v-main>
-      <register-form />
+      <RegisterForm />
     </v-main>
   </v-app>
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import store from "./store";
 import RegisterForm from "@/frontend/views/RegisterForm.vue";
 import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
@@ -30,9 +30,11 @@ import { Metric } from "./utils/Metric";
 
 const pcHash = computed(() => store.state.pcHash);
 
-if (pcHash.value.length === 36) {
-  Metric.registerEvent(pcHash.value, "start");
-}
+onMounted(() => {
+  if (pcHash.value.length === 36) {
+    Metric.registerEvent(pcHash.value, "start");
+  }
+});
 
 const primary = computed(() => {
   return hexToRGB(store.state.colors.primary);

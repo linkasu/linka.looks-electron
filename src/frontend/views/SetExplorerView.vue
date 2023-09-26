@@ -34,7 +34,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import OutputLine from "@/frontend/components/OutputLine.vue";
@@ -52,9 +52,11 @@ const cards: Ref<Card[]> = ref([]);
 const quizPage = ref(0);
 const errors = ref(0);
 
-filename.value = route.params.path.toString();
-store.dispatch("open_file", filename.value);
-Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
+onMounted(() => {
+  filename.value = route.params.path.toString();
+  store.dispatch("open_file", filename.value);
+  Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
+});
 
 const config = computed(() => {
   return store.state.explorer.config;

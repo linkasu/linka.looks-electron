@@ -187,7 +187,7 @@ const store = createStore<LINKaStore>({
     button_borders ({ button }, value) {
       button.borders = value;
     },
-    button_animation({ button }, value) {
+    button_animation ({ button }, value) {
       button.animation = value;
     },
     button_clickSound ({ button, pcHash }, value) {

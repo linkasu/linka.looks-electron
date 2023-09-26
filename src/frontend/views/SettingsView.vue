@@ -100,7 +100,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useStore } from "vuex";
 
 import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
@@ -109,7 +109,9 @@ import { Metric } from "@/frontend/utils/Metric";
 
 const store = useStore();
 
-Metric.registerEvent(store.state.pcHash, "openSettings");
+onMounted(() => {
+  Metric.registerEvent(store.state.pcHash, "openSettings");
+});
 
 const timeout = computed({
   get () {
