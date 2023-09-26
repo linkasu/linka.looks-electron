@@ -68,7 +68,6 @@ onMounted((): void => {
 
 async function fetch () {
   const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
-  console.log(request.data);
 
   pData.value = request.data;
 }

@@ -36,7 +36,7 @@
         <v-btn
           color="primary"
           @click="
-            create()
+            create(),
             dialog = false
           "
         >
@@ -85,7 +85,7 @@ const voice = ref("alena");
 watch(dialog, onDialog);
 
 function create () {
-  storageService.createAudioFromText(props.file, text, voice).then((value: string) => {
+  storageService.createAudioFromText(props.file, text.value, voice.value).then((value: string) => {
     emit("audio", value);
   });
 }

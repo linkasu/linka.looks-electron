@@ -77,7 +77,6 @@ export class CardsStorage extends ICloudStorage {
   }
 
   getConfigFile (path: string) {
-    console.log("getConfigFile(): path:", path);
     const zip = new AdmZip(this.checkPath(path));
     const raw = zip.readAsText("config.json");
     try {
@@ -201,8 +200,8 @@ export class CardsStorage extends ICloudStorage {
   async saveSet (path: string, location: string, config: ConfigFile): Promise<void> {
     path = this.checkPath(path);
     location = this.checkPath(location);
-    // await this.cleanFile(pat, config)
-    config.cards = config.cards.map((card) => {
+    await this.cleanFile(path, config);
+    config.cards = config.cards.filter(Boolean).map((card) => {
       if (card.cardType > 2) {
         card = {
           id: uuid(),
@@ -235,7 +234,7 @@ export class CardsStorage extends ICloudStorage {
 
   private cleanFile (path: string, config: ConfigFile) {
     const paths = [];
-    for (const card of config.cards) {
+    for (const card of config.cards.filter(Boolean)) {
       if (card.cardType === 0) {
         paths.push(card.audioPath);
         paths.push(card.imagePath);

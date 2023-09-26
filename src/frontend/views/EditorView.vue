@@ -149,7 +149,7 @@
                   <v-card-text>
                     <v-container>
                       <v-row>
-                        <tts-dialog
+                        <TTSDialog
                           :file="filename"
                           @audio="(src: string) => (selected.audioPath = src)"
                         />
@@ -198,7 +198,7 @@
       </v-card>
       <v-card v-else>
         <v-card-title primary-title>
-          Выберете картинку для начала работы
+          Выберите картинку для начала работы
         </v-card-title>
         <v-card-text>
           <h3>Советы в редакторе наборов:</h3>
@@ -214,13 +214,14 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTextDialog.vue";
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
+import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
 import type { Card, NewCard } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
@@ -233,12 +234,14 @@ const store = useStore();
 const route = useRoute();
 
 const newFileDialogShow = ref(false);
-// todo: turn this into a simple check and pass the 'open' flag via props
-if (route.params.path.toString().endsWith("new")) {
-  newFileDialogShow.value = true;
-} else loadSet();
 
-Metric.registerEvent(store.state.pcHash, "openEditor");
+onMounted(() => {
+  if (route.params.path.toString().endsWith("new")) {
+    newFileDialogShow.value = true;
+  } else loadSet();
+
+  Metric.registerEvent(store.state.pcHash, "openEditor");
+});
 
 const cardTypes = [
   { text: "Обычная", value: 0 },
@@ -280,6 +283,7 @@ const cards = computed({
     return store.state.editor.cards;
   },
   set (v: (Card | NewCard)[]) {
+    console.log("commiting to store:", v);
     store.commit("editor_cards", v);
   }
 });
@@ -298,7 +302,7 @@ const current = computed({
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       mcurrent.value = v;
 
-      if (cids != nids) {
+      if (cids !== nids) {
         for (let index = 0; index < v.length; index++) {
           const element = v[index];
           cards.value[pageSize.value * page.value + index] = element;
@@ -376,7 +380,7 @@ const questions = computed(() => {
 });
 
 function isValid (card: Card) {
-  if (card.cardType == 0) {
+  if (card.cardType === 0) {
     if (!card.imagePath || !card.imagePath || !card.title) {
       return false;
     }
@@ -403,11 +407,15 @@ async function loadSet () {
 }
 
 function select (index: number) {
-  console.log(index);
-
   let card = cards.value[pageSize.value * page.value + index];
   if (!card) {
+    // TODO: plz fix, dont create nullish elements in the array
     card = cards.value[pageSize.value * page.value + index] = current.value[index];
+    for (let i = 0; i < pageSize.value * page.value + index; i++) {
+      if (!cards.value[i]) {
+        cards.value[i] = getNewCard();
+      }
+    }
   }
   selected.value = card;
 }
@@ -421,8 +429,7 @@ function getNewCard (): NewCard {
 
 async function selectImage () {
   if (!filename.value) return;
-  const id = await storageService.selectImage(filename);
-  console.log(id);
+  const id = await storageService.selectImage(filename.value);
 
   if (selected.value && selected.value.cardType === 0) {
     selected.value.imagePath = id;
@@ -431,7 +438,7 @@ async function selectImage () {
 
 async function selectAudio () {
   if (!filename.value) return;
-  const id = await storageService.selectAudio(filename);
+  const id = await storageService.selectAudio(filename.value);
 
   if (selected.value && selected.value.cardType === 0 && id) {
     selected.value.audioPath = id;

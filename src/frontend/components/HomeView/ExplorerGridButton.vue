@@ -39,7 +39,7 @@ import { DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
 import { storageService } from "@/frontend/services/card-storage-service";
 
-const props = withDefaults(defineProps<{ file?: DirectoryFile; back: boolean }>(), { back: false });
+const props = withDefaults(defineProps<{ file?: DirectoryFile; back?: boolean }>(), { back: false });
 
 const image: Ref<string | null> = ref("");
 

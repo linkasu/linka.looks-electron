@@ -255,8 +255,9 @@ const store = createStore<LINKaStore>({
       }
     },
     async editor_save ({ state, commit }) {
+      console.log("sending saveSet to frontend service:", state.editor.cards);
       await storageService.saveSet(state.editor.temp, state.editor.current, {
-        cards: state.editor.cards,
+        cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,
         rows: state.editor.rows,
         directSet: state.editor.isDirectSet,
