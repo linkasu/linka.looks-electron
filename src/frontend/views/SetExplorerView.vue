@@ -99,7 +99,7 @@ function addCard (card: Card) {
       cards.value.push(card);
     }
   } else {
-    if (filename.value) TTS.instance.playCards(filename, [card], true);
+    if (filename.value) TTS.instance.playCards(filename.value, [card], true);
   }
 }
 </script>
