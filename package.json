@@ -49,6 +49,9 @@
     "vuex": "^4.0.0",
     "webfontloader": "^1.0.0"
   },
+  "resolutions": {
+    "vue-cli-plugin-electron-builder/electron-builder": "^23.0.3"
+  },
   "devDependencies": {
     "@electron-internal/eslint-config": "^1.0.1",
     "@electron/rebuild": "^3.2.10",
