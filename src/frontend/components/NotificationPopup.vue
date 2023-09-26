@@ -1,9 +1,5 @@
 <template>
-  <v-dialog
-    v-model="showPopup"
-    persistent
-    max-width="500px"
-  >
+  <v-dialog v-model="showPopup" persistent max-width="500px">
     <v-card v-if="pData">
       <v-card-title>
         <span class="headline">{{ pData.title }}</span>
@@ -11,25 +7,16 @@
       <v-card-text>{{ pData.description }}</v-card-text>
       <v-card-text>
         <v-list dense>
-          <v-list-item
-            v-for="(value, key) in pData.links"
-            :key="key"
-          >
+          <v-list-item v-for="(value, key) in pData.links" :key="key">
             <v-list-item-title>
-              <a
-                :href="key.toString()"
-                @click.prevent="openLink(key.toString())"
-              >{{ value }}</a>
+              <a :href="key.toString()" @click.prevent="openLink(key.toString())">{{ value }}</a>
             </v-list-item-title>
           </v-list-item>
         </v-list>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn
-          color="primary"
-          @click="closePopup"
-        >
+        <v-btn color="primary" @click="closePopup">
           Закрыть
         </v-btn>
       </v-card-actions>
@@ -66,17 +53,24 @@ onMounted((): void => {
   fetch();
 });
 
-async function fetch () {
-  const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
+async function fetch() {
+  try {
 
-  pData.value = request.data;
+    const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
+
+    pData.value = request.data;
+
+
+  } catch (error) {
+
+  }
 }
 
-function closePopup () {
+function closePopup() {
   store.commit("popupVersion", pData.value?.version ?? 0);
 }
 
-function openLink (url: string) {
+function openLink(url: string) {
   shell.openExternal(url);
 }
 </script>
