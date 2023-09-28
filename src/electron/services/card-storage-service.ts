@@ -12,7 +12,7 @@ import { appendZip } from "@/frontend/utils/addToZip";
 import { tts } from "@/frontend/utils/TTSServer";
 import { get } from "https";
 import delay from "delay";
-import { createImageFromText } from "@/frontend/utils/ImageFromText";
+import { createImageFromText } from "@/electron/utils/ImageFromText";
 import { HOME_DIR } from "../../common/constants";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
