@@ -15,7 +15,6 @@ export async function createImageFromText (text: string):Promise<Buffer> {
         
         return reject(err)
       }
-      console.log(file);
       
       resolve(await readFile(file));
       // unlink(file);
