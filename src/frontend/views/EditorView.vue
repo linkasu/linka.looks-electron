@@ -402,7 +402,8 @@ async function newFileName (text: string) {
 }
 
 async function loadSet () {
-  await store.dispatch("editor_current", path);
+  await store.dispatch("editor_current", path.value);
+
   page.value = 0;
 }
 
