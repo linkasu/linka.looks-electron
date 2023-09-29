@@ -14,11 +14,7 @@
       v-for="file in sorted"
       :key="file.file"
       :file="file"
-      @click="
-        () => {
-          select(file)
-        }
-      "
+      @click="select(file)"
     />
   </v-layout>
 </template>

@@ -46,7 +46,7 @@
       <v-card-text>
         <v-list
           density="compact"
-          @click.prevent="open"
+          @click:open=""
         >
           <v-list-item
             v-for="(item, i) in dirs"
@@ -84,7 +84,7 @@ const props = defineProps<{ file: string }>();
 const emit = defineEmits<{(e: "move", payload: string): void }>();
 
 const dialog = ref(false);
-const dirs: Directory = ref([]);
+const dirs: Ref<Directory> = ref([]);
 const current: Ref<string> = ref(props.file.split("§").slice(0, -1).join("/"));
 
 watch(dialog, onDialog);
@@ -113,14 +113,13 @@ async function loadSet () {
     c = pathModule.join(HOME_DIR, c);
   }
   c = pathModule.join(c);
-  const parts = c.split("/").filter((p) => !!p);
   if (c.replace(HOME_DIR, "").length > 1) {
-    loadedDirectories.value.unshift({
+    loadedDirectories.unshift({
       directory: true,
       file: current.value + "/.."
     });
   }
-  loadedDirectories.value = loadedDirectories;
+  dirs.value = loadedDirectories;
 }
 
 function toBasename (s: string) {

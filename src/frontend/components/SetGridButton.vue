@@ -83,7 +83,7 @@ const animation = computed(() => {
 
 function onCard (card: Card) {
   if (card && card.imagePath) {
-    if (card.cardType == 0) {
+    if (card.cardType === 0) {
       storageService.getImage(props.file, card.imagePath).then((buffer: ArrayBuffer) => {
         if (!buffer) return;
         const url = URL.createObjectURL(new Blob([buffer], { type: "image/png" } /* (1) */));

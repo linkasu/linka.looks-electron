@@ -1,5 +1,6 @@
 <template>
   <v-layout
+    v-if="filename"
     full-height
     class="root"
     :class="{ root_hide: !interfaceOutputLine && !isQuiz }"
@@ -94,7 +95,7 @@ function addCard (card: Card) {
   if (interfaceOutputLine.value) {
     if (
       (config.value?.withoutSpace && card.cardType < 2) ||
-      (!config.value?.withoutSpace && card.cardType == 0)
+      (!config.value?.withoutSpace && card.cardType === 0)
     ) {
       cards.value.push(card);
     }
