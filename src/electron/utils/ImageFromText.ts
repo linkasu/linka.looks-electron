@@ -10,12 +10,12 @@ export async function createImageFromText (text: string):Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const file = join(tmpdir(), uuid() + ".png");
     execFile(BIN, [file, text], async (err) => {
-      if(err){
+      if (err) {
         console.error(err);
-        
-        return reject(err)
+
+        return reject(err);
       }
-      
+
       resolve(await readFile(file));
       // unlink(file);
     });

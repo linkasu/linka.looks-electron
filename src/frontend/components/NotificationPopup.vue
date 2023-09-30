@@ -53,24 +53,21 @@ onMounted((): void => {
   fetch();
 });
 
-async function fetch() {
+async function fetch () {
   try {
-
     const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
 
     pData.value = request.data;
-
-
   } catch (error) {
 
   }
 }
 
-function closePopup() {
+function closePopup () {
   store.commit("popupVersion", pData.value?.version ?? 0);
 }
 
-function openLink(url: string) {
+function openLink (url: string) {
   shell.openExternal(url);
 }
 </script>

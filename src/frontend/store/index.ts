@@ -243,8 +243,8 @@ const store = createStore<LINKaStore>({
     },
     async editor_load_set ({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp!);
-      
-      if (config!=undefined) {
+
+      if (config != undefined) {
         commit("editor_columns", config.columns);
         commit("editor_rows", config.rows);
         commit("editor_cards", config.cards);

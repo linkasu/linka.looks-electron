@@ -33,6 +33,7 @@ module.exports = {
     strict: "off",
     quotes: [2, "double", { avoidEscape: true }],
     "comma-dangle": ["error", "never"],
-    camelcase: "off"
+    camelcase: "off",
+    "func-call-spacing": "off"
   }
 };

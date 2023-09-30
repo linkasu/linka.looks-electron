@@ -17,7 +17,7 @@ import { useRouter } from "vue-router";
 import InputDialog from "@/frontend/components/InputDialog.vue";
 
 const props = withDefaults(defineProps<{ show: boolean }>(), { show: false });
-const emit = defineEmits<{ (e: "text", payload: string): void }>();
+const emit = defineEmits<{(e: "text", payload: string): void }>();
 
 const router = useRouter();
 
