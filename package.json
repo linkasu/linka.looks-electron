@@ -39,7 +39,7 @@
     "linebreak-next": "^1.0.3",
     "platform-folders": "^0.6.0",
     "roboto-fontface": "*",
-    "ts-loader": "^9.4.4",
+    "ts-loader": "^8.0.0",
     "uuidv4": "^6.2.13",
     "vue": "^3.2.13",
     "vue-class-component": "^8.0.0-0",
