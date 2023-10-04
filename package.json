@@ -20,7 +20,7 @@
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@mdi/font": "5.9.55",
+    "@mdi/font": "7.2.96",
     "@sindresorhus/chunkify": "^0.2.0",
     "@types/adm-zip": "^0.5.0",
     "adm-zip": "^0.5.10",
