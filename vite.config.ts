@@ -23,6 +23,8 @@ export default defineConfig(({ command }) => {
         '@frontend': path.resolve(__dirname, "./src/"),
         '@electron': path.resolve(__dirname, "./electron/"),
         '@common': path.resolve(__dirname, "./common/"),
+
+        '@firebase/auth': path.resolve(__dirname, 'node_modules/@firebase/auth/dist/esm2017/index.js')
       },
     },
     plugins: [

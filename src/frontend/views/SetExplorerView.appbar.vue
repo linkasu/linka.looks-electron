@@ -131,7 +131,7 @@ function switchAnimation () {
 async function del () {
   await storageService.moveToTrash(file.value);
   back();
-  Metric.registerEvent(store.state.pcHash, "trash");
+  Metric.registerEvent("trash");
 }
 
 async function move (location: string) {
@@ -142,6 +142,6 @@ async function move (location: string) {
     .replace("\\", "§");
 
   router.push("/set/" + url);
-  Metric.registerEvent(store.state.pcHash, "move");
+  Metric.registerEvent("move");
 }
 </script>

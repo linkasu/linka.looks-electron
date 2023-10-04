@@ -34,6 +34,7 @@
     "eslint-plugin-vue": "^9.17.0",
     "extract-zip": "^2.0.1",
     "eyelog": "github:linkasu/node-eyelog",
+    "firebase": "^10.4.0",
     "gamepad-wrapper": "^1.2.0",
     "is-valid-path": "^0.1.1",
     "linebreak-next": "^1.0.3",

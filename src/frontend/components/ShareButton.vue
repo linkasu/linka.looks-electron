@@ -20,6 +20,6 @@ const route = useRoute();
 
 function share () {
   storageService.showItemInFolder(route.params.path.toString());
-  Metric.registerEvent(store.state.pcHash, "share");
+  Metric.registerEvent("share");
 }
 </script>

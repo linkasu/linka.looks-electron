@@ -110,7 +110,7 @@ import { Metric } from "@/frontend/utils/Metric";
 const store = useStore();
 
 onMounted(() => {
-  Metric.registerEvent(store.state.pcHash, "openSettings");
+  Metric.registerEvent("openSettings");
 });
 
 const timeout = computed({

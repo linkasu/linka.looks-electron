@@ -56,7 +56,7 @@ const errors = ref(0);
 onMounted(() => {
   filename.value = route.params.path.toString();
   store.dispatch("open_file", filename.value);
-  Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename });
+  Metric.registerEvent("openSet", { filename: filename });
 });
 
 const config = computed(() => {
@@ -80,7 +80,7 @@ const quizReadQuestion = computed(() => {
 });
 
 function addCard (card: Card) {
-  Metric.registerEvent(store.state.pcHash, "cardClick", { card });
+  Metric.registerEvent("cardClick", { card });
   if (isQuiz.value) {
     if (card.answer) {
       quizPage.value++;

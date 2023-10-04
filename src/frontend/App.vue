@@ -1,7 +1,7 @@
 <template>
-  <v-app v-if="pcHash != 'unknow'">
-    <download-default-sets-dialog/>
-    <notification-popup/>
+  <v-app v-if="user !== null && user !== undefined">
+    <download-default-sets-dialog />
+    <notification-popup />
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
     <v-main style="margin-bottom: 40px">
@@ -12,7 +12,7 @@
     </v-footer>
     <!-- <bubble /> -->
   </v-app>
-  <v-app v-else>
+  <v-app v-if="user === null">
     <v-main>
       <RegisterForm />
     </v-main>
@@ -28,11 +28,11 @@ import NotificationPopup from "@/frontend/components/NotificationPopup.vue";
 import DownloadDefaultSetsDialog from "@/frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
 
-const pcHash = computed(() => store.state.pcHash);
+const user = computed(() => store.state.user);
 
 onMounted(() => {
-  if (pcHash.value.length === 36) {
-    Metric.registerEvent(pcHash.value, "start");
+  if (user.value) {
+    Metric.registerEvent("start");
   }
 });
 

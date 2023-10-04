@@ -1,4 +1,5 @@
 import { Card, ConfigFile } from "@/common/interfaces/ConfigFile";
+import { User } from "firebase/auth";
 
 interface KeyMap {
     up: string[]
@@ -9,7 +10,9 @@ interface KeyMap {
 }
 export type Side = keyof KeyMap
 export interface LINKaStore {
-    pcHash: string,
+    user?: User
+
+    token?: string
     popupVersion: number
     defaultSetsDownloaded: boolean
     colors: {

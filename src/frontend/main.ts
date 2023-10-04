@@ -6,6 +6,8 @@ import vuetify from "./plugins/vuetify";
 import { loadFonts } from "./plugins/webfontloader";
 import { PageWatcher } from "../electron/tobii/pageWatch";
 import "./store/eStore";
+import "./auth-setup";
+
 const pageWatcher = new PageWatcher();
 
 loadFonts();

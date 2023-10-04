@@ -6,8 +6,8 @@ import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Metric } from "@/frontend/utils/Metric";
 
-const fields = [
-  { commit: "pcHash", default: "unknow" } as Field<string>,
+const fields = [  
+  { commit: "token", default: '' } as Field<string|undefined>,
   { commit: "popupVersion", default: 0 } as Field<number>,
   { commit: "defaultSetsDownloaded", default: false } as Field<boolean>,
   { commit: "colors_primary", default: "#197377" } as Field<string>,
@@ -34,7 +34,6 @@ const store = createStore<LINKaStore>({
   state: {
     popupVersion: 0,
     defaultSetsDownloaded: false,
-    pcHash: "unknow",
     colors: {
       secondary: "",
       accent: "",
@@ -93,7 +92,7 @@ const store = createStore<LINKaStore>({
     },
     ui_exitButton (state, value) {
       state.ui.exitButton = value;
-      Metric.registerEvent(state.pcHash, "settingsToggleEyeExit", { value });
+      Metric.registerEvent("settingsToggleEyeExit", { value });
     },
     keyMapping_up ({ keyMapping }, value) {
       keyMapping.up = value;
@@ -159,25 +158,25 @@ const store = createStore<LINKaStore>({
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
     },
-    button_enabled ({ button, pcHash }, value) {
+    button_enabled ({ button }, value) {
       button.enabled = value;
-      Metric.registerEvent(pcHash, "toggleGazeLock", { value });
+      Metric.registerEvent("toggleGazeLock", { value });
     },
-    button_eyeSelect ({ button, pcHash }, value) {
+    button_eyeSelect ({ button }, value) {
       button.eyeSelect = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeChoose", { value });
+      Metric.registerEvent("settingsToggleEyeChoose", { value });
     },
-    button_eyeActivation ({ button, pcHash }, value) {
+    button_eyeActivation ({ button }, value) {
       button.eyeActivation = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
+      Metric.registerEvent("settingsToggleEyeActivation", { value });
     },
-    button_joystickActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });
+    button_joystickActivation ({ button }, value) {
+      Metric.registerEvent("settingsToggleJoystickActivation", { value });
 
       button.joystickActivation = value;
     },
-    button_keyboardActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
+    button_keyboardActivation ({ button }, value) {
+      Metric.registerEvent("settingsToggleKeyboardActivation", { value });
 
       button.keyboardActivation = value;
     },
@@ -190,16 +189,19 @@ const store = createStore<LINKaStore>({
     button_animation ({ button }, value) {
       button.animation = value;
     },
-    button_clickSound ({ button, pcHash }, value) {
+    button_clickSound ({ button }, value) {
       button.clickSound = value;
-      Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
+      Metric.registerEvent("settingsToggleTypeSound", { value });
     },
-    interface_outputLine ({ ui, pcHash }, value) {
+    interface_outputLine ({ ui }, value) {
       ui.outputLine = value;
-      Metric.registerEvent(pcHash, "toggleOutputLine", value);
+      Metric.registerEvent("toggleOutputLine", value);
     },
-    pcHash (state, hash) {
-      state.pcHash = hash;
+    user (state, user) {
+      state.user = user;
+    },
+    token (state, token) {
+      state.token = token;
     }
   },
 

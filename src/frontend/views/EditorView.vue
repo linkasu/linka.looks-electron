@@ -240,7 +240,7 @@ onMounted(() => {
     newFileDialogShow.value = true;
   } else loadSet();
 
-  Metric.registerEvent(store.state.pcHash, "openEditor");
+  Metric.registerEvent("openEditor");
 });
 
 const cardTypes = [
