@@ -19,6 +19,9 @@
       "chai"
     ],
     "paths": {
+      "@frontend": ["./src/frontend"],
+      "@electron": ["./src/electron"],
+      "@common": ["./src/common"],
       "@/*": [
         "src/*"
       ]
@@ -34,8 +37,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "src/frontend/tests/**/*.tsage/tests/**/*.ts",
+    "src/frontend/tests/**/*.tsxge/tests/**/*.tsx"
   ],
   "exclude": [
     "node_modules"
