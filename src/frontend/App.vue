@@ -46,7 +46,7 @@ const secondary = computed(() => {
   return hexToRGB(store.state.colors.secondary);
 });
 
-function hexToRGB(input: string) {
+function hexToRGB (input: string) {
   const aRgbHex = input.slice(1).match(/.{1,2}/g);
   if (!aRgbHex) return null;
   const aRgb = [

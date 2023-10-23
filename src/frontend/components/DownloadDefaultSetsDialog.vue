@@ -64,17 +64,17 @@ onMounted((): void => {
   });
 });
 
-async function download() {
+async function download () {
   downloading.value = true;
   await storageService.downloadAndUnpack("https://linka.su/dist/linka.looks/sasha.sets.zip");
   dialog.value = false;
   window.location.reload();
 }
-async function consultation() {
-  shell.openExternal("https://forms.gle/raD3VV6aCGEGzoGz7")
+async function consultation () {
+  shell.openExternal("https://forms.gle/raD3VV6aCGEGzoGz7");
 }
 
-function onDialog(v: boolean) {
+function onDialog (v: boolean) {
   if (!v) {
     store.commit("button_enabled", !v);
     store.commit("defaultSetsDownloaded", 2);
