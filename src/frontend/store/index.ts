@@ -9,7 +9,7 @@ import { Metric } from "@/frontend/utils/Metric";
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
   { commit: "popupVersion", default: 0 } as Field<number>,
-  { commit: "defaultSetsDownloaded", default: false } as Field<boolean>,
+  { commit: "defaultSetsDownloaded", default: 0 } as Field<number>,
   { commit: "colors_primary", default: "#197377" } as Field<string>,
   { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
   { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
@@ -33,7 +33,7 @@ const fields = [
 const store = createStore<LINKaStore>({
   state: {
     popupVersion: 0,
-    defaultSetsDownloaded: false,
+    defaultSetsDownloaded: 0,
     pcHash: "unknow",
     colors: {
       secondary: "",

@@ -1,7 +1,7 @@
 <template>
   <v-app v-if="pcHash != 'unknow'">
-    <download-default-sets-dialog/>
-    <notification-popup/>
+    <download-default-sets-dialog />
+    <notification-popup />
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
     <v-main style="margin-bottom: 40px">
@@ -46,7 +46,7 @@ const secondary = computed(() => {
   return hexToRGB(store.state.colors.secondary);
 });
 
-function hexToRGB (input: string) {
+function hexToRGB(input: string) {
   const aRgbHex = input.slice(1).match(/.{1,2}/g);
   if (!aRgbHex) return null;
   const aRgb = [
