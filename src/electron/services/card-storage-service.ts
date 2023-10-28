@@ -170,13 +170,13 @@ export class CardsStorage extends ICloudStorage {
 
   async createAudioFromText (path: string, text: string, voice: string): Promise<string | null> {
     const buff = await tts(text, voice);
-    return this.addBuffer(path, buff, ".mp3");
+    return this.addBuffer(path, buff, "mp3");
   }
 
   async createImageFromText (path: string, text: string): Promise<string | null> {
     const buffer = await createImageFromText(text);
 
-    return this.addBuffer(path, buffer, ".png");
+    return this.addBuffer(path, buffer, "png");
   }
 
   async defaultToTemp (path: string): Promise<string> {

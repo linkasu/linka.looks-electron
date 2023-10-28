@@ -80,43 +80,49 @@
           </v-layout>
         </v-card-text>
       </v-card>
-      <v-card v-if="selected">
-        <v-btn
-          v-if="selected.cardType != 3"
-          title="Сбросить карточку"
-          icon
-          absolute
-          color="error"
-          class="delete"
-          @click="selected.cardType = 3"
-        >
-          <v-icon>mdi-delete</v-icon>
-        </v-btn>
+      <v-card v-if="selected" class="mt-7">
         <v-card-title primary-title>
-          Редактировать карточку
+          Редактирование
+          <v-spacer />
+          <v-btn
+            v-if="selected.cardType != 3"
+            title="Сбросить карточку"
+            icon
+            absolute
+            depressed
+            color="error"
+            class="delete"
+            @click="selected.cardType = 3"
+          >
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
         </v-card-title>
         <v-card-text>
           <v-form>
             <v-row>
-              <v-select
-                v-model="selected.cardType"
-                :items="cardTypes"
-                label="Тип карточки"
-                item-title="text"
-                item-value="value"
-              />
+              <v-col>
+                <v-select
+                  v-model="selected.cardType"
+                  :items="cardTypes"
+                  label="Тип карточки"
+                  item-title="text"
+                  item-value="value"
+                />
+              </v-col>
             </v-row>
             <section v-if="selected.cardType == 0">
               <v-row>
-                <v-text-field
-                  v-model="selected.title"
-                  outline
-                  label="Название карточки"
-                  max-length="30"
-                />
+                <v-col>
+                  <v-text-field
+                    v-model="selected.title"
+                    outline
+                    label="Название карточки"
+                    max-length="30"
+                  />
+                </v-col>
               </v-row>
               <v-row>
-                <v-card width="100%">
+                <v-card width="100%" elevation="0">
                   <v-card-title primary-title>
                     Работа с изображением
                   </v-card-title>
@@ -125,6 +131,7 @@
                       <v-row>
                         <v-btn
                           block
+                          class="mb-1"
                           @click="selectImage"
                         >
                           Выбрать картинку
@@ -142,7 +149,7 @@
                 </v-card>
               </v-row>
               <v-row>
-                <v-card width="100%">
+                <v-card width="100%" elevation="0">
                   <v-card-title primary-title>
                     Работа с озвучкой
                   </v-card-title>
@@ -151,12 +158,13 @@
                       <v-row>
                         <TTSDialog
                           :file="filename"
-                          @audio="(src: string) => (selected.audioPath = src)"
+                          @audio="onAudioFromTTS"
                         />
                       </v-row>
                       <v-row>
                         <v-btn
                           block
+                          class="mb-1"
                           @click="selectAudio"
                         >
                           Выбрать звук из файла
@@ -223,12 +231,13 @@ import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTex
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
-import type { Card, NewCard } from "@/common/interfaces/ConfigFile";
+import type { Card, NewCard, StandardCard } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { uuid } from "uuidv4";
 import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
 import { Metric } from "@/frontend/utils/Metric";
+import { unref } from "vue";
 
 const store = useStore();
 const route = useRoute();
@@ -252,7 +261,7 @@ const cardTypes = [
 
 const mcurrent: Ref<(Card | NewCard)[]> = ref([]);
 const mpage = ref(0);
-const selected: Ref<Card | NewCard | null> = ref(null);
+const selected: Ref<Card | NewCard | StandardCard | null> = ref(null);
 
 const path = computed(() => {
   return route.params.path.toString();
@@ -437,6 +446,17 @@ async function selectImage () {
   }
 }
 
+function onAudioFromTTS (audioSrcFile: string) {
+  if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
+  (selected.value as StandardCard).audioPath = audioSrcFile;
+}
+/**
+ * Called each time the user decides to open the fs navigator and use an .mp3
+ * as an audio source.
+ * 
+ * The proxied-to function returns the name of the file.
+ * Which is saved inside the current set's card's object.
+ */
 async function selectAudio () {
   if (!filename.value) return;
   const id = await storageService.selectAudio(filename.value);

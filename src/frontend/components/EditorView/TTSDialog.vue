@@ -7,6 +7,7 @@
       <v-btn
         v-bind="props"
         block
+        class="mb-1"
       >
         Cоздать из текста
       </v-btn>
