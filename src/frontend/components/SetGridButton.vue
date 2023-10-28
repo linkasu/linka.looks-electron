@@ -62,7 +62,7 @@ interface ISetGridButtonProps {
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
-  dot: false,
+  dot: false
 });
 
 const store = useStore();

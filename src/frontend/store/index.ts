@@ -83,10 +83,10 @@ const store = createStore<LINKaStore>({
     }
   },
   mutations: {
-    enable_ui(state) {
+    enable_ui (state) {
       state.ui.disabled = false;
     },
-    disable_ui(state) {
+    disable_ui (state) {
       state.ui.disabled = true;
     },
     popupVersion (state, value) {
@@ -211,10 +211,10 @@ const store = createStore<LINKaStore>({
   },
 
   actions: {
-    enable_ui({ commit }) {
+    enable_ui ({ commit }) {
       commit("enable_ui");
     },
-    disable_ui({ commit }) {
+    disable_ui ({ commit }) {
       commit("disable_ui");
     },
     keymap_push ({ state, commit }, { side, code }: { side: Side, code: string }) {

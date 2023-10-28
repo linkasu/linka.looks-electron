@@ -465,7 +465,7 @@ function onAudioFromTTS (audioSrcFile: string) {
 /**
  * Called each time the user decides to open the fs navigator and use an .mp3
  * as an audio source.
- * 
+ *
  * The proxied-to function returns the name of the file.
  * Which is saved inside the current set's card's object.
  */
