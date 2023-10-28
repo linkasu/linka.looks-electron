@@ -5,6 +5,7 @@
   >
     <new-file-dialog
       :show="newFileDialogShow"
+      :disabled="ui_disabled"
       @text="newFileName"
     />
     <div class="editor-body">
@@ -20,6 +21,7 @@
             v-if="isQuiz"
             v-model="questions[page]"
             label="Введите вопрос для этой страницы"
+            :disabled="ui_disabled"
           />
         </v-card-text>
         <v-card-text class="cards-wrapper">
@@ -28,6 +30,7 @@
             item-key="id"
             class="cards"
             :style="{ '--rows': rows, '--columns': columns }"
+            :disabled="ui_disabled"
           >
             <template #item="{ element, index }">
               <set-grid-button
@@ -40,6 +43,7 @@
                   nonValid: !isValid(element)
                 }"
                 :dot="!!element.answer"
+                :disabled="ui_disabled"
                 @click="select(index)"
               />
             </template>
@@ -52,6 +56,7 @@
                 <v-btn
                   block
                   color="orange"
+                  :disabled="ui_disabled"
                   @click="page--"
                 >
                   <v-icon>mdi-arrow-left</v-icon>
@@ -61,7 +66,7 @@
                 <v-btn
                   block
                   color="blue"
-                  disabled
+                  :disabled="ui_disabled"
                 >
                   {{ page + 1 }}
                 </v-btn>
@@ -70,7 +75,7 @@
                 <v-btn
                   block
                   color="orange"
-                  :disabled="emptyPage"
+                  :disabled="emptyPage || ui_disabled"
                   @click="page++"
                 >
                   <v-icon>mdi-arrow-right</v-icon>
@@ -92,6 +97,7 @@
             depressed
             color="error"
             class="delete"
+            :disabled="ui_disabled"
             @click="selected.cardType = 3"
           >
             <v-icon>mdi-delete</v-icon>
@@ -107,6 +113,7 @@
                   label="Тип карточки"
                   item-title="text"
                   item-value="value"
+                  :disabled="ui_disabled"
                 />
               </v-col>
             </v-row>
@@ -118,6 +125,7 @@
                     outline
                     label="Название карточки"
                     max-length="30"
+                    :disabled="ui_disabled"
                   />
                 </v-col>
               </v-row>
@@ -132,6 +140,7 @@
                         <v-btn
                           block
                           class="mb-1"
+                          :disabled="ui_disabled"
                           @click="selectImage"
                         >
                           Выбрать картинку
@@ -165,6 +174,7 @@
                         <v-btn
                           block
                           class="mb-1"
+                          :disabled="ui_disabled"
                           @click="selectAudio"
                         >
                           Выбрать звук из файла
@@ -173,6 +183,7 @@
                       <v-row v-if="selected.audioPath">
                         <v-btn
                           block
+                          :disabled="ui_disabled"
                           @click="playAudio"
                         >
                           Послушать озвучку
@@ -222,7 +233,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
@@ -237,7 +248,6 @@ import { uuid } from "uuidv4";
 import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
 import { Metric } from "@/frontend/utils/Metric";
-import { unref } from "vue";
 
 const store = useStore();
 const route = useRoute();
@@ -262,6 +272,10 @@ const cardTypes = [
 const mcurrent: Ref<(Card | NewCard)[]> = ref([]);
 const mpage = ref(0);
 const selected: Ref<Card | NewCard | StandardCard | null> = ref(null);
+
+const ui_disabled = computed(() => store.state.ui.disabled);
+
+watch(ui_disabled, (val) => { console.log("wather: ui_disabled:", val) })
 
 const path = computed(() => {
   return route.params.path.toString();
@@ -439,11 +453,13 @@ function getNewCard (): NewCard {
 
 async function selectImage () {
   if (!filename.value) return;
+  store.dispatch("disable_ui");
   const id = await storageService.selectImage(filename.value);
 
   if (selected.value && selected.value.cardType === 0) {
     selected.value.imagePath = id;
   }
+  store.dispatch("enable_ui");
 }
 
 function onAudioFromTTS (audioSrcFile: string) {
@@ -459,11 +475,13 @@ function onAudioFromTTS (audioSrcFile: string) {
  */
 async function selectAudio () {
   if (!filename.value) return;
+  store.dispatch("disable_ui");
   const id = await storageService.selectAudio(filename.value);
 
   if (selected.value && selected.value.cardType === 0 && id) {
     selected.value.audioPath = id;
   }
+  store.dispatch("enable_ui");
 }
 
 function playAudio () {

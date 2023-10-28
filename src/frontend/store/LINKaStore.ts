@@ -33,6 +33,7 @@ export interface LINKaStore {
         animation: boolean
     },
     ui: {
+        disabled: boolean,
         outputLine: boolean,
         exitButton: boolean
     }

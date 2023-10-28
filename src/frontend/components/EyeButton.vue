@@ -2,8 +2,9 @@
   <button
     ref="elRef"
     class="eyebtn"
-    :class="{ eye: enabled, isInside, lock }"
+    :class="{ eye: buttonEnabled, isInside, lock }"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
+    :disabled="!buttonEnabled"
     @click="click()"
   >
     <slot />
@@ -33,14 +34,14 @@ import { ref, onMounted, defineProps, computed } from "vue";
 import { useStore } from "vuex";
 
 interface IEyeButtonProps {
-  enabled?: boolean
+  disabled?: boolean
   lock?: boolean
   color?: string
   path?: boolean
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {
-  enabled: true,
+  disabled: false,
   lock: false,
   path: false
 });
@@ -74,7 +75,7 @@ onMounted(() => {
 });
 
 const buttonEnabled = computed(() => {
-  return store.state.button.enabled;
+  return store.state.button.enabled && !props.disabled;
 });
 
 const size = computed(() => {
