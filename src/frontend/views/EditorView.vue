@@ -43,7 +43,6 @@
                   nonValid: !isValid(element)
                 }"
                 :dot="!!element.answer"
-                :disabled="ui_disabled"
                 @click="select(index)"
               />
             </template>

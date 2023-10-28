@@ -1,5 +1,5 @@
 <template>
-  <eye-button :disabled="props.disabled">
+  <eye-button>
     <div
       v-if="dot"
       class="dot"
@@ -59,12 +59,10 @@ interface ISetGridButtonProps {
   card: Card
   file: string
   dot?: boolean
-  disabled?: boolean
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
   dot: false,
-  disabled: false,
 });
 
 const store = useStore();
