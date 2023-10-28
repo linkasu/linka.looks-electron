@@ -6,6 +6,7 @@
     confirm-text="Создать"
     cancel-text="Отмена"
     :show="props.show"
+    :disabled="props.disabled"
     @confirm="(text: string) => emit('text', text)"
     @cancel="cancel"
   />
@@ -16,7 +17,7 @@ import { defineProps, withDefaults, defineEmits } from "vue";
 import { useRouter } from "vue-router";
 import InputDialog from "@/frontend/components/InputDialog.vue";
 
-const props = withDefaults(defineProps<{ show: boolean }>(), { show: false });
+const props = withDefaults(defineProps<{ show: boolean, disabled: boolean }>(), { show: false, disabled: false });
 const emit = defineEmits<{(e: "text", payload: string): void }>();
 
 const router = useRouter();

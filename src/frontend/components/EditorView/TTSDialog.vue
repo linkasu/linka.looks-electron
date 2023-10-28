@@ -7,6 +7,8 @@
       <v-btn
         v-bind="props"
         block
+        class="mb-1"
+        :disabled="ui_disabled"
       >
         Cоздать из текста
       </v-btn>
@@ -62,12 +64,16 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, defineProps, defineEmits } from "vue";
+import { ref, watch, defineProps, defineEmits, computed } from "vue";
+import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";
 
+const store = useStore();
 const props = defineProps<{ file: string }>();
 const emit = defineEmits<{(e: "audio", payload: string): void }>();
+
+const ui_disabled = computed(() => store.state.ui.disabled);
 
 const voices = [
   { value: "zahar", text: "Захар" },
@@ -85,8 +91,10 @@ const voice = ref("alena");
 watch(dialog, onDialog);
 
 function create () {
+  store.dispatch("disable_ui");
   storageService.createAudioFromText(props.file, text.value, voice.value).then((value: string) => {
     emit("audio", value);
+    store.dispatch("enable_ui");
   });
 }
 

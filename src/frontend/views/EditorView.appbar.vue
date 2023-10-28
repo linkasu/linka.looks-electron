@@ -9,6 +9,7 @@
     <set-settings />
     <save-button
       :title="title"
+      :disabled="ui_disabled"
       @save="save"
       @saveAs="(title: string) => saveAs(title)"
     />
@@ -27,6 +28,8 @@ import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
 
 const router = useRouter();
 const store = useStore();
+
+const ui_disabled = computed(() => store.state.ui.disabled);
 
 const path = computed((): string => {
   return store.state.editor.current;

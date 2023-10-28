@@ -53,6 +53,7 @@ const store = createStore<LINKaStore>({
       animation: true
     },
     ui: {
+      disabled: false,
       outputLine: true,
       exitButton: true
     },
@@ -82,6 +83,12 @@ const store = createStore<LINKaStore>({
     }
   },
   mutations: {
+    enable_ui (state) {
+      state.ui.disabled = false;
+    },
+    disable_ui (state) {
+      state.ui.disabled = true;
+    },
     popupVersion (state, value) {
       state.popupVersion = value;
     },
@@ -204,7 +211,12 @@ const store = createStore<LINKaStore>({
   },
 
   actions: {
-
+    enable_ui ({ commit }) {
+      commit("enable_ui");
+    },
+    disable_ui ({ commit }) {
+      commit("disable_ui");
+    },
     keymap_push ({ state, commit }, { side, code }: { side: Side, code: string }) {
       if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
         state.keyMapping[side].push(code);
@@ -256,7 +268,6 @@ const store = createStore<LINKaStore>({
       }
     },
     async editor_save ({ state, commit }) {
-      console.log("sending saveSet to frontend service:", state.editor.cards);
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,

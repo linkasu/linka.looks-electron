@@ -12,7 +12,6 @@ import { storageService } from "@/frontend/services/card-storage-service";
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
-
     redirect: "/§"
   },
   {

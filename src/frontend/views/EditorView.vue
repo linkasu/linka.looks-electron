@@ -5,6 +5,7 @@
   >
     <new-file-dialog
       :show="newFileDialogShow"
+      :disabled="ui_disabled"
       @text="newFileName"
     />
     <div class="editor-body">
@@ -20,6 +21,7 @@
             v-if="isQuiz"
             v-model="questions[page]"
             label="Введите вопрос для этой страницы"
+            :disabled="ui_disabled"
           />
         </v-card-text>
         <v-card-text class="cards-wrapper">
@@ -28,6 +30,7 @@
             item-key="id"
             class="cards"
             :style="{ '--rows': rows, '--columns': columns }"
+            :disabled="ui_disabled"
           >
             <template #item="{ element, index }">
               <set-grid-button
@@ -52,6 +55,7 @@
                 <v-btn
                   block
                   color="orange"
+                  :disabled="ui_disabled"
                   @click="page--"
                 >
                   <v-icon>mdi-arrow-left</v-icon>
@@ -61,7 +65,7 @@
                 <v-btn
                   block
                   color="blue"
-                  disabled
+                  :disabled="ui_disabled"
                 >
                   {{ page + 1 }}
                 </v-btn>
@@ -70,7 +74,7 @@
                 <v-btn
                   block
                   color="orange"
-                  :disabled="emptyPage"
+                  :disabled="emptyPage || ui_disabled"
                   @click="page++"
                 >
                   <v-icon>mdi-arrow-right</v-icon>
@@ -80,43 +84,52 @@
           </v-layout>
         </v-card-text>
       </v-card>
-      <v-card v-if="selected">
-        <v-btn
-          v-if="selected.cardType != 3"
-          title="Сбросить карточку"
-          icon
-          absolute
-          color="error"
-          class="delete"
-          @click="selected.cardType = 3"
-        >
-          <v-icon>mdi-delete</v-icon>
-        </v-btn>
+      <v-card v-if="selected" class="mt-7">
         <v-card-title primary-title>
-          Редактировать карточку
+          Редактирование
+          <v-spacer />
+          <v-btn
+            v-if="selected.cardType != 3"
+            title="Сбросить карточку"
+            icon
+            absolute
+            depressed
+            color="error"
+            class="delete"
+            :disabled="ui_disabled"
+            @click="selected.cardType = 3"
+          >
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
         </v-card-title>
         <v-card-text>
           <v-form>
             <v-row>
-              <v-select
-                v-model="selected.cardType"
-                :items="cardTypes"
-                label="Тип карточки"
-                item-title="text"
-                item-value="value"
-              />
+              <v-col>
+                <v-select
+                  v-model="selected.cardType"
+                  :items="cardTypes"
+                  label="Тип карточки"
+                  item-title="text"
+                  item-value="value"
+                  :disabled="ui_disabled"
+                />
+              </v-col>
             </v-row>
             <section v-if="selected.cardType == 0">
               <v-row>
-                <v-text-field
-                  v-model="selected.title"
-                  outline
-                  label="Название карточки"
-                  max-length="30"
-                />
+                <v-col>
+                  <v-text-field
+                    v-model="selected.title"
+                    outline
+                    label="Название карточки"
+                    max-length="30"
+                    :disabled="ui_disabled"
+                  />
+                </v-col>
               </v-row>
               <v-row>
-                <v-card width="100%">
+                <v-card width="100%" elevation="0">
                   <v-card-title primary-title>
                     Работа с изображением
                   </v-card-title>
@@ -125,6 +138,8 @@
                       <v-row>
                         <v-btn
                           block
+                          class="mb-1"
+                          :disabled="ui_disabled"
                           @click="selectImage"
                         >
                           Выбрать картинку
@@ -142,7 +157,7 @@
                 </v-card>
               </v-row>
               <v-row>
-                <v-card width="100%">
+                <v-card width="100%" elevation="0">
                   <v-card-title primary-title>
                     Работа с озвучкой
                   </v-card-title>
@@ -151,12 +166,14 @@
                       <v-row>
                         <TTSDialog
                           :file="filename"
-                          @audio="(src: string) => (selected.audioPath = src)"
+                          @audio="onAudioFromTTS"
                         />
                       </v-row>
                       <v-row>
                         <v-btn
                           block
+                          class="mb-1"
+                          :disabled="ui_disabled"
                           @click="selectAudio"
                         >
                           Выбрать звук из файла
@@ -165,6 +182,7 @@
                       <v-row v-if="selected.audioPath">
                         <v-btn
                           block
+                          :disabled="ui_disabled"
                           @click="playAudio"
                         >
                           Послушать озвучку
@@ -214,7 +232,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
@@ -223,7 +241,7 @@ import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTex
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
-import type { Card, NewCard } from "@/common/interfaces/ConfigFile";
+import type { Card, NewCard, StandardCard } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { uuid } from "uuidv4";
 import { TTS } from "@/frontend/utils/TTS";
@@ -252,7 +270,9 @@ const cardTypes = [
 
 const mcurrent: Ref<(Card | NewCard)[]> = ref([]);
 const mpage = ref(0);
-const selected: Ref<Card | NewCard | null> = ref(null);
+const selected: Ref<Card | NewCard | StandardCard | null> = ref(null);
+
+const ui_disabled = computed(() => store.state.ui.disabled);
 
 const path = computed(() => {
   return route.params.path.toString();
@@ -283,7 +303,6 @@ const cards = computed({
     return store.state.editor.cards;
   },
   set (v: (Card | NewCard)[]) {
-    console.log("commiting to store:", v);
     store.commit("editor_cards", v);
   }
 });
@@ -430,20 +449,35 @@ function getNewCard (): NewCard {
 
 async function selectImage () {
   if (!filename.value) return;
+  store.dispatch("disable_ui");
   const id = await storageService.selectImage(filename.value);
 
   if (selected.value && selected.value.cardType === 0) {
     selected.value.imagePath = id;
   }
+  store.dispatch("enable_ui");
 }
 
+function onAudioFromTTS (audioSrcFile: string) {
+  if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
+  (selected.value as StandardCard).audioPath = audioSrcFile;
+}
+/**
+ * Called each time the user decides to open the fs navigator and use an .mp3
+ * as an audio source.
+ *
+ * The proxied-to function returns the name of the file.
+ * Which is saved inside the current set's card's object.
+ */
 async function selectAudio () {
   if (!filename.value) return;
+  store.dispatch("disable_ui");
   const id = await storageService.selectAudio(filename.value);
 
   if (selected.value && selected.value.cardType === 0 && id) {
     selected.value.audioPath = id;
   }
+  store.dispatch("enable_ui");
 }
 
 function playAudio () {
