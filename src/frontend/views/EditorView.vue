@@ -275,8 +275,6 @@ const selected: Ref<Card | NewCard | StandardCard | null> = ref(null);
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
-watch(ui_disabled, (val) => { console.log("wather: ui_disabled:", val) })
-
 const path = computed(() => {
   return route.params.path.toString();
 });
@@ -306,7 +304,6 @@ const cards = computed({
     return store.state.editor.cards;
   },
   set (v: (Card | NewCard)[]) {
-    console.log("commiting to store:", v);
     store.commit("editor_cards", v);
   }
 });

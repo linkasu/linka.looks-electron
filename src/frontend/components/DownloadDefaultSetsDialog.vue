@@ -53,7 +53,6 @@ const progress = ref(0);
 
 onMounted((): void => {
   const newLocal = +store.state.defaultSetsDownloaded;
-  console.log(newLocal);
 
   dialog.value = (newLocal) < 2;
 

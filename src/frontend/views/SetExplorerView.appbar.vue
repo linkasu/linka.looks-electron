@@ -124,7 +124,6 @@ function back () {
 }
 
 function switchAnimation () {
-  console.log("switchAnimation");
   store.dispatch("button_animation_toggle");
 }
 
