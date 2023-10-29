@@ -3,6 +3,10 @@
   "version": "2.2.2",
   "author": "ibakaidov",
   "private": true,
+  "engines" : { 
+    "yarn" : ">=1.22.0",
+    "node" : ">=16.17.0 <17.0.0"
+  },
   "main": "background.js",
   "repository": {
     "type": "git",
