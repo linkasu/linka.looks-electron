@@ -35,7 +35,7 @@
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.4",
     "eslint-config-vue-preset": "^0.6.0",
-    "eslint-plugin-vue": "^9.17.0",
+    "eslint-plugin-vue": "^9.18.1",
     "extract-zip": "^2.0.1",
     "eyelog": "github:linkasu/node-eyelog",
     "gamepad-wrapper": "^1.2.0",
