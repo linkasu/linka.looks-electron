@@ -1,16 +1,17 @@
-export type Card = StandardCard
-
-interface StandardCard {
+export enum CardType {
+  AudioCard = 0,
+  SpaceCard = 1,
+  EmptyCard = 2,
+  NewCard = 3
+}
+export interface Card {
   id: string;
-  cardType: 0|1|2|3;
+  cardType: CardType;
   imagePath?: string;
   title?: string;
   audioPath?: string;
+  audioText?: string;
   answer?: true
-}
-export interface NewCard {
-  id: string,
-  cardType: 3
 }
 
 export interface ConfigFile {

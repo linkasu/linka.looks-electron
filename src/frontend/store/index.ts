@@ -267,7 +267,7 @@ const store = createStore<LINKaStore>({
         commit("editor_questions", config.questions ?? []);
       }
     },
-    async editor_save ({ state, commit }) {
+    async editor_save ({ state }) {
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,

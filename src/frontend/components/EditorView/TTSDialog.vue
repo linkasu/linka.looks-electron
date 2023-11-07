@@ -29,18 +29,15 @@
           />
 
           <v-text-field
-            v-model="text"
-            label="Текст для картинки"
+            v-model="audioText"
+            label="Текст для озвучки"
           />
         </v-form>
       </v-card-text>
       <v-card-actions>
         <v-btn
           color="primary"
-          @click="
-            create(),
-            dialog = false
-          "
+          @click="create"
         >
           Создать
         </v-btn>
@@ -70,8 +67,8 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";
 
 const store = useStore();
-const props = defineProps<{ file: string }>();
-const emit = defineEmits<{(e: "audio", payload: string): void }>();
+const props = defineProps<{ file: string, audioText?: string }>();
+const emit = defineEmits<{(e: "audio", payload: { audioSrcFile: string, audioText: string }): void }>();
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
@@ -85,26 +82,27 @@ const voices = [
   { value: "omazh", text: "Ома" }
 ];
 const dialog = ref(false);
-const text = ref("");
+const audioText = ref(props.audioText ?? "");
 const voice = ref("alena");
 
 watch(dialog, onDialog);
 
 function create () {
   store.dispatch("disable_ui");
-  storageService.createAudioFromText(props.file, text.value, voice.value).then((value: string) => {
-    emit("audio", value);
+  storageService.createAudioFromText(props.file, audioText.value, voice.value).then((audioSrcFile: string) => {
+    emit("audio", { audioSrcFile, audioText: audioText.value });
     store.dispatch("enable_ui");
+    dialog.value = false;
   });
 }
 
 function onDialog (v: boolean) {
   if (!v) {
-    text.value = "";
+    audioText.value = "";
   }
 }
 
 function playExample () {
-  TTS.instance.playText(text.value, voice.value);
+  TTS.instance.playText(audioText.value, voice.value);
 }
 </script>

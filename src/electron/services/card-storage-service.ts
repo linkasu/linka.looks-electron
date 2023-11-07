@@ -5,7 +5,7 @@ import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promi
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
 import AdmZip from "adm-zip";
-import { ConfigFile } from "@/common/interfaces/ConfigFile";
+import { CardType, ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
 import { ICloudStorage } from "../../common/abstract";
 import { appendZip } from "@/frontend/utils/addToZip";
@@ -202,17 +202,18 @@ export class CardsStorage extends ICloudStorage {
     location = this.checkPath(location);
     await this.cleanFile(path, config);
     config.cards = config.cards.filter(Boolean).map((card) => {
-      if (card.cardType > 2) {
+      // EmptyCard = 2,
+      // NewCardType = 3
+      if (card.cardType === CardType.NewCard) {
         card = {
           id: uuid(),
-          cardType: 2
+          cardType: CardType.EmptyCard
         };
       }
       return card;
     });
 
     const json = JSON.stringify(config);
-    JSON.parse(json);
     try {
       await this.addBuffer(path, Buffer.from(json), "json", "config");
     } catch (error) {

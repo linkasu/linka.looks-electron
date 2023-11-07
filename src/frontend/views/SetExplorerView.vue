@@ -41,7 +41,7 @@ import { useRoute } from "vue-router";
 import OutputLine from "@/frontend/components/OutputLine.vue";
 import QuizOutputLine from "@/frontend/components/QuizOutputLine.vue";
 import SetGrid from "@/frontend/components/SetGrid.vue";
-import type { Card } from "@/common/interfaces/ConfigFile";
+import { CardType, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import { Metric } from "@/frontend/utils/Metric";
 
@@ -94,8 +94,8 @@ function addCard (card: Card) {
   }
   if (interfaceOutputLine.value) {
     if (
-      (config.value?.withoutSpace && card.cardType < 2) ||
-      (!config.value?.withoutSpace && card.cardType === 0)
+      (config.value?.withoutSpace && [CardType.AudioCard, CardType.SpaceCard].includes(card.cardType)) ||
+      (!config.value?.withoutSpace && card.cardType === CardType.AudioCard)
     ) {
       cards.value.push(card);
     }
