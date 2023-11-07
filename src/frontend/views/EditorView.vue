@@ -420,7 +420,7 @@ function onColumns () {
   page.value = 0;
 }
 
-function onImageSelected(path: string) {
+function onImageSelected (path: string) {
   if (!selected.value) return;
   selected.value.imagePath = path;
 }
