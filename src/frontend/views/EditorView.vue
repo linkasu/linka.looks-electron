@@ -89,7 +89,7 @@
           Редактирование
           <v-spacer />
           <v-btn
-            v-if="selected.cardType != 3"
+            v-if="selected.cardType !== CardTypes.NewCard"
             title="Сбросить карточку"
             icon
             absolute
@@ -97,7 +97,7 @@
             color="error"
             class="delete"
             :disabled="ui_disabled"
-            @click="selected.cardType = 3"
+            @click="selected.cardType = CardTypes.NewCard"
           >
             <v-icon>mdi-delete</v-icon>
           </v-btn>
@@ -108,7 +108,7 @@
               <v-col>
                 <v-select
                   v-model="selected.cardType"
-                  :items="cardTypes"
+                  :items="cardTypeOptions"
                   label="Тип карточки"
                   item-title="text"
                   item-value="value"
@@ -116,7 +116,7 @@
                 />
               </v-col>
             </v-row>
-            <section v-if="selected.cardType == 0">
+            <section v-if="selected.cardType === CardTypes.AudioCard">
               <v-row>
                 <v-col>
                   <v-text-field
@@ -149,7 +149,7 @@
                         <create-from-text-dialog
                           block
                           :file="filename"
-                          @image="(path: string) => (selected.imagePath = path)"
+                          @image="onImageSelected"
                         />
                       </v-row>
                     </v-container>
@@ -161,6 +161,9 @@
                   <v-card-title primary-title>
                     Работа с озвучкой
                   </v-card-title>
+                  <v-card-subtitle v-if="selected.cardType === CardTypes.AudioCard">
+                    {{ selected.audioText ?? (selected.audioPath ? ".mp3 файл добавлен" : "Добавьте текст или .mp3 файл!") }}
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-container>
                       <v-row>
@@ -232,7 +235,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
@@ -241,7 +244,8 @@ import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTex
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
-import type { Card, NewCard, StandardCard } from "@/common/interfaces/ConfigFile";
+import type { Card } from "@/common/interfaces/ConfigFile";
+import { CardType } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { uuid } from "uuidv4";
 import { TTS } from "@/frontend/utils/TTS";
@@ -261,16 +265,17 @@ onMounted(() => {
   Metric.registerEvent(store.state.pcHash, "openEditor");
 });
 
-const cardTypes = [
+const CardTypes = CardType;
+const cardTypeOptions = [
   { text: "Обычная", value: 0 },
-  { text: "Пустая ", value: 2 },
   { text: "Пробел", value: 1 },
+  { text: "Пустая ", value: 2 },
   { text: "Новая карточка", value: 3 }
 ];
 
-const mcurrent: Ref<(Card | NewCard)[]> = ref([]);
+const mcurrent: Ref<(Card)[]> = ref([]);
 const mpage = ref(0);
-const selected: Ref<Card | NewCard | StandardCard | null> = ref(null);
+const selected: Ref<Card | null> = ref(null);
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
@@ -302,7 +307,7 @@ const cards = computed({
   get () {
     return store.state.editor.cards;
   },
-  set (v: (Card | NewCard)[]) {
+  set (v: (Card)[]) {
     store.commit("editor_cards", v);
   }
 });
@@ -312,10 +317,10 @@ const filename = computed(() => {
 });
 
 const current = computed({
-  get (): (Card | NewCard)[] {
+  get (): (Card)[] {
     return mcurrent.value;
   },
-  set (v: (Card | NewCard)[]) {
+  set (v: (Card)[]) {
     if (v.length === mcurrent.value.length) {
       const cids = mcurrent.value.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
@@ -376,12 +381,12 @@ const page = computed({
     for (let i = 0; i < arr.length; i++) {
       const element = arr[i];
       if (!element) {
-        arr[i] = getNewCard();
+        arr[i] = genNewCard();
       }
     }
 
     while (arr.length < pageSize.value) {
-      arr.push(getNewCard());
+      arr.push(genNewCard());
     }
     current.value = arr;
   }
@@ -389,7 +394,7 @@ const page = computed({
 
 const emptyPage = computed(() => {
   for (const card of current.value) {
-    if (card.cardType !== 3) return false;
+    if (card.cardType !== CardType.NewCard) return false;
   }
   return true;
 });
@@ -399,7 +404,7 @@ const questions = computed(() => {
 });
 
 function isValid (card: Card) {
-  if (card.cardType === 0) {
+  if (card.cardType === CardType.AudioCard) {
     if (!card.imagePath || !card.imagePath || !card.title) {
       return false;
     }
@@ -413,6 +418,11 @@ function onRows () {
 
 function onColumns () {
   page.value = 0;
+}
+
+function onImageSelected(path: string) {
+  if (!selected.value) return;
+  selected.value.imagePath = path;
 }
 
 async function newFileName (text: string) {
@@ -433,14 +443,14 @@ function select (index: number) {
     card = cards.value[pageSize.value * page.value + index] = current.value[index];
     for (let i = 0; i < pageSize.value * page.value + index; i++) {
       if (!cards.value[i]) {
-        cards.value[i] = getNewCard();
+        cards.value[i] = genNewCard();
       }
     }
   }
   selected.value = card;
 }
 
-function getNewCard (): NewCard {
+function genNewCard (): Card {
   return {
     cardType: 3,
     id: uuid()
@@ -452,15 +462,16 @@ async function selectImage () {
   store.dispatch("disable_ui");
   const id = await storageService.selectImage(filename.value);
 
-  if (selected.value && selected.value.cardType === 0) {
+  if (selected.value && selected.value.cardType === CardType.AudioCard) {
     selected.value.imagePath = id;
   }
   store.dispatch("enable_ui");
 }
 
-function onAudioFromTTS (audioSrcFile: string) {
+function onAudioFromTTS ({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
   if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
-  (selected.value as StandardCard).audioPath = audioSrcFile;
+  selected.value.audioPath = audioSrcFile;
+  selected.value.audioText = audioText;
 }
 /**
  * Called each time the user decides to open the fs navigator and use an .mp3
@@ -481,7 +492,7 @@ async function selectAudio () {
 }
 
 function playAudio () {
-  if (filename.value && selected.value && selected.value.cardType == 0) {
+  if (filename.value && selected.value && selected.value.cardType === CardType.AudioCard) {
     TTS.instance.playCards(filename.value, [selected.value]);
   }
 }

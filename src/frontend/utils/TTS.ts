@@ -1,5 +1,5 @@
 import { storageService } from "@/frontend/services/card-storage-service";
-import { Card } from "@/common/interfaces/ConfigFile";
+import { Card, CardType } from "@/common/interfaces/ConfigFile";
 import { tts } from "./TTSServer";
 
 export class TTS {
@@ -22,7 +22,7 @@ export class TTS {
     this.isPlaying = true;
     for (const card of cards) {
       if (!this.isPlaying) break;
-      if (card.cardType == 0 && card.audioPath) {
+      if (card.cardType === CardType.AudioCard && card.audioPath) {
         const buffer = await storageService.getAudio(file, card.audioPath);
         if (!buffer) continue;
         const url = URL.createObjectURL(

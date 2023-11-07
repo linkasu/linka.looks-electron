@@ -76,7 +76,7 @@ import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
-import type { Card, ConfigFile } from "@/common/interfaces/ConfigFile";
+import { CardType, type Card, type ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 
 interface IOutputLineProps {
@@ -115,7 +115,7 @@ const clone = computed(() => {
 const text = computed(() => {
   return clone.value
     .map((c: Card) => {
-      return c.cardType === 0 ? c.title : " ";
+      return c.cardType === CardType.AudioCard ? c.title : " ";
     })
     .join("");
 });
