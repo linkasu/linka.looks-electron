@@ -85,6 +85,7 @@ const voices = [
 ];
 const dialog = ref(false);
 const audioText = ref(props.audioText ?? "");
+//const voice = ref(computed(() => store.state.voice));
 const voice = ref("alena");
 
 watch(dialog, onDialog);

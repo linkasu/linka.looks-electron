@@ -233,6 +233,10 @@ const store = createStore<LINKaStore>({
       commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
       state.selectedKey = undefined;
     },
+    voice_change ({ state }, voice: string) {
+      state.voice = voice;
+      //commit("voice");
+    },
 
     interface_outputLine ({ state, commit }) {
       commit("interface_outputLine", !state.ui.outputLine);
