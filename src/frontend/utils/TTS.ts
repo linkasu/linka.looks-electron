@@ -13,6 +13,16 @@ export class TTS {
     return TTS._instance;
   }
 
+  static voices = [
+    { value: "zahar", text: "Захар" },
+    { value: "ermil", text: "Емиль" },
+    { value: "jane", text: "Джейн" },
+    { value: "oksana", text: "Оксана" },
+    { value: "alena", text: "Алёна" },
+    { value: "filipp", text: "Филипп" },
+    { value: "omazh", text: "Ома" }
+  ];
+
   public async playCards (file: string, cards: Card[], force = false) {
     if (this.isPlaying) {
       this.isPlaying = false;

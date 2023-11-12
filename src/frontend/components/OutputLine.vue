@@ -148,6 +148,7 @@ function backspace () {
 }
 
 async function say () {
+  if (isPlaying.value) return;
   isPlaying.value = true;
   if (props.config?.withoutSpace) {
     if (text.value) await TTS.instance.playText(text.value, voiceToPlay.value);

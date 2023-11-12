@@ -74,19 +74,12 @@ const emit = defineEmits<{(e: "audio", payload: { audioSrcFile: string, audioTex
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
-const voices = [
-  { value: "zahar", text: "Захар" },
-  { value: "ermil", text: "Емиль" },
-  { value: "jane", text: "Джейн" },
-  { value: "oksana", text: "Оксана" },
-  { value: "alena", text: "Алёна" },
-  { value: "filipp", text: "Филипп" },
-  { value: "omazh", text: "Ома" }
-];
+const voices = TTS.voices;
+
 const dialog = ref(false);
 const audioText = ref(props.audioText ?? "");
-//const voice = ref(computed(() => store.state.voice));
-const voice = ref("alena");
+const defaultVoice = computed(() => store.state.voice);
+const voice = ref(defaultVoice.value);
 
 watch(dialog, onDialog);
 
