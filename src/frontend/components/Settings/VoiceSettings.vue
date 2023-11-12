@@ -5,12 +5,11 @@
         <v-card-text>
             <v-form>
                 <v-select
-                  v-model="voiceOption"
+                  v-model="voice"
                   :items="voices"
                   label="Голос"
                   item-value="value"
                   item-title="text"
-                  
                 />
                 <v-btn
                   color="success"
@@ -29,6 +28,7 @@ import { Ref, computed, ref } from "vue";
   import { useStore } from "vuex";
   
   const store = useStore();
+  //let isPlayingExample = false;
 
   const voices = [
   { value: "zahar", text: "Захар" },
@@ -45,23 +45,19 @@ import { Ref, computed, ref } from "vue";
       return store.state.voice;
     },
     set (value: string) {
-      store.commit("voice", value);
+      store.dispatch("voice_change", value);
     }
   });
 
-  const defaultVoice = voices.find((v) => v.value === voice.value) || { value: "alena", text: "Алёна" };
-  const voiceOption: Ref<string | null> = ref(defaultVoice.value);
-
-  
-  function selectColor (e) {
-    console.log(e.target.value);
-  }
+  /*function isDisabled () {
+    return isPlayingExample;
+  }*/
   
   function playExample () {
+    //isPlayingExample = true;
     const selected = voices.find((v) => v.value === voice.value);
-    console.log(voices, voice)
     if (!selected) return;
-    TTS.instance.playText(selected.text, selected.value);
+    TTS.instance.playText(selected.text, selected.value) //.finally(()=> isPlayingExample=false);
   };
   </script>
   

@@ -102,6 +102,10 @@ const buttonEnabled = computed(() => {
   return store.state.button.enabled;
 });
 
+const voiceToPlay = computed(() => {
+  return store.state.voice;
+});
+
 const withoutSpace = computed(() => {
   return props.config?.withoutSpace;
 });
@@ -146,7 +150,7 @@ function backspace () {
 async function say () {
   isPlaying.value = true;
   if (props.config?.withoutSpace) {
-    if (text.value) await TTS.instance.playText(text.value, /*voice*/);
+    if (text.value) await TTS.instance.playText(text.value, voiceToPlay.value);
   } else await TTS.instance.playCards(props.file, props.cards);
   isPlaying.value = false;
 }
