@@ -86,6 +86,7 @@
         md="4"
       >
         <color-settings />
+        <voice-settings />
       </v-col>
     </v-row>
     <v-row>
@@ -104,6 +105,7 @@ import { computed, onMounted } from "vue";
 import { useStore } from "vuex";
 
 import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
+import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
 import { Metric } from "@/frontend/utils/Metric";
 

@@ -146,7 +146,7 @@ function backspace () {
 async function say () {
   isPlaying.value = true;
   if (props.config?.withoutSpace) {
-    if (text.value) await TTS.instance.playText(text.value);
+    if (text.value) await TTS.instance.playText(text.value, /*voice*/);
   } else await TTS.instance.playCards(props.file, props.cards);
   isPlaying.value = false;
 }

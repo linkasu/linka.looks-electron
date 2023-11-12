@@ -17,6 +17,7 @@ export interface LINKaStore {
         accent: string,
         secondary: string
     }
+    voice: string,
 
     keyMapping: KeyMap
     selectedKey?: Side;
