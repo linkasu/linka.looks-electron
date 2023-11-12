@@ -13,7 +13,7 @@ const fields = [
   { commit: "colors_primary", default: "#197377" } as Field<string>,
   { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
   { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
-  { commit: "voice", default: "alena"} as Field<string>,
+  { commit: "voice", default: "alena" } as Field<string>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
@@ -235,7 +235,6 @@ const store = createStore<LINKaStore>({
     },
     voice_change ({ state }, voice: string) {
       state.voice = voice;
-      //commit("voice");
     },
 
     interface_outputLine ({ state, commit }) {
