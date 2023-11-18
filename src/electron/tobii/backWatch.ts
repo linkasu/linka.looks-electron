@@ -19,7 +19,7 @@ export class BackWatch {
       ipcMain.on("eye-elements", (event, data: PageElementsState) => {
         this.hid = data.id;
         const winBounds = win.getContentBounds();
-        
+
         const bounds: Bound[] = data.bounds.map((el: DOMRect) => {
           return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el => Math.round(el)));
         });
