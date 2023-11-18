@@ -104,7 +104,6 @@ function onEnter (eye: boolean) {
 function click () {
   if (!store.state.button.clickSound) return;
   const el = document.getElementById("button_audio") as HTMLAudioElement;
-  el.pause();
   el.currentTime = 0;
   el.play();
 }
