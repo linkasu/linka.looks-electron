@@ -1,7 +1,7 @@
 import { platform } from "os";
 import { TobiiProcess } from "eyelog/dist/TobiiProcess";
 import { join } from "path";
-import { BrowserWindow, ipcMain, screen } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
 import type { PageElementsState } from "@/common/interfaces/PageElementsState";
 import { Bound } from "eyelog/dist/bound";
 
@@ -19,10 +19,9 @@ export class BackWatch {
       ipcMain.on("eye-elements", (event, data: PageElementsState) => {
         this.hid = data.id;
         const winBounds = win.getContentBounds();
-        const scale = screen.getPrimaryDisplay().scaleFactor;
-
+        
         const bounds: Bound[] = data.bounds.map((el: DOMRect) => {
-          return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el => Math.round(el * scale)));
+          return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el => Math.round(el)));
         });
 
         this.tobii?.setBounds(bounds);
