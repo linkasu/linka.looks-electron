@@ -21,8 +21,8 @@
       <v-card-text>
         <v-form>
           <v-select
-            v-model="voice"
-            :items="voices"
+            v-model="currentVoice"
+            :items="voiceOptions"
             label="Голос"
             item-value="value"
             item-title="text"
@@ -61,38 +61,56 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, defineProps, defineEmits, computed } from "vue";
+import { ref, watch, defineProps, defineEmits, computed, Ref } from "vue";
 import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";
 
 const store = useStore();
-const props = defineProps<{ file: string, audioText?: string }>();
-const emit = defineEmits<{(e: "audio", payload: { audioSrcFile: string, audioText: string }): void }>();
+const props = defineProps<{ file: string, audioText?: string, audioVoice?: string }>();
+const emit = defineEmits<{(e: "audio", payload: { audioSrcFile: string, audioText: string, audioVoice: string }): void }>();
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
-const voices = TTS.voices;
-
 const dialog = ref(false);
-const audioText = ref(props.audioText ?? "");
-const defaultVoice = computed(() => store.state.voice);
-const voice = ref(defaultVoice.value);
+
+const audioText: Ref<(string)> = ref("");
+const currentAudioText = computed({
+  get () {
+    return audioText.value;
+  },
+  set (v: string) {
+    audioText.value = v;
+  }
+});
+
+const voiceOptions = TTS.voices;
+const defaultSettingsVoice = computed(() => store.state.voice);
+const voice: Ref<(string)> = ref("");
+const currentVoice = computed({
+  get () {
+    return voice.value;
+  },
+  set (v: string) {
+    voice.value = v;
+  }
+});
 
 watch(dialog, onDialog);
 
 function create () {
   store.dispatch("disable_ui");
-  storageService.createAudioFromText(props.file, audioText.value, voice.value).then((audioSrcFile: string) => {
-    emit("audio", { audioSrcFile, audioText: audioText.value });
+  storageService.createAudioFromText(props.file, currentAudioText.value, currentVoice.value).then((audioSrcFile: string) => {
+    emit("audio", { audioSrcFile, audioText: audioText.value, audioVoice: voice.value });
     store.dispatch("enable_ui");
     dialog.value = false;
   });
 }
 
 function onDialog (v: boolean) {
-  if (!v) {
-    audioText.value = "";
+  if (v) {
+    currentVoice.value = props.audioVoice ?? defaultSettingsVoice.value;
+    currentAudioText.value = props.audioText ?? "";
   }
 }
 

@@ -170,6 +170,8 @@
                         <TTSDialog
                           :file="filename"
                           @audio="onAudioFromTTS"
+                          :audioText="selected.audioText"
+                          :audioVoice="selected.audioVoice"
                         />
                       </v-row>
                       <v-row>
@@ -468,10 +470,11 @@ async function selectImage () {
   store.dispatch("enable_ui");
 }
 
-function onAudioFromTTS ({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
+function onAudioFromTTS ({ audioSrcFile, audioText, audioVoice }: { audioSrcFile: string, audioText: string, audioVoice: string }) {
   if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
   selected.value.audioPath = audioSrcFile;
   selected.value.audioText = audioText;
+  selected.value.audioVoice = audioVoice;
 }
 /**
  * Called each time the user decides to open the fs navigator and use an .mp3
