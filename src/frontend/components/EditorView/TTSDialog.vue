@@ -38,6 +38,7 @@
         <v-btn
           color="primary"
           @click="create"
+          :disabled="!hasText"
         >
           Создать
         </v-btn>
@@ -52,6 +53,7 @@
         <v-btn
           color="success"
           @click="playExample"
+          :disabled="!hasText"
         >
           Послушать результат
         </v-btn>
@@ -105,4 +107,8 @@ function onDialog (v: boolean) {
 function playExample () {
   TTS.instance.playText(audioText.value, voice.value);
 }
+
+const hasText = computed(() => {
+  return audioText.value.trim() !== "";
+});
 </script>
