@@ -23,8 +23,10 @@ export class PageWatcher {
 
   gamepadButtonsMap = new Map<string, boolean[]>();
   cycle?: NodeJS.Timer;
+  static instance: PageWatcher;
 
   constructor () {
+    PageWatcher.instance = this;
     this.watchElementsChange();
     window.addEventListener("resize", () => this.watchElementsChange());
     const observer = new MutationObserver((m) => {
@@ -96,15 +98,17 @@ export class PageWatcher {
     requestAnimationFrame(() => this.joystickCycle());
   }
 
-  private watchElementsChange () {
+  watchElementsChange (force = false) {
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
-    const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
-      const a = this.elements.bounds[index];
+    if (!force) {
+      const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
+        const a = this.elements.bounds[index];
 
-      return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-    }).includes(false);
-    if (equals) return;
+        return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+      }).includes(false);
+      if (equals) return;
+    }
     this.elements = {
       elements: eyes,
       bounds,
