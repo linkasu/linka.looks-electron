@@ -1,28 +1,10 @@
 <template>
-  <button
-    ref="elRef"
-    class="eyebtn"
-    :class="{ eye: buttonEnabled, isInside, lock }"
-    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
-    :disabled="!buttonEnabled"
-    @click="click()"
-  >
+  <button ref="elRef" class="eyebtn" :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
+    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }" :disabled="!buttonEnabled" @click="click()">
     <slot />
-    <div
-      v-if="isInside || (!buttonEnabled && !lock)"
-      class="overlay"
-      :class="{ disabled: !buttonEnabled && !lock }"
-    >
-      <div
-        v-if="circle"
-        class="progress-bar"
-        :style="{ '--seconds': seconds, '--size': size }"
-      >
-        <progress
-          min="0"
-          :max="buttonTimeout"
-          style="visibility: hidden; height: 0; width: 0"
-        />
+    <div v-if="isInside || (!buttonEnabled && !lock)" class="overlay" :class="{ disabled: !buttonEnabled && !lock }">
+      <div v-if="circle" class="progress-bar" :style="{ '--seconds': seconds, '--size': size }">
+        <progress min="0" :max="buttonTimeout" style="visibility: hidden; height: 0; width: 0" />
       </div>
     </div>
   </button>
@@ -38,6 +20,7 @@ interface IEyeButtonProps {
   lock?: boolean
   color?: string
   path?: boolean
+  editor?: boolean
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {
@@ -66,7 +49,7 @@ onMounted(() => {
   el?.addEventListener("eye-enter", (event) => {
     const e = event as CustomEvent;
     const eye = !!e.detail.eye;
-
+    if (props.editor) return;
     if (buttonEnabled.value || props.lock) onEnter(eye);
   });
   el?.addEventListener("eye-exit", () => {
@@ -88,12 +71,12 @@ const seconds = computed(() => {
   return buttonTimeout.value / 1000 + "s";
 });
 
-function onExit () {
+function onExit() {
   isInside.value = false;
   circle.value = false;
 }
 
-function onEnter (eye: boolean) {
+function onEnter(eye: boolean) {
   if (eye && !store.state.button.eyeSelect) return;
   if (!eye && !store.state.button.keyboardActivation) return;
   if (!eye && !store.state.button.joystickActivation) return;
@@ -101,7 +84,7 @@ function onEnter (eye: boolean) {
   circle.value = store.state.button.eyeActivation && eye;
 }
 
-function click () {
+function click() {
   if (!store.state.button.clickSound) return;
   const el = document.getElementById("button_audio") as HTMLAudioElement;
   el.currentTime = 0;
@@ -130,6 +113,7 @@ function click () {
   width: 100%;
   height: 100%;
 }
+
 .isInside {
   background-color: rgb(var(--v-theme-secondary)) !important;
 }
@@ -139,6 +123,7 @@ canvas {
   left: 0;
   top: 0;
 }
+
 @property --progress-value {
   syntax: '<integer>';
   initial-value: 0;
@@ -164,10 +149,8 @@ canvas {
   height: var(--size);
   border-radius: 50%;
   background: radial-gradient(closest-side, transparent 79%, transparent 80% 100%),
-    conic-gradient(
-      rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
-      transparent 0
-    );
+    conic-gradient(rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
+      transparent 0);
   animation: progress 1s infinite forwards;
   animation-duration: var(--seconds);
   animation-timing-function: linear;

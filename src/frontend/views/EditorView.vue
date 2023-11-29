@@ -37,7 +37,7 @@
                 :key="element.id"
                 :file="filename"
                 :card="element"
-                :enabled="false"
+                :editor="true"
                 :class="{
                   selected: selected?.id === element?.id,
                   nonValid: !isValid(element)
