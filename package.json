@@ -41,7 +41,6 @@
     "gamepad-wrapper": "^1.2.0",
     "is-valid-path": "^0.1.1",
     "linebreak-next": "^1.0.3",
-    "platform-folders": "^0.6.0",
     "roboto-fontface": "*",
     "ts-loader": "^8.0.0",
     "uuidv4": "^6.2.13",

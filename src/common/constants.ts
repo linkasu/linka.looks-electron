@@ -1,6 +1,5 @@
-
+import { homedir, userInfo } from "os";
 import { join } from "path";
-import getPath from "platform-folders";
-const documentsPath = getPath("documents")!;
+const documentsPath = join( homedir(), "Documents");
 const linkedFolderName = "LINKa";
 export const HOME_DIR = join(documentsPath, linkedFolderName);
