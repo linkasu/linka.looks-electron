@@ -55,10 +55,10 @@ export class CardsStorage extends ICloudStorage {
   async getFiles (path = ""): Promise<(Directory)> {
     const dir = this.checkPath(path);
     const files = (await readdir(dir)).map((f) => join(dir, f));
-    
+
     return files.map((file) => {
-      if(file.endsWith(' ')){
-        renameSync(file, file.trim())
+      if (file.endsWith(" ")) {
+        renameSync(file, file.trim());
       }
       try {
         if (lstatSync(file).isDirectory()) {

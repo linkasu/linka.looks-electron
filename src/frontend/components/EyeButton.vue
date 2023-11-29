@@ -71,12 +71,12 @@ const seconds = computed(() => {
   return buttonTimeout.value / 1000 + "s";
 });
 
-function onExit() {
+function onExit () {
   isInside.value = false;
   circle.value = false;
 }
 
-function onEnter(eye: boolean) {
+function onEnter (eye: boolean) {
   if (eye && !store.state.button.eyeSelect) return;
   if (!eye && !store.state.button.keyboardActivation) return;
   if (!eye && !store.state.button.joystickActivation) return;
@@ -84,7 +84,7 @@ function onEnter(eye: boolean) {
   circle.value = store.state.button.eyeActivation && eye;
 }
 
-function click() {
+function click () {
   if (!store.state.button.clickSound) return;
   const el = document.getElementById("button_audio") as HTMLAudioElement;
   el.currentTime = 0;

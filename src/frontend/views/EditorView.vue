@@ -287,9 +287,9 @@ const columns = computed({
   get () {
     const columns = store.state.editor.columns;
     setTimeout(() => {
-      onColumns()
+      onColumns();
     }, 10);
-    return columns
+    return columns;
   },
   set (v: number) {
     store.commit("editor_columns", v);
@@ -300,8 +300,8 @@ const columns = computed({
 const rows = computed({
   get () {
     setTimeout(() => {
-      onRows()
-    }, 10); 
+      onRows();
+    }, 10);
     return store.state.editor.rows;
   },
   set (v: number) {

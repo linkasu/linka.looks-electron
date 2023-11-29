@@ -26,7 +26,7 @@ export class PageWatcher {
   cycle?: NodeJS.Timer;
   static instance: PageWatcher;
 
-  constructor() {
+  constructor () {
     PageWatcher.instance = this;
     this.watchElementsChange();
     window.addEventListener("resize", () => this.watchElementsChange());
@@ -57,7 +57,7 @@ export class PageWatcher {
 
       const element = this.elements.elements[data.elementIndex];
       if (data.count > 1) return;
-      if (element!==undefined){
+      if (element !== undefined) {
         this.clickWatch(element, true);
       }
     });
@@ -74,7 +74,7 @@ export class PageWatcher {
     this.joystickCycle();
   }
 
-  joystickCycle() {
+  joystickCycle () {
     const gamepads = navigator.getGamepads();
     for (const gamepad of gamepads) {
       if (!gamepad) continue;
@@ -101,11 +101,11 @@ export class PageWatcher {
     requestAnimationFrame(() => this.joystickCycle());
   }
 
-  watchElementsChange(force = false) {
-    const screenTest = document.getElementById('screen-test')
-    if(!screenTest) return;
+  watchElementsChange (force = false) {
+    const screenTest = document.getElementById("screen-test");
+    if (!screenTest) return;
     const bottom = screenTest.getBoundingClientRect().bottom;
-    
+
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
     if (!force) {
@@ -125,7 +125,7 @@ export class PageWatcher {
     ipcRenderer.send("eye-elements", JSON.parse(JSON.stringify(this.elements)));
   }
 
-  onKeyboard(code: string) {
+  onKeyboard (code: string) {
     const joy = code.startsWith("joy");
     if ((!joy && !store.state.button.keyboardActivation) || (joy && !store.state.button.joystickActivation)) return;
 
@@ -170,7 +170,7 @@ export class PageWatcher {
     return true;
   }
 
-  clickWatch(el: Element, eye: boolean) {
+  clickWatch (el: Element, eye: boolean) {
     if (!el.classList.contains("lock")) {
       if (eye && !store.state.button.eyeActivation) { return; }
       if (!eye && !store.state.button.keyboardActivation) { return; }
@@ -179,7 +179,7 @@ export class PageWatcher {
     el?.dispatchEvent(e);
   }
 
-  enterWatch(el: Element) {
+  enterWatch (el: Element) {
     if (!el) return;
     if (!store.state.button.eyeSelect) return;
     this.lastElement = el;
@@ -192,7 +192,7 @@ export class PageWatcher {
     el.dispatchEvent(e);
   }
 
-  exitWatch() {
+  exitWatch () {
     const e = new CustomEvent("eye-exit", {
       detail: {
         eye: true
@@ -203,7 +203,7 @@ export class PageWatcher {
     this.lastElement = undefined;
   }
 
-  private findNear(elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {
+  private findNear (elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {
     if (!this.lastElement) return null;
     const currentRect = this.lastElement.getBoundingClientRect();
     let distance = Number.MAX_VALUE;
