@@ -64,7 +64,7 @@ function hexToRGB (input: string) {
   overflow: scroll;
 }
 
-* {
+:root {
   --v-theme-primary: v-bind(primary) !important;
   --v-theme-accent: v-bind(accent) !important;
   --v-theme-secondary: v-bind(secondary) !important;

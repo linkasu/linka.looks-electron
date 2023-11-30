@@ -1,40 +1,19 @@
 <template>
   <div class="grid">
     <div class="left-grid">
-      <eye-button
-        v-if="isExitButton"
-        color="accent"
-        @click="$router.back()"
-      >
+      <eye-button v-if="isExitButton" color="accent" @click="$router.back()">
         <v-icon>mdi-exit-run</v-icon>
       </eye-button>
-      <eye-button
-        v-if="!config.quiz"
-        color="primary"
-        @click="page--"
-      >
+      <eye-button v-if="!config.quiz" color="primary" @click="page--">
         <v-icon> mdi-arrow-left </v-icon>
       </eye-button>
     </div>
 
-    <div
-      class="cards"
-      :style="{ '--rows': config.rows, '--columns': config.columns }"
-    >
-      <set-grid-button
-        v-for="card in current"
-        :key="card.id"
-        :card="card"
-        :file="file"
-        @click="emit('card', card)"
-      />
+    <div class="cards" :style="{ '--rows': config.rows, '--columns': config.columns }">
+      <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="emit('card', card)" />
     </div>
 
-    <eye-button
-      v-if="!config.quiz"
-      color="primary"
-      @click="page++"
-    >
+    <eye-button v-if="!config.quiz" color="primary" @click="page++">
       <v-icon> mdi-arrow-right </v-icon>
     </eye-button>
   </div>
@@ -49,6 +28,7 @@ import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import { Card } from "../../common/interfaces/ConfigFile";
+import { PageWatcher } from "@/electron/tobii/pageWatch";
 
 interface ISetGridProps {
   config: ConfigFile
@@ -76,6 +56,9 @@ const page = computed({
       0,
       Math.min(Math.ceil(props.config.cards.length / pageSize.value) - 1, value)
     );
+    setTimeout(() => {
+      PageWatcher.instance.watchElementsChange(true);
+    }, 10);
   }
 });
 
@@ -101,7 +84,7 @@ function onQuizPage (p: number) {
   border-top: 1px solid black;
   display: grid;
 
-  grid-template-columns: 1fr 16fr 1fr;
+  grid-template-columns: 1fr 8fr 1fr;
   height: 100%;
 }
 
@@ -115,6 +98,7 @@ function onQuizPage (p: number) {
   display: grid;
   grid-template-columns: 1fr;
 }
+
 .left-grid:has(button + button) {
   grid-template-rows: 2fr 10fr;
 }

@@ -18,13 +18,16 @@ export class PageWatcher {
   private elements: BrowserElementsState = {
     id: "",
     elements: [],
+    bottom: 0,
     bounds: [] as DOMRect[]
   };
 
   gamepadButtonsMap = new Map<string, boolean[]>();
   cycle?: NodeJS.Timer;
+  static instance: PageWatcher;
 
   constructor () {
+    PageWatcher.instance = this;
     this.watchElementsChange();
     window.addEventListener("resize", () => this.watchElementsChange());
     const observer = new MutationObserver((m) => {
@@ -54,7 +57,9 @@ export class PageWatcher {
 
       const element = this.elements.elements[data.elementIndex];
       if (data.count > 1) return;
-      this.clickWatch(element, true);
+      if (element !== undefined) {
+        this.clickWatch(element, true);
+      }
     });
 
     window.addEventListener("keydown", (event) => {
@@ -96,18 +101,25 @@ export class PageWatcher {
     requestAnimationFrame(() => this.joystickCycle());
   }
 
-  private watchElementsChange () {
+  watchElementsChange (force = false) {
+    const screenTest = document.getElementById("screen-test");
+    if (!screenTest) return;
+    const bottom = screenTest.getBoundingClientRect().bottom;
+
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
-    const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
-      const a = this.elements.bounds[index];
+    if (!force) {
+      const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
+        const a = this.elements.bounds[index];
 
-      return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-    }).includes(false);
-    if (equals) return;
+        return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+      }).includes(false);
+      if (equals) return;
+    }
     this.elements = {
       elements: eyes,
       bounds,
+      bottom,
       id: uuid()
     };
     ipcRenderer.send("eye-elements", JSON.parse(JSON.stringify(this.elements)));

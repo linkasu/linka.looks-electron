@@ -46,7 +46,7 @@
           <set-grid-button
             v-for="(card, i) in clone"
             :key="i"
-            :enabled="false"
+            :editor="true"
             :card="card"
             :file="file"
             class="card"

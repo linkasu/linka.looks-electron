@@ -14,6 +14,7 @@ import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/electron/utils/ImageFromText";
 import { HOME_DIR } from "../../common/constants";
+import { renameSync } from "original-fs";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
 
@@ -54,7 +55,11 @@ export class CardsStorage extends ICloudStorage {
   async getFiles (path = ""): Promise<(Directory)> {
     const dir = this.checkPath(path);
     const files = (await readdir(dir)).map((f) => join(dir, f));
+
     return files.map((file) => {
+      if (file.endsWith(" ")) {
+        renameSync(file, file.trim());
+      }
       try {
         if (lstatSync(file).isDirectory()) {
           return {
