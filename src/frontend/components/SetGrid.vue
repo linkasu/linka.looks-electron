@@ -84,7 +84,7 @@ function onQuizPage (p: number) {
   border-top: 1px solid black;
   display: grid;
 
-  grid-template-columns: 1fr 16fr 1fr;
+  grid-template-columns: 1fr 8fr 1fr;
   height: 100%;
 }
 

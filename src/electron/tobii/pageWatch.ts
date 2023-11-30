@@ -18,6 +18,7 @@ export class PageWatcher {
   private elements: BrowserElementsState = {
     id: "",
     elements: [],
+    bottom: 0,
     bounds: [] as DOMRect[]
   };
 
@@ -56,7 +57,9 @@ export class PageWatcher {
 
       const element = this.elements.elements[data.elementIndex];
       if (data.count > 1) return;
-      this.clickWatch(element, true);
+      if (element !== undefined) {
+        this.clickWatch(element, true);
+      }
     });
 
     window.addEventListener("keydown", (event) => {
@@ -99,6 +102,10 @@ export class PageWatcher {
   }
 
   watchElementsChange (force = false) {
+    const screenTest = document.getElementById("screen-test");
+    if (!screenTest) return;
+    const bottom = screenTest.getBoundingClientRect().bottom;
+
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
     if (!force) {
@@ -112,6 +119,7 @@ export class PageWatcher {
     this.elements = {
       elements: eyes,
       bounds,
+      bottom,
       id: uuid()
     };
     ipcRenderer.send("eye-elements", JSON.parse(JSON.stringify(this.elements)));

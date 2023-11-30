@@ -37,7 +37,7 @@
                 :key="element.id"
                 :file="filename"
                 :card="element"
-                :enabled="false"
+                :editor="true"
                 :class="{
                   selected: selected?.id === element?.id,
                   nonValid: !isValid(element)
@@ -285,7 +285,11 @@ const path = computed(() => {
 
 const columns = computed({
   get () {
-    return store.state.editor.columns;
+    const columns = store.state.editor.columns;
+    setTimeout(() => {
+      onColumns();
+    }, 10);
+    return columns;
   },
   set (v: number) {
     store.commit("editor_columns", v);
@@ -295,6 +299,9 @@ const columns = computed({
 
 const rows = computed({
   get () {
+    setTimeout(() => {
+      onRows();
+    }, 10);
     return store.state.editor.rows;
   },
   set (v: number) {

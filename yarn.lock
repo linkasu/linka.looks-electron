@@ -3240,7 +3240,16 @@ aws4@^1.8.0:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.12.0.tgz#ce1c9d143389679e253b314241ea9aa5cec980d3"
   integrity sha512-NmWvPnx0F1SfrQbYwOi7OeaNGokp9XhzNioJ/CSBs8Qa4vxug81mhJEAVZwxXuBmYB5KDRfMq/F3RR0BIU7sWg==
 
-axios@^1.5.0, axios@^1.6.0:
+axios@^1.5.0:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.6.2.tgz#de67d42c755b571d3e698df1b6504cde9b0ee9f2"
+  integrity sha512-7i24Ri4pmDRfJTR7LDBhsOTtcm+9kjX5WiY1X3wIisx6G9So3pfMkEiU7emUBe46oceVImccTEM3k6C5dbVW8A==
+  dependencies:
+    follow-redirects "^1.15.0"
+    form-data "^4.0.0"
+    proxy-from-env "^1.1.0"
+
+axios@^1.6.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.6.0.tgz#f1e5292f26b2fd5c2e66876adc5b06cdbd7d2102"
   integrity sha512-EZ1DYihju9pwVB+jg67ogm+Tmqc6JmhamRN6I4Zt8DfZu5lbcQGw3ozH9lFejSJgs/ibaef3A9PMXPLeefFGJg==
@@ -5969,9 +5978,10 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.1.tgz#8d172c064867f235c0c84a596806d279bf4bcc07"
   integrity sha512-Wrk35e8ydCKDj/ArClo1VrPVmN8zph5V4AtHwIuHhvMXsKf73UT3BOD+azBIW+3wOJ4FhEH7zyaJCFvChjYvMA==
 
-"eyelog@github:linkasu/node-eyelog":
-  version "1.0.5"
-  resolved "https://codeload.github.com/linkasu/node-eyelog/tar.gz/0e19058365c9bfec5f2fe1e2c6bdd9eb29041722"
+eyelog@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/eyelog/-/eyelog-1.1.1.tgz#397ac92ebd1dc7848e2a441281a11d536a1e57cf"
+  integrity sha512-AfFjdDBUFQmW+dlEOAzIjUD/K6nrdbV1RPNAkjSZrTPT+0lZoNO3/yGnc8kYrwEZxZUr+EM3F7PAi/VmBTtB1w==
   dependencies:
     axios "^1.5.0"
     decompress "^4.2.1"
