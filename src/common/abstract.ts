@@ -3,81 +3,84 @@ import { Directory } from "@/common/interfaces/Directory";
 import { getMethods } from "@/frontend/utils/getMethods";
 
 export abstract class ICloudStorage {
-  static getMethods (): Array<keyof ICloudStorage> {
+  static getMethods(): Array<keyof ICloudStorage> {
     const mockImplementation = class extends ICloudStorage {
-      getArgv (): Promise<string[]> {
+      downloadImageFromBank(file: string, id: string): Promise<string> {
+        throw new Error("Method not implemented.");
+      }
+      getArgv(): Promise<string[]> {
         throw new Error("Method not implemented.");
       }
 
-      downloadAndUnpack (url: string): Promise<void> {
+      downloadAndUnpack(url: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
 
-      getFiles (path: string): Promise<Directory | null> {
+      getFiles(path: string): Promise<Directory | null> {
         throw new Error("Method not implemented.");
       }
 
-      getConfigFile (path: string): ConfigFile | Promise<ConfigFile | null> | null {
+      getConfigFile(path: string): ConfigFile | Promise<ConfigFile | null> | null {
         throw new Error("Method not implemented.");
       }
 
-      getDefaultImage (path: string): Buffer | Promise<Uint8Array | null> | null {
+      getDefaultImage(path: string): Buffer | Promise<Uint8Array | null> | null {
         throw new Error("Method not implemented.");
       }
 
-      getImage (path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
+      getImage(path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
         throw new Error("Method not implemented.");
       }
 
-      getAudio (path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
+      getAudio(path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
         throw new Error("Method not implemented.");
       }
 
-      moveToTrash (path: string): Promise<void> {
+      moveToTrash(path: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
 
-      copyToTemp (path: string): Promise<string> {
+      copyToTemp(path: string): Promise<string> {
         throw new Error("Method not implemented.");
       }
 
-      selectImage (path: string): Promise<string | null> {
+      selectImage(path: string): Promise<string | null> {
         throw new Error("Method not implemented.");
       }
 
-      selectAudio (path: string): Promise<string | null> {
+      selectAudio(path: string): Promise<string | null> {
         throw new Error("Method not implemented.");
       }
 
-      createImageFromText (path: string, text: string): Promise<string | null> {
+      createImageFromText(path: string, text: string): Promise<string | null> {
         throw new Error("Method not implemented.");
       }
 
-      createAudioFromText (path: string, text: string, voice: string): Promise<string | null> {
+      createAudioFromText(path: string, text: string, voice: string): Promise<string | null> {
         throw new Error("Method not implemented.");
       }
 
-      defaultToTemp (file: string): string | Promise<string> {
+      defaultToTemp(file: string): string | Promise<string> {
         throw new Error("Method not implemented.");
       }
 
-      saveSet (path: string, location: string, config: ConfigFile): Promise<void> {
+      saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
         throw new Error("Method not implemented.");
       }
 
-      moveSet (file: string, location: string): Promise<string> {
+      moveSet(file: string, location: string): Promise<string> {
         throw new Error("Method not implemented.");
       }
 
-      mkdir (file: string): Promise<void> {
+      mkdir(file: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
 
-      rmdir (file: string): Promise<void> {
+      rmdir(file: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
 
-      showItemInFolder (file: string): Promise<void> {
+      showItemInFolder(file: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
     };
@@ -107,4 +110,6 @@ export abstract class ICloudStorage {
   abstract showItemInFolder(file: string): Promise<void>;
 
   abstract getArgv(): Promise<string[]>;
+
+  abstract downloadImageFromBank(file: string, id: string): Promise<string>;
 }

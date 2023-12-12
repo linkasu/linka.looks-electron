@@ -15,12 +15,14 @@ import delay from "delay";
 import { createImageFromText } from "@/electron/utils/ImageFromText";
 import { HOME_DIR } from "../../common/constants";
 import { renameSync } from "original-fs";
+import axios from "axios";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
 
 let win: BrowserWindow | null = null;
 
 export class CardsStorage extends ICloudStorage {
+  
   constructor () {
     super();
     this.init();
@@ -183,7 +185,10 @@ export class CardsStorage extends ICloudStorage {
 
     return this.addBuffer(path, buffer, "png");
   }
-
+  async downloadImageFromBank(path: string, id: string): Promise<string> {
+    const buffer = await axios.get(`https://pictures.linka.su/picture/${id}/buffer`, { responseType: "arraybuffer" });
+    return this.addBuffer(path, Buffer.from(buffer.data), "png");
+  }
   async defaultToTemp (path: string): Promise<string> {
     path = this.checkPath(path);
     const tmp = join(tmpdir(), basename(path));
