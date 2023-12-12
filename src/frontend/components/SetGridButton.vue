@@ -130,7 +130,7 @@ function createStaticImage (url: string) {
 .content {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 1.5em;
+  grid-template-rows: auto 2.5em;
   gap: 10px;
   padding: 8px;
 }
@@ -173,6 +173,31 @@ function createStaticImage (url: string) {
   white-space: nowrap;
   max-width: 100%;
   font-size: 1em;
+  font-weight: normal;
+}
+.text_18 {
+  font-size: 18px;
+}
+.text_20 {
+  font-size: 20px;
+}
+.text_22 {
+  font-size: 22px;
+}
+.text_24 {
+  font-size: 24px;
+}
+.text_26 {
+  font-size: 26px;
+}
+.text_28 {
+  font-size: 28px;
+}
+.text_30 {
+  font-size: 30px;
+}
+.text_bold {
+  font-weight: bold;
 }
 .dot {
   --size: 24px;

@@ -45,6 +45,16 @@
         {{ animation ? 'mdi-pause' : 'mdi-play' }}
       </v-icon>
     </v-btn>
+    <v-btn
+      flat
+      icon
+      :color="animation ? 'primary' : ''"
+      :title="(animation ? 'Выключить' : 'Включить') + ' анимацию изображений'"
+    >
+      <v-icon @click="switchAnimation">
+        mdi-format-size
+      </v-icon>
+    </v-btn>
     <v-spacer />
     <share-button />
     <v-btn
