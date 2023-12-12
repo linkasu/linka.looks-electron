@@ -4,9 +4,10 @@ import { ICloudStorage } from "@/common/abstract";
 import { Directory } from "@/common/interfaces/Directory";
 
 class StorageService extends ICloudStorage {
-  downloadImageFromBank(file: string, id: string): Promise<string> {
+  downloadImageFromBank (file: string, id: string): Promise<string> {
     return ipcRenderer.invoke("storage:downloadImageFromBank", file, id);
   }
+
   getArgv (): Promise<string[]> {
     return ipcRenderer.invoke("storage:getArgv");
   }

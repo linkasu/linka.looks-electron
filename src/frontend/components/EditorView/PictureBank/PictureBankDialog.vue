@@ -45,23 +45,22 @@
 </template>
 
 <script lang="ts" setup>
-import { PictureBankApi } from 'pictures.bank-api';
-import { Category } from 'pictures.bank-api/dist/types/category';
-import { Picture } from 'pictures.bank-api/dist/types/picture';
-import { ref } from 'vue';
+import { PictureBankApi } from "pictures.bank-api";
+import { Category } from "pictures.bank-api/dist/types/category";
+import { Picture } from "pictures.bank-api/dist/types/picture";
+import { ref } from "vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 
 const { file } = defineProps({
-    file: {
-        type: String,
-        required: true
-    }
+  file: {
+    type: String,
+    required: true
+  }
 });
 const emit = defineEmits<{
     (e: "image", value: string): void,
     (e: "name", value: string): void
 }>();
-
 
 const dialog = ref(false);
 
@@ -70,40 +69,38 @@ const api = new PictureBankApi();
 const categories = ref<Category[]>([]);
 const selectedCategory = ref<string | null>(null);
 api.categories.getCategories().then((data) => {
-    if (categories.value.length === data.length) return;
-    categories.value = data;
+  if (categories.value.length === data.length) return;
+  categories.value = data;
 });
 
-const search = ref('');
+const search = ref("");
 
 const pictures = ref<Picture[]>([]);
 
-
-function onCategoryChange() {
-    if (selectedCategory.value === null) return;
-    search.value = '';
-    api.pictures.getPicturesByCategory(selectedCategory.value).then((data) => {
-        pictures.value = data;
-    });
+function onCategoryChange () {
+  if (selectedCategory.value === null) return;
+  search.value = "";
+  api.pictures.getPicturesByCategory(selectedCategory.value).then((data) => {
+    pictures.value = data;
+  });
 }
 
-function onSearchChange() {
-    if (search.value === '') {
-        onCategoryChange();
-        return;
-    }
-    if (search.value.length < 1) return;
-    selectedCategory.value = null;
-    api.pictures.searchPictures(search.value).then((data) => {
-        pictures.value = data;
-    });
+function onSearchChange () {
+  if (search.value === "") {
+    onCategoryChange();
+    return;
+  }
+  if (search.value.length < 1) return;
+  selectedCategory.value = null;
+  api.pictures.searchPictures(search.value).then((data) => {
+    pictures.value = data;
+  });
 }
-async function paste(picture: Picture) {
-
-    const res = await storageService.downloadImageFromBank(file, picture.id);
-    emit("image", res);
-    emit("name", picture.name);
-    dialog.value = false;
+async function paste (picture: Picture) {
+  const res = await storageService.downloadImageFromBank(file, picture.id);
+  emit("image", res);
+  emit("name", picture.name);
+  dialog.value = false;
 }
 
 </script>

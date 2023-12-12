@@ -200,37 +200,37 @@ const path = computed(() => {
 });
 
 const columns = computed({
-  get() {
+  get () {
     const columns = store.state.editor.columns;
     setTimeout(() => {
       onColumns();
     }, 10);
     return columns;
   },
-  set(v: number) {
+  set (v: number) {
     store.commit("editor_columns", v);
     onColumns();
   }
 });
 
 const rows = computed({
-  get() {
+  get () {
     setTimeout(() => {
       onRows();
     }, 10);
     return store.state.editor.rows;
   },
-  set(v: number) {
+  set (v: number) {
     store.commit("editor_rows", v);
     onRows();
   }
 });
 
 const cards = computed({
-  get() {
+  get () {
     return store.state.editor.cards;
   },
-  set(v: (Card)[]) {
+  set (v: (Card)[]) {
     store.commit("editor_cards", v);
   }
 });
@@ -240,10 +240,10 @@ const filename = computed(() => {
 });
 
 const current = computed({
-  get(): (Card)[] {
+  get (): (Card)[] {
     return mcurrent.value;
   },
-  set(v: (Card)[]) {
+  set (v: (Card)[]) {
     if (v.length === mcurrent.value.length) {
       const cids = mcurrent.value.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
@@ -262,28 +262,28 @@ const current = computed({
 });
 
 const isWithoutSpace = computed({
-  get(): boolean {
+  get (): boolean {
     return store.state.editor.isWithoutSpace;
   },
-  set(v: boolean) {
+  set (v: boolean) {
     store.commit("editor_isWithoutSpace", v);
   }
 });
 
 const isDirectSet = computed({
-  get(): boolean {
+  get (): boolean {
     return store.state.editor.isDirectSet;
   },
-  set(v: boolean) {
+  set (v: boolean) {
     store.commit("editor_isDirectSet", v);
   }
 });
 
 const isQuiz = computed({
-  get(): boolean {
+  get (): boolean {
     return store.state.editor.quiz;
   },
-  set(v: boolean) {
+  set (v: boolean) {
     store.commit("editor_isQuiz", v);
   }
 });
@@ -293,10 +293,10 @@ const pageSize = computed(() => {
 });
 
 const page = computed({
-  get(): number {
+  get (): number {
     return mpage.value;
   },
-  set(v: number) {
+  set (v: number) {
     mpage.value = Math.max(0, v);
     selected.value = null;
     if (!cards.value) return;
@@ -326,7 +326,7 @@ const questions = computed(() => {
   return store.state.editor.questions;
 });
 
-function isValid(card: Card) {
+function isValid (card: Card) {
   if (card.cardType === CardType.AudioCard) {
     if (!card.imagePath || !card.imagePath || !card.title) {
       return false;
@@ -335,31 +335,31 @@ function isValid(card: Card) {
   return true;
 }
 
-function onRows() {
+function onRows () {
   page.value = 0;
 }
 
-function onColumns() {
+function onColumns () {
   page.value = 0;
 }
 
-function onImageSelected(path: string) {
+function onImageSelected (path: string) {
   if (!selected.value) return;
   selected.value.imagePath = path;
 }
 
-async function newFileName(text: string) {
+async function newFileName (text: string) {
   await store.dispatch("editor_new_file", path.value.slice(0, -3) + text);
   page.value = 0;
 }
 
-async function loadSet() {
+async function loadSet () {
   await store.dispatch("editor_current", path.value);
 
   page.value = 0;
 }
 
-function select(index: number) {
+function select (index: number) {
   let card = cards.value[pageSize.value * page.value + index];
   if (!card) {
     // TODO: plz fix, dont create nullish elements in the array
@@ -373,14 +373,14 @@ function select(index: number) {
   selected.value = card;
 }
 
-function genNewCard(): Card {
+function genNewCard (): Card {
   return {
     cardType: 3,
     id: uuid()
   };
 }
 
-async function selectImage() {
+async function selectImage () {
   if (!filename.value) return;
   store.dispatch("disable_ui");
   const id = await storageService.selectImage(filename.value);
@@ -391,7 +391,7 @@ async function selectImage() {
   store.dispatch("enable_ui");
 }
 
-function onAudioFromTTS({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
+function onAudioFromTTS ({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
   if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
   selected.value.audioPath = audioSrcFile;
   selected.value.audioText = audioText;
@@ -403,7 +403,7 @@ function onAudioFromTTS({ audioSrcFile, audioText }: { audioSrcFile: string, aud
  * The proxied-to function returns the name of the file.
  * Which is saved inside the current set's card's object.
  */
-async function selectAudio() {
+async function selectAudio () {
   if (!filename.value) return;
   store.dispatch("disable_ui");
   const id = await storageService.selectAudio(filename.value);
@@ -414,15 +414,15 @@ async function selectAudio() {
   store.dispatch("enable_ui");
 }
 
-function playAudio() {
+function playAudio () {
   if (filename.value && selected.value && selected.value.cardType === CardType.AudioCard) {
     TTS.instance.playCards(filename.value, [selected.value]);
   }
 }
 
-function onTitleSelected(title: string) {
-  if (!selected.value) return
-  if (selected.value.title?.length && selected.value.title.length > 0) return
+function onTitleSelected (title: string) {
+  if (!selected.value) return;
+  if (selected.value.title?.length && selected.value.title.length > 0) return;
   selected.value.title = title;
 }
 </script>
