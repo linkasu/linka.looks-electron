@@ -1,50 +1,21 @@
 <template>
-  <div
-    fluid
-    class="editor"
-  >
-    <new-file-dialog
-      :show="newFileDialogShow"
-      :disabled="ui_disabled"
-      @text="newFileName"
-    />
+  <div fluid class="editor">
+    <new-file-dialog :show="newFileDialogShow" :disabled="ui_disabled" @text="newFileName" />
     <div class="editor-body">
-      <v-card
-        v-if="filename"
-        xs8
-        fill-height
-        fluid
-      >
+      <v-card v-if="filename" xs8 fill-height fluid>
         <v-card-title> Карточки </v-card-title>
         <v-card-text>
-          <v-text-field
-            v-if="isQuiz"
-            v-model="questions[page]"
-            label="Введите вопрос для этой страницы"
-            :disabled="ui_disabled"
-          />
+          <v-text-field v-if="isQuiz" v-model="questions[page]" label="Введите вопрос для этой страницы"
+            :disabled="ui_disabled" />
         </v-card-text>
         <v-card-text class="cards-wrapper">
-          <draggable
-            v-model="current"
-            item-key="id"
-            class="cards"
-            :style="{ '--rows': rows, '--columns': columns }"
-            :disabled="ui_disabled"
-          >
+          <draggable v-model="current" item-key="id" class="cards" :style="{ '--rows': rows, '--columns': columns }"
+            :disabled="ui_disabled">
             <template #item="{ element, index }">
-              <set-grid-button
-                :key="element.id"
-                :file="filename"
-                :card="element"
-                :editor="true"
-                :class="{
-                  selected: selected?.id === element?.id,
-                  nonValid: !isValid(element)
-                }"
-                :dot="!!element.answer"
-                @click="select(index)"
-              />
+              <set-grid-button :key="element.id" :file="filename" :card="element" :editor="true" :class="{
+                selected: selected?.id === element?.id,
+                nonValid: !isValid(element)
+              }" :dot="!!element.answer" @click="select(index)" />
             </template>
           </draggable>
         </v-card-text>
@@ -52,31 +23,17 @@
           <v-layout>
             <v-row>
               <v-col xs4>
-                <v-btn
-                  block
-                  color="orange"
-                  :disabled="ui_disabled"
-                  @click="page--"
-                >
+                <v-btn block color="orange" :disabled="ui_disabled" @click="page--">
                   <v-icon>mdi-arrow-left</v-icon>
                 </v-btn>
               </v-col>
               <v-col xs4>
-                <v-btn
-                  block
-                  color="blue"
-                  :disabled="ui_disabled"
-                >
+                <v-btn block color="blue" :disabled="ui_disabled">
                   {{ page + 1 }}
                 </v-btn>
               </v-col>
               <v-col xs4>
-                <v-btn
-                  block
-                  color="orange"
-                  :disabled="emptyPage || ui_disabled"
-                  @click="page++"
-                >
+                <v-btn block color="orange" :disabled="emptyPage || ui_disabled" @click="page++">
                   <v-icon>mdi-arrow-right</v-icon>
                 </v-btn>
               </v-col>
@@ -88,17 +45,8 @@
         <v-card-title primary-title>
           Редактирование
           <v-spacer />
-          <v-btn
-            v-if="selected.cardType !== CardTypes.NewCard"
-            title="Сбросить карточку"
-            icon
-            absolute
-            depressed
-            color="error"
-            class="delete"
-            :disabled="ui_disabled"
-            @click="selected.cardType = CardTypes.NewCard"
-          >
+          <v-btn v-if="selected.cardType !== CardTypes.NewCard" title="Сбросить карточку" icon absolute depressed
+            color="error" class="delete" :disabled="ui_disabled" @click="selected.cardType = CardTypes.NewCard">
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </v-card-title>
@@ -106,26 +54,15 @@
           <v-form>
             <v-row>
               <v-col>
-                <v-select
-                  v-model="selected.cardType"
-                  :items="cardTypeOptions"
-                  label="Тип карточки"
-                  item-title="text"
-                  item-value="value"
-                  :disabled="ui_disabled"
-                />
+                <v-select v-model="selected.cardType" :items="cardTypeOptions" label="Тип карточки" item-title="text"
+                  item-value="value" :disabled="ui_disabled" />
               </v-col>
             </v-row>
             <section v-if="selected.cardType === CardTypes.AudioCard">
               <v-row>
                 <v-col>
-                  <v-text-field
-                    v-model="selected.title"
-                    outline
-                    label="Название карточки"
-                    max-length="30"
-                    :disabled="ui_disabled"
-                  />
+                  <v-text-field v-model="selected.title" outline label="Название карточки" max-length="30"
+                    :disabled="ui_disabled" />
                 </v-col>
               </v-row>
               <v-row>
@@ -136,21 +73,15 @@
                   <v-card-text>
                     <v-container>
                       <v-row>
-                        <v-btn
-                          block
-                          class="mb-1"
-                          :disabled="ui_disabled"
-                          @click="selectImage"
-                        >
+                        <v-btn block class="mb-1" :disabled="ui_disabled" @click="selectImage">
                           Выбрать картинку
                         </v-btn>
                       </v-row>
                       <v-row>
-                        <create-from-text-dialog
-                          block
-                          :file="filename"
-                          @image="onImageSelected"
-                        />
+                        <create-from-text-dialog block :file="filename" @image="onImageSelected" />
+                      </v-row>
+                      <v-row>
+                        <picture-bank-dialog block :file="filename" @image="onImageSelected" @name="onTitleSelected" />
                       </v-row>
                     </v-container>
                   </v-card-text>
@@ -162,32 +93,21 @@
                     Работа с озвучкой
                   </v-card-title>
                   <v-card-subtitle v-if="selected.cardType === CardTypes.AudioCard">
-                    {{ selected.audioText ?? (selected.audioPath ? ".mp3 файл добавлен" : "Добавьте текст или .mp3 файл!") }}
+                    {{ selected.audioText ?? (selected.audioPath ? ".mp3 файл добавлен" : "Добавьте текст или .mp3 файл!")
+                    }}
                   </v-card-subtitle>
                   <v-card-text>
                     <v-container>
                       <v-row>
-                        <TTSDialog
-                          :file="filename"
-                          @audio="onAudioFromTTS"
-                        />
+                        <TTSDialog :file="filename" @audio="onAudioFromTTS" />
                       </v-row>
                       <v-row>
-                        <v-btn
-                          block
-                          class="mb-1"
-                          :disabled="ui_disabled"
-                          @click="selectAudio"
-                        >
+                        <v-btn block class="mb-1" :disabled="ui_disabled" @click="selectAudio">
                           Выбрать звук из файла
                         </v-btn>
                       </v-row>
                       <v-row v-if="selected.audioPath">
-                        <v-btn
-                          block
-                          :disabled="ui_disabled"
-                          @click="playAudio"
-                        >
+                        <v-btn block :disabled="ui_disabled" @click="playAudio">
                           Послушать озвучку
                         </v-btn>
                       </v-row>
@@ -196,19 +116,13 @@
                 </v-card>
               </v-row>
               <v-row>
-                <v-card
-                  v-if="isQuiz"
-                  width="100%"
-                >
+                <v-card v-if="isQuiz" width="100%">
                   <v-card-title primary-title>
                     Работа с викториной
                   </v-card-title>
                   <v-card-text>
                     <v-container>
-                      <v-checkbox
-                        v-model="selected.answer"
-                        label="Отметить как правильный ответ"
-                      />
+                      <v-checkbox v-model="selected.answer" label="Отметить как правильный ответ" />
                     </v-container>
                   </v-card-text>
                 </v-card>
@@ -241,6 +155,8 @@ import { useRoute } from "vue-router";
 
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTextDialog.vue";
+import PictureBankDialog from "@/frontend/components/EditorView/PictureBank/PictureBankDialog.vue";
+
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
@@ -284,37 +200,37 @@ const path = computed(() => {
 });
 
 const columns = computed({
-  get () {
+  get() {
     const columns = store.state.editor.columns;
     setTimeout(() => {
       onColumns();
     }, 10);
     return columns;
   },
-  set (v: number) {
+  set(v: number) {
     store.commit("editor_columns", v);
     onColumns();
   }
 });
 
 const rows = computed({
-  get () {
+  get() {
     setTimeout(() => {
       onRows();
     }, 10);
     return store.state.editor.rows;
   },
-  set (v: number) {
+  set(v: number) {
     store.commit("editor_rows", v);
     onRows();
   }
 });
 
 const cards = computed({
-  get () {
+  get() {
     return store.state.editor.cards;
   },
-  set (v: (Card)[]) {
+  set(v: (Card)[]) {
     store.commit("editor_cards", v);
   }
 });
@@ -324,10 +240,10 @@ const filename = computed(() => {
 });
 
 const current = computed({
-  get (): (Card)[] {
+  get(): (Card)[] {
     return mcurrent.value;
   },
-  set (v: (Card)[]) {
+  set(v: (Card)[]) {
     if (v.length === mcurrent.value.length) {
       const cids = mcurrent.value.map(({ id }) => id.toString()).reduce((a, b) => a + b);
       const nids = v.map(({ id }) => id.toString()).reduce((a, b) => a + b);
@@ -346,28 +262,28 @@ const current = computed({
 });
 
 const isWithoutSpace = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.isWithoutSpace;
   },
-  set (v: boolean) {
+  set(v: boolean) {
     store.commit("editor_isWithoutSpace", v);
   }
 });
 
 const isDirectSet = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.isDirectSet;
   },
-  set (v: boolean) {
+  set(v: boolean) {
     store.commit("editor_isDirectSet", v);
   }
 });
 
 const isQuiz = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.quiz;
   },
-  set (v: boolean) {
+  set(v: boolean) {
     store.commit("editor_isQuiz", v);
   }
 });
@@ -377,10 +293,10 @@ const pageSize = computed(() => {
 });
 
 const page = computed({
-  get (): number {
+  get(): number {
     return mpage.value;
   },
-  set (v: number) {
+  set(v: number) {
     mpage.value = Math.max(0, v);
     selected.value = null;
     if (!cards.value) return;
@@ -410,7 +326,7 @@ const questions = computed(() => {
   return store.state.editor.questions;
 });
 
-function isValid (card: Card) {
+function isValid(card: Card) {
   if (card.cardType === CardType.AudioCard) {
     if (!card.imagePath || !card.imagePath || !card.title) {
       return false;
@@ -419,31 +335,31 @@ function isValid (card: Card) {
   return true;
 }
 
-function onRows () {
+function onRows() {
   page.value = 0;
 }
 
-function onColumns () {
+function onColumns() {
   page.value = 0;
 }
 
-function onImageSelected (path: string) {
+function onImageSelected(path: string) {
   if (!selected.value) return;
   selected.value.imagePath = path;
 }
 
-async function newFileName (text: string) {
+async function newFileName(text: string) {
   await store.dispatch("editor_new_file", path.value.slice(0, -3) + text);
   page.value = 0;
 }
 
-async function loadSet () {
+async function loadSet() {
   await store.dispatch("editor_current", path.value);
 
   page.value = 0;
 }
 
-function select (index: number) {
+function select(index: number) {
   let card = cards.value[pageSize.value * page.value + index];
   if (!card) {
     // TODO: plz fix, dont create nullish elements in the array
@@ -457,14 +373,14 @@ function select (index: number) {
   selected.value = card;
 }
 
-function genNewCard (): Card {
+function genNewCard(): Card {
   return {
     cardType: 3,
     id: uuid()
   };
 }
 
-async function selectImage () {
+async function selectImage() {
   if (!filename.value) return;
   store.dispatch("disable_ui");
   const id = await storageService.selectImage(filename.value);
@@ -475,7 +391,7 @@ async function selectImage () {
   store.dispatch("enable_ui");
 }
 
-function onAudioFromTTS ({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
+function onAudioFromTTS({ audioSrcFile, audioText }: { audioSrcFile: string, audioText: string }) {
   if (!selected.value) throw new Error("Setting audio from TTSDialog to a nullish selected card");
   selected.value.audioPath = audioSrcFile;
   selected.value.audioText = audioText;
@@ -487,7 +403,7 @@ function onAudioFromTTS ({ audioSrcFile, audioText }: { audioSrcFile: string, au
  * The proxied-to function returns the name of the file.
  * Which is saved inside the current set's card's object.
  */
-async function selectAudio () {
+async function selectAudio() {
   if (!filename.value) return;
   store.dispatch("disable_ui");
   const id = await storageService.selectAudio(filename.value);
@@ -498,10 +414,16 @@ async function selectAudio () {
   store.dispatch("enable_ui");
 }
 
-function playAudio () {
+function playAudio() {
   if (filename.value && selected.value && selected.value.cardType === CardType.AudioCard) {
     TTS.instance.playCards(filename.value, [selected.value]);
   }
+}
+
+function onTitleSelected(title: string) {
+  if (!selected.value) return
+  if (selected.value.title?.length && selected.value.title.length > 0) return
+  selected.value.title = title;
 }
 </script>
 
