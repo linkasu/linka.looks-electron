@@ -20,7 +20,7 @@
     "test:unit": "vue-cli-service test:unit",
     "electron:build": "vue-cli-service electron:build",
     "electron:serve": "vue-cli-service electron:serve",
-    "postinstall": "(copy node_modules\\eyelog\\bin .\\extraResources\\bin\\ || cp -rf node_modules/eyelog/bin extraResources) && electron-builder install-app-deps",
+    "postinstall": "node postinstall && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
