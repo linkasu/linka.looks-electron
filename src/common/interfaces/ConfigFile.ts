@@ -11,6 +11,7 @@ export interface Card {
   title?: string;
   audioPath?: string;
   audioText?: string;
+  audioVoice?: string
   answer?: true
 }
 

@@ -13,6 +13,7 @@ const fields = [
   { commit: "colors_primary", default: "#197377" } as Field<string>,
   { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
   { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
+  { commit: "voice", default: "alena" } as Field<string>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
@@ -40,6 +41,7 @@ const store = createStore<LINKaStore>({
       accent: "",
       primary: "#197377"
     },
+    voice: "alena",
     button: {
       timeout: 1000,
       enabled: true,
@@ -125,6 +127,9 @@ const store = createStore<LINKaStore>({
     },
     colors_secondary ({ colors }, value) {
       colors.secondary = value;
+    },
+    voice ({ voice }, value) {
+      voice = value;
     },
     editor_current ({ editor }, value) {
       editor.current = value;
@@ -227,6 +232,9 @@ const store = createStore<LINKaStore>({
     keymap_remove ({ state, commit }, { side, code }: { side: Side, code: string }) {
       commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
       state.selectedKey = undefined;
+    },
+    voice_change ({ state }, voice: string) {
+      state.voice = voice;
     },
 
     interface_outputLine ({ state, commit }) {
