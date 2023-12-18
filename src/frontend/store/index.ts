@@ -210,6 +210,7 @@ const store = createStore<LINKaStore>({
     },
     button_multiply_scale ({ button }, value) {
       button.multiplyScale = value;
+      ipcRenderer.send("button_multiply_scale", value);
     },
     interface_outputLine ({ ui, pcHash }, value) {
       ui.outputLine = value;
