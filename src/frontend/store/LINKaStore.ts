@@ -31,7 +31,8 @@ export interface LINKaStore {
         borders: number;
         enabled: boolean;
         clickSound: boolean;
-        animation: boolean
+        animation: boolean,
+        multiplyScale: boolean
     },
     ui: {
         disabled: boolean,

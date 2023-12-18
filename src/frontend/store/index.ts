@@ -23,6 +23,7 @@ const fields = [
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
   { commit: "button_animation", default: true } as Field<boolean>,
+  { commit: "button_multiply_scale", default: false } as Field<boolean>,
   { commit: "ui_exitButton", default: true } as Field<boolean>,
   { commit: "keyMapping_up", default: ["ArrowUp"] } as Field<string[]>,
   { commit: "keyMapping_down", default: ["ArrowDown"] } as Field<string[]>,
@@ -52,7 +53,8 @@ const store = createStore<LINKaStore>({
       mouseActivation: true,
       clickSound: true,
       borders: 1,
-      animation: true
+      animation: true,
+      multiplyScale: false
     },
     ui: {
       disabled: false,
@@ -85,183 +87,186 @@ const store = createStore<LINKaStore>({
     }
   },
   mutations: {
-    enable_ui (state) {
+    enable_ui(state) {
       state.ui.disabled = false;
     },
-    disable_ui (state) {
+    disable_ui(state) {
       state.ui.disabled = true;
     },
-    popupVersion (state, value) {
+    popupVersion(state, value) {
       state.popupVersion = value;
     },
-    selectedKey (state, value) {
+    selectedKey(state, value) {
       state.selectedKey = value;
     },
-    defaultSetsDownloaded (state, value) {
+    defaultSetsDownloaded(state, value) {
       state.defaultSetsDownloaded = value;
     },
-    ui_exitButton (state, value) {
+    ui_exitButton(state, value) {
       state.ui.exitButton = value;
       Metric.registerEvent(state.pcHash, "settingsToggleEyeExit", { value });
     },
-    keyMapping_up ({ keyMapping }, value) {
+    keyMapping_up({ keyMapping }, value) {
       keyMapping.up = value;
     },
-    keyMapping_down ({ keyMapping }, value) {
+    keyMapping_down({ keyMapping }, value) {
       keyMapping.down = value;
     },
-    keyMapping_left ({ keyMapping }, value) {
+    keyMapping_left({ keyMapping }, value) {
       keyMapping.left = value;
     },
-    keyMapping_right ({ keyMapping }, value) {
+    keyMapping_right({ keyMapping }, value) {
       keyMapping.right = value;
     },
-    keyMapping_enter ({ keyMapping }, value) {
+    keyMapping_enter({ keyMapping }, value) {
       keyMapping.enter = value;
     },
-    colors_primary ({ colors }, value) {
+    colors_primary({ colors }, value) {
       colors.primary = value;
     },
-    colors_accent ({ colors }, value) {
+    colors_accent({ colors }, value) {
       colors.accent = value;
     },
-    colors_secondary ({ colors }, value) {
+    colors_secondary({ colors }, value) {
       colors.secondary = value;
     },
-    voice ({ voice }, value) {
+    voice({ voice }, value) {
       voice = value;
     },
-    editor_current ({ editor }, value) {
+    editor_current({ editor }, value) {
       editor.current = value;
     },
-    editor_temp ({ editor }, value) {
+    editor_temp({ editor }, value) {
       editor.temp = value;
     },
-    editor_cards ({ editor }, value) {
+    editor_cards({ editor }, value) {
       editor.cards = value;
     },
-    editor_columns ({ editor }, value) {
+    editor_columns({ editor }, value) {
       editor.columns = value;
     },
-    editor_rows ({ editor }, value) {
+    editor_rows({ editor }, value) {
       editor.rows = value;
     },
-    editor_isDirectSet ({ editor }, value) {
+    editor_isDirectSet({ editor }, value) {
       editor.isDirectSet = value;
     },
-    editor_isWithoutSpace ({ editor }, value) {
+    editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value;
     },
-    editor_isQuiz ({ editor }, value) {
+    editor_isQuiz({ editor }, value) {
       editor.quiz = value;
     },
-    editor_questions ({ editor }, value) {
+    editor_questions({ editor }, value) {
       editor.questions = value;
     },
-    editor_quizAutoNext ({ editor }, value) {
+    editor_quizAutoNext({ editor }, value) {
       editor.quizAutoNext = value;
     },
-    editor_quizReadQuestion ({ editor }, value) {
+    editor_quizReadQuestion({ editor }, value) {
       editor.quizReadQuestion = value;
     },
-    editor_description ({ editor }, value) {
+    editor_description({ editor }, value) {
       editor.description = value;
     },
-    button_timeout ({ button }, value) {
+    button_timeout({ button }, value) {
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
     },
-    button_enabled ({ button, pcHash }, value) {
+    button_enabled({ button, pcHash }, value) {
       button.enabled = value;
       Metric.registerEvent(pcHash, "toggleGazeLock", { value });
     },
-    button_eyeSelect ({ button, pcHash }, value) {
+    button_eyeSelect({ button, pcHash }, value) {
       button.eyeSelect = value;
       Metric.registerEvent(pcHash, "settingsToggleEyeChoose", { value });
     },
-    button_eyeActivation ({ button, pcHash }, value) {
+    button_eyeActivation({ button, pcHash }, value) {
       button.eyeActivation = value;
       Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
     },
-    button_joystickActivation ({ button, pcHash }, value) {
+    button_joystickActivation({ button, pcHash }, value) {
       Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });
 
       button.joystickActivation = value;
     },
-    button_keyboardActivation ({ button, pcHash }, value) {
+    button_keyboardActivation({ button, pcHash }, value) {
       Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
 
       button.keyboardActivation = value;
     },
-    button_mouseActivation ({ button }, value) {
+    button_mouseActivation({ button }, value) {
       button.mouseActivation = value;
     },
-    button_borders ({ button }, value) {
+    button_borders({ button }, value) {
       button.borders = value;
     },
-    button_animation ({ button }, value) {
+    button_animation({ button }, value) {
       button.animation = value;
     },
-    button_clickSound ({ button, pcHash }, value) {
+    button_clickSound({ button, pcHash }, value) {
       button.clickSound = value;
       Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
     },
-    interface_outputLine ({ ui, pcHash }, value) {
+    button_multiply_scale({ button }, value) {
+      button.multiplyScale = value
+    },
+    interface_outputLine({ ui, pcHash }, value) {
       ui.outputLine = value;
       Metric.registerEvent(pcHash, "toggleOutputLine", value);
     },
-    pcHash (state, hash) {
+    pcHash(state, hash) {
       state.pcHash = hash;
     }
   },
 
   actions: {
-    enable_ui ({ commit }) {
+    enable_ui({ commit }) {
       commit("enable_ui");
     },
-    disable_ui ({ commit }) {
+    disable_ui({ commit }) {
       commit("disable_ui");
     },
-    keymap_push ({ state, commit }, { side, code }: { side: Side, code: string }) {
+    keymap_push({ state, commit }, { side, code }: { side: Side, code: string }) {
       if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
         state.keyMapping[side].push(code);
       }
       commit("keyMapping_" + side, state.keyMapping[side]);
       state.selectedKey = undefined;
     },
-    keymap_remove ({ state, commit }, { side, code }: { side: Side, code: string }) {
+    keymap_remove({ state, commit }, { side, code }: { side: Side, code: string }) {
       commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
       state.selectedKey = undefined;
     },
-    voice_change ({ state }, voice: string) {
+    voice_change({ state }, voice: string) {
       state.voice = voice;
     },
 
-    interface_outputLine ({ state, commit }) {
+    interface_outputLine({ state, commit }) {
       commit("interface_outputLine", !state.ui.outputLine);
     },
 
-    button_enabled ({ state }) {
+    button_enabled({ state }) {
       state.button.enabled = !state.button.enabled;
     },
 
-    button_animation_toggle ({ state, commit }) {
+    button_animation_toggle({ state, commit }) {
       commit("button_animation", !state.button.animation);
     },
 
-    async editor_new_file ({ state, dispatch }, file: string) {
+    async editor_new_file({ state, dispatch }, file: string) {
       file += ".linka";
       state.editor.current = file;
       state.editor.temp = await storageService.defaultToTemp(file);
       dispatch("editor_load_set");
     },
 
-    async editor_current ({ state, dispatch }, file: string) {
+    async editor_current({ state, dispatch }, file: string) {
       state.editor.current = file;
       state.editor.temp = await storageService.copyToTemp(file);
       await dispatch("editor_load_set");
     },
-    async editor_load_set ({ state, commit }) {
+    async editor_load_set({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp!);
 
       if (config != undefined) {
@@ -275,7 +280,7 @@ const store = createStore<LINKaStore>({
         commit("editor_questions", config.questions ?? []);
       }
     },
-    async editor_save ({ state }) {
+    async editor_save({ state }) {
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,
@@ -290,7 +295,7 @@ const store = createStore<LINKaStore>({
         version: "2.0"
       });
     },
-    async editor_save_as ({ state, commit }, title) {
+    async editor_save_as({ state, commit }, title) {
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
@@ -309,7 +314,7 @@ const store = createStore<LINKaStore>({
       });
       return current;
     },
-    async open_file ({ state, commit }, filename) {
+    async open_file({ state, commit }, filename) {
       const config = await storageService.getConfigFile(filename);
 
       if (config) {

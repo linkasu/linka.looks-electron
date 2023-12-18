@@ -8,6 +8,7 @@ import EditorViewAppBar from "@/frontend/views/EditorView.appbar.vue";
 import SettingsView from "@/frontend/views/SettingsView.vue";
 import SettingsViewAppBar from "@/frontend/views/SettingsView.appbar.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
+import CalibrationView from "../views/CalibrationView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -41,6 +42,12 @@ const routes: Array<RouteRecordRaw> = [
     components: {
       default: SettingsView,
       appbar: SettingsViewAppBar
+    }
+  },
+  {
+    path: "/calibration",
+    components:{
+      default: CalibrationView
     }
   }
 ];

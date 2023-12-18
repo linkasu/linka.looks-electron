@@ -9,7 +9,8 @@ export class BackWatch {
   tobii?: TobiiProcess = undefined;
   window?: BrowserWindow;
   hid = "";
-  constructor (win: BrowserWindow) {
+  multiplyScale = false;
+  constructor(win: BrowserWindow) {
     this.window = win;
     if (platform() === "win32") {
       try {
@@ -20,9 +21,8 @@ export class BackWatch {
         ipcMain.on("eye-elements", (event, data: PageElementsState) => {
           this.hid = data.id;
           const winBounds = win.getContentBounds();
-          const p = winBounds.height / data.bottom;
 
-          const m = p === 1 ? 1 : (screen.getPrimaryDisplay().scaleFactor);
+          const m = this.multiplyScale ? (screen.getPrimaryDisplay().scaleFactor) : 1;
 
           const bounds: Bound[] = data.bounds.map((el: DOMRect) => {
             return Bound.fromArray([el.x + winBounds.x, el.y + winBounds.y, el.width, el.height].map(el => Math.round(el * m)));
@@ -34,6 +34,9 @@ export class BackWatch {
         ipcMain.on("button_timeout", (event, value) => {
           this.tobii?.setTimeout(value);
         });
+        ipcMain.on("button_multiply_scale", (event, value) => {
+          this.multiplyScale = value;
+        });
       } catch (error) {
         dialog
           .showErrorBox("Ошибка запуска обработчика айтрекера", "Для исправления проблемы установите Visual Studio 2012 (VC++ 11.0) с обновлением 4 или свяжитесь с Бакаидовым.");
@@ -41,7 +44,7 @@ export class BackWatch {
     }
   }
 
-  onClick (index: number, count: number) {
+  onClick(index: number, count: number) {
     if (!this.window?.isFocused()) return;
     this.window?.webContents.send("eye-click", {
       elementIndex: index,
@@ -50,13 +53,13 @@ export class BackWatch {
     });
   }
 
-  onExit () {
+  onExit() {
     this.window?.webContents.send("eye-exit", {
       id: this.hid
     });
   }
 
-  onEnter (index: number) {
+  onEnter(index: number) {
     this.window?.webContents.send("eye-enter", {
       elementIndex: index,
       id: this.hid
