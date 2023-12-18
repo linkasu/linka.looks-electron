@@ -27,18 +27,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import EyeButton from '../components/EyeButton.vue';
-import store from '../store';
+import { computed } from "vue";
+import EyeButton from "../components/EyeButton.vue";
+import store from "../store";
 
 const multiplyScale = computed({
-    get(){
-        return store.state.button.multiplyScale
-    },
-    set(v){
-        store.commit('button_multiply_scale', v)
-    }
-})
+  get () {
+    return store.state.button.multiplyScale;
+  },
+  set (v) {
+    store.commit("button_multiply_scale", v);
+  }
+});
 
 </script>
 

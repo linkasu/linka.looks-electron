@@ -101,7 +101,6 @@ export class PageWatcher {
   }
 
   watchElementsChange (force = false) {
-
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
     if (!force) {

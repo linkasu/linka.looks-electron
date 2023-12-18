@@ -46,7 +46,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/calibration",
-    components:{
+    components: {
       default: CalibrationView
     }
   }

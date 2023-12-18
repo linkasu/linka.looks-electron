@@ -10,7 +10,7 @@ export class BackWatch {
   window?: BrowserWindow;
   hid = "";
   multiplyScale = false;
-  constructor(win: BrowserWindow) {
+  constructor (win: BrowserWindow) {
     this.window = win;
     if (platform() === "win32") {
       try {
@@ -44,7 +44,7 @@ export class BackWatch {
     }
   }
 
-  onClick(index: number, count: number) {
+  onClick (index: number, count: number) {
     if (!this.window?.isFocused()) return;
     this.window?.webContents.send("eye-click", {
       elementIndex: index,
@@ -53,13 +53,13 @@ export class BackWatch {
     });
   }
 
-  onExit() {
+  onExit () {
     this.window?.webContents.send("eye-exit", {
       id: this.hid
     });
   }
 
-  onEnter(index: number) {
+  onEnter (index: number) {
     this.window?.webContents.send("eye-enter", {
       elementIndex: index,
       id: this.hid
