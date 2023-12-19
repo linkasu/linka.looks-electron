@@ -9,6 +9,7 @@ import SettingsView from "@/frontend/views/SettingsView.vue";
 import SettingsViewAppBar from "@/frontend/views/SettingsView.appbar.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 import CalibrationView from "../views/CalibrationView.vue";
+import store from "../store";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -61,5 +62,11 @@ storageService.getArgv()
     if (!argv[1] || !argv[1].endsWith("linka")) return;
     router.push("/set/" + argv[1]);
   });
+
+setTimeout(() => {
+  if(!store.state.firstCalibrate){
+    router.push('/calibration')
+  }
+}, 500);
 
 export default router;

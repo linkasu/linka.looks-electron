@@ -29,7 +29,8 @@ const fields = [
   { commit: "keyMapping_down", default: ["ArrowDown"] } as Field<string[]>,
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
-  { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>
+  { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
+  { commit: "first_calibrate", default: false } as Field<boolean>
 ];
 
 const store = createStore<LINKaStore>({
@@ -37,6 +38,7 @@ const store = createStore<LINKaStore>({
     popupVersion: 0,
     defaultSetsDownloaded: 0,
     pcHash: "unknow",
+    firstCalibrate: false,
     colors: {
       secondary: "",
       accent: "",
@@ -218,6 +220,9 @@ const store = createStore<LINKaStore>({
     },
     pcHash (state, hash) {
       state.pcHash = hash;
+    },
+    first_calibrate(state, value){
+      state.firstCalibrate = value
     }
   },
 

@@ -12,6 +12,7 @@ export interface LINKaStore {
     pcHash: string,
     popupVersion: number
     defaultSetsDownloaded: number
+    firstCalibrate: boolean
     colors: {
         primary: string,
         accent: string,
