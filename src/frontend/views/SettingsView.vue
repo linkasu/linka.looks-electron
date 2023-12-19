@@ -11,6 +11,11 @@
           </v-card-title>
           <v-card-text>
             <v-container>
+              <v-btn to="/calibration">
+                Калибровка смещения.
+              </v-btn>
+            </v-container>
+            <v-container>
               <v-checkbox
                 v-model="isExitButton"
                 label="Кнопка выхода из набора глазами"

@@ -23,12 +23,14 @@ const fields = [
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
   { commit: "button_animation", default: true } as Field<boolean>,
+  { commit: "button_multiply_scale", default: false } as Field<boolean>,
   { commit: "ui_exitButton", default: true } as Field<boolean>,
   { commit: "keyMapping_up", default: ["ArrowUp"] } as Field<string[]>,
   { commit: "keyMapping_down", default: ["ArrowDown"] } as Field<string[]>,
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
-  { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>
+  { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
+  { commit: "first_calibrate", default: false } as Field<boolean>
 ];
 
 const store = createStore<LINKaStore>({
@@ -36,6 +38,7 @@ const store = createStore<LINKaStore>({
     popupVersion: 0,
     defaultSetsDownloaded: 0,
     pcHash: "unknow",
+    firstCalibrate: false,
     colors: {
       secondary: "",
       accent: "",
@@ -52,7 +55,8 @@ const store = createStore<LINKaStore>({
       mouseActivation: true,
       clickSound: true,
       borders: 1,
-      animation: true
+      animation: true,
+      multiplyScale: false
     },
     ui: {
       disabled: false,
@@ -206,12 +210,19 @@ const store = createStore<LINKaStore>({
       button.clickSound = value;
       Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
     },
+    button_multiply_scale ({ button }, value) {
+      button.multiplyScale = value;
+      ipcRenderer.send("button_multiply_scale", value);
+    },
     interface_outputLine ({ ui, pcHash }, value) {
       ui.outputLine = value;
       Metric.registerEvent(pcHash, "toggleOutputLine", value);
     },
     pcHash (state, hash) {
       state.pcHash = hash;
+    },
+    first_calibrate (state, value) {
+      state.firstCalibrate = value;
     }
   },
 

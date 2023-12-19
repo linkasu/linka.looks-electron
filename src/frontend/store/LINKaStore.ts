@@ -12,6 +12,7 @@ export interface LINKaStore {
     pcHash: string,
     popupVersion: number
     defaultSetsDownloaded: number
+    firstCalibrate: boolean
     colors: {
         primary: string,
         accent: string,
@@ -31,7 +32,8 @@ export interface LINKaStore {
         borders: number;
         enabled: boolean;
         clickSound: boolean;
-        animation: boolean
+        animation: boolean,
+        multiplyScale: boolean
     },
     ui: {
         disabled: boolean,
