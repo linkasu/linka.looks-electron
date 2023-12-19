@@ -35,7 +35,7 @@ import { computed } from "vue";
 import EyeButton from "../components/EyeButton.vue";
 import store from "../store";
 
-store.commit('first_calibrate', true)
+store.commit("first_calibrate", true);
 
 const multiplyScale = computed({
   get () {

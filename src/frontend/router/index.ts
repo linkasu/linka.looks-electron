@@ -64,8 +64,8 @@ storageService.getArgv()
   });
 
 setTimeout(() => {
-  if(!store.state.firstCalibrate){
-    router.push('/calibration')
+  if (!store.state.firstCalibrate) {
+    router.push("/calibration");
   }
 }, 500);
 

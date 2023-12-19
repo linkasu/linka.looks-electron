@@ -221,8 +221,8 @@ const store = createStore<LINKaStore>({
     pcHash (state, hash) {
       state.pcHash = hash;
     },
-    first_calibrate(state, value){
-      state.firstCalibrate = value
+    first_calibrate (state, value) {
+      state.firstCalibrate = value;
     }
   },
 

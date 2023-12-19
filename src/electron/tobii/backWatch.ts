@@ -29,7 +29,7 @@ export class BackWatch {
         });
         ipcMain.on("button_multiply_scale", (event, value) => {
           this.multiplyScale = value;
-          this.processData()
+          this.processData();
         });
       } catch (error) {
         dialog
@@ -38,8 +38,8 @@ export class BackWatch {
     }
   }
 
-  private processData() {
-    if(!this.window||!this.data) return;
+  private processData () {
+    if (!this.window || !this.data) return;
     const winBounds = this.window.getContentBounds();
 
     const m = this.multiplyScale ? (screen.getPrimaryDisplay().scaleFactor) : 1;
