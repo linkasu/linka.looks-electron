@@ -54,6 +54,10 @@ export interface LINKaStore {
         isWithoutSpace: boolean;
         description?: string;
     }
+    font: {
+        fontSize: number;
+        fontBold: boolean;
+    }
     explorer:{
         config?: ConfigFile
     }

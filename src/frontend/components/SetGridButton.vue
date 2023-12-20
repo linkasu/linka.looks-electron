@@ -40,7 +40,10 @@
         v-if="card.cardType === CardTypes.AudioCard"
         class="text"
       >
-        <span>{{ card.title?.slice(0, 50) }}</span>
+        <span 
+        :style="{fontSize: `${font.fontSize}px`, fontWeight: font.fontBold? 700 : 400}">
+        {{ card.title?.slice(0, 50) }}
+      </span>
       </div>
     </div>
   </eye-button>
@@ -78,6 +81,10 @@ watch(() => props.card, onCardPropUpdated, { deep: true, immediate: true });
 const animation = computed(() => {
   return store.state.button.animation;
 });
+
+const font = computed(() => {
+  return store.state.font;
+})
 
 function onCardPropUpdated (card: Card) {
   if (!card || !card.imagePath || card.cardType !== CardType.AudioCard) return;
@@ -174,30 +181,6 @@ function createStaticImage (url: string) {
   max-width: 100%;
   font-size: 1em;
   font-weight: normal;
-}
-.text_18 {
-  font-size: 18px;
-}
-.text_20 {
-  font-size: 20px;
-}
-.text_22 {
-  font-size: 22px;
-}
-.text_24 {
-  font-size: 24px;
-}
-.text_26 {
-  font-size: 26px;
-}
-.text_28 {
-  font-size: 28px;
-}
-.text_30 {
-  font-size: 30px;
-}
-.text_bold {
-  font-weight: bold;
 }
 .dot {
   --size: 24px;

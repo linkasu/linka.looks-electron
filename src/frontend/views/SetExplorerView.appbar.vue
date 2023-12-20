@@ -35,27 +35,17 @@
     >
       <v-icon>{{ buttonEnabled ? 'mdi-eye' : 'mdi-eye-off' }}</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      :color="animation ? 'primary' : ''"
-      :title="(animation ? 'Выключить' : 'Включить') + ' анимацию изображений'"
-    >
-      <v-icon @click="switchAnimation">
-        {{ animation ? 'mdi-pause' : 'mdi-play' }}
-      </v-icon>
-    </v-btn>
-    <v-btn
-      flat
-      icon
-      :color="animation ? 'primary' : ''"
-      :title="(animation ? 'Выключить' : 'Включить') + ' анимацию изображений'"
-    >
-      <v-icon @click="switchAnimation">
-        mdi-format-size
-      </v-icon>
-    </v-btn>
     <v-spacer />
+    <v-btn
+      flat
+      icon
+      title="Настройки отображения"
+      @click="openSettings"
+    >
+      <v-icon>
+        mdi-view-dashboard-edit-outline
+      </v-icon>
+    </v-btn>
     <share-button />
     <v-btn
       flat
@@ -73,10 +63,17 @@
       @delete="del"
     />
   </v-app-bar>
+  <div class="settingsPanel" v-if="isSettingsPanelOpen===true">
+    <v-btn variant="text" @click="closeSettings" size="x-small" class="btn_close">
+      Закрыть
+      <v-icon>mdi-close</v-icon>
+    </v-btn>
+    <layout-settings-panel></layout-settings-panel>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
@@ -86,6 +83,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
+import LayoutSettingsPanel from "@/frontend/components/LayoutSettings/LayoutSettingsPanel.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
 
@@ -95,6 +93,8 @@ const store = useStore();
 
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
+
+const isSettingsPanelOpen = ref(false);
 
 const title = computed(() => {
   const arr = file.value.split("§");
@@ -137,6 +137,18 @@ function switchAnimation () {
   store.dispatch("button_animation_toggle");
 }
 
+function openSettings () {
+  console.log("d")
+  if(!isSettingsPanelOpen.value) {
+    isSettingsPanelOpen.value = true;
+  }
+}
+function closeSettings () {
+  if(isSettingsPanelOpen.value) {
+    isSettingsPanelOpen.value = false;
+  }
+}
+
 async function del () {
   await storageService.moveToTrash(file.value);
   back();
@@ -154,3 +166,19 @@ async function move (location: string) {
   Metric.registerEvent(store.state.pcHash, "move");
 }
 </script>
+<style scoped>
+.settingsPanel {
+  margin-top: 64px;
+  position: fixed;
+  z-index: 1005;
+  width: 100%;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 25%);
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+}
+.btn_close {
+  align-self: flex-end;
+}
+</style>
