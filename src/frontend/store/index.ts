@@ -86,6 +86,9 @@ const store = createStore<LINKaStore>({
       isDirectSet: false,
       isWithoutSpace: false
     },
+    layoutSettings: {
+      isOpened: false,
+    },
     font: {
       fontSize: 16,
       fontBold: true,

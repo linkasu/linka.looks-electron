@@ -54,6 +54,9 @@ export interface LINKaStore {
         isWithoutSpace: boolean;
         description?: string;
     }
+    layoutSettings: {
+        isOpened: boolean;
+    }
     font: {
         fontSize: number;
         fontBold: boolean;
