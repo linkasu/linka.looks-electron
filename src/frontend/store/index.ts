@@ -307,10 +307,13 @@ const store = createStore<LINKaStore>({
       }
     },
     async editor_save ({ state }) {
+      console.log(state.editor.columns)
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,
         rows: state.editor.rows,
+        fontSize: state.font.fontSize,
+        fontBold: state.font.fontBold,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
         questions: state.editor.questions,
@@ -329,6 +332,8 @@ const store = createStore<LINKaStore>({
         cards: state.editor.cards,
         columns: state.editor.columns,
         rows: state.editor.rows,
+        fontSize: state.font.fontSize,
+        fontBold: state.font.fontBold,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
         description: state.editor.description,

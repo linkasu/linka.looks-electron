@@ -19,6 +19,8 @@ export interface ConfigFile {
     version: string;
     columns: number;
     rows: number;
+    fontSize: number;
+    fontBold: boolean;
     withoutSpace: boolean;
     directSet?: boolean
     quiz?: boolean
