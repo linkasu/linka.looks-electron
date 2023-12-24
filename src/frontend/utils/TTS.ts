@@ -1,6 +1,8 @@
 import { storageService } from "@/frontend/services/card-storage-service";
 import { Card, CardType } from "@/common/interfaces/ConfigFile";
 import { tts } from "./TTSServer";
+import { Voice } from "@/common/interfaces/Voice";
+import axios from "axios";
 
 export class TTS {
   isPlaying = false;
@@ -13,16 +15,19 @@ export class TTS {
     return TTS._instance;
   }
 
-  static voices = [
-    { value: "zahar", text: "Захар" },
-    { value: "ermil", text: "Емиль" },
-    { value: "jane", text: "Джейн" },
-    { value: "oksana", text: "Оксана" },
-    { value: "alena", text: "Алёна" },
-    { value: "filipp", text: "Филипп" },
-    { value: "omazh", text: "Ома" }
+  static voices:Voice[] = [
   ];
 
+  constructor () {
+    this.getVoices();
+  }
+
+  private async getVoices () {
+    if (TTS.voices.length > 0) return;
+    const {data} = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
+    
+    TTS.voices.push(...data.map(v => ({value: v.id, text: v.name+" ("+v.lang_code+")"})));
+  }
   public async playCards (file: string, cards: Card[], force = false) {
     if (this.isPlaying) {
       this.isPlaying = false;
@@ -36,7 +41,7 @@ export class TTS {
         const buffer = await storageService.getAudio(file, card.audioPath);
         if (!buffer) continue;
         const url = URL.createObjectURL(
-          new Blob([buffer], { type: "audio/wav" } /* (1) */)
+          new Blob([buffer], { type: "audio/mp3" } /* (1) */)
         );
         await this.playUrl(url);
       }
@@ -49,7 +54,7 @@ export class TTS {
     this.isPlaying = true;
     const buffer = await tts(text, voice);
     const url = URL.createObjectURL(
-      new Blob([buffer], { type: "audio/wav" } /* (1) */)
+      new Blob([buffer], { type: "audio/mp3" } /* (1) */)
     );
     await this.playUrl(url);
     this.isPlaying = false;
@@ -65,3 +70,5 @@ export class TTS {
     });
   }
 }
+
+TTS.instance;
