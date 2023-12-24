@@ -1598,10 +1598,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/is-valid-path@^0.1.0":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@types/is-valid-path/-/is-valid-path-0.1.1.tgz#02b77c87f0492b48ef6af2105d9557c9ac1d62fe"
-  integrity sha512-2L3UPwezCdL+AO/LuYY/VlI/TXgz8bfv36PaMMGKo7kVPPguypHm/KIb5aPiQbYQqa8HHmdoRLbkST9VTmCmPw==
+"@types/is-valid-path@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@types/is-valid-path/-/is-valid-path-0.1.2.tgz#e4d09f82ccdc4ced3e72a3acc196c876face79a9"
+  integrity sha512-BsZtkfiPpnzDWFjSZanYllttVW7/46ayPZkcHBCSFBkBqIO9rWrflUvEmT2tF///hnPLwBJU3TJPzbBxpUEqCg==
 
 "@types/json-schema@*", "@types/json-schema@^7.0.4", "@types/json-schema@^7.0.5", "@types/json-schema@^7.0.8", "@types/json-schema@^7.0.9":
   version "7.0.14"
