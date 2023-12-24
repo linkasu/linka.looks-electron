@@ -24,10 +24,10 @@ export class TTS {
 
   private async getVoices () {
     if (TTS.voices.length > 0) return;
-    const {data} = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
-    
-    TTS.voices.push(...data.map(v => ({value: v.id, text: v.name+" ("+v.lang_code+")"})));
+    const { data } = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
+    TTS.voices.push(...data.map(v => ({ value: v.id, text: v.name + " (" + v.lang_code + ")" })));
   }
+
   public async playCards (file: string, cards: Card[], force = false) {
     if (this.isPlaying) {
       this.isPlaying = false;
@@ -71,4 +71,4 @@ export class TTS {
   }
 }
 
-TTS.instance;
+const instance = TTS.instance;
