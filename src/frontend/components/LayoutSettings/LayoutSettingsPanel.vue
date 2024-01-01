@@ -81,15 +81,12 @@ const fontBold = computed(() => {
 });
 async function increaseFontSize () {
     fontSize.value = fontSize.value + 1;
-    await save();
 }
 async function decreaseFontSize () {
     fontSize.value = fontSize.value - 1;
-    await save();
 }
 async function toggleBold () {
     store.dispatch("fontBold_toggle");
-    await save();
 }
 
 const columns = computed({
@@ -98,7 +95,6 @@ const columns = computed({
   },
   async set (v: number) {
     store.commit("editor_columns", v);
-    await save();
   }
 });
 
@@ -108,13 +104,9 @@ const rows = computed({
   },
   async set (v: number) {
     store.commit("editor_rows", v);
-    await save();
   }
 });
 
-async function save () {
-  await store.dispatch("editor_save");
-}
   </script>
   <style scoped>
   .settingColumn {

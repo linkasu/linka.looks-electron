@@ -9,7 +9,7 @@
       </eye-button>
     </div>
 
-    <div class="cards" :style="{ '--rows': config.rows, '--columns': config.columns }">
+    <div class="cards" :style="{ '--rows': rows, '--columns': columns }">
       <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="emit('card', card)" />
     </div>
 
@@ -59,6 +59,25 @@ const page = computed({
     setTimeout(() => {
       PageWatcher.instance.watchElementsChange(true);
     }, 10);
+  }
+});
+
+const columns = computed({
+  get () {
+    const columns = store.state.editor.columns;
+    return columns;
+  },
+  set (v: number) {
+    store.commit("editor_columns", v);
+  }
+});
+
+const rows = computed({
+  get () {
+    return store.state.editor.rows;
+  },
+  set (v: number) {
+    store.commit("editor_rows", v);
   }
 });
 

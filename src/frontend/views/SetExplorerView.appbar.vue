@@ -143,10 +143,16 @@ function openSettings () {
     isSettingsPanelOpen.value = true;
   }
 }
-function closeSettings () {
+
+async function closeSettings () {
   if(isSettingsPanelOpen.value) {
+    await save();
     isSettingsPanelOpen.value = false;
   }
+}
+
+async function save () {
+  await store.dispatch("editor_save");
 }
 
 async function del () {
