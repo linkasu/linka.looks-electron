@@ -292,6 +292,9 @@ const store = createStore<LINKaStore>({
       state.editor.temp = await storageService.copyToTemp(file);
       await dispatch("editor_load_set");
     },
+    editor_current_default({ state}) {
+      state.editor.current = "";
+    },
     async editor_load_set ({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp!);
 
@@ -307,7 +310,6 @@ const store = createStore<LINKaStore>({
       }
     },
     async editor_save ({ state }) {
-      console.log(state.editor.columns)
       await storageService.saveSet(state.editor.temp, state.editor.current, {
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,

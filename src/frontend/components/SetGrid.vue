@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, defineProps } from "vue";
+import { ref, computed, watch, defineProps, onMounted } from "vue";
 
 import { useStore } from "vuex";
 
@@ -29,6 +29,8 @@ import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import { Card } from "../../common/interfaces/ConfigFile";
 import { PageWatcher } from "@/electron/tobii/pageWatch";
+import { useRoute } from "vue-router";
+import { onUnmounted } from "vue";
 
 interface ISetGridProps {
   config: ConfigFile
@@ -37,6 +39,7 @@ interface ISetGridProps {
 }
 
 const store = useStore();
+const route = useRoute();
 
 const props = defineProps<ISetGridProps>();
 const emit = defineEmits<{
@@ -62,24 +65,9 @@ const page = computed({
   }
 });
 
-const columns = computed({
-  get () {
-    const columns = store.state.editor.columns;
-    return columns;
-  },
-  set (v: number) {
-    store.commit("editor_columns", v);
-  }
-});
+const columns = computed(() => store.state.editor.columns);
 
-const rows = computed({
-  get () {
-    return store.state.editor.rows;
-  },
-  set (v: number) {
-    store.commit("editor_rows", v);
-  }
-});
+const rows = computed(() => store.state.editor.rows);
 
 const current = computed(() => {
   return props.config.cards.slice(pageSize.value * page.value, pageSize.value * (page.value + 1));
@@ -96,6 +84,17 @@ const isExitButton = computed(() => {
 function onQuizPage (p: number) {
   page.value = p;
 }
+
+const path = computed(() => {
+  return route.params.path.toString();
+});
+
+onMounted(async () => {
+  await store.dispatch("editor_current", path.value);
+});
+onUnmounted(async()=> {
+  await store.dispatch("editor_current_default");
+})
 </script>
 
 <style scoped>

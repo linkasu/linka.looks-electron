@@ -138,7 +138,6 @@ function switchAnimation () {
 }
 
 function openSettings () {
-  console.log("d")
   if(!isSettingsPanelOpen.value) {
     isSettingsPanelOpen.value = true;
   }
