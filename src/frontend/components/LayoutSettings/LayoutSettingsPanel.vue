@@ -2,7 +2,7 @@
   <v-row>
     <v-col md="3" sm="6" xs="9">
       <v-card-text>
-        <v-card-subtitle>Настройка анимации</v-card-subtitle>
+        <v-card-subtitle class="pl-2 pr-2">Настройка анимации</v-card-subtitle>
         <v-checkbox
           v-model="animation"
           label="Анимация изображений"
@@ -12,26 +12,25 @@
     <v-col md="3" sm="6" xs="9">
       <v-card-text>
         <v-card-subtitle class="pl-0">Настройки шрифта</v-card-subtitle>
-        <v-row class="mt-3 ml-0 mr-0 mb-0">
+        <v-row class="mt-0 ml-0 mr-0 mb-0 btn_settings-row">
           <div class="settingGroup">
             <v-btn variant="tonal" size="small" @click="decreaseFontSize" class="btn_settings">-</v-btn>
-            <div class="fontSetting">{{fontSize}}</div>
+            <div class="fontSettingLabel v-label">{{fontSize}}</div>
             <v-btn variant="tonal" size="small" @click="increaseFontSize" class="btn_settings">+</v-btn>
           </div>
           <v-btn :variant="fontBold? 'text' : 'tonal'" size="small" :class="fontBold? 'btn-fontBold btn-fontBold_bold':'btn-fontBold'" :color="fontBold ? 'primary':''" @click="toggleBold">B</v-btn>
         </v-row>
       </v-card-text>
     </v-col>
-    <v-col md="6" sm="9">
+    <v-col md="6" sm="12">
       <v-card-text>
         <v-form @submit.prevent="">
           <v-card-subtitle>Настройки размера сетки</v-card-subtitle>
           <v-layout
-            row
             wrap
-            class="pl-0 pr-0"
+            class="pl-0 pr-0 grid_settings"
           >
-            <v-col>
+            <v-col sm="6" cols="12">
               <v-text-field
                 v-model="columns"
                 label="Количество колонок"
@@ -39,7 +38,7 @@
                 type="number"
               />
             </v-col>
-            <v-col>
+            <v-col sm="6"  cols="12">
               <v-text-field
                 v-model="rows"
                 label="Количество строк"
@@ -115,9 +114,15 @@ const rows = computed({
   }
   .settingGroup {
     display: flex;
+    flex-flow: nowrap;
   }
-  .fontSetting {
+  .fontSettingLabel {
     padding: 2px 8px;
+  }
+  .btn_settings-row {
+    align-items: center;
+    min-height: 3.5rem;
+    flex-flow: nowrap;
   }
   .btn_settings {
     font-size: 20px;
@@ -129,5 +134,9 @@ const rows = computed({
   }
   .btn-fontBold_bold {
     font-weight: 600;
+  }
+  .grid_settings {
+    overflow-y: visible !important;
+    flex-wrap: wrap;
   }
   </style>
