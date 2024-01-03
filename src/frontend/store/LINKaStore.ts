@@ -56,12 +56,11 @@ export interface LINKaStore {
     }
     layoutSettings: {
         isOpened: boolean;
-    }
-    font: {
+        hasChanges: boolean;
         fontSize: number;
         fontBold: boolean;
     }
-    explorer:{
+    explorer: {
         config?: ConfigFile
     }
 }

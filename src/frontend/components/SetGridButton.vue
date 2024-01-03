@@ -40,8 +40,7 @@
         v-if="card.cardType === CardTypes.AudioCard"
         class="text"
       >
-        <span 
-        :style="{fontSize: `${font.fontSize}px`, fontWeight: font.fontBold? 700 : 400}">
+      <span :style="{fontSize: `${fontSize}px`, fontWeight: fontBold? 700 : 400}">
         {{ card.title?.slice(0, 50) }}
       </span>
       </div>
@@ -51,7 +50,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { defineProps, withDefaults, ref, computed, watch, onMounted } from "vue";
+import { defineProps, withDefaults, ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
@@ -82,9 +81,12 @@ const animation = computed(() => {
   return store.state.button.animation;
 });
 
-const font = computed(() => {
-  return store.state.font;
-})
+const fontSize = computed(() => {
+  return store.state.layoutSettings.fontSize;
+});
+const fontBold = computed(() => {
+  return store.state.layoutSettings.fontBold;
+});
 
 function onCardPropUpdated (card: Card) {
   if (!card || !card.imagePath || card.cardType !== CardType.AudioCard) return;

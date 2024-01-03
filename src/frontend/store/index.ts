@@ -14,8 +14,9 @@ const fields = [
   { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
   { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
   { commit: "voice", default: "alena" } as Field<string>,
-  { commit: "font_fontSize", default: 16 } as Field<number>,
-  { commit: "font_fontBold", default: true } as Field<boolean>,
+  { commit: "layoutSettings_fontSize", default: 16 } as Field<number>,
+  { commit: "layoutSettings_fontBold", default: true } as Field<boolean>,
+  { commit: "layoutSettings_isOpened", default: false } as Field<boolean>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
@@ -86,17 +87,17 @@ const store = createStore<LINKaStore>({
       isDirectSet: false,
       isWithoutSpace: false
     },
-    layoutSettings: {
-      isOpened: false,
-    },
-    font: {
-      fontSize: 16,
-      fontBold: true,
-    },
     explorer: {
 
+    },
+    layoutSettings: {
+      isOpened: false,
+      hasChanges: false,
+      fontSize: 16,
+      fontBold: true
     }
   },
+
   mutations: {
     enable_ui (state) {
       state.ui.disabled = false;
@@ -180,6 +181,12 @@ const store = createStore<LINKaStore>({
     editor_description ({ editor }, value) {
       editor.description = value;
     },
+    layoutSettings_fontBold ({ layoutSettings }, value) {
+      layoutSettings.fontBold = value;
+    },
+    layoutSettings_fontSize ({ layoutSettings }, value) {
+      layoutSettings.fontSize = value;
+    },
     button_timeout ({ button }, value) {
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
@@ -223,8 +230,8 @@ const store = createStore<LINKaStore>({
       button.multiplyScale = value;
       ipcRenderer.send("button_multiply_scale", value);
     },
-    font_fontBold ({font}, value) {
-      font.fontBold = value;
+    layoutSettings_isOpened ({ layoutSettings }, value) {
+      layoutSettings.isOpened = value;
     },
     interface_outputLine ({ ui, pcHash }, value) {
       ui.outputLine = value;
@@ -272,12 +279,16 @@ const store = createStore<LINKaStore>({
       commit("button_animation", !state.button.animation);
     },
 
-    fontBold_toggle ({ state, commit}) {
-      commit("font_fontBold", !state.font.fontBold);
+    fontBold_toggle ({ state, commit }) {
+      commit("layoutSettings_fontBold", !state.layoutSettings.fontBold);
     },
 
-    fontSize_change ({ state }, size: number) {
-      state.font.fontSize = size;
+    fontSize_change ({ commit }, size: number) {
+      commit("layoutSettings_fontSize", size);
+    },
+
+    toggle_settings_opened ({ state, commit }) {
+      commit("layoutSettings_isOpened", !state.layoutSettings.isOpened);
     },
 
     async editor_new_file ({ state, dispatch }, file: string) {
@@ -292,7 +303,7 @@ const store = createStore<LINKaStore>({
       state.editor.temp = await storageService.copyToTemp(file);
       await dispatch("editor_load_set");
     },
-    editor_current_default({ state}) {
+    editor_current_default ({ state }) {
       state.editor.current = "";
     },
     async editor_load_set ({ state, commit }) {
@@ -314,8 +325,6 @@ const store = createStore<LINKaStore>({
         cards: JSON.parse(JSON.stringify(state.editor.cards)),
         columns: state.editor.columns,
         rows: state.editor.rows,
-        fontSize: state.font.fontSize,
-        fontBold: state.font.fontBold,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
         questions: state.editor.questions,
@@ -334,8 +343,6 @@ const store = createStore<LINKaStore>({
         cards: state.editor.cards,
         columns: state.editor.columns,
         rows: state.editor.rows,
-        fontSize: state.font.fontSize,
-        fontBold: state.font.fontBold,
         directSet: state.editor.isDirectSet,
         withoutSpace: state.editor.isWithoutSpace,
         description: state.editor.description,

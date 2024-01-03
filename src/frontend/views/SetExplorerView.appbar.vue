@@ -40,7 +40,7 @@
       flat
       icon
       title="Настройки отображения"
-      @click="openSettings"
+      @click="toggleSettingsOpen"
     >
       <v-icon>
         mdi-view-dashboard-edit-outline
@@ -63,17 +63,10 @@
       @delete="del"
     />
   </v-app-bar>
-  <div class="settingsPanel" v-if="isSettingsPanelOpen===true">
-    <v-btn variant="text" @click="closeSettings" size="x-small" class="btn_close">
-      Закрыть
-      <v-icon>mdi-close</v-icon>
-    </v-btn>
-    <layout-settings-panel></layout-settings-panel>
-  </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
@@ -83,7 +76,6 @@ import { useRoute, useRouter } from "vue-router";
 
 import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
-import LayoutSettingsPanel from "@/frontend/components/LayoutSettings/LayoutSettingsPanel.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
 
@@ -93,8 +85,6 @@ const store = useStore();
 
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
-
-const isSettingsPanelOpen = ref(false);
 
 const title = computed(() => {
   const arr = file.value.split("§");
@@ -113,10 +103,6 @@ const buttonEnabled = computed(() => {
   return store.state.button.enabled;
 });
 
-const animation = computed(() => {
-  return store.state.button.animation;
-});
-
 function switchButtonEnabled () {
   store.dispatch("button_enabled");
 }
@@ -133,21 +119,15 @@ function back () {
   router.push("/" + file.value.split("§").slice(0, -1).join("§"));
 }
 
-function switchAnimation () {
-  store.dispatch("button_animation_toggle");
-}
+const isSettingsOpened = computed(() => {
+  return store.state.layoutSettings.isOpened;
+});
 
-function openSettings () {
-  if(!isSettingsPanelOpen.value) {
-    isSettingsPanelOpen.value = true;
-  }
-}
-
-async function closeSettings () {
-  if(isSettingsPanelOpen.value) {
+async function toggleSettingsOpen () {
+  if (isSettingsOpened.value) {
     await save();
-    isSettingsPanelOpen.value = false;
   }
+  store.dispatch("toggle_settings_opened");
 }
 
 async function save () {
@@ -170,20 +150,10 @@ async function move (location: string) {
   router.push("/set/" + url);
   Metric.registerEvent(store.state.pcHash, "move");
 }
+
+onUnmounted(async () => {
+  if (isSettingsOpened.value) {
+    await toggleSettingsOpen();
+  }
+});
 </script>
-<style scoped>
-.settingsPanel {
-  margin-top: 64px;
-  position: fixed;
-  z-index: 1005;
-  width: 100%;
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 25%);
-  padding: 16px 24px;
-  display: flex;
-  flex-direction: column;
-}
-.btn_close {
-  align-self: flex-end;
-}
-</style>

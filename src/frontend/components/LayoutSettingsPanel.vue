@@ -1,4 +1,9 @@
 <template>
+  <div class="settingsPanel" v-if="isSettingsPanelOpen===true">
+    <v-btn variant="text" @click="closeSettings" size="x-small" class="btn_close">
+      Закрыть
+      <v-icon>mdi-close</v-icon>
+    </v-btn>
   <v-row>
     <v-col md="3" sm="6" xs="9">
       <v-card-text>
@@ -14,9 +19,9 @@
         <v-card-subtitle class="pl-0">Настройки шрифта</v-card-subtitle>
         <v-row class="mt-0 ml-0 mr-0 mb-0 btn_settings-row">
           <div class="settingGroup">
-            <v-btn variant="tonal" size="small" @click="decreaseFontSize" class="btn_settings">-</v-btn>
+            <v-btn :disabled="fontSize-1 < 16" variant="tonal" size="small" @click="decreaseFontSize" class="btn_settings">-</v-btn>
             <div class="fontSettingLabel v-label">{{fontSize}}</div>
-            <v-btn variant="tonal" size="small" @click="increaseFontSize" class="btn_settings">+</v-btn>
+            <v-btn :disabled="fontSize+1 > 30" variant="tonal" size="small" @click="increaseFontSize" class="btn_settings">+</v-btn>
           </div>
           <v-btn :variant="fontBold? 'text' : 'tonal'" size="small" :class="fontBold? 'btn-fontBold btn-fontBold_bold':'btn-fontBold'" :color="fontBold ? 'primary':''" @click="toggleBold">B</v-btn>
         </v-row>
@@ -51,15 +56,16 @@
       </v-card-text>
     </v-col>
   </v-row>
+  </div>
 </template>
-  
-  <script lang="ts" setup>
-  import { computed } from "vue";
-  import { useStore } from "vuex";
-  
-  const store = useStore();
 
-  const animation = computed({
+<script lang="ts" setup>
+import { computed } from "vue";
+import { useStore } from "vuex";
+
+const store = useStore();
+
+const animation = computed({
   get () {
     return store.state.button.animation;
   },
@@ -69,23 +75,24 @@
 });
 const fontSize = computed({
   get () {
-    return store.state.font.fontSize;
+    return store.state.layoutSettings.fontSize;
   },
-  set (value: boolean) {
+  set (value: number) {
     store.dispatch("fontSize_change", value);
   }
 });
 const fontBold = computed(() => {
-  return store.state.font.fontBold;
+  return store.state.layoutSettings.fontBold;
 });
 async function increaseFontSize () {
-    fontSize.value = fontSize.value + 1;
+  fontSize.value = fontSize.value + 1;
 }
 async function decreaseFontSize () {
-    fontSize.value = fontSize.value - 1;
+  fontSize.value = fontSize.value - 1;
 }
+
 async function toggleBold () {
-    store.dispatch("fontBold_toggle");
+  store.dispatch("fontBold_toggle");
 }
 
 const columns = computed({
@@ -106,8 +113,32 @@ const rows = computed({
   }
 });
 
-  </script>
-  <style scoped>
+const isSettingsPanelOpen = computed(() => {
+  return store.state.layoutSettings.isOpened;
+});
+
+async function closeSettings () {
+  await save();
+  store.dispatch("toggle_settings_opened");
+}
+
+async function save () {
+  await store.dispatch("editor_save");
+}
+</script>
+<style scoped>
+  .settingsPanel {
+    z-index: 1005;
+    width: 100%;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 25%);
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  .btn_close {
+    align-self: flex-end;
+  }
   .settingColumn {
     display: flex;
     align-items: flex-start;
@@ -139,4 +170,4 @@ const rows = computed({
     overflow-y: visible !important;
     flex-wrap: wrap;
   }
-  </style>
+</style>

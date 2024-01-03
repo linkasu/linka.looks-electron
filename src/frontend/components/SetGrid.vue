@@ -20,17 +20,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, defineProps, onMounted } from "vue";
 
+import { ref, computed, watch, defineProps, onMounted, onUnmounted } from "vue";
 import { useStore } from "vuex";
-
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import { Card } from "../../common/interfaces/ConfigFile";
 import { PageWatcher } from "@/electron/tobii/pageWatch";
 import { useRoute } from "vue-router";
-import { onUnmounted } from "vue";
 
 interface ISetGridProps {
   config: ConfigFile
@@ -92,31 +90,28 @@ const path = computed(() => {
 onMounted(async () => {
   await store.dispatch("editor_current", path.value);
 });
-onUnmounted(async()=> {
+
+onUnmounted(async () => {
   await store.dispatch("editor_current_default");
-})
+});
 </script>
 
 <style scoped>
 .grid {
   border-top: 1px solid black;
   display: grid;
-
   grid-template-columns: 1fr 8fr 1fr;
   height: 100%;
 }
-
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--columns), 1fr);
   grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
 }
-
 .left-grid {
   display: grid;
   grid-template-columns: 1fr;
 }
-
 .left-grid:has(button + button) {
   grid-template-rows: 2fr 10fr;
 }

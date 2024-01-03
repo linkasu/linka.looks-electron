@@ -196,8 +196,6 @@ export class CardsStorage extends ICloudStorage {
     const config: ConfigFile = {
       columns: 3,
       rows: 3,
-      fontSize: 16,
-      fontBold: true,
       cards: [],
       withoutSpace: false,
       directSet: false,

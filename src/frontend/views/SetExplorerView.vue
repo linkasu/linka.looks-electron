@@ -3,10 +3,11 @@
     v-if="filename"
     full-height
     class="root"
-    :class="{ root_hide: !interfaceOutputLine && !isQuiz }"
+    :class="{ root_hide: !interfaceOutputLine && !isQuiz && !isSettingsOpened, root_settings: isSettingsOpened}"
   >
+    <layout-settings-panel></layout-settings-panel>
     <output-line
-      v-if="interfaceOutputLine && !isQuiz"
+      v-if="interfaceOutputLine && !isQuiz && !isSettingsOpened"
       :cards="cards"
       :file="filename"
       :config="config"
@@ -44,6 +45,7 @@ import SetGrid from "@/frontend/components/SetGrid.vue";
 import { CardType, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import { Metric } from "@/frontend/utils/Metric";
+import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -79,6 +81,10 @@ const quizReadQuestion = computed(() => {
   return config.value?.quizReadQuestion;
 });
 
+const isSettingsOpened = computed(() => {
+  return store.state.layoutSettings.isOpened;
+});
+
 function addCard (card: Card) {
   Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz.value) {
@@ -108,6 +114,9 @@ function addCard (card: Card) {
 .root {
   display: grid;
   grid-template-rows: auto 8fr;
+}
+.root_settings {
+  grid-template-rows: auto 1fr;
 }
 .root_hide {
   /* background-color: black; */
