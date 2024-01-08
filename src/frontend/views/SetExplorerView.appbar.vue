@@ -35,17 +35,17 @@
     >
       <v-icon>{{ buttonEnabled ? 'mdi-eye' : 'mdi-eye-off' }}</v-icon>
     </v-btn>
+    <v-spacer />
     <v-btn
       flat
       icon
-      :color="animation ? 'primary' : ''"
-      :title="(animation ? 'Выключить' : 'Включить') + ' анимацию изображений'"
+      title="Настройки отображения"
+      @click="toggleSettingsOpen"
     >
-      <v-icon @click="switchAnimation">
-        {{ animation ? 'mdi-pause' : 'mdi-play' }}
+      <v-icon>
+        mdi-view-dashboard-edit-outline
       </v-icon>
     </v-btn>
-    <v-spacer />
     <share-button />
     <v-btn
       flat
@@ -66,7 +66,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, onUnmounted } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
@@ -103,10 +103,6 @@ const buttonEnabled = computed(() => {
   return store.state.button.enabled;
 });
 
-const animation = computed(() => {
-  return store.state.button.animation;
-});
-
 function switchButtonEnabled () {
   store.dispatch("button_enabled");
 }
@@ -123,8 +119,19 @@ function back () {
   router.push("/" + file.value.split("§").slice(0, -1).join("§"));
 }
 
-function switchAnimation () {
-  store.dispatch("button_animation_toggle");
+const isSettingsOpened = computed(() => {
+  return store.state.layoutSettings.isOpened;
+});
+
+async function toggleSettingsOpen () {
+  if (isSettingsOpened.value) {
+    await save();
+  }
+  store.dispatch("toggle_settings_opened");
+}
+
+async function save () {
+  await store.dispatch("editor_save");
 }
 
 async function del () {
@@ -143,4 +150,10 @@ async function move (location: string) {
   router.push("/set/" + url);
   Metric.registerEvent(store.state.pcHash, "move");
 }
+
+onUnmounted(async () => {
+  if (isSettingsOpened.value) {
+    await toggleSettingsOpen();
+  }
+});
 </script>

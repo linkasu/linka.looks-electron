@@ -40,7 +40,9 @@
         v-if="card.cardType === CardTypes.AudioCard"
         class="text"
       >
-        <span>{{ card.title?.slice(0, 50) }}</span>
+      <span :style="{fontSize: `${fontSize}px`, fontWeight: fontBold? 700 : 400}">
+        {{ card.title?.slice(0, 50) }}
+      </span>
       </div>
     </div>
   </eye-button>
@@ -48,7 +50,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { defineProps, withDefaults, ref, computed, watch, onMounted } from "vue";
+import { defineProps, withDefaults, ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
@@ -77,6 +79,13 @@ watch(() => props.card, onCardPropUpdated, { deep: true, immediate: true });
 
 const animation = computed(() => {
   return store.state.button.animation;
+});
+
+const fontSize = computed(() => {
+  return store.state.layoutSettings.fontSize;
+});
+const fontBold = computed(() => {
+  return store.state.layoutSettings.fontBold;
 });
 
 function onCardPropUpdated (card: Card) {
@@ -130,7 +139,7 @@ function createStaticImage (url: string) {
 .content {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 1.5em;
+  grid-template-rows: auto 2.5em;
   gap: 10px;
   padding: 8px;
 }
@@ -173,6 +182,7 @@ function createStaticImage (url: string) {
   white-space: nowrap;
   max-width: 100%;
   font-size: 1em;
+  font-weight: normal;
 }
 .dot {
   --size: 24px;
