@@ -51,17 +51,17 @@ const dialog = ref(false);
 const downloading = ref(false);
 const progress = ref(0);
 
-onMounted((): void => {
-  const newLocal = +store.state.defaultSetsDownloaded;
+// onMounted((): void => {
+  // const newLocal = +store.state.defaultSetsDownloaded;
 
-  dialog.value = (newLocal) < 2;
+  // dialog.value = (newLocal) < 2;
 
-  // dialog = true
-  store.commit("button_enabled", !dialog.value);
-  ipcRenderer.on("download_progress", (_, prog) => {
-    progress.value = prog;
-  });
-});
+  // // dialog = true
+  // store.commit("button_enabled", !dialog.value);
+  // ipcRenderer.on("download_progress", (_, prog) => {
+  //   progress.value = prog;
+  // });
+// });
 
 async function download () {
   downloading.value = true;
