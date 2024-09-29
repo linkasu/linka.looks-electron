@@ -44,7 +44,6 @@ export class CardsStorage extends ICloudStorage {
       mkdirSync(HOME_DIR);
     }
     this.copyFolderSync(DEFAULT_SETS, HOME_DIR);
-
   }
 
   async showItemInFolder (path: string) {
@@ -331,12 +330,12 @@ export class CardsStorage extends ICloudStorage {
     readdirSync(srcPath).forEach((file: string) => {
       const srcFilePath = join(srcPath, file);
       const destFilePath = join(destPath, file);
-      
+
       if (lstatSync(srcFilePath).isDirectory()) {
         this.copyFolderSync(srcFilePath, destFilePath);
       } else {
         if (existsSync(destFilePath)) {
-         return;
+          return;
         }
         copyFileSync(srcFilePath, destFilePath);
       }
