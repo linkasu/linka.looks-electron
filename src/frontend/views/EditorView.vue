@@ -22,17 +22,22 @@
         <v-card-text class="buttons">
           <v-layout>
             <v-row>
-              <v-col xs4>
+              <v-col xs3>
                 <v-btn block color="orange" :disabled="ui_disabled" @click="page--">
                   <v-icon>mdi-arrow-left</v-icon>
                 </v-btn>
               </v-col>
-              <v-col xs4>
+              <v-col xs3>
                 <v-btn block color="blue" :disabled="ui_disabled">
                   {{ page + 1 }}
                 </v-btn>
               </v-col>
-              <v-col xs4>
+              <v-col xs3>
+                <v-btn block color="primary" :disabled="emptyPage || ui_disabled" @click="copyPage">
+                  <v-icon>mdi-content-copy</v-icon>
+                </v-btn>
+              </v-col>
+              <v-col xs3>
                 <v-btn block color="orange" :disabled="emptyPage || ui_disabled" @click="page++">
                   <v-icon>mdi-arrow-right</v-icon>
                 </v-btn>
@@ -419,6 +424,18 @@ function copySelected () {
   if (index + 1 >= pageStart && index + 1 < pageStart + pageSize.value) {
     select(index + 1 - pageStart);
   }
+}
+
+// Duplicate the current page and advance to the inserted copy
+function copyPage () {
+  const start = pageSize.value * page.value;
+  const newCards = current.value.map((c) => {
+    const copy = JSON.parse(JSON.stringify(c));
+    copy.id = uuid();
+    return copy;
+  });
+  cards.value.splice(start + pageSize.value, 0, ...newCards);
+  page.value++;
 }
 
 async function selectImage () {
