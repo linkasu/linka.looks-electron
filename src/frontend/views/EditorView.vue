@@ -414,7 +414,7 @@ function copySelected () {
   const newCard: Card = JSON.parse(JSON.stringify(selected.value));
   newCard.id = uuid();
   cards.value.splice(index + 1, 0, newCard);
-  page.value = page.value;
+  
   const pageStart = pageSize.value * page.value;
   if (index + 1 >= pageStart && index + 1 < pageStart + pageSize.value) {
     select(index + 1 - pageStart);

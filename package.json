@@ -75,7 +75,7 @@
     "@vue/test-utils": "^2.0.0-0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "electron": "^23.2.0",
+    "electron": "^37.2.3",
     "electron-devtools-installer": "^3.1.0",
     "eslint": "^8.46.0",
     "eslint-plugin-node": "^11.1.0",
@@ -88,5 +88,6 @@
     "vue-property-decorator": "^9.1.2",
     "webpack-plugin-vuetify": "^2.0.0-alpha.0",
     "yarn": "^1.22.19"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
