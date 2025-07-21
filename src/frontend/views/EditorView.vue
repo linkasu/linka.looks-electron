@@ -45,8 +45,30 @@
         <v-card-title primary-title>
           Редактирование
           <v-spacer />
-          <v-btn v-if="selected.cardType !== CardTypes.NewCard" title="Сбросить карточку" icon absolute depressed
-            color="error" class="delete" :disabled="ui_disabled" @click="selected.cardType = CardTypes.NewCard">
+          <v-btn
+            v-if="selected.cardType !== CardTypes.NewCard"
+            title="Копировать карточку"
+            icon
+            absolute
+            depressed
+            color="primary"
+            class="copy"
+            :disabled="ui_disabled"
+            @click="copySelected"
+          >
+            <v-icon>mdi-content-copy</v-icon>
+          </v-btn>
+          <v-btn
+            v-if="selected.cardType !== CardTypes.NewCard"
+            title="Сбросить карточку"
+            icon
+            absolute
+            depressed
+            color="error"
+            class="delete"
+            :disabled="ui_disabled"
+            @click="selected.cardType = CardTypes.NewCard"
+          >
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </v-card-title>
@@ -385,6 +407,20 @@ function genNewCard (): Card {
   };
 }
 
+function copySelected () {
+  if (!selected.value) return;
+  const index = cards.value.findIndex((c) => c.id === selected.value?.id);
+  if (index === -1) return;
+  const newCard: Card = JSON.parse(JSON.stringify(selected.value));
+  newCard.id = uuid();
+  cards.value.splice(index + 1, 0, newCard);
+
+  const pageStart = pageSize.value * page.value;
+  if (index + 1 >= pageStart && index + 1 < pageStart + pageSize.value) {
+    select(index + 1 - pageStart);
+  }
+}
+
 async function selectImage () {
   if (!filename.value) return;
   store.dispatch("disable_ui");
@@ -474,6 +510,12 @@ function onTitleSelected (title: string) {
 .delete {
   position: absolute;
   right: 0;
+  top: 0;
+}
+
+.copy {
+  position: absolute;
+  right: 40px;
   top: 0;
 }
 </style>
