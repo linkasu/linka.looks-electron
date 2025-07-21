@@ -83,6 +83,7 @@
 
 <script lang="ts" setup>
 import { defineProps, defineEmits, computed, ref, watch } from "vue";
+import { useStore } from "vuex";
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 
@@ -95,8 +96,19 @@ interface IQuizOutputLineProps {
 const props = defineProps<IQuizOutputLineProps>();
 const emit = defineEmits<{(e: "restart"): void }>();
 
+const store = useStore();
+
 const startDialog = ref(true);
 const endDialog = ref(false);
+
+const voice = computed(() => store.state.voice);
+
+watch(startDialog, (v) => {
+  const text = v
+    ? "Этот набор викторина! Вам будут предложены вопросы, выбирайте ответы"
+    : "Начинаем викторину";
+  TTS.instance.playText(text, voice.value).catch(console.error);
+});
 
 const question = computed(() => {
   const text = readQuestion();
@@ -111,7 +123,14 @@ const end = computed(() => {
 
 watch(
   end,
-  () => { endDialog.value = end.value; }
+  () => {
+    endDialog.value = end.value;
+    if (end.value) {
+      TTS.instance
+        .playText(`Викторина окончена. Количество ошибок: ${props.errors}`, voice.value)
+        .catch(console.error);
+    }
+  }
 );
 
 function readQuestion () {
@@ -119,7 +138,7 @@ function readQuestion () {
   const text = props.config.questions[props.page];
 
   if (props.config.quizReadQuestion && !startDialog.value) {
-    TTS.instance.playText(text).catch(console.error);
+    TTS.instance.playText(text, voice.value).catch(console.error);
   }
   return text;
 }
