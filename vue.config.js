@@ -36,6 +36,9 @@ module.exports = defineConfig({
           signAndEditExecutable: true,
           verifyUpdateCodeSignature: false
         },
+        nsis: {
+          include: "build/installer.nsh"
+        },
         extraResources: [
           {
             from: "./extraResources/",
