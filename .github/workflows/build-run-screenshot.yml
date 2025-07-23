@@ -1,0 +1,39 @@
+name: Build and Screenshot
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build_and_test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn electron:build -- --dir
+
+      - name: Run built app and capture screenshot
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path dist_electron/win-unpacked -Filter *.exe | Select-Object -First 1
+          Start-Process $exe
+          Start-Sleep -Seconds 15
+          npx screenshot-desktop --filename screenshot.png
+          $processName = [System.IO.Path]::GetFileNameWithoutExtension($exe.FullName)
+          Get-Process $processName | Stop-Process
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-screenshot
+          path: screenshot.png
