@@ -88,9 +88,12 @@ const isSettingsOpened = computed(() => {
 function addCard (card: Card) {
   Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz.value) {
+    const voice = store.state.voice;
     if (card.answer) {
+      TTS.instance.playText("Правильный ответ", voice).catch(console.error);
       quizPage.value++;
     } else {
+      TTS.instance.playText("Неправильный ответ", voice).catch(console.error);
       errors.value++;
       if (quizAutoNext.value) {
         quizPage.value++;

@@ -58,11 +58,11 @@
             v-model="isDirectSet"
             label="Скрыть строку вывода и озвучивать карточку сразу при нажатии на нее"
           />
-          <!-- <v-checkbox
+          <v-checkbox
             label="Набор для викторины"
             v-if="!isDirectSet"
             v-model="isQuiz"
-          ></v-checkbox> -->
+          />
           <section v-if="isQuiz">
             <v-card-subtitle> Настройки викторины </v-card-subtitle>
             <v-checkbox
@@ -73,6 +73,7 @@
               v-model="editor_quizReadQuestion"
               label="Зачитывать вопрос"
             />
+            <questions-dialog class="mt-2" />
           </section>
         </v-form>
       </v-card-text>
@@ -83,6 +84,7 @@
 <script lang="ts" setup>
 import { defineProps, withDefaults, ref, computed } from "vue";
 import { useStore } from "vuex";
+import QuestionsDialog from "./QuestionsDialog.vue";
 
 const store = useStore();
 
