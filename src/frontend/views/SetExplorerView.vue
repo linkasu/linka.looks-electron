@@ -5,6 +5,7 @@
     class="root"
     :class="{ root_hide: !interfaceOutputLine && !isQuiz && !isSettingsOpened, root_settings: isSettingsOpened}"
   >
+    <div v-if="processing" class="answer-overlay" />
     <layout-settings-panel></layout-settings-panel>
     <output-line
       v-if="interfaceOutputLine && !isQuiz && !isSettingsOpened"
@@ -45,6 +46,7 @@ import SetGrid from "@/frontend/components/SetGrid.vue";
 import { CardType, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import { Metric } from "@/frontend/utils/Metric";
+import { storageService } from "@/frontend/services/card-storage-service";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 
 const store = useStore();
@@ -54,6 +56,7 @@ const filename: Ref<string | null> = ref(null);
 const cards: Ref<Card[]> = ref([]);
 const quizPage = ref(0);
 const errors = ref(0);
+const processing = ref(false);
 
 onMounted(() => {
   filename.value = route.params.path.toString();
@@ -89,6 +92,16 @@ function addCard (card: Card) {
   Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz.value) {
     const voice = store.state.voice;
+    processing.value = true;
+    store.commit("button_enabled", false);
+    setTimeout(() => {
+      processing.value = false;
+      store.commit("button_enabled", true);
+    }, 1500);
+    if (Math.random() < 0.5 && card.title && filename.value) {
+      storageService.createAudioFromText(filename.value, card.title, voice).catch(console.error);
+      TTS.instance.playText(card.title, voice).catch(console.error);
+    }
     if (card.answer) {
       TTS.instance.playText("Правильный ответ", voice).catch(console.error);
       quizPage.value++;
@@ -128,5 +141,14 @@ function addCard (card: Card) {
 .root > div {
   /* border: 1px solid black; */
   width: 100%;
+}
+.answer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
 </style>

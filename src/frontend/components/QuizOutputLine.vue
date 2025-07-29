@@ -42,21 +42,12 @@
           <v-card-text> Хотите начать сначала? </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn
-              color="green darken-1"
-              @click="
-                emit('restart'),
-                endDialog = false
-              "
-            >
+            <eye-button class="gaze-btn" color="green" @click="emit('restart'); endDialog = false">
               Да
-            </v-btn>
-            <v-btn
-              color="green darken-1"
-              @click="endDialog = false"
-            >
+            </eye-button>
+            <eye-button class="gaze-btn" color="green" @click="endDialog = false">
               Нет
-            </v-btn>
+            </eye-button>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -68,12 +59,9 @@
           <v-card-text> Вам будут предложены вопросы, выбирайте ответы </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn
-              color="green darken-1"
-              @click="startDialog = false"
-            >
+            <eye-button class="gaze-btn" color="green" @click="startDialog = false">
               Начать
-            </v-btn>
+            </eye-button>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -86,6 +74,7 @@ import { defineProps, defineEmits, computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
+import EyeButton from "@/frontend/components/EyeButton.vue";
 
 interface IQuizOutputLineProps {
   config: ConfigFile
@@ -156,5 +145,11 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.gaze-btn {
+  width: 200px;
+  height: 100px;
+  font-size: 1.2em;
+  margin: 0.5em;
 }
 </style>
