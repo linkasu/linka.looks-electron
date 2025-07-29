@@ -65,10 +65,9 @@
           />
           <section v-if="isQuiz">
             <v-card-subtitle> Настройки викторины </v-card-subtitle>
-            <v-select
+            <v-checkbox
               v-model="editor_quizAutoNext"
-              :items="quizModeItems"
-              label="Режим викторины"
+              label="Переключать на следующий вопрос при любом ответе"
             />
             <v-checkbox
               v-model="editor_quizReadQuestion"
@@ -156,10 +155,6 @@ const editor_quizAutoNext = computed({
   }
 });
 
-const quizModeItems = [
-  { title: "Режим оценки", value: true },
-  { title: "Режим практики", value: false }
-];
 </script>
 
 <style>

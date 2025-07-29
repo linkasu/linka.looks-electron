@@ -23,6 +23,7 @@
         quizPage = 0,
         errors = 0
       "
+      @setMode="(v) => (quizAutoNext.value = v)"
     />
 
     <set-grid
@@ -37,7 +38,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import OutputLine from "@/frontend/components/OutputLine.vue";
@@ -76,9 +77,16 @@ const isQuiz = computed(() => {
   return config.value?.quiz;
 });
 
-const quizAutoNext = computed(() => {
-  return config.value?.quizAutoNext;
-});
+const quizAutoNext = ref(true);
+watch(
+  config,
+  (cfg) => {
+    if (cfg?.quizAutoNext !== undefined) {
+      quizAutoNext.value = cfg.quizAutoNext;
+    }
+  },
+  { immediate: true }
+);
 
 const quizReadQuestion = computed(() => {
   return config.value?.quizReadQuestion;

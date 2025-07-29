@@ -12,7 +12,7 @@ export interface Card {
   audioPath?: string;
   audioText?: string;
   audioVoice?: string
-  answer?: true
+  answer?: boolean
 }
 
 export interface ConfigFile {

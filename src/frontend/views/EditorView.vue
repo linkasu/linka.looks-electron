@@ -507,6 +507,7 @@ function onTitleSelected (title: string) {
 
 .cards-wrapper {
   height: 100%;
+  overflow-y: auto;
 }
 
 .buttons {
