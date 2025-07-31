@@ -42,21 +42,12 @@
           <v-card-text> Хотите начать сначала? </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn
-              color="green darken-1"
-              @click="
-                emit('restart'),
-                endDialog = false
-              "
-            >
+            <eye-button class="gaze-btn" color="green" @click="emit('restart'); endDialog = false">
               Да
-            </v-btn>
-            <v-btn
-              color="green darken-1"
-              @click="endDialog = false"
-            >
+            </eye-button>
+            <eye-button class="gaze-btn" color="green" @click="endDialog = false">
               Нет
-            </v-btn>
+            </eye-button>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -65,15 +56,21 @@
           <v-card-title>
             <span class="headline">Этот набор викторина!</span>
           </v-card-title>
-          <v-card-text> Вам будут предложены вопросы, выбирайте ответы </v-card-text>
+          <v-card-text>
+            Вам будут предложены вопросы, выбирайте ответы
+          </v-card-text>
+          <v-card-text>
+            <v-select
+              v-model="autoNextChoice"
+              :items="quizModeItems"
+              label="Режим викторины"
+            />
+          </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn
-              color="green darken-1"
-              @click="startDialog = false"
-            >
+            <eye-button class="gaze-btn" color="green" @click="startQuiz">
               Начать
-            </v-btn>
+            </eye-button>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -86,6 +83,7 @@ import { defineProps, defineEmits, computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
+import EyeButton from "@/frontend/components/EyeButton.vue";
 
 interface IQuizOutputLineProps {
   config: ConfigFile
@@ -94,12 +92,13 @@ interface IQuizOutputLineProps {
 }
 
 const props = defineProps<IQuizOutputLineProps>();
-const emit = defineEmits<{(e: "restart"): void }>();
+const emit = defineEmits<{(e: "restart"): void; (e: "setMode", v: boolean): void }>();
 
 const store = useStore();
 
 const startDialog = ref(true);
 const endDialog = ref(false);
+const autoNextChoice = ref(props.config.quizAutoNext ?? true);
 
 const voice = computed(() => store.state.voice);
 
@@ -108,12 +107,19 @@ watch(startDialog, (v) => {
     ? "Этот набор викторина! Вам будут предложены вопросы, выбирайте ответы"
     : "Начинаем викторину";
   TTS.instance.playText(text, voice.value).catch(console.error);
+  if (!v) speakQuestion();
 });
 
 const question = computed(() => {
-  const text = readQuestion();
-  return text;
+  return props.config.questions?.[props.page] ?? "";
 });
+
+watch(
+  () => props.page,
+  () => {
+    speakQuestion();
+  }
+);
 
 const end = computed(() => {
   if (!props.config.questions) return false;
@@ -133,15 +139,23 @@ watch(
   }
 );
 
-function readQuestion () {
-  if (!props.config.questions) return "";
-  const text = props.config.questions[props.page];
-
+function speakQuestion () {
+  if (!props.config.questions) return;
   if (props.config.quizReadQuestion && !startDialog.value) {
-    TTS.instance.playText(text, voice.value).catch(console.error);
+    const text = props.config.questions[props.page];
+    if (text) TTS.instance.playText(text, voice.value).catch(console.error);
   }
-  return text;
 }
+
+function startQuiz () {
+  emit("setMode", autoNextChoice.value);
+  startDialog.value = false;
+}
+
+const quizModeItems = [
+  { title: "Режим оценки", value: true },
+  { title: "Режим практики", value: false }
+];
 </script>
 
 <style scope>
@@ -156,5 +170,11 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.gaze-btn {
+  width: 240px;
+  height: 120px;
+  font-size: 1.4em;
+  margin: 0.5em;
 }
 </style>
