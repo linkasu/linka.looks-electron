@@ -44,6 +44,7 @@ export interface LINKaStore {
         current: string,
         temp: string,
         cards: Card[],
+        page: number,
         quiz: boolean,
         questions: string[],
         quizAutoNext: boolean,

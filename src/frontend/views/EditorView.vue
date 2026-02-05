@@ -181,7 +181,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 
@@ -222,7 +222,7 @@ const cardTypeOptions = [
 ];
 
 const mcurrent: Ref<(Card)[]> = ref([]);
-const mpage = ref(0);
+const mpage = ref(store.state.editor.page ?? 0);
 const selected: Ref<Card | null> = ref(null);
 
 const ui_disabled = computed(() => store.state.ui.disabled);
@@ -324,6 +324,8 @@ const pageSize = computed(() => {
   return columns.value * rows.value;
 });
 
+const storePage = computed(() => store.state.editor.page ?? 0);
+
 const lastRealCardIndex = computed(() => {
   if (!cards.value?.length) return -1;
   for (let i = cards.value.length - 1; i >= 0; i--) {
@@ -344,7 +346,11 @@ const page = computed({
     return mpage.value;
   },
   set (v: number) {
-    mpage.value = Math.max(0, v);
+    const next = Math.max(0, v);
+    mpage.value = next;
+    if (storePage.value !== next) {
+      store.commit("editor_page", next);
+    }
     selected.value = null;
     if (!cards.value) return;
     const arr = cards.value?.slice(pageSize.value * page.value, pageSize.value * (page.value + 1));
@@ -359,6 +365,12 @@ const page = computed({
       arr.push(genNewCard());
     }
     current.value = arr;
+  }
+});
+
+watch(storePage, (v) => {
+  if (v !== mpage.value) {
+    page.value = v;
   }
 });
 
@@ -443,14 +455,7 @@ function copySelected () {
 
 // Duplicate the current page and advance to the inserted copy
 function copyPage () {
-  const start = pageSize.value * page.value;
-  const newCards = current.value.map((c) => {
-    const copy = JSON.parse(JSON.stringify(c));
-    copy.id = uuid();
-    return copy;
-  });
-  cards.value.splice(start + pageSize.value, 0, ...newCards);
-  page.value++;
+  store.dispatch("editor_copy_page");
 }
 
 async function selectImage () {

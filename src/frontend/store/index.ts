@@ -5,6 +5,8 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Metric } from "@/frontend/utils/Metric";
+import { CardType, type Card } from "@/common/interfaces/ConfigFile";
+import { uuid } from "uuidv4";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
@@ -78,6 +80,7 @@ const store = createStore<LINKaStore>({
       current: "",
       temp: "",
       cards: [],
+      page: 0,
       quiz: false,
       questions: [],
       quizAutoNext: true,
@@ -181,6 +184,9 @@ const store = createStore<LINKaStore>({
     },
     editor_description ({ editor }, value) {
       editor.description = value;
+    },
+    editor_page ({ editor }, value) {
+      editor.page = value;
     },
     explorer_page ({ explorer }, value) {
       explorer.page = value;
@@ -357,6 +363,33 @@ const store = createStore<LINKaStore>({
         version: "2.0"
       });
       return current;
+    },
+    editor_copy_page ({ state, commit }) {
+      const pageSize = Math.max(1, state.editor.columns * state.editor.rows);
+      const page = Math.max(0, state.editor.page ?? 0);
+      const start = pageSize * page;
+      const cards = state.editor.cards ?? [];
+
+      const pageCards: Card[] = [];
+      for (let i = 0; i < pageSize; i++) {
+        const card = cards[start + i];
+        if (card) {
+          pageCards.push(card);
+        } else {
+          pageCards.push({ cardType: CardType.NewCard, id: uuid() });
+        }
+      }
+
+      const newCards = pageCards.map((c) => {
+        const copy: Card = JSON.parse(JSON.stringify(c));
+        copy.id = uuid();
+        return copy;
+      });
+
+      const nextCards = cards.slice();
+      nextCards.splice(start + pageSize, 0, ...newCards);
+      commit("editor_cards", nextCards);
+      commit("editor_page", page + 1);
     },
     async open_file ({ state, commit }, filename) {
       const config = await storageService.getConfigFile(filename);
