@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, ipcRenderer, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWriteStream, WriteStream } from "fs";
-import { join, basename, extname, normalize } from "path";
+import { join, basename, extname, normalize, dirname } from "path";
 import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
@@ -244,6 +244,24 @@ export class CardsStorage extends ICloudStorage {
     return target;
   }
 
+  async duplicateItem (path: string): Promise<string> {
+    const source = this.checkPath(path);
+    const target = this.getDuplicatePath(source);
+    if (lstatSync(source).isDirectory()) {
+      this.copyFolderSync(source, target);
+    } else {
+      await copyFile(source, target);
+    }
+    return target;
+  }
+
+  async renameItem (path: string, newName: string): Promise<string> {
+    const source = this.checkPath(path);
+    const target = this.checkPath(join(dirname(source), newName));
+    await rename(source, target);
+    return target;
+  }
+
   private cleanFile (path: string, config: ConfigFile) {
     const paths = [];
     for (const card of config.cards.filter(Boolean)) {
@@ -279,6 +297,21 @@ export class CardsStorage extends ICloudStorage {
     const file = name + "." + ext!;
     await appendZip(path, file, buff);
     return file;
+  }
+
+  private getDuplicatePath (source: string): string {
+    const isDir = lstatSync(source).isDirectory();
+    const ext = isDir ? "" : extname(source);
+    const base = basename(source, ext);
+    const dir = dirname(source);
+    const suffix = " копия";
+    let candidate = join(dir, `${base}${suffix}${ext}`);
+    let index = 2;
+    while (existsSync(candidate)) {
+      candidate = join(dir, `${base}${suffix} ${index}${ext}`);
+      index++;
+    }
+    return candidate;
   }
 
   async downloadAndUnpack (url: string): Promise<void> {

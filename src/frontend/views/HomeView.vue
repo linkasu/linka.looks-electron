@@ -15,7 +15,90 @@
       :key="file.file"
       :file="file"
       @click="select(file)"
+      @contextmenu.prevent="openContextMenu($event, file)"
     />
+
+    <div
+      v-if="contextMenuOpen"
+      class="context-menu"
+      :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <v-card>
+        <v-list density="compact">
+          <v-list-item @click="openSelected">
+            <v-list-item-title>Открыть</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="duplicateSelected">
+            <v-list-item-title>Дублировать</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="startRename">
+            <v-list-item-title>Переименовать</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="confirmDelete">
+            <v-list-item-title class="danger">Удалить</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="showInFolder">
+            <v-list-item-title>Показать в папке</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-card>
+    </div>
+
+    <v-dialog v-model="renameDialog" width="auto">
+      <v-card min-width="300px">
+        <v-card-title primary-title>
+          Переименовать
+        </v-card-title>
+        <v-card-text>
+          <v-form @submit.prevent="applyRename">
+            <v-text-field
+              v-model="renameValue"
+              label="Название"
+              :rules="[isValidName]"
+            />
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="primary" @click="applyRename">
+            Сохранить
+          </v-btn>
+          <v-btn color="primary" @click="renameDialog = false">
+            Отмена
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="deleteDialog" width="auto">
+      <v-card min-width="300px">
+        <v-card-title primary-title>
+          Удалить {{ contextTitle }}?
+        </v-card-title>
+        <v-card-text> Вы уверены? </v-card-text>
+        <v-card-actions>
+          <v-btn color="error" @click="applyDelete">
+            Да
+          </v-btn>
+          <v-btn color="primary" @click="deleteDialog = false">
+            Нет
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar
+      v-model="error"
+      :timeout="5000"
+    >
+      {{ errorText }}
+      <template #actions>
+        <v-btn color="blue" variant="text" @click="error = false">
+          Закрыть
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-layout>
 </template>
 
@@ -24,6 +107,7 @@ import type { Ref } from "vue";
 import { ref, computed, ComputedRef, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
+import isValidPath from "is-valid-path";
 
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
@@ -39,6 +123,15 @@ const route = useRoute();
 const files: Ref<Directory> = ref([]);
 const mroot = ref("");
 const size = ref(5);
+const contextMenuOpen = ref(false);
+const contextMenuX = ref(0);
+const contextMenuY = ref(0);
+const contextItem: Ref<DirectoryFile | null> = ref(null);
+const renameDialog = ref(false);
+const renameValue = ref("");
+const deleteDialog = ref(false);
+const error = ref(false);
+const errorText = ref("");
 
 onMounted(() => {
   mroot.value = route.params.path.toString();
@@ -91,6 +184,120 @@ function select (item: DirectoryFile) {
     router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + pathModule.basename(item.file));
   }
 }
+
+const contextTitle = computed(() => {
+  if (!contextItem.value) return "";
+  return toBasename(contextItem.value.file);
+});
+
+function toBasename (path: string) {
+  return pathModule.basename(path);
+}
+
+function toDisplayName (item: DirectoryFile) {
+  const name = toBasename(item.file);
+  if (!item.directory && name.toLowerCase().endsWith(".linka")) {
+    return name.slice(0, -".linka".length);
+  }
+  return name;
+}
+
+function openContextMenu (event: MouseEvent, item: DirectoryFile) {
+  contextItem.value = item;
+  const menuWidth = 220;
+  const menuHeight = 220;
+  const x = Math.min(event.clientX, window.innerWidth - menuWidth);
+  const y = Math.min(event.clientY, window.innerHeight - menuHeight);
+  contextMenuX.value = Math.max(8, x);
+  contextMenuY.value = Math.max(8, y);
+  contextMenuOpen.value = true;
+  window.addEventListener("click", closeContextMenu, { once: true });
+}
+
+function closeContextMenu () {
+  contextMenuOpen.value = false;
+}
+
+function openSelected () {
+  if (!contextItem.value) return;
+  closeContextMenu();
+  select(contextItem.value);
+}
+
+async function duplicateSelected () {
+  if (!contextItem.value) return;
+  closeContextMenu();
+  try {
+    await storageService.duplicateItem(contextItem.value.file);
+    loadSets();
+  } catch (err) {
+    errorText.value = "Ошибка дублирования";
+    error.value = true;
+  }
+}
+
+function startRename () {
+  if (!contextItem.value) return;
+  closeContextMenu();
+  renameValue.value = toDisplayName(contextItem.value);
+  renameDialog.value = true;
+}
+
+function isValidName (text: string) {
+  if (!text || !text.trim()) return "Введите название";
+  if (text.includes("/") || !isValidPath(text)) {
+    return "Название содержит спецсимволы";
+  }
+  return true;
+}
+
+async function applyRename () {
+  if (!contextItem.value) return;
+  if (isValidName(renameValue.value) !== true) return;
+  let name = renameValue.value.trim();
+  if (!contextItem.value.directory && !name.toLowerCase().endsWith(".linka")) {
+    name += ".linka";
+  }
+  try {
+    await storageService.renameItem(contextItem.value.file, name);
+    loadSets();
+  } catch (err) {
+    errorText.value = "Ошибка переименования";
+    error.value = true;
+  } finally {
+    renameDialog.value = false;
+  }
+}
+
+function confirmDelete () {
+  if (!contextItem.value) return;
+  closeContextMenu();
+  deleteDialog.value = true;
+}
+
+async function applyDelete () {
+  if (!contextItem.value) return;
+  try {
+    await storageService.moveToTrash(contextItem.value.file);
+    loadSets();
+  } catch (err) {
+    errorText.value = "Ошибка удаления";
+    error.value = true;
+  } finally {
+    deleteDialog.value = false;
+  }
+}
+
+async function showInFolder () {
+  if (!contextItem.value) return;
+  closeContextMenu();
+  try {
+    await storageService.showItemInFolder(contextItem.value.file);
+  } catch (err) {
+    errorText.value = "Ошибка открытия папки";
+    error.value = true;
+  }
+}
 </script>
 
 <style scoped>
@@ -100,5 +307,13 @@ function select (item: DirectoryFile) {
   grid-template-columns: repeat(var(--size), 1fr);
   grid-template-rows: repeat(var(--size), 1fr);
   height: calc(100vh - 64px);
+}
+.context-menu {
+  position: fixed;
+  z-index: 2000;
+}
+.danger {
+  color: #b00020;
+  font-weight: 600;
 }
 </style>
