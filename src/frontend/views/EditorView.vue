@@ -29,7 +29,7 @@
               </v-col>
               <v-col xs3>
                 <v-btn block color="blue" :disabled="ui_disabled">
-                  {{ page + 1 }}
+                  {{ page + 1 }} из {{ totalPages }}
                 </v-btn>
               </v-col>
               <v-col xs3>
@@ -322,6 +322,21 @@ const isQuiz = computed({
 
 const pageSize = computed(() => {
   return columns.value * rows.value;
+});
+
+const lastRealCardIndex = computed(() => {
+  if (!cards.value?.length) return -1;
+  for (let i = cards.value.length - 1; i >= 0; i--) {
+    const card = cards.value[i];
+    if (card && card.cardType !== CardType.NewCard) return i;
+  }
+  return -1;
+});
+
+const totalPages = computed(() => {
+  const realCount = lastRealCardIndex.value + 1;
+  const realPages = realCount > 0 ? Math.ceil(realCount / pageSize.value) : 1;
+  return Math.max(realPages, page.value + 1);
 });
 
 const page = computed({

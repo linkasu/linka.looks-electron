@@ -62,5 +62,6 @@ export interface LINKaStore {
     }
     explorer: {
         config?: ConfigFile
+        page: number
     }
 }

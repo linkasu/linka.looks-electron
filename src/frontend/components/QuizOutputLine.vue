@@ -19,13 +19,7 @@
         {{ question }}
       </h1>
       <h1>
-        <v-icon
-          color="green"
-          :icon="`mdi-numeric-${page + 1}-box`"
-        />/<v-icon
-          color="primary"
-          :icon="`mdi-numeric-${config.questions?.length}-box`"
-        />
+        {{ page + 1 }} из {{ totalPages }}
       </h1>
     </v-layout>
     <v-layout
@@ -113,6 +107,11 @@ watch(startDialog, (v) => {
 const question = computed(() => {
   const text = readQuestion();
   return text;
+});
+
+const totalPages = computed(() => {
+  const total = props.config.questions?.length ?? 0;
+  return Math.max(1, total);
 });
 
 const end = computed(() => {

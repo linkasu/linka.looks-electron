@@ -88,7 +88,8 @@ const store = createStore<LINKaStore>({
       isWithoutSpace: false
     },
     explorer: {
-
+      page: 0,
+      config: undefined
     },
     layoutSettings: {
       isOpened: false,
@@ -180,6 +181,9 @@ const store = createStore<LINKaStore>({
     },
     editor_description ({ editor }, value) {
       editor.description = value;
+    },
+    explorer_page ({ explorer }, value) {
+      explorer.page = value;
     },
     layoutSettings_fontBold ({ layoutSettings }, value) {
       layoutSettings.fontBold = value;

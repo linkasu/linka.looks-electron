@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar>
+  <v-app-bar class="set-explorer-appbar">
     <v-btn
       flat
       icon
@@ -10,6 +10,13 @@
     <v-app-bar-title>
       {{ title }}
     </v-app-bar-title>
+    <v-spacer />
+    <div
+      v-if="config"
+      class="page-indicator"
+    >
+      {{ page + 1 }} из {{ totalPages }}
+    </div>
     <v-spacer />
     <notes-button
       v-if="config?.description"
@@ -78,6 +85,7 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
+import { CardType } from "@/common/interfaces/ConfigFile";
 
 const route = useRoute();
 const router = useRouter();
@@ -85,6 +93,21 @@ const store = useStore();
 
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
+const page = computed(() => store.state.explorer.page ?? 0);
+
+const totalPages = computed(() => {
+  if (!config.value) return 1;
+  const pageSize = Math.max(1, config.value.columns * config.value.rows);
+  const cards = config.value.cards ?? [];
+  for (let i = cards.length - 1; i >= 0; i--) {
+    const card = cards[i];
+    if (card && card.cardType !== CardType.NewCard) {
+      const realCount = i + 1;
+      return Math.max(1, Math.ceil(realCount / pageSize));
+    }
+  }
+  return 1;
+});
 
 const title = computed(() => {
   const arr = file.value.split("§");
@@ -157,3 +180,14 @@ onUnmounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.page-indicator {
+  padding: 2px 10px;
+  border: 1px solid black;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  white-space: nowrap;
+}
+</style>

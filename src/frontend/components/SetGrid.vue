@@ -26,7 +26,7 @@ import { useStore } from "vuex";
 import type { ConfigFile } from "@/common/interfaces/ConfigFile";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
-import { Card } from "../../common/interfaces/ConfigFile";
+import { Card, CardType } from "../../common/interfaces/ConfigFile";
 import { PageWatcher } from "@/electron/tobii/pageWatch";
 import { useRoute } from "vue-router";
 
@@ -55,8 +55,9 @@ const page = computed({
   set (value) {
     mpage.value = Math.max(
       0,
-      Math.min(Math.ceil(props.config.cards.length / pageSize.value) - 1, value)
+      Math.min(totalPages.value - 1, value)
     );
+    store.commit("explorer_page", mpage.value);
     setTimeout(() => {
       PageWatcher.instance.watchElementsChange(true);
     }, 10);
@@ -69,6 +70,21 @@ const rows = computed(() => store.state.editor.rows);
 
 const current = computed(() => {
   return props.config.cards.slice(pageSize.value * page.value, pageSize.value * (page.value + 1));
+});
+
+const lastRealCardIndex = computed(() => {
+  if (!props.config.cards?.length) return -1;
+  for (let i = props.config.cards.length - 1; i >= 0; i--) {
+    const card = props.config.cards[i];
+    if (card && card.cardType !== CardType.NewCard) return i;
+  }
+  return -1;
+});
+
+const totalPages = computed((): number => {
+  const realCount = lastRealCardIndex.value + 1;
+  const realPages = realCount > 0 ? Math.ceil(realCount / pageSize.value) : 1;
+  return Math.max(1, realPages);
 });
 
 const pageSize = computed((): number => {
@@ -89,6 +105,7 @@ const path = computed(() => {
 
 onMounted(async () => {
   await store.dispatch("editor_current", path.value);
+  store.commit("explorer_page", page.value);
 });
 
 onUnmounted(async () => {
