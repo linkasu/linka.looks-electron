@@ -40,6 +40,10 @@ class StorageService extends ICloudStorage {
     return ipcRenderer.invoke("storage:renameItem", path, newName);
   }
 
+  mergeSets (basePath: string, otherPath: string, targetName?: string): Promise<string> {
+    return ipcRenderer.invoke("storage:mergeSets", basePath, otherPath, targetName);
+  }
+
   defaultToTemp (file: string): string | Promise<string> {
     return ipcRenderer.invoke("storage:defaultToTemp", file);
   }

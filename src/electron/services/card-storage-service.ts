@@ -262,6 +262,70 @@ export class CardsStorage extends ICloudStorage {
     return target;
   }
 
+  async mergeSets (basePath: string, otherPath: string, targetName?: string): Promise<string> {
+    const base = this.checkPath(basePath);
+    const other = this.checkPath(otherPath);
+    const baseConfig = this.getConfigFile(base);
+    const otherConfig = this.getConfigFile(other);
+    if (!baseConfig || !otherConfig) {
+      throw new Error("Не удалось прочитать наборы");
+    }
+
+    const tmp = await this.copyToTemp(base);
+    const zipBase = new AdmZip(tmp);
+    const zipOther = new AdmZip(other);
+    const existingEntries = new Set(zipBase.getEntries().map((e) => e.entryName));
+    const entryMap = new Map<string, string>();
+
+    const copyEntry = (name?: string) => {
+      if (!name) return name;
+      if (entryMap.has(name)) return entryMap.get(name);
+      const entry = zipOther.getEntry(name);
+      if (!entry) return name;
+      let newName = name;
+      if (existingEntries.has(newName)) {
+        const ext = extname(name);
+        newName = uuid() + ext;
+      }
+      existingEntries.add(newName);
+      zipBase.addFile(newName, entry.getData());
+      entryMap.set(name, newName);
+      return newName;
+    };
+
+    const otherCards = (otherConfig.cards ?? []).filter(Boolean).map((card) => {
+      const copy = JSON.parse(JSON.stringify(card));
+      if (copy.imagePath) copy.imagePath = copyEntry(copy.imagePath);
+      if (copy.audioPath) copy.audioPath = copyEntry(copy.audioPath);
+      return copy;
+    });
+
+    const mergedConfig: ConfigFile = {
+      ...baseConfig,
+      cards: [...(baseConfig.cards ?? []).filter(Boolean), ...otherCards]
+    };
+
+    const sameGrid = baseConfig.columns === otherConfig.columns && baseConfig.rows === otherConfig.rows;
+    const sameQuiz =
+      !!baseConfig.quiz === !!otherConfig.quiz &&
+      baseConfig.quizAutoNext === otherConfig.quizAutoNext &&
+      baseConfig.quizReadQuestion === otherConfig.quizReadQuestion;
+
+    if (sameGrid && sameQuiz && baseConfig.quiz) {
+      mergedConfig.questions = [
+        ...(baseConfig.questions ?? []),
+        ...(otherConfig.questions ?? [])
+      ];
+    } else {
+      mergedConfig.quiz = false;
+      mergedConfig.questions = [];
+    }
+
+    const target = this.getMergeTargetPath(base, other, targetName);
+    await this.saveSet(tmp, target, mergedConfig);
+    return target;
+  }
+
   private cleanFile (path: string, config: ConfigFile) {
     const paths = [];
     for (const card of config.cards.filter(Boolean)) {
@@ -309,6 +373,27 @@ export class CardsStorage extends ICloudStorage {
     let index = 2;
     while (existsSync(candidate)) {
       candidate = join(dir, `${base}${suffix} ${index}${ext}`);
+      index++;
+    }
+    return candidate;
+  }
+
+  private getMergeTargetPath (basePath: string, otherPath: string, targetName?: string): string {
+    const ext = extname(basePath) || ".linka";
+    const baseName = basename(basePath, ext);
+    const otherName = basename(otherPath, ext);
+    const dir = dirname(basePath);
+    const mergedName = targetName && targetName.trim().length > 0
+      ? targetName.trim()
+      : `${baseName} + ${otherName}`;
+    const safeName = basename(mergedName);
+    const nameBase = safeName.toLowerCase().endsWith(ext)
+      ? safeName.slice(0, -ext.length)
+      : safeName;
+    let candidate = join(dir, nameBase + ext);
+    let index = 2;
+    while (existsSync(candidate)) {
+      candidate = join(dir, `${nameBase} ${index}${ext}`);
       index++;
     }
     return candidate;

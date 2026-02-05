@@ -42,9 +42,58 @@
           <v-list-item @click="showInFolder">
             <v-list-item-title>Показать в папке</v-list-item-title>
           </v-list-item>
+          <v-list-item v-if="!contextItem?.directory" @click="startMerge">
+            <v-list-item-title>Объединить...</v-list-item-title>
+          </v-list-item>
         </v-list>
       </v-card>
     </div>
+
+    <v-dialog v-model="mergeDialog" width="auto">
+      <v-card min-width="340px">
+        <v-card-title primary-title>
+          Объединить наборы
+        </v-card-title>
+        <v-card-text>
+          <div class="merge-subtitle">
+            Основной: {{ contextTitle }}
+          </div>
+          <v-text-field
+            v-model="mergeName"
+            label="Имя нового набора"
+            :rules="[isValidMergeName]"
+            :placeholder="mergeDefaultName"
+          />
+          <v-btn
+            variant="text"
+            @click="mergeName = mergeDefaultName"
+          >
+            По умолчанию
+          </v-btn>
+          <v-select
+            v-model="mergeTarget"
+            :items="mergeOptions"
+            label="Второй набор"
+            item-title="title"
+            item-value="value"
+          />
+          <div class="merge-hint">
+            Новый набор будет создан рядом с основным.
+          </div>
+          <div v-if="mergeWarning" class="merge-warning">
+            {{ mergeWarning }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge">
+            Объединить
+          </v-btn>
+          <v-btn color="primary" @click="mergeDialog = false">
+            Отмена
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="renameDialog" width="auto">
       <v-card min-width="300px">
@@ -132,6 +181,9 @@ const renameValue = ref("");
 const deleteDialog = ref(false);
 const error = ref(false);
 const errorText = ref("");
+const mergeDialog = ref(false);
+const mergeTarget = ref("");
+const mergeName = ref("");
 
 onMounted(() => {
   mroot.value = route.params.path.toString();
@@ -202,6 +254,13 @@ function toDisplayName (item: DirectoryFile) {
   return name;
 }
 
+function buildMergeName (basePath: string, otherPath: string) {
+  const ext = ".linka";
+  const baseName = pathModule.basename(basePath, ext);
+  const otherName = pathModule.basename(otherPath, ext);
+  return `${baseName} + ${otherName}`;
+}
+
 function openContextMenu (event: MouseEvent, item: DirectoryFile) {
   contextItem.value = item;
   const menuWidth = 220;
@@ -245,6 +304,14 @@ function startRename () {
 
 function isValidName (text: string) {
   if (!text || !text.trim()) return "Введите название";
+  if (text.includes("/") || !isValidPath(text)) {
+    return "Название содержит спецсимволы";
+  }
+  return true;
+}
+
+function isValidMergeName (text: string) {
+  if (!text || !text.trim()) return true;
   if (text.includes("/") || !isValidPath(text)) {
     return "Название содержит спецсимволы";
   }
@@ -298,6 +365,66 @@ async function showInFolder () {
     error.value = true;
   }
 }
+
+const mergeOptions = computed(() => {
+  if (!contextItem.value) return [];
+  return files.value
+    .filter((f) => !f.directory && f.file !== contextItem.value?.file)
+    .map((f) => ({
+      title: toDisplayName(f),
+      value: f.file
+    }));
+});
+
+function startMerge () {
+  if (!contextItem.value || contextItem.value.directory) return;
+  closeContextMenu();
+  if (!mergeOptions.value.length) {
+    errorText.value = "Нет другого набора для объединения";
+    error.value = true;
+    return;
+  }
+  mergeTarget.value = "";
+  mergeName.value = "";
+  mergeDialog.value = true;
+}
+
+const mergeDefaultName = computed(() => {
+  if (!contextItem.value || !mergeTarget.value) return "";
+  return buildMergeName(contextItem.value.file, mergeTarget.value);
+});
+
+const mergeWarning = computed(() => {
+  if (!contextItem.value || !mergeTarget.value) return "";
+  const baseConfig = contextItem.value.set;
+  const other = files.value.find((f) => f.file === mergeTarget.value);
+  const otherConfig = other?.set;
+  if (!baseConfig || !otherConfig) return "";
+  const sameGrid = baseConfig.columns === otherConfig.columns && baseConfig.rows === otherConfig.rows;
+  const sameQuiz =
+    !!baseConfig.quiz === !!otherConfig.quiz &&
+    baseConfig.quizAutoNext === otherConfig.quizAutoNext &&
+    baseConfig.quizReadQuestion === otherConfig.quizReadQuestion;
+  if (!sameGrid || !sameQuiz) {
+    return "Настройки отличаются — викторина будет отключена.";
+  }
+  return "";
+});
+
+async function applyMerge () {
+  if (!contextItem.value || !mergeTarget.value) return;
+  if (isValidMergeName(mergeName.value) !== true) return;
+  const targetName = mergeName.value.trim() || mergeDefaultName.value;
+  try {
+    await storageService.mergeSets(contextItem.value.file, mergeTarget.value, targetName);
+    loadSets();
+  } catch (err) {
+    errorText.value = "Ошибка объединения";
+    error.value = true;
+  } finally {
+    mergeDialog.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -313,6 +440,18 @@ async function showInFolder () {
   z-index: 2000;
 }
 .danger {
+  color: #b00020;
+  font-weight: 600;
+}
+.merge-subtitle {
+  margin-bottom: 8px;
+}
+.merge-hint {
+  margin-top: 8px;
+  opacity: 0.7;
+}
+.merge-warning {
+  margin-top: 8px;
   color: #b00020;
   font-weight: 600;
 }

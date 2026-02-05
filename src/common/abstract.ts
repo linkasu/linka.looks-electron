@@ -81,6 +81,10 @@ export abstract class ICloudStorage {
         throw new Error("Method not implemented.");
       }
 
+      mergeSets (basePath: string, otherPath: string, targetName?: string): Promise<string> {
+        throw new Error("Method not implemented.");
+      }
+
       mkdir (file: string): Promise<void> {
         throw new Error("Method not implemented.");
       }
@@ -112,6 +116,7 @@ export abstract class ICloudStorage {
   abstract moveSet(file: string, location: string): Promise<string>;
   abstract duplicateItem(path: string): Promise<string>;
   abstract renameItem(path: string, newName: string): Promise<string>;
+  abstract mergeSets(basePath: string, otherPath: string, targetName?: string): Promise<string>;
 
   abstract mkdir(file: string): Promise<void>;
   abstract rmdir(file: string): Promise<void>;
