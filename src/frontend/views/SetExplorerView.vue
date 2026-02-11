@@ -18,10 +18,13 @@
       :config="config"
       :page="quizPage"
       :errors="errors"
+      :waiting-for-next="waitingForNext"
       @restart="
         quizPage = 0,
-        errors = 0
+        errors = 0,
+        waitingForNext = false
       "
+      @next="advanceQuiz"
     />
 
     <set-grid
@@ -54,6 +57,7 @@ const filename: Ref<string | null> = ref(null);
 const cards: Ref<Card[]> = ref([]);
 const quizPage = ref(0);
 const errors = ref(0);
+const waitingForNext = ref(false);
 
 onMounted(() => {
   filename.value = route.params.path.toString();
@@ -77,23 +81,29 @@ const quizAutoNext = computed(() => {
   return config.value?.quizAutoNext;
 });
 
-const quizReadQuestion = computed(() => {
-  return config.value?.quizReadQuestion;
-});
-
 const isSettingsOpened = computed(() => {
   return store.state.layoutSettings.isOpened;
 });
 
-function addCard (card: Card) {
+function advanceQuiz () {
+  waitingForNext.value = false;
+  quizPage.value++;
+}
+
+async function addCard (card: Card) {
   Metric.registerEvent(store.state.pcHash, "cardClick", { card });
   if (isQuiz.value) {
+    if (waitingForNext.value) return;
     const voice = store.state.voice;
     if (card.answer) {
-      TTS.instance.playText("Правильный ответ", voice).catch(console.error);
-      quizPage.value++;
+      await TTS.instance.forcePlayText("Правильный ответ", voice);
+      if (quizAutoNext.value) {
+        quizPage.value++;
+      } else {
+        waitingForNext.value = true;
+      }
     } else {
-      TTS.instance.playText("Неправильный ответ", voice).catch(console.error);
+      await TTS.instance.forcePlayText("Неправильный ответ", voice);
       errors.value++;
       if (quizAutoNext.value) {
         quizPage.value++;

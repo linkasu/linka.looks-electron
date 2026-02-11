@@ -7,6 +7,7 @@ import axios from "axios";
 export class TTS {
   isPlaying = false;
   audio = new Audio();
+  private _playId = 0;
   private static _instance: TTS;
   static get instance (): TTS {
     if (TTS._instance == null) {
@@ -60,13 +61,40 @@ export class TTS {
     this.isPlaying = false;
   }
 
+  public stop (): void {
+    this.audio.pause();
+    this.audio.currentTime = 0;
+    this.isPlaying = false;
+  }
+
+  public async forcePlayText (text: string, voice = "alena"): Promise<void> {
+    this.stop();
+    const myId = ++this._playId;
+    this.isPlaying = true;
+    const buffer = await tts(text, voice);
+    if (myId !== this._playId) return;
+    const url = URL.createObjectURL(
+      new Blob([buffer], { type: "audio/mp3" } /* (1) */)
+    );
+    await this.playUrl(url);
+    if (myId === this._playId) {
+      this.isPlaying = false;
+    }
+  }
+
   private playUrl (url: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       this.audio.src = url;
       this.audio.oncanplay = async () => {
-        await this.audio.play();
+        try {
+          await this.audio.play();
+        } catch {
+          resolve();
+        }
       };
-      this.audio.onended = resolve;
+      this.audio.onended = () => resolve();
+      this.audio.onerror = () => resolve();
+      this.audio.onpause = () => resolve();
     });
   }
 }
