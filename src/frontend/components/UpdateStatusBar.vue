@@ -2,6 +2,12 @@
   <section>
     <span> Версия приложения: {{ version }}. </span>
     <span v-if="available"> Доступно обновление! Идет загрузка. {{ percent.toFixed(1) }}%. </span>
+    <span
+      v-if="errorMessage"
+      class="update-error"
+    >
+      Ошибка обновления: {{ errorMessage }}
+    </span>
     <v-layout
       row
       justify-center
@@ -51,6 +57,7 @@ const percent = ref(0);
 const version = ref("");
 const available = ref(false);
 const downloaded = ref(false);
+const errorMessage = ref("");
 
 onMounted((): void => {
   ipcRenderer.send("app_version");
@@ -71,9 +78,22 @@ onMounted((): void => {
     available.value = false;
     downloaded.value = true;
   });
+
+  ipcRenderer.on("update_error", (event, message: string) => {
+    errorMessage.value = message;
+    available.value = false;
+    downloaded.value = false;
+  });
 });
 
 function update () {
   ipcRenderer.send("restart_app");
 }
 </script>
+
+<style scoped>
+.update-error {
+  color: #c62828;
+  display: block;
+}
+</style>
