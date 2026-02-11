@@ -45,16 +45,17 @@ function Build-Installer {
   }
 
   $latestContent = Get-Content $latestPath -Raw
-  $pathMatch = [regex]::Match($latestContent, "^\\s*path:\\s*(.+)$", "Multiline")
-  if (-not $pathMatch.Success) {
-    $pathMatch = [regex]::Match($latestContent, "^\\s*url:\\s*(.+)$", "Multiline")
+  $lines = $latestContent -split "`r?`n"
+  $pathLine = $lines | Where-Object { $_ -match "^\s*path:\s*" } | Select-Object -First 1
+  if (-not $pathLine) {
+    $pathLine = $lines | Where-Object { $_ -match "^\s*url:\s*" } | Select-Object -First 1
   }
-  if (-not $pathMatch.Success) {
+  if (-not $pathLine) {
     Write-Host "latest.yml content:"
     Write-Host $latestContent
     throw "Could not parse installer path from latest.yml"
   }
-  $installerName = $pathMatch.Groups[1].Value.Trim().Trim('"')
+  $installerName = ($pathLine -replace "^\s*(path|url):\s*", "").Trim().Trim('"')
   $installerPath = Join-Path $distDir $installerName
   if (-not (Test-Path $installerPath)) {
     throw "Installer not found: $installerPath"
