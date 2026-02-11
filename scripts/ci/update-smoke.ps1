@@ -58,14 +58,21 @@ function Build-Installer {
   $installerName = ($pathLine -replace "^\s*(path|url):\s*", "").Trim().Trim('"')
   $installerPath = Join-Path $distDir $installerName
   if (-not (Test-Path $installerPath)) {
-    $foundInstaller = Get-ChildItem -Path $distDir -Recurse -File -Filter $installerName -ErrorAction SilentlyContinue |
+    $setupCandidate = Get-ChildItem -Path $distDir -File -Filter "*.exe" -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -match "setup" } |
       Select-Object -First 1
-    if ($foundInstaller) {
-      $installerPath = $foundInstaller.FullName
+    if ($setupCandidate) {
+      Copy-Item -Path $setupCandidate.FullName -Destination $installerPath -Force
     } else {
-      Write-Host "Installer not found at expected path. dist_electron contents:"
-      Get-ChildItem -Path $distDir -Recurse -File | Select-Object FullName | Write-Host
-      throw "Installer not found: $installerPath"
+      $foundInstaller = Get-ChildItem -Path $distDir -Recurse -File -Filter $installerName -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+      if ($foundInstaller) {
+        $installerPath = $foundInstaller.FullName
+      } else {
+        Write-Host "Installer not found at expected path. dist_electron contents:"
+        Get-ChildItem -Path $distDir -Recurse -File | Select-Object FullName | Write-Host
+        throw "Installer not found: $installerPath"
+      }
     }
   }
 
