@@ -34,7 +34,10 @@ function Build-Installer {
   Set-PackageVersion -Version $Version
   Push-Location $repoRoot
   try {
-    yarn electron:build -- -p never
+    & yarn electron:build -- -p never | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+      throw "electron:build failed with exit code $LASTEXITCODE"
+    }
   } finally {
     Pop-Location
   }
