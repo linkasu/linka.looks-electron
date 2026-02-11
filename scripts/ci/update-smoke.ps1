@@ -1,33 +1,86 @@
 param(
   [string]$OldVersion = "2.7.0",
   [string]$NewVersion = "2.8.0",
-  [string]$Repo = "linkasu/linka.looks-electron",
   [int]$Port = 37831
 )
 
 $ErrorActionPreference = "Stop"
 
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "../..")
 $workRoot = Join-Path $env:RUNNER_TEMP "linka-update-smoke"
 $downloadDir = Join-Path $workRoot "downloads"
 New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
 
-Write-Host "Downloading release assets from $Repo..."
-$oldInstaller = "linka.looks-setup-$OldVersion.exe"
-$newInstaller = "linka.looks-setup-$NewVersion.exe"
+function Set-PackageVersion {
+  param([string]$Version)
+  $packagePath = Join-Path $repoRoot "package.json"
+  $packageJson = Get-Content $packagePath -Raw | ConvertFrom-Json
+  $packageJson.version = $Version
+  $packageJson | ConvertTo-Json -Depth 20 | Set-Content -Path $packagePath -Encoding UTF8
+}
 
-& gh release download "v$OldVersion" -R $Repo -p $oldInstaller -D $downloadDir | Out-Null
-& gh release download "v$NewVersion" -R $Repo -p "latest.yml" -p $newInstaller -p "$newInstaller.blockmap" -D $downloadDir | Out-Null
+function Build-Installer {
+  param(
+    [string]$Version,
+    [string]$OutputDir,
+    [switch]$IncludeLatest
+  )
+  $distDir = Join-Path $repoRoot "dist_electron"
+  if (Test-Path $distDir) {
+    Remove-Item -Path $distDir -Recurse -Force
+  }
+
+  Write-Host "Building version $Version..."
+  Set-PackageVersion -Version $Version
+  Push-Location $repoRoot
+  try {
+    yarn electron:build -- -p never
+  } finally {
+    Pop-Location
+  }
+
+  $latestPath = Join-Path $distDir "latest.yml"
+  if (-not (Test-Path $latestPath)) {
+    throw "latest.yml not found after build"
+  }
+
+  $latestContent = Get-Content $latestPath -Raw
+  $pathMatch = [regex]::Match($latestContent, "^path:\\s*(.+)$", "Multiline")
+  if (-not $pathMatch.Success) {
+    throw "Could not parse installer path from latest.yml"
+  }
+  $installerName = $pathMatch.Groups[1].Value.Trim()
+  $installerPath = Join-Path $distDir $installerName
+  if (-not (Test-Path $installerPath)) {
+    throw "Installer not found: $installerPath"
+  }
+
+  New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+  Copy-Item -Path $installerPath -Destination (Join-Path $OutputDir $installerName) -Force
+
+  if ($IncludeLatest) {
+    Copy-Item -Path $latestPath -Destination (Join-Path $OutputDir "latest.yml") -Force
+  }
+
+  return (Join-Path $OutputDir $installerName)
+}
 
 $server = $null
 $logPath = Join-Path $workRoot "update.log"
 
 try {
+  $packageBackup = Get-Content (Join-Path $repoRoot "package.json") -Raw
+  $feedDir = Join-Path $downloadDir "feed"
+  $oldDir = Join-Path $downloadDir "old"
+
+  $oldInstallerPath = Build-Installer -Version $OldVersion -OutputDir $oldDir
+  $newInstallerPath = Build-Installer -Version $NewVersion -OutputDir $feedDir -IncludeLatest
+
   Write-Host "Starting local update feed on port $Port..."
-  $server = Start-Process -FilePath python -ArgumentList "-m","http.server",$Port,"--directory",$downloadDir -WindowStyle Hidden -PassThru
+  $server = Start-Process -FilePath python -ArgumentList "-m","http.server",$Port,"--directory",$feedDir -WindowStyle Hidden -PassThru
 
   Write-Host "Installing old version $OldVersion..."
-  $installerPath = Join-Path $downloadDir $oldInstaller
-  Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait
+  Start-Process -FilePath $oldInstallerPath -ArgumentList "/S" -Wait
 
   function Find-InstallExecutable {
     $roots = @(
@@ -114,6 +167,9 @@ try {
 
   Write-Host "Update smoke test passed: $versionOutput"
 } finally {
+  if ($packageBackup) {
+    Set-Content -Path (Join-Path $repoRoot "package.json") -Value $packageBackup -Encoding UTF8
+  }
   if ($server) {
     Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
   }

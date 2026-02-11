@@ -18,9 +18,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+          cache: "yarn"
+
+      - name: Install deps
+        run: yarn install
+
       - name: Run update smoke test
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: pwsh -File scripts/ci/update-smoke.ps1 -OldVersion "${{ inputs.old_version }}" -NewVersion "${{ inputs.new_version }}"
 
       - name: Upload update log
