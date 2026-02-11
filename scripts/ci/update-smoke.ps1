@@ -29,26 +29,83 @@ try {
   $installerPath = Join-Path $downloadDir $oldInstaller
   Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait
 
-  $installRoot = Join-Path $env:LOCALAPPDATA "Programs"
-  $exe = Get-ChildItem -Path $installRoot -Recurse -File -Filter "*.exe" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match "linka" } |
-    Select-Object -First 1
+  function Find-InstallExecutable {
+    $roots = @(
+      "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+      "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+      "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+    )
 
-  if (-not $exe) {
-    throw "Installed executable not found under $installRoot"
+    foreach ($root in $roots) {
+      if (-not (Test-Path $root)) {
+        continue
+      }
+      foreach ($item in Get-ChildItem $root) {
+        $props = Get-ItemProperty $item.PSPath -ErrorAction SilentlyContinue
+        if (-not $props) {
+          continue
+        }
+        $displayName = $props.DisplayName
+        if (-not $displayName -or $displayName -notmatch "linka") {
+          continue
+        }
+
+        if ($props.DisplayIcon) {
+          $iconPath = $props.DisplayIcon.Trim('"').Split(",")[0]
+          if (Test-Path $iconPath) {
+            return $iconPath
+          }
+        }
+
+        if ($props.InstallLocation) {
+          $candidate = Get-ChildItem -Path $props.InstallLocation -File -Filter "*.exe" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match "linka" } |
+            Select-Object -First 1
+          if ($candidate) {
+            return $candidate.FullName
+          }
+        }
+      }
+    }
+
+    $fallbackRoots = @(
+      (Join-Path $env:LOCALAPPDATA "Programs"),
+      ${env:ProgramFiles},
+      ${env:ProgramFiles(x86)}
+    )
+
+    foreach ($path in $fallbackRoots) {
+      if (-not $path -or -not (Test-Path $path)) {
+        continue
+      }
+      $candidate = Get-ChildItem -Path $path -Recurse -File -Filter "*.exe" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match "linka" } |
+        Select-Object -First 1
+      if ($candidate) {
+        return $candidate.FullName
+      }
+    }
+
+    return $null
   }
 
-  Write-Host "Launching app from $($exe.FullName) to trigger update..."
+  $exePath = Find-InstallExecutable
+
+  if (-not $exePath) {
+    throw "Installed executable not found in registry or known install paths"
+  }
+
+  Write-Host "Launching app from $exePath to trigger update..."
   $env:UPDATE_FEED_URL = "http://127.0.0.1:$Port"
   $env:UPDATE_TEST_MODE = "1"
   $env:UPDATE_LOG_PATH = $logPath
-  Start-Process -FilePath $exe.FullName -Wait
+  Start-Process -FilePath $exePath -Wait
 
-  Start-Sleep -Seconds 20
+  Start-Sleep -Seconds 45
 
   Write-Host "Checking installed version..."
   $env:PRINT_APP_VERSION = "1"
-  $versionOutput = & $exe.FullName 2>&1
+  $versionOutput = & $exePath 2>&1
   $versionOutput = $versionOutput.Trim()
 
   if ($versionOutput -ne $NewVersion) {
