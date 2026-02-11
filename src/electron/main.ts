@@ -6,12 +6,157 @@ import { CardsStorage } from "./services/card-storage-service";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
 import { BackWatch } from "./tobii/backWatch";
+import { appendFileSync } from "fs";
 
 Store.initRenderer();
 
 const cardStorage = new CardsStorage();
 
 const isDevelopment = process.env.NODE_ENV !== "production";
+const isUpdateTestMode = process.env.UPDATE_TEST_MODE === "1";
+const updateFeedUrl = process.env.UPDATE_FEED_URL;
+const updateLogPath = process.env.UPDATE_LOG_PATH;
+const updateStore = new Store({ name: "updater" });
+const UPDATE_RESTART_COOLDOWN_MS = 5 * 60 * 1000;
+let mainWindow: BrowserWindow | null = null;
+let autoUpdaterInitialized = false;
+let isDownloadingUpdate = false;
+let isQuittingForUpdate = false;
+let downloadedVersion: string | null = null;
+
+function logUpdate (message: string, payload?: unknown): void {
+  if (!updateLogPath) {
+    return;
+  }
+  const safePayload = payload ? ` ${JSON.stringify(payload)}` : "";
+  const line = `[${new Date().toISOString()}] ${message}${safePayload}\n`;
+  try {
+    appendFileSync(updateLogPath, line);
+  } catch (error) {
+    console.warn("Failed to write update log:", error);
+  }
+}
+
+function sendToRenderer (channel: string, payload?: unknown): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  mainWindow.webContents.send(channel, payload);
+}
+
+function recordUpdateInstallAttempt (version: string | null): void {
+  updateStore.set("lastAttemptAt", Date.now());
+  if (version) {
+    updateStore.set("lastAttemptVersion", version);
+  }
+}
+
+function clearUpdateAttemptIfSucceeded (): void {
+  const lastAttemptVersion = updateStore.get("lastAttemptVersion");
+  if (typeof lastAttemptVersion === "string" &&
+    lastAttemptVersion &&
+    lastAttemptVersion === app.getVersion()) {
+    updateStore.delete("lastAttemptAt");
+    updateStore.delete("lastAttemptVersion");
+  }
+}
+
+function shouldSkipUpdateCheck (): boolean {
+  if (isUpdateTestMode) {
+    return false;
+  }
+  const lastAttemptAt = updateStore.get("lastAttemptAt");
+  if (typeof lastAttemptAt !== "number") {
+    return false;
+  }
+  const elapsed = Date.now() - lastAttemptAt;
+  return elapsed < UPDATE_RESTART_COOLDOWN_MS;
+}
+
+function setupAutoUpdater (): void {
+  if (autoUpdaterInitialized || !app.isPackaged) {
+    return;
+  }
+  autoUpdaterInitialized = true;
+
+  if (updateFeedUrl) {
+    autoUpdater.setFeedURL({ provider: "generic", url: updateFeedUrl });
+    logUpdate("update_feed_url", { url: updateFeedUrl });
+  }
+
+  clearUpdateAttemptIfSucceeded();
+  if (shouldSkipUpdateCheck()) {
+    console.warn("Skipping update check to avoid restart loop.");
+    logUpdate("update_check_skipped");
+    return;
+  }
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on("error", (error) => {
+    isDownloadingUpdate = false;
+    const message = error instanceof Error ? error.message : String(error);
+    logUpdate("update_error", { message });
+    sendToRenderer("update_error", message);
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    if (isDownloadingUpdate) {
+      return;
+    }
+    isDownloadingUpdate = true;
+    downloadedVersion = info.version;
+    logUpdate("update_available", info);
+    sendToRenderer("update_available", info);
+    autoUpdater.downloadUpdate().catch((error) => {
+      isDownloadingUpdate = false;
+      const message = error instanceof Error ? error.message : String(error);
+      logUpdate("update_download_error", { message });
+      sendToRenderer("update_error", message);
+    });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    isDownloadingUpdate = false;
+    logUpdate("update_not_available");
+  });
+
+  autoUpdater.on("download-progress", (info) => {
+    logUpdate("download_progress", info);
+    sendToRenderer("update_info", info);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    isDownloadingUpdate = false;
+    downloadedVersion = info.version;
+    logUpdate("update_downloaded", info);
+    sendToRenderer("update_downloaded", info);
+    if (isUpdateTestMode && !isQuittingForUpdate) {
+      isQuittingForUpdate = true;
+      recordUpdateInstallAttempt(downloadedVersion);
+      logUpdate("update_test_quit_and_install");
+      autoUpdater.quitAndInstall(true, false);
+    }
+  });
+
+  ipcMain.removeAllListeners("restart_app");
+  ipcMain.on("restart_app", () => {
+    if (isQuittingForUpdate) {
+      return;
+    }
+    isQuittingForUpdate = true;
+    recordUpdateInstallAttempt(downloadedVersion);
+    logUpdate("restart_app");
+    autoUpdater.quitAndInstall();
+  });
+
+  autoUpdater.checkForUpdates().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    logUpdate("update_check_error", { message });
+    sendToRenderer("update_error", message);
+  });
+}
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -33,26 +178,13 @@ async function createWindow () {
     }
   });
 
+  mainWindow = win;
   const backWatch = new BackWatch(win);
   ipcMain.on("app_version", (event) => {
     event.sender.send("app_version", { version: app.getVersion() });
   });
 
-  autoUpdater.on("update-available", () => {
-    win.webContents.send("update_available");
-    autoUpdater.downloadUpdate();
-  });
-  autoUpdater.on("download-progress", (info) => {
-    win.webContents.send("update_info", info);
-  });
-  autoUpdater.on("update-downloaded", () => {
-    win.webContents.send("update_downloaded");
-  });
-  console.log(autoUpdater.getFeedURL());
-  ipcMain.on("restart_app", () => {
-    autoUpdater.quitAndInstall();
-  });
-  autoUpdater.checkForUpdatesAndNotify();
+  setupAutoUpdater();
   win.maximize();
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
@@ -84,6 +216,11 @@ app.on("activate", () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", async () => {
+  if (process.env.PRINT_APP_VERSION === "1") {
+    console.log(app.getVersion());
+    app.exit(0);
+    return;
+  }
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {

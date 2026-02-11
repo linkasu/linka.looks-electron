@@ -1,0 +1,32 @@
+name: Update smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      old_version:
+        description: "Installed version"
+        required: true
+        default: "2.7.0"
+      new_version:
+        description: "Target version"
+        required: true
+        default: "2.8.0"
+
+jobs:
+  update-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run update smoke test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pwsh -File scripts/ci/update-smoke.ps1 -OldVersion "${{ inputs.old_version }}" -NewVersion "${{ inputs.new_version }}"
+
+      - name: Upload update log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-smoke-log
+          path: update-smoke.log
+          if-no-files-found: ignore
