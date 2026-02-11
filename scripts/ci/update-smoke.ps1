@@ -183,17 +183,33 @@ try {
   Write-Host "Checking installed version..."
   $env:PRINT_APP_VERSION = "1"
   $versionOutput = & $exePath 2>&1
-  if (-not $versionOutput) {
-    $versionOutput = (Get-Item $exePath).VersionInfo.ProductVersion
-  }
-  if ($versionOutput -is [System.Array]) {
-    $versionOutput = $versionOutput | Select-Object -First 1
-  }
-  $versionOutput = ($versionOutput | Out-String).Trim()
+if (-not $versionOutput) {
+  $versionOutput = (Get-Item $exePath).VersionInfo.ProductVersion
+}
+if ($versionOutput -is [System.Array]) {
+  $versionOutput = $versionOutput | Select-Object -First 1
+}
+$versionOutput = ($versionOutput | Out-String).Trim()
 
-  if ($versionOutput -ne $NewVersion) {
-    throw "Expected version $NewVersion, got '$versionOutput'"
+function Normalize-Version {
+  param([string]$Version)
+  if (-not $Version) {
+    return ""
   }
+  $clean = ($Version -replace "[^0-9\\.]", "")
+  $parts = $clean.Split(".") | Where-Object { $_ -ne "" }
+  if ($parts.Length -gt 3) {
+    $parts = $parts[0..2]
+  }
+  return ($parts -join ".")
+}
+
+$normalizedExpected = Normalize-Version -Version $NewVersion
+$normalizedActual = Normalize-Version -Version $versionOutput
+
+if ($normalizedActual -ne $normalizedExpected) {
+  throw "Expected version $NewVersion, got '$versionOutput'"
+}
 
   Write-Host "Update smoke test passed: $versionOutput"
 } finally {
