@@ -22,6 +22,7 @@ const fields = [
   { commit: "button_timeout", default: 1000 } as Field<number>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
+  { commit: "button_eyePagination", default: true } as Field<boolean>,
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
   { commit: "button_keyboardActivation", default: true } as Field<boolean>,
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
@@ -55,6 +56,7 @@ const store = createStore<LINKaStore>({
       enabled: true,
       eyeSelect: true,
       eyeActivation: true,
+      eyePagination: true,
       joystickActivation: true,
       keyboardActivation: true,
       mouseActivation: true,
@@ -212,6 +214,10 @@ const store = createStore<LINKaStore>({
     button_eyeActivation ({ button, pcHash }, value) {
       button.eyeActivation = value;
       Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
+    },
+    button_eyePagination ({ button, pcHash }, value) {
+      button.eyePagination = value;
+      Metric.registerEvent(pcHash, "settingsToggleEyePagination", { value });
     },
     button_joystickActivation ({ button, pcHash }, value) {
       Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });

@@ -1,5 +1,6 @@
 <template>
   <button ref="elRef" class="eyebtn" :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
+    :data-eye-disabled="props.eyeDisabled ? '1' : null"
     :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }" :disabled="!buttonEnabled" @click="click()">
     <slot />
     <div v-if="isInside || (!buttonEnabled && !lock)" class="overlay" :class="{ disabled: !buttonEnabled && !lock }">
@@ -21,12 +22,14 @@ interface IEyeButtonProps {
   color?: string
   path?: boolean
   editor?: boolean
+  eyeDisabled?: boolean
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {
   disabled: false,
   lock: false,
-  path: false
+  path: false,
+  eyeDisabled: false
 });
 
 const store = useStore();
@@ -77,6 +80,7 @@ function onExit () {
 }
 
 function onEnter (eye: boolean) {
+  if (eye && props.eyeDisabled) return;
   if (eye && !store.state.button.eyeSelect) return;
   if (!eye && !store.state.button.keyboardActivation) return;
   if (!eye && !store.state.button.joystickActivation) return;

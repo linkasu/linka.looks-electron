@@ -26,6 +26,7 @@ export interface LINKaStore {
         timeout: number,
         eyeSelect: boolean,
         eyeActivation: boolean,
+        eyePagination: boolean,
         joystickActivation: boolean,
         keyboardActivation: boolean,
         mouseActivation: boolean,

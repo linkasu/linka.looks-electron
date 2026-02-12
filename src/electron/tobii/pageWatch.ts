@@ -165,6 +165,9 @@ export class PageWatcher {
   }
 
   clickWatch (el: Element, eye: boolean) {
+    if (eye && this.isEyeDisabled(el)) {
+      return;
+    }
     if (!el.classList.contains("lock")) {
       if (eye && !store.state.button.eyeActivation) { return; }
       if (!eye && !store.state.button.keyboardActivation) { return; }
@@ -175,6 +178,7 @@ export class PageWatcher {
 
   enterWatch (el: Element) {
     if (!el) return;
+    if (this.isEyeDisabled(el)) return;
     if (!store.state.button.eyeSelect) return;
     this.lastElement = el;
 
@@ -187,14 +191,20 @@ export class PageWatcher {
   }
 
   exitWatch () {
+    if (!store.state.button.eyeSelect) return;
+    if (this.lastElement && this.isEyeDisabled(this.lastElement)) return;
     const e = new CustomEvent("eye-exit", {
       detail: {
         eye: true
       }
     });
-    if (!store.state.button.eyeSelect) return;
     this.lastElement?.dispatchEvent(e);
     this.lastElement = undefined;
+  }
+
+  private isEyeDisabled (el?: Element): boolean {
+    if (!el) return false;
+    return (el as HTMLElement).dataset.eyeDisabled === "1";
   }
 
   private findNear (elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {

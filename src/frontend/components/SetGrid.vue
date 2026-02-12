@@ -4,7 +4,7 @@
       <eye-button v-if="isExitButton" color="accent" @click="$router.back()">
         <v-icon>mdi-exit-run</v-icon>
       </eye-button>
-      <eye-button v-if="!config.quiz" color="primary" @click="page--">
+      <eye-button v-if="!config.quiz" color="primary" :eye-disabled="!eyePagination" @click="page--">
         <v-icon> mdi-arrow-left </v-icon>
       </eye-button>
     </div>
@@ -13,7 +13,7 @@
       <set-grid-button v-for="card in current" :key="card.id" :card="card" :file="file" @click="emit('card', card)" />
     </div>
 
-    <eye-button v-if="!config.quiz" color="primary" @click="page++">
+    <eye-button v-if="!config.quiz" color="primary" :eye-disabled="!eyePagination" @click="page++">
       <v-icon> mdi-arrow-right </v-icon>
     </eye-button>
   </div>
@@ -93,6 +93,10 @@ const pageSize = computed((): number => {
 
 const isExitButton = computed(() => {
   return store.state.ui.exitButton && !store.state.ui.outputLine;
+});
+
+const eyePagination = computed(() => {
+  return store.state.button.eyePagination;
 });
 
 function onQuizPage (p: number) {

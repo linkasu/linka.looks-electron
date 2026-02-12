@@ -39,6 +39,14 @@
               <v-row>
                 <v-col xs="6">
                   <v-checkbox
+                    v-model="eyePagination"
+                    label="Листание глазами по стрелкам"
+                  />
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col xs="6">
+                  <v-checkbox
                     v-model="joystickActivation"
                     label="Активация карточки джойстиком"
                   />
@@ -160,6 +168,15 @@ const eyeActivation = computed({
   },
   set (value: boolean) {
     store.commit("button_eyeActivation", value);
+  }
+});
+
+const eyePagination = computed({
+  get () {
+    return store.state.button.eyePagination;
+  },
+  set (value: boolean) {
+    store.commit("button_eyePagination", value);
   }
 });
 
