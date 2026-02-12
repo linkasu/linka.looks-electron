@@ -22,7 +22,6 @@ const events = [
   "settingsToggleEyeChoose", //
   "settingsToggleEyeActivation", //
   "settingsToggleKeyboardActivation", //
-  "settingsToggleKeyboardNavigation", //
   "settingsToggleJoystickActivation", //
   "settingsToggleTypeSound", //
   "settingsSetTimeout" //

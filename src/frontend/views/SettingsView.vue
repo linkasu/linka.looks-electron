@@ -53,14 +53,6 @@
               <v-row>
                 <v-col xs="6">
                   <v-checkbox
-                    v-model="keyboardNavigation"
-                    label="Навигация стрелками клавиатуры"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
                     v-model="mouseActivation"
                     label="Активация карточки мышкой"
                   />
@@ -186,15 +178,6 @@ const keyboardActivation = computed({
   },
   set (value: boolean) {
     store.commit("button_keyboardActivation", value);
-  }
-});
-
-const keyboardNavigation = computed({
-  get () {
-    return store.state.button.keyboardNavigation;
-  },
-  set (value: boolean) {
-    store.commit("button_keyboardNavigation", value);
   }
 });
 

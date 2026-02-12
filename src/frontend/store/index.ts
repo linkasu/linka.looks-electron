@@ -24,7 +24,6 @@ const fields = [
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
   { commit: "button_keyboardActivation", default: true } as Field<boolean>,
-  { commit: "button_keyboardNavigation", default: true } as Field<boolean>,
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
@@ -58,7 +57,6 @@ const store = createStore<LINKaStore>({
       eyeActivation: true,
       joystickActivation: true,
       keyboardActivation: true,
-      keyboardNavigation: true,
       mouseActivation: true,
       clickSound: true,
       borders: 1,
@@ -224,11 +222,6 @@ const store = createStore<LINKaStore>({
       Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
 
       button.keyboardActivation = value;
-    },
-    button_keyboardNavigation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleKeyboardNavigation", { value });
-
-      button.keyboardNavigation = value;
     },
     button_mouseActivation ({ button }, value) {
       button.mouseActivation = value;

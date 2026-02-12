@@ -121,6 +121,8 @@ export class PageWatcher {
 
   onKeyboard (code: string) {
     const joy = code.startsWith("joy");
+    if ((!joy && !store.state.button.keyboardActivation) || (joy && !store.state.button.joystickActivation)) return;
+
     const elements = document.getElementsByClassName(PageWatcher.CLASS);
     const map = store.state.keyMapping;
     let action: Side | null = null;
@@ -134,13 +136,6 @@ export class PageWatcher {
       }
     }
     if (action == null) return false;
-    if (joy) {
-      if (!store.state.button.joystickActivation) return false;
-    } else if (action === "enter") {
-      if (!store.state.button.keyboardActivation) return false;
-    } else if (!store.state.button.keyboardNavigation) {
-      return false;
-    }
     if (this.lastElement?.getBoundingClientRect().width == 0) {
       this.lastElement = undefined;
     }

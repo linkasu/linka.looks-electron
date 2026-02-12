@@ -28,7 +28,6 @@ export interface LINKaStore {
         eyeActivation: boolean,
         joystickActivation: boolean,
         keyboardActivation: boolean,
-        keyboardNavigation: boolean,
         mouseActivation: boolean,
         borders: number;
         enabled: boolean;
