@@ -4,7 +4,7 @@
     <notification-popup />
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
-    <v-main style="margin-bottom: 40px">
+    <v-main class="app-main">
       <router-view />
     </v-main>
     <v-footer class="footer">
@@ -61,7 +61,12 @@ function hexToRGB (input: string) {
 <style>
 #app {
   height: 100vh;
-  overflow: scroll;
+  overflow: hidden;
+}
+
+.app-main {
+  height: calc(100vh - 40px);
+  overflow: hidden;
 }
 
 :root {
@@ -74,6 +79,9 @@ function hexToRGB (input: string) {
   position: fixed;
   bottom: 0;
   width: 100%;
+  height: 40px;
   background: #fdfdfd;
+  align-items: center;
+  padding: 0 16px;
 }
 </style>

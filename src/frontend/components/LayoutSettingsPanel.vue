@@ -31,10 +31,7 @@
       <v-card-text>
         <v-form @submit.prevent="">
           <v-card-subtitle>Настройки размера сетки</v-card-subtitle>
-          <v-layout
-            wrap
-            class="pl-0 pr-0 grid_settings"
-          >
+          <v-row class="pl-0 pr-0 grid_settings">
             <v-col sm="6" cols="12">
               <v-text-field
                 v-model="columns"
@@ -51,7 +48,7 @@
                 type="number"
               />
             </v-col>
-          </v-layout>
+          </v-row>
         </v-form>
       </v-card-text>
     </v-col>

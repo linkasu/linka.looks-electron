@@ -1,12 +1,16 @@
 "use strict";
 import { app, protocol, BrowserWindow, ipcMain } from "electron";
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 import { CardsStorage } from "./services/card-storage-service";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
 import { BackWatch } from "./tobii/backWatch";
 import { appendFileSync } from "fs";
+import { join } from "path";
+
+if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
+  app.setPath("userData", process.env.TEST_USER_DATA_DIR);
+}
 
 Store.initRenderer();
 
@@ -170,11 +174,8 @@ async function createWindow () {
     height: 600,
     webPreferences: {
 
-      // Use pluginOptions.nodeIntegration, leave this alone
-      // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: (process.env
-        .ELECTRON_NODE_INTEGRATION as unknown) as boolean,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
+      nodeIntegration: true,
+      contextIsolation: false
     }
   });
 
@@ -187,14 +188,11 @@ async function createWindow () {
 
   setupAutoUpdater();
   win.maximize();
-  if (process.env.WEBPACK_DEV_SERVER_URL) {
-    // Load the url of the dev server if in development mode
-    await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string);
+  if (process.env.VITE_DEV_SERVER_URL) {
+    await win.loadURL(process.env.VITE_DEV_SERVER_URL);
     if (!process.env.IS_TEST) win.webContents.openDevTools();
   } else {
-    createProtocol("app");
-    // Load the index.html when not in development
-    win.loadURL("app://./index.html");
+    await win.loadFile(join(__dirname, "../dist/index.html"));
   }
 }
 

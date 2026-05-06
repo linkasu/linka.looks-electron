@@ -22,8 +22,8 @@
       <v-card-text>
         <v-form @submit.prevent="">
           <v-card-subtitle>Настройки текущей страницы</v-card-subtitle>
-          <v-layout row wrap>
-            <v-col>
+          <v-row>
+            <v-col cols="12">
               <v-select
                 v-model="mode"
                 :items="modeOptions"
@@ -32,9 +32,9 @@
                 item-value="value"
               />
             </v-col>
-          </v-layout>
-          <v-layout row wrap>
-            <v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" sm="6">
               <v-text-field
                 v-model="columns"
                 label="Количество колонок"
@@ -42,7 +42,7 @@
                 type="number"
               />
             </v-col>
-            <v-col>
+            <v-col cols="12" sm="6">
               <v-text-field
                 v-model="rows"
                 label="Количество строк"
@@ -51,7 +51,7 @@
                 type="number"
               />
             </v-col>
-          </v-layout>
+          </v-row>
           <v-text-field
             v-if="mode === 'quiz'"
             v-model="question"
@@ -211,7 +211,12 @@ const editor_quizAutoNext = computed({
 <style>
 .set-settings > .v-overlay__content {
   position: absolute;
+  left: auto !important;
   right: 0;
-  margin-left: 50% !important;
+  top: 0;
+  bottom: 0;
+  width: 50% !important;
+  max-width: 50% !important;
+  margin: 0 !important;
 }
 </style>

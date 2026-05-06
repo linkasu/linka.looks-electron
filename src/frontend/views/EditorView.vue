@@ -303,7 +303,7 @@ const page = computed({
 
 const currentPage = computed({
   get (): SetPage {
-    return normalizePage(pages.value[page.value] ?? createEditorPage());
+    return pages.value[page.value] ?? createEditorPage();
   },
   set (value: SetPage) {
     const nextPages = [...pages.value];

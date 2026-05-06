@@ -24,6 +24,8 @@ pnpm-debug.log*
 
 #Electron-builder output
 /dist_electron
+/dist-electron
 
-# package-lock.json
-package-lock.json
+# Playwright output
+/test-results
+/playwright-report

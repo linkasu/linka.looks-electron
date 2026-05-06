@@ -137,18 +137,29 @@ function isCardDisabled (card: Card): boolean {
   display: grid;
   grid-template-columns: 1fr 8fr 1fr;
   height: 100%;
+  min-height: 0;
 }
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--columns), 1fr);
   grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
+  height: 100%;
+  min-height: 0;
 }
 .left-grid {
   display: grid;
   grid-template-columns: 1fr;
+  min-height: 0;
 }
 .left-grid:has(button + button) {
   grid-template-rows: 2fr 10fr;
+}
+.left-grid > button,
+.grid > button {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 .active {
   border: 3px solid rgb(var(--v-theme-secondary));

@@ -251,13 +251,15 @@ async function onMatchCard (card: Card, index: number) {
 <style scoped>
 .root {
   display: grid;
-  grid-template-rows: auto 8fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
 }
 .root_settings {
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .root_hide {
-  grid-template-rows: 1fr;
+  grid-template-rows: minmax(0, 1fr);
 }
 .root > div {
   width: 100%;
