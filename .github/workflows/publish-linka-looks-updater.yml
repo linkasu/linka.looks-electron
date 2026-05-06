@@ -1,0 +1,51 @@
+name: Publish linka.looks updater
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to publish, with or without v prefix"
+        required: true
+
+jobs:
+  publish-updater:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.LINKA_SU_SSH_KEY }}" > ~/.ssh/linka_su
+          chmod 600 ~/.ssh/linka_su
+          ssh-keyscan -H "${{ secrets.LINKA_SU_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Update public installer mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_version="${RELEASE_TAG#v}"
+
+          ssh -i ~/.ssh/linka_su \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.LINKA_SU_USER }}@${{ secrets.LINKA_SU_HOST }}" \
+            "EXPECTED_VERSION='$expected_version' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd /var/www/linka.su/dist/linka.looks
+
+          node update.js
+
+          actual_version="$(node -p "require('./version.json').version")"
+          if [ "$actual_version" != "$EXPECTED_VERSION" ]; then
+            echo "Expected version $EXPECTED_VERSION, got $actual_version" >&2
+            exit 1
+          fi
+
+          test -s linka.looks.setup.exe
+          ls -lh linka.looks.setup.exe version.json
+          REMOTE
