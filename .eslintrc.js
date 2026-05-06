@@ -1,7 +1,6 @@
 module.exports = {
   root: true,
   extends: [
-    "@electron-internal",
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:vue/base",
@@ -24,8 +23,9 @@ module.exports = {
     }
   },
   rules: {
-    indent: "error",
+    indent: ["error", 2, { SwitchCase: 1 }],
     "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
     "no-async-promise-executor": "warn",
     "no-void": "off",
     semi: "error",

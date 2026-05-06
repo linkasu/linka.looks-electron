@@ -59,7 +59,7 @@ async function fetch () {
 
     pData.value = request.data;
   } catch (error) {
-
+    void error;
   }
 }
 

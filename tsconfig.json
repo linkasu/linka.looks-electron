@@ -14,7 +14,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "types": [
-      "webpack-env",
+      "vite/client",
+      "vitest/globals",
       "mocha",
       "chai"
     ],
@@ -37,8 +38,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "src/frontend/tests/**/*.tsage/tests/**/*.ts",
-    "src/frontend/tests/**/*.tsxge/tests/**/*.tsx"
+    "src/frontend/tests/**/*.ts",
+    "src/frontend/tests/**/*.tsx"
   ],
   "exclude": [
     "node_modules"

@@ -9,26 +9,26 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Use Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 16.x
-        cache: 'yarn'
+        node-version: 22.x
+        cache: 'npm'
 
     - name: Install deps
-      run: yarn install
+      run: npm ci
     - name: Lint
-      run: yarn lint
+      run: npm run lint
     - name: Unit tests
-      run: yarn test:unit
+      run: npm run test:unit
     - name: Build installer
-      run: yarn electron:build -- -p always
+      run: npm run electron:build -- -p always
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
         name: installer
-        path: dist_electron
+        path: dist
