@@ -1,11 +1,18 @@
-import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, ipcRenderer, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWriteStream, WriteStream } from "fs";
 import { join, basename, extname, normalize, dirname } from "path";
-import { readdir, unlink, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
+import { readdir, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
 import AdmZip from "adm-zip";
-import { CardType, ConfigFile } from "@/common/interfaces/ConfigFile";
+import {
+  CardType,
+  ConfigFile,
+  CURRENT_SET_VERSION,
+  createPlaceholderCard,
+  normalizeConfigFile,
+  normalizePage
+} from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
 import { ICloudStorage } from "../../common/abstract";
 import { appendZip } from "@/frontend/utils/addToZip";
@@ -18,6 +25,11 @@ import { renameSync } from "original-fs";
 import axios from "axios";
 
 const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
+const DEFAULT_SEED_ITEMS = [
+  "Клавиатура.linka",
+  "Крупная клавиатура",
+  "цифры знаки.linka"
+];
 
 let win: BrowserWindow | null = null;
 
@@ -43,7 +55,7 @@ export class CardsStorage extends ICloudStorage {
     if (!existsSync(HOME_DIR)) {
       mkdirSync(HOME_DIR);
     }
-    this.copyFolderSync(DEFAULT_SETS, HOME_DIR);
+    this.copyDefaultSets(DEFAULT_SETS, HOME_DIR);
   }
 
   async showItemInFolder (path: string) {
@@ -86,7 +98,7 @@ export class CardsStorage extends ICloudStorage {
     const zip = new AdmZip(this.checkPath(path));
     const raw = zip.readAsText("config.json");
     try {
-      return JSON.parse(raw) as ConfigFile;
+      return normalizeConfigFile(JSON.parse(raw) as ConfigFile);
     } catch (error) {
       console.log(raw);
 
@@ -117,7 +129,9 @@ export class CardsStorage extends ICloudStorage {
   getDefaultImage (path: string) {
     const config = this.getConfigFile(this.checkPath(path));
     if (!config) return null;
-    const card = config.cards.find(c => !!c.imagePath);
+    const card = (config.pages ?? [])
+      .flatMap((page) => page.cards ?? [])
+      .find((c) => !!c.imagePath);
     if (!card) return null;
     const entry = card.imagePath;
     if (!entry) return null;
@@ -194,12 +208,19 @@ export class CardsStorage extends ICloudStorage {
     path = this.checkPath(path);
     const tmp = join(tmpdir(), basename(path));
     const config: ConfigFile = {
-      columns: 3,
-      rows: 3,
-      cards: [],
       withoutSpace: false,
       directSet: false,
-      version: "2.0"
+      quizAutoNext: true,
+      quizReadQuestion: false,
+      version: CURRENT_SET_VERSION,
+      pages: [
+        normalizePage({
+          mode: "standard",
+          columns: 3,
+          rows: 3,
+          cards: [createPlaceholderCard()]
+        })
+      ]
     };
     const json = JSON.stringify(config);
     await this.addBuffer(tmp, Buffer.from(json), "json", "config");
@@ -211,20 +232,26 @@ export class CardsStorage extends ICloudStorage {
   async saveSet (path: string, location: string, config: ConfigFile): Promise<void> {
     path = this.checkPath(path);
     location = this.checkPath(location);
-    await this.cleanFile(path, config);
-    config.cards = config.cards.filter(Boolean).map((card) => {
-      // EmptyCard = 2,
-      // NewCardType = 3
-      if (card.cardType === CardType.NewCard) {
-        card = {
-          id: uuid(),
-          cardType: CardType.EmptyCard
-        };
-      }
-      return card;
+    const normalized = normalizeConfigFile(config);
+    if (!normalized) return;
+
+    await this.cleanFile(path, normalized);
+    normalized.pages = (normalized.pages ?? []).map((page) => {
+      const normalizedPage = normalizePage(page);
+      normalizedPage.cards = normalizedPage.cards.filter(Boolean).map((card) => {
+        if (card.cardType === CardType.NewCard) {
+          return {
+            id: uuid(),
+            cardType: CardType.EmptyCard,
+            matchLane: card.matchLane
+          };
+        }
+        return card;
+      });
+      return normalizedPage;
     });
 
-    const json = JSON.stringify(config);
+    const json = JSON.stringify(normalized);
     try {
       await this.addBuffer(path, Buffer.from(json), "json", "config");
     } catch (error) {
@@ -293,33 +320,23 @@ export class CardsStorage extends ICloudStorage {
       return newName;
     };
 
-    const otherCards = (otherConfig.cards ?? []).filter(Boolean).map((card) => {
-      const copy = JSON.parse(JSON.stringify(card));
-      if (copy.imagePath) copy.imagePath = copyEntry(copy.imagePath);
-      if (copy.audioPath) copy.audioPath = copyEntry(copy.audioPath);
-      return copy;
+    const otherPages = (otherConfig.pages ?? []).map((page) => {
+      const copy = JSON.parse(JSON.stringify(page));
+      copy.id = uuid();
+      copy.cards = (copy.cards ?? []).filter(Boolean).map((card: Record<string, unknown>) => {
+        const next = JSON.parse(JSON.stringify(card));
+        next.id = uuid();
+        if (next.imagePath) next.imagePath = copyEntry(next.imagePath);
+        if (next.audioPath) next.audioPath = copyEntry(next.audioPath);
+        return next;
+      });
+      return normalizePage(copy);
     });
 
     const mergedConfig: ConfigFile = {
       ...baseConfig,
-      cards: [...(baseConfig.cards ?? []).filter(Boolean), ...otherCards]
+      pages: [...(baseConfig.pages ?? []), ...otherPages]
     };
-
-    const sameGrid = baseConfig.columns === otherConfig.columns && baseConfig.rows === otherConfig.rows;
-    const sameQuiz =
-      !!baseConfig.quiz === !!otherConfig.quiz &&
-      baseConfig.quizAutoNext === otherConfig.quizAutoNext &&
-      baseConfig.quizReadQuestion === otherConfig.quizReadQuestion;
-
-    if (sameGrid && sameQuiz && baseConfig.quiz) {
-      mergedConfig.questions = [
-        ...(baseConfig.questions ?? []),
-        ...(otherConfig.questions ?? [])
-      ];
-    } else {
-      mergedConfig.quiz = false;
-      mergedConfig.questions = [];
-    }
 
     const target = this.getMergeTargetPath(base, other, targetName);
     await this.saveSet(tmp, target, mergedConfig);
@@ -328,10 +345,12 @@ export class CardsStorage extends ICloudStorage {
 
   private cleanFile (path: string, config: ConfigFile) {
     const paths = [];
-    for (const card of config.cards.filter(Boolean)) {
-      if (card.cardType === 0) {
-        paths.push(card.audioPath);
-        paths.push(card.imagePath);
+    for (const page of config.pages ?? []) {
+      for (const card of page.cards.filter(Boolean)) {
+        if (card.cardType === CardType.AudioCard) {
+          paths.push(card.audioPath);
+          paths.push(card.imagePath);
+        }
       }
     }
     const zip = new AdmZip(path);
@@ -358,7 +377,7 @@ export class CardsStorage extends ICloudStorage {
     // const zip = new AdmZip(path)
     // zip.addFile(name+'.'+ext, buff);
     // await zip.writeZipPromise()
-    const file = name + "." + ext!;
+    const file = name + "." + ext;
     await appendZip(path, file, buff);
     return file;
   }
@@ -457,6 +476,22 @@ export class CardsStorage extends ICloudStorage {
         }
         copyFileSync(srcFilePath, destFilePath);
       }
+    });
+  }
+
+  private copyDefaultSets (srcPath: string, destPath: string) {
+    mkdirSync(destPath, { recursive: true });
+    DEFAULT_SEED_ITEMS.forEach((file: string) => {
+      const srcFilePath = join(srcPath, file);
+      const destFilePath = join(destPath, file);
+      if (!existsSync(srcFilePath) || existsSync(destFilePath)) {
+        return;
+      }
+      if (lstatSync(srcFilePath).isDirectory()) {
+        this.copyFolderSync(srcFilePath, destFilePath);
+        return;
+      }
+      copyFileSync(srcFilePath, destFilePath);
     });
   }
 

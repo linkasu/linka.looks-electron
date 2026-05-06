@@ -37,7 +37,8 @@ module.exports = defineConfig({
           verifyUpdateCodeSignature: false
         },
         nsis: {
-          include: "build/installer.nsh"
+          include: "build/installer.nsh",
+          perMachine: true
         },
         extraResources: [
           {

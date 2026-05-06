@@ -400,15 +400,7 @@ const mergeWarning = computed(() => {
   const other = files.value.find((f) => f.file === mergeTarget.value);
   const otherConfig = other?.set;
   if (!baseConfig || !otherConfig) return "";
-  const sameGrid = baseConfig.columns === otherConfig.columns && baseConfig.rows === otherConfig.rows;
-  const sameQuiz =
-    !!baseConfig.quiz === !!otherConfig.quiz &&
-    baseConfig.quizAutoNext === otherConfig.quizAutoNext &&
-    baseConfig.quizReadQuestion === otherConfig.quizReadQuestion;
-  if (!sameGrid || !sameQuiz) {
-    return "Настройки отличаются — викторина будет отключена.";
-  }
-  return "";
+  return `Страницы будут добавлены после "${toDisplayName(contextItem.value)}".`;
 });
 
 async function applyMerge () {

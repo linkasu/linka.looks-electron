@@ -57,6 +57,22 @@
     <v-btn
       flat
       icon
+      title="Копировать набор"
+      @click="duplicateSet"
+    >
+      <v-icon>mdi-content-copy</v-icon>
+    </v-btn>
+    <v-btn
+      flat
+      icon
+      title="Объединить наборы"
+      @click="startMerge"
+    >
+      <v-icon>mdi-merge</v-icon>
+    </v-btn>
+    <v-btn
+      flat
+      icon
       :to="editLink"
     >
       <v-icon>mdi-pencil</v-icon>
@@ -69,11 +85,43 @@
       :file="title"
       @delete="del"
     />
+    <v-dialog v-model="mergeDialog" width="auto">
+      <v-card min-width="340px">
+        <v-card-title primary-title>
+          Объединить наборы
+        </v-card-title>
+        <v-card-text>
+          <div class="merge-subtitle">
+            Основной: {{ title }}
+          </div>
+          <v-text-field
+            v-model="mergeName"
+            label="Имя нового набора"
+            :placeholder="mergeDefaultName"
+          />
+          <v-select
+            v-model="mergeTarget"
+            :items="mergeOptions"
+            label="Второй набор"
+            item-title="title"
+            item-value="value"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge">
+            Объединить
+          </v-btn>
+          <v-btn color="primary" @click="mergeDialog = false">
+            Отмена
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app-bar>
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
@@ -85,11 +133,16 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import pathModule from "path";
-import { CardType } from "@/common/interfaces/ConfigFile";
+import { Directory } from "@/common/interfaces/Directory";
+import { HOME_DIR } from "@/common/constants";
 
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
+const mergeDialog = ref(false);
+const mergeTarget = ref("");
+const mergeName = ref("");
+const mergeOptions = ref<{ title: string, value: string }[]>([]);
 
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
@@ -97,16 +150,7 @@ const page = computed(() => store.state.explorer.page ?? 0);
 
 const totalPages = computed(() => {
   if (!config.value) return 1;
-  const pageSize = Math.max(1, config.value.columns * config.value.rows);
-  const cards = config.value.cards ?? [];
-  for (let i = cards.length - 1; i >= 0; i--) {
-    const card = cards[i];
-    if (card && card.cardType !== CardType.NewCard) {
-      const realCount = i + 1;
-      return Math.max(1, Math.ceil(realCount / pageSize));
-    }
-  }
-  return 1;
+  return Math.max(1, config.value.pages?.length ?? 0);
 });
 
 const title = computed(() => {
@@ -165,13 +209,42 @@ async function del () {
 
 async function move (location: string) {
   const target = await storageService.moveSet(file.value, location);
-  const url = target
-    .slice(target.lastIndexOf("LINKa") + 5)
-    .replaceAll("/", "§")
-    .replace("\\", "§");
-
-  router.push("/set/" + url);
+  router.push("/set/" + toRoutePath(target));
   Metric.registerEvent(store.state.pcHash, "move");
+}
+
+async function duplicateSet () {
+  const target = await storageService.duplicateItem(file.value);
+  router.push("/set/" + toRoutePath(target));
+}
+
+async function startMerge () {
+  const parentPath = file.value.split("§").slice(0, -1).join("§");
+  const files = await storageService.getFiles(parentPath) as Directory;
+  mergeOptions.value = (files ?? [])
+    .filter((item) => !item.directory && pathModule.basename(item.file) !== title.value)
+    .map((item) => ({
+      title: pathModule.basename(item.file, ".linka"),
+      value: item.file
+    }));
+  mergeTarget.value = "";
+  mergeName.value = "";
+  mergeDialog.value = true;
+}
+
+const mergeDefaultName = computed(() => {
+  if (!mergeTarget.value) return "";
+  return `${title.value.replace(/\.linka$/i, "")} + ${pathModule.basename(mergeTarget.value, ".linka")}`;
+});
+
+async function applyMerge () {
+  const target = await storageService.mergeSets(file.value, mergeTarget.value, mergeName.value.trim() || mergeDefaultName.value);
+  mergeDialog.value = false;
+  router.push("/set/" + toRoutePath(target));
+}
+
+function toRoutePath (absolutePath: string) {
+  return absolutePath.replace(HOME_DIR, "").replaceAll("/", "§").replaceAll("\\", "§");
 }
 
 onUnmounted(async () => {
@@ -189,5 +262,8 @@ onUnmounted(async () => {
   background: rgba(255, 255, 255, 0.9);
   font-weight: 600;
   white-space: nowrap;
+}
+.merge-subtitle {
+  margin-bottom: 8px;
 }
 </style>

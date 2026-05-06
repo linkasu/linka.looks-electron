@@ -18,7 +18,7 @@
       <eye-button @click="sayQuestion">
         <v-icon class="speaker-icon">mdi-account-voice</v-icon>
       </eye-button>
-      <h1 v-if="config.questions && page != undefined && !end && !waitingForNext">
+      <h1 v-if="page != undefined && !end && !waitingForNext">
         {{ question }}
       </h1>
       <eye-button
@@ -90,8 +90,7 @@
 
 <script lang="ts" setup>
 import { defineProps, defineEmits, computed, ref, watch } from "vue";
-import { useStore } from "vuex";
-import type { ConfigFile } from "@/common/interfaces/ConfigFile";
+import { normalizePage, type ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 
@@ -108,42 +107,44 @@ const emit = defineEmits<{
   (e: "next"): void
 }>();
 
-const store = useStore();
-
 const startDialog = ref(true);
 const endDialog = ref(false);
 
-const voice = computed(() => store.state.voice);
+const currentPage = computed(() => {
+  return normalizePage(props.config.pages?.[props.page] ?? {
+    mode: "quiz",
+    columns: 3,
+    rows: 3,
+    cards: [],
+    question: ""
+  });
+});
 
 const question = computed(() => {
-  if (!props.config.questions) return "";
-  return props.config.questions[props.page] ?? "";
+  return currentPage.value.question ?? "";
 });
 
 const totalPages = computed(() => {
-  const total = props.config.questions?.length ?? 0;
-  return Math.max(1, total);
+  return Math.max(1, props.config.pages?.length ?? 0);
 });
 
 const end = computed(() => {
-  if (!props.config.questions) return false;
-  return props.page >= props.config.questions.length;
+  return props.page >= (props.config.pages?.length ?? 0);
 });
 
 async function sayQuestion () {
   const text = question.value;
   if (!text) return;
-  await TTS.instance.forcePlayText(text, voice.value);
+  await TTS.instance.forcePlayText(text);
 }
 
 watch(startDialog, async (v) => {
   if (v) {
     TTS.instance.forcePlayText(
-      "Этот набор викторина! Вам будут предложены вопросы, выбирайте ответы",
-      voice.value
+      "Этот набор викторина! Вам будут предложены вопросы, выбирайте ответы"
     ).catch(console.error);
   } else {
-    await TTS.instance.forcePlayText("Начинаем викторину", voice.value).catch(console.error);
+    await TTS.instance.forcePlayText("Начинаем викторину").catch(console.error);
     if (props.config.quizReadQuestion) {
       await sayQuestion();
     }
@@ -164,7 +165,7 @@ watch(
     endDialog.value = end.value;
     if (end.value) {
       TTS.instance
-        .forcePlayText(`Викторина окончена. Количество ошибок: ${props.errors}`, voice.value)
+        .forcePlayText(`Викторина окончена. Количество ошибок: ${props.errors}`)
         .catch(console.error);
     }
   }

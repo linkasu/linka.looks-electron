@@ -5,17 +5,33 @@
       <v-card-text>
         <v-form>
           <v-select
-            v-model="voice"
-            :items="voices"
-            label="Голос"
+            v-model="voiceRu"
+            :items="ruVoices"
+            label="Русский голос"
             item-value="value"
             item-title="text"
           />
           <v-btn
             color="success"
-            @click="playExample"
+            class="mr-2"
+            @click="playExample('ru')"
           >
-            Прослушать
+            Прослушать русский
+          </v-btn>
+
+          <v-select
+            v-model="voiceEn"
+            class="mt-4"
+            :items="enVoices"
+            label="Английский голос"
+            item-value="value"
+            item-title="text"
+          />
+          <v-btn
+            color="success"
+            @click="playExample('en')"
+          >
+            Прослушать английский
           </v-btn>
         </v-form>
       </v-card-text>
@@ -32,21 +48,34 @@ const isPlayingExample = ref(false);
 
 const voices = TTS.voices;
 
-const voice = computed({
+const ruVoices = computed(() => voices.filter((voice) => voice.langCode?.startsWith("ru")));
+const enVoices = computed(() => voices.filter((voice) => voice.langCode?.startsWith("en")));
+
+const voiceRu = computed({
   get () {
-    return store.state.voice;
+    return store.state.voiceRu;
   },
   set (value: string) {
-    store.dispatch("voice_change", value);
+    store.dispatch("voiceRu_change", value);
   }
 });
 
-function playExample () {
+const voiceEn = computed({
+  get () {
+    return store.state.voiceEn;
+  },
+  set (value: string) {
+    store.dispatch("voiceEn_change", value);
+  }
+});
+
+function playExample (lang: "ru" | "en") {
   if (isPlayingExample.value) return;
   isPlayingExample.value = true;
-  const selected = voices.find((v) => v.value === voice.value);
-  if (!selected) return;
-  TTS.instance.playText(selected.text, selected.value).finally(() => {
+
+  const value = lang === "ru" ? voiceRu.value : voiceEn.value;
+  const sample = lang === "ru" ? "Привет" : "Hello";
+  TTS.instance.playText(sample, value).finally(() => {
     isPlayingExample.value = false;
   });
 }

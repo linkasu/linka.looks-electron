@@ -20,6 +20,15 @@
     >
       <v-icon>mdi-content-copy</v-icon>
     </v-btn>
+    <v-btn
+      flat
+      icon
+      title="Удалить страницу"
+      :disabled="ui_disabled"
+      @click="deletePage"
+    >
+      <v-icon>mdi-delete-outline</v-icon>
+    </v-btn>
     <save-button
       :title="title"
       :disabled="ui_disabled"
@@ -47,32 +56,12 @@ const ui_disabled = computed(() => store.state.ui.disabled);
 const page = computed(() => store.state.editor.page ?? 0);
 
 const totalPages = computed(() => {
-  const columns = store.state.editor.columns;
-  const rows = store.state.editor.rows;
-  const pageSize = Math.max(1, columns * rows);
-  const cards = store.state.editor.cards ?? [];
-  for (let i = cards.length - 1; i >= 0; i--) {
-    const card = cards[i];
-    if (card && card.cardType !== CardType.NewCard) {
-      const realCount = i + 1;
-      const realPages = Math.ceil(realCount / pageSize);
-      return Math.max(realPages, page.value + 1);
-    }
-  }
-  return Math.max(1, page.value + 1);
+  return Math.max(1, store.state.editor.pages?.length ?? 0);
 });
 
 const emptyPage = computed(() => {
-  const columns = store.state.editor.columns;
-  const rows = store.state.editor.rows;
-  const pageSize = Math.max(1, columns * rows);
-  const cards = store.state.editor.cards ?? [];
-  const start = page.value * pageSize;
-  for (let i = 0; i < pageSize; i++) {
-    const card = cards[start + i];
-    if (card && card.cardType !== CardType.NewCard) return false;
-  }
-  return true;
+  const currentPage = store.state.editor.pages?.[page.value];
+  return currentPage?.cards?.every((card) => [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)) ?? true;
 });
 
 const path = computed((): string => {
@@ -96,6 +85,10 @@ async function saveAs (title: string) {
 
 function copyPage () {
   store.dispatch("editor_copy_page");
+}
+
+function deletePage () {
+  store.dispatch("editor_delete_page");
 }
 </script>
 

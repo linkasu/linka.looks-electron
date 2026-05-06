@@ -1,4 +1,4 @@
-import { Card, ConfigFile } from "@/common/interfaces/ConfigFile";
+import { ConfigFile, SetPage } from "@/common/interfaces/ConfigFile";
 
 interface KeyMap {
     up: string[]
@@ -18,7 +18,8 @@ export interface LINKaStore {
         accent: string,
         secondary: string
     }
-    voice: string,
+    voiceRu: string,
+    voiceEn: string,
 
     keyMapping: KeyMap
     selectedKey?: Side;
@@ -26,7 +27,6 @@ export interface LINKaStore {
         timeout: number,
         eyeSelect: boolean,
         eyeActivation: boolean,
-        eyePagination: boolean,
         joystickActivation: boolean,
         keyboardActivation: boolean,
         mouseActivation: boolean,
@@ -44,14 +44,10 @@ export interface LINKaStore {
     editor: {
         current: string,
         temp: string,
-        cards: Card[],
+        pages: SetPage[],
         page: number,
-        quiz: boolean,
-        questions: string[],
         quizAutoNext: boolean,
         quizReadQuestion: boolean;
-        columns: number;
-        rows: number;
         isDirectSet: boolean;
         isWithoutSpace: boolean;
         description?: string;

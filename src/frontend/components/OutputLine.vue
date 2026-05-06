@@ -46,7 +46,7 @@
           <set-grid-button
             v-for="(card, i) in clone"
             :key="i"
-            :editor="true"
+            editor
             :card="card"
             :file="file"
             class="card"
@@ -102,10 +102,6 @@ const buttonEnabled = computed(() => {
   return store.state.button.enabled;
 });
 
-const voiceToPlay = computed(() => {
-  return store.state.voice;
-});
-
 const withoutSpace = computed(() => {
   return props.config?.withoutSpace;
 });
@@ -151,7 +147,7 @@ async function say () {
   if (isPlaying.value) return;
   isPlaying.value = true;
   if (props.config?.withoutSpace) {
-    if (text.value) await TTS.instance.playText(text.value, voiceToPlay.value);
+    if (text.value) await TTS.instance.playText(text.value);
   } else await TTS.instance.playCards(props.file, props.cards);
   isPlaying.value = false;
 }

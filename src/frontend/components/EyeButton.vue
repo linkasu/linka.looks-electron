@@ -37,8 +37,6 @@ const store = useStore();
 const elRef: Ref<Element | null> = ref(null);
 const isInside = ref(false);
 const circle = ref(false);
-const timer: Ref<NodeJS.Timeout | null> = ref(null);
-
 const borderWidth = computed(() => {
   return store.state.button.borders + "px";
 });
@@ -61,6 +59,9 @@ onMounted(() => {
 });
 
 const buttonEnabled = computed(() => {
+  if (props.editor) {
+    return !props.disabled;
+  }
   return store.state.button.enabled && !props.disabled;
 });
 

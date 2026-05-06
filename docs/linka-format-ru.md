@@ -11,25 +11,28 @@
 
 ```json
 {
-  "version": "2.0",
-  "columns": 3,
-  "rows": 3,
+  "version": "3.0",
   "withoutSpace": false,
   "directSet": false,
-  "quiz": false,
-  "questions": [],
   "quizAutoNext": true,
   "quizReadQuestion": false,
-  "cards": [
+  "pages": [
     {
-      "id": "uuid",
-      "cardType": 0,
-      "imagePath": "...png",
-      "title": "текст",
-      "audioPath": "...mp3",
-      "audioText": "текст",
-      "audioVoice": "alena",
-      "answer": true
+      "id": "page-uuid",
+      "mode": "standard",
+      "columns": 3,
+      "rows": 3,
+      "cards": [
+        {
+          "id": "card-uuid",
+          "cardType": 0,
+          "imagePath": "...png",
+          "title": "текст",
+          "audioPath": "...mp3",
+          "audioText": "текст",
+          "audioVoice": "alena"
+        }
+      ]
     }
   ],
   "description": "описание"
@@ -37,14 +40,24 @@
 ```
 
 - **version** – версия формата.
-- **columns** и **rows** – размер сетки карточек.
 - **withoutSpace** – отображать ли пробел между карточками.
 - **directSet** – открывать ли набор напрямую в окне общения.
-- **quiz** – режим викторины.
-- **questions** – массив вопросов для викторины.
 - **quizAutoNext** – переходить ли автоматически к следующему вопросу.
 - **quizReadQuestion** – озвучивать ли вопрос.
-- **cards** – список карточек набора.
+- **pages** – список страниц набора.
 - **description** – произвольное описание набора.
 
-Каждая карточка содержит свой идентификатор, тип и ссылки на ресурсы внутри архива.
+Каждая страница содержит:
+
+- **mode** – режим страницы: `standard`, `quiz`, `match`.
+- **columns** и **rows** – размер сетки именно этой страницы.
+- **question** – вопрос страницы викторины.
+- **cards** – список карточек страницы.
+
+Карточка может дополнительно содержать:
+
+- **answer** – пометка правильного ответа для страниц `quiz`.
+- **matchId** – идентификатор пары для страниц `match`.
+- **matchLane** – строка карточки (`top` или `bottom`) на страницах `match`.
+
+Формат `2.0` со старым плоским массивом `cards` по-прежнему читается приложением и автоматически мигрируется в `pages`.

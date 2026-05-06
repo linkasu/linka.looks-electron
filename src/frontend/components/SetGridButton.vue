@@ -1,5 +1,5 @@
 <template>
-  <eye-button>
+  <eye-button :disabled="disabled" :eye-disabled="eyeDisabled" :editor="editor">
     <div
       v-if="dot"
       class="dot"
@@ -62,10 +62,16 @@ interface ISetGridButtonProps {
   card: Card
   file: string
   dot?: boolean
+  editor?: boolean
+  disabled?: boolean
+  eyeDisabled?: boolean
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
-  dot: false
+  dot: false,
+  editor: false,
+  disabled: false,
+  eyeDisabled: false
 });
 
 const CardTypes = CardType;

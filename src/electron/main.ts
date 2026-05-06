@@ -36,7 +36,6 @@ function logUpdate (message: string, payload?: unknown): void {
     console.warn("Failed to write update log:", error);
   }
 }
-
 function sendToRenderer (channel: string, payload?: unknown): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
@@ -246,6 +245,3 @@ if (isDevelopment) {
     });
   }
 }
-// TODO: add function body and utilize the function
-// function sendPoint (win: BrowserWindow, point: GazeData) {
-// }

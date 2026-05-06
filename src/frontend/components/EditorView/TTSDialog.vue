@@ -87,7 +87,6 @@ const currentAudioText = computed({
 });
 
 const voiceOptions = TTS.voices;
-const defaultSettingsVoice = computed(() => store.state.voice);
 const voice: Ref<(string)> = ref("");
 const currentVoice = computed({
   get () {
@@ -111,8 +110,8 @@ function create () {
 
 function onDialog (v: boolean) {
   if (v) {
-    currentVoice.value = props.audioVoice ?? defaultSettingsVoice.value;
     currentAudioText.value = props.audioText ?? "";
+    currentVoice.value = props.audioVoice ?? TTS.instance.resolveVoice(currentAudioText.value);
   }
 }
 

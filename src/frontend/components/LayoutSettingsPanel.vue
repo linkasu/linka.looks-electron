@@ -62,6 +62,7 @@
 <script lang="ts" setup>
 import { computed } from "vue";
 import { useStore } from "vuex";
+import { normalizePage, type SetPage } from "@/common/interfaces/ConfigFile";
 
 const store = useStore();
 
@@ -97,19 +98,20 @@ async function toggleBold () {
 
 const columns = computed({
   get () {
-    return store.state.editor.columns;
+    const page = currentPage.value;
+    return page.columns;
   },
   async set (v: number) {
-    store.commit("editor_columns", v);
+    currentPage.value = { ...currentPage.value, columns: v };
   }
 });
 
 const rows = computed({
   get (): number {
-    return store.state.editor.rows;
+    return currentPage.value.rows;
   },
   async set (v: number) {
-    store.commit("editor_rows", v);
+    currentPage.value = { ...currentPage.value, rows: currentPage.value.mode === "match" ? 2 : v };
   }
 });
 
@@ -125,6 +127,33 @@ async function closeSettings () {
 async function save () {
   await store.dispatch("editor_save");
 }
+
+const currentPageIndex = computed(() => store.state.explorer.page ?? 0);
+
+const editorPages = computed({
+  get (): SetPage[] {
+    return store.state.editor.pages ?? [];
+  },
+  set (value: SetPage[]) {
+    store.commit("editor_pages", value);
+  }
+});
+
+const currentPage = computed({
+  get (): SetPage {
+    return normalizePage(editorPages.value[currentPageIndex.value] ?? {
+      mode: "standard",
+      columns: 3,
+      rows: 3,
+      cards: []
+    });
+  },
+  set (value: SetPage) {
+    const pages = [...editorPages.value];
+    pages[currentPageIndex.value] = normalizePage(value);
+    editorPages.value = pages;
+  }
+});
 </script>
 <style scoped>
   .settingsPanel {

@@ -5,8 +5,14 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Metric } from "@/frontend/utils/Metric";
-import { CardType, type Card } from "@/common/interfaces/ConfigFile";
-import { uuid } from "uuidv4";
+import type { ConfigFile, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
+import {
+  CURRENT_SET_VERSION,
+  clonePage,
+  createPlaceholderCard,
+  normalizeConfigFile,
+  normalizePage
+} from "@/common/interfaces/ConfigFile";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
@@ -15,14 +21,14 @@ const fields = [
   { commit: "colors_primary", default: "#197377" } as Field<string>,
   { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
   { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
-  { commit: "voice", default: "alena" } as Field<string>,
+  { commit: "voiceRu", default: "alena" } as Field<string>,
+  { commit: "voiceEn", default: "john" } as Field<string>,
   { commit: "layoutSettings_fontSize", default: 16 } as Field<number>,
   { commit: "layoutSettings_fontBold", default: true } as Field<boolean>,
   { commit: "layoutSettings_isOpened", default: false } as Field<boolean>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
-  { commit: "button_eyePagination", default: true } as Field<boolean>,
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
   { commit: "button_keyboardActivation", default: true } as Field<boolean>,
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
@@ -50,13 +56,13 @@ const store = createStore<LINKaStore>({
       accent: "",
       primary: "#197377"
     },
-    voice: "alena",
+    voiceRu: "alena",
+    voiceEn: "john",
     button: {
       timeout: 1000,
       enabled: true,
       eyeSelect: true,
       eyeActivation: true,
-      eyePagination: true,
       joystickActivation: true,
       keyboardActivation: true,
       mouseActivation: true,
@@ -81,14 +87,10 @@ const store = createStore<LINKaStore>({
     editor: {
       current: "",
       temp: "",
-      cards: [],
+      pages: [createEditorPage()],
       page: 0,
-      quiz: false,
-      questions: [],
       quizAutoNext: true,
       quizReadQuestion: true,
-      columns: 3,
-      rows: 3,
       isDirectSet: false,
       isWithoutSpace: false
     },
@@ -148,8 +150,11 @@ const store = createStore<LINKaStore>({
     colors_secondary ({ colors }, value) {
       colors.secondary = value;
     },
-    voice ({ voice }, value) {
-      voice = value;
+    voiceRu (state, value) {
+      state.voiceRu = value;
+    },
+    voiceEn (state, value) {
+      state.voiceEn = value;
     },
     editor_current ({ editor }, value) {
       editor.current = value;
@@ -157,26 +162,14 @@ const store = createStore<LINKaStore>({
     editor_temp ({ editor }, value) {
       editor.temp = value;
     },
-    editor_cards ({ editor }, value) {
-      editor.cards = value;
-    },
-    editor_columns ({ editor }, value) {
-      editor.columns = value;
-    },
-    editor_rows ({ editor }, value) {
-      editor.rows = value;
+    editor_pages ({ editor }, value: SetPage[]) {
+      editor.pages = value;
     },
     editor_isDirectSet ({ editor }, value) {
       editor.isDirectSet = value;
     },
     editor_isWithoutSpace ({ editor }, value) {
       editor.isWithoutSpace = value;
-    },
-    editor_isQuiz ({ editor }, value) {
-      editor.quiz = value;
-    },
-    editor_questions ({ editor }, value) {
-      editor.questions = value;
     },
     editor_quizAutoNext ({ editor }, value) {
       editor.quizAutoNext = value;
@@ -192,6 +185,9 @@ const store = createStore<LINKaStore>({
     },
     explorer_page ({ explorer }, value) {
       explorer.page = value;
+    },
+    explorer_config ({ explorer }, value: ConfigFile | undefined) {
+      explorer.config = value;
     },
     layoutSettings_fontBold ({ layoutSettings }, value) {
       layoutSettings.fontBold = value;
@@ -215,18 +211,12 @@ const store = createStore<LINKaStore>({
       button.eyeActivation = value;
       Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
     },
-    button_eyePagination ({ button, pcHash }, value) {
-      button.eyePagination = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyePagination", { value });
-    },
     button_joystickActivation ({ button, pcHash }, value) {
       Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });
-
       button.joystickActivation = value;
     },
     button_keyboardActivation ({ button, pcHash }, value) {
       Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
-
       button.keyboardActivation = value;
     },
     button_mouseActivation ({ button }, value) {
@@ -279,16 +269,22 @@ const store = createStore<LINKaStore>({
       commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
       state.selectedKey = undefined;
     },
-    voice_change ({ state }, voice: string) {
-      state.voice = voice;
+    voiceRu_change ({ commit }, voice: string) {
+      commit("voiceRu", voice);
+    },
+    voiceEn_change ({ commit }, voice: string) {
+      commit("voiceEn", voice);
+    },
+    voice_change ({ commit }, voice: string) {
+      commit("voiceRu", voice);
     },
 
     interface_outputLine ({ state, commit }) {
       commit("interface_outputLine", !state.ui.outputLine);
     },
 
-    button_enabled ({ state }) {
-      state.button.enabled = !state.button.enabled;
+    button_enabled ({ state, commit }) {
+      commit("button_enabled", !state.button.enabled);
     },
 
     button_animation_toggle ({ state, commit }) {
@@ -311,7 +307,7 @@ const store = createStore<LINKaStore>({
       file += ".linka";
       state.editor.current = file;
       state.editor.temp = await storageService.defaultToTemp(file);
-      dispatch("editor_load_set");
+      await dispatch("editor_load_set");
     },
 
     async editor_current ({ state, dispatch }, file: string) {
@@ -319,104 +315,80 @@ const store = createStore<LINKaStore>({
       state.editor.temp = await storageService.copyToTemp(file);
       await dispatch("editor_load_set");
     },
-    editor_current_default ({ state }) {
-      state.editor.current = "";
-    },
-    async editor_load_set ({ state, commit }) {
-      const config = await storageService.getConfigFile(state.editor.temp!);
 
-      if (config != undefined) {
-        commit("editor_columns", config.columns);
-        commit("editor_rows", config.rows);
-        commit("editor_cards", config.cards);
-        commit("editor_description", config.description);
-        commit("editor_isWithoutSpace", config.withoutSpace);
-        commit("editor_isDirectSet", !!config.directSet);
-        commit("editor_isQuiz", !!config.quiz);
-        commit("editor_questions", config.questions ?? []);
-      }
+    editor_current_default ({ commit }) {
+      commit("editor_current", "");
+      commit("editor_temp", "");
+      commit("editor_pages", [createEditorPage()]);
+      commit("editor_page", 0);
     },
+
+    async editor_load_set ({ state, commit }) {
+      const config = await storageService.getConfigFile(state.editor.temp);
+      const normalized = normalizeConfigFile(config);
+      if (!normalized) return;
+
+      commit("editor_pages", normalized.pages ?? [createEditorPage()]);
+      commit("editor_description", normalized.description);
+      commit("editor_isWithoutSpace", !!normalized.withoutSpace);
+      commit("editor_isDirectSet", !!normalized.directSet);
+      commit("editor_quizAutoNext", normalized.quizAutoNext ?? true);
+      commit("editor_quizReadQuestion", normalized.quizReadQuestion ?? false);
+      commit("editor_page", 0);
+    },
+
     async editor_save ({ state }) {
-      await storageService.saveSet(state.editor.temp, state.editor.current, {
-        cards: JSON.parse(JSON.stringify(state.editor.cards)),
-        columns: state.editor.columns,
-        rows: state.editor.rows,
-        directSet: state.editor.isDirectSet,
-        withoutSpace: state.editor.isWithoutSpace,
-        questions: state.editor.questions,
-        quiz: state.editor.quiz,
-        quizAutoNext: state.editor.quizAutoNext,
-        quizReadQuestion: state.editor.quizReadQuestion,
-        description: state.editor.description,
-        version: "2.0"
-      });
+      await storageService.saveSet(state.editor.temp, state.editor.current, buildEditorConfig(state));
     },
-    async editor_save_as ({ state, commit }, title) {
+
+    async editor_save_as ({ state }, title) {
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
-      await storageService.saveSet(state.editor.temp, current, {
-        cards: state.editor.cards,
-        columns: state.editor.columns,
-        rows: state.editor.rows,
-        directSet: state.editor.isDirectSet,
-        withoutSpace: state.editor.isWithoutSpace,
-        description: state.editor.description,
-        questions: state.editor.questions,
-        quiz: state.editor.quiz,
-        quizAutoNext: state.editor.quizAutoNext,
-        quizReadQuestion: state.editor.quizReadQuestion,
-        version: "2.0"
-      });
+      await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
       return current;
     },
+
     editor_copy_page ({ state, commit }) {
-      const pageSize = Math.max(1, state.editor.columns * state.editor.rows);
-      const page = Math.max(0, state.editor.page ?? 0);
-      const start = pageSize * page;
-      const cards = state.editor.cards ?? [];
-
-      const pageCards: Card[] = [];
-      for (let i = 0; i < pageSize; i++) {
-        const card = cards[start + i];
-        if (card) {
-          pageCards.push(card);
-        } else {
-          pageCards.push({ cardType: CardType.NewCard, id: uuid() });
-        }
-      }
-
-      const newCards = pageCards.map((c) => {
-        const copy: Card = JSON.parse(JSON.stringify(c));
-        copy.id = uuid();
-        return copy;
-      });
-
-      const nextCards = cards.slice();
-      nextCards.splice(start + pageSize, 0, ...newCards);
-      commit("editor_cards", nextCards);
-      commit("editor_page", page + 1);
+      const pages = [...(state.editor.pages ?? [])];
+      const pageIndex = clampPageIndex(state.editor.page, pages.length);
+      const currentPage = pages[pageIndex] ?? createEditorPage();
+      const nextPage = clonePage(currentPage, true);
+      pages.splice(pageIndex + 1, 0, nextPage);
+      commit("editor_pages", pages);
+      commit("editor_page", pageIndex + 1);
     },
-    async open_file ({ state, commit }, filename) {
-      const config = await storageService.getConfigFile(filename);
 
-      if (config) {
-        state.explorer.config = config;
-        if (config.directSet !== undefined) {
-          commit("interface_outputLine", !config.directSet);
-        } else {
-          commit("interface_outputLine", true);
-        }
+    editor_delete_page ({ state, commit }) {
+      const pages = [...(state.editor.pages ?? [])];
+      const pageIndex = clampPageIndex(state.editor.page, pages.length);
+      const currentPage = pages[pageIndex] ?? createEditorPage();
+
+      if (pages.length <= 1) {
+        pages.splice(0, pages.length, createEditorPage(currentPage.mode, currentPage.columns, currentPage.rows));
+        commit("editor_pages", pages);
+        commit("editor_page", 0);
+        return;
       }
+
+      pages.splice(pageIndex, 1);
+      commit("editor_pages", pages);
+      commit("editor_page", Math.max(0, Math.min(pageIndex, pages.length - 1)));
+    },
+
+    async open_file ({ commit }, filename) {
+      const config = normalizeConfigFile(await storageService.getConfigFile(filename));
+      if (!config) return;
+
+      commit("explorer_config", config);
+      commit("explorer_page", 0);
+      commit("interface_outputLine", !config.directSet);
     }
   },
   plugins: [
-    (store) => {
-      store.subscribe((mutation, state) => {
-        if (!fields.find(({ commit }) => {
-          return mutation.type === commit;
-        })) return;
-
+    (currentStore) => {
+      currentStore.subscribe((mutation) => {
+        if (!fields.find(({ commit }) => mutation.type === commit)) return;
         eStore.set(mutation.type, mutation.payload);
       });
     }
@@ -429,7 +401,41 @@ for (const field of fields) {
   store.commit(field.commit, eStore.get(field.commit, field.default));
 }
 
+if (!eStore.has("voiceRu")) {
+  store.commit("voiceRu", eStore.get("voice", "alena"));
+}
+if (!eStore.has("voiceEn")) {
+  store.commit("voiceEn", "john");
+}
+
 interface Field<T> {
   commit: string;
-  default: T
+  default: T;
+}
+
+function createEditorPage (mode: PageMode = "standard", columns = 3, rows = 3): SetPage {
+  const normalizedRows = mode === "match" ? 2 : rows;
+  return normalizePage({
+    mode,
+    columns,
+    rows: normalizedRows,
+    cards: [createPlaceholderCard()]
+  });
+}
+
+function buildEditorConfig (state: LINKaStore): ConfigFile {
+  return {
+    pages: (state.editor.pages ?? []).map((page) => normalizePage(page)),
+    directSet: state.editor.isDirectSet,
+    withoutSpace: state.editor.isWithoutSpace,
+    quizAutoNext: state.editor.quizAutoNext,
+    quizReadQuestion: state.editor.quizReadQuestion,
+    description: state.editor.description,
+    version: CURRENT_SET_VERSION
+  };
+}
+
+function clampPageIndex (page: number, length: number): number {
+  if (!length) return 0;
+  return Math.max(0, Math.min(length - 1, page ?? 0));
 }
