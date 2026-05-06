@@ -39,10 +39,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, watch } from "vue";
 import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
-import { ipcRenderer, shell } from "electron";
+import { shell } from "electron";
 import { LINKaStore } from "../store/LINKaStore";
 
 const store = useStore<LINKaStore>();

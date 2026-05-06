@@ -43,7 +43,7 @@
 <script lang="ts" setup>
 import { ref, defineProps, defineEmits } from "vue";
 
-const props = defineProps<{ file: string }>();
+defineProps<{ file: string }>();
 const emit = defineEmits<{(e: "delete"): void }>();
 
 const dialog = ref(false);

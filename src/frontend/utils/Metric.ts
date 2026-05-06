@@ -4,7 +4,7 @@ import { MetricEvent } from "./MetricEvents";
 export class Metric {
   private static serverUrl = "https://metric.linka.su"; // Replace with the actual URL of the metric server
 
-  public static async registerEvent (pcHash: string, eventName: MetricEvent, eventData?: any): Promise<void> {
+  public static async registerEvent (pcHash: string, eventName: MetricEvent, eventData?: unknown): Promise<void> {
     try {
       if (pcHash.length !== 36) return;
       const endpoint = `${this.serverUrl}/registerEvent`;

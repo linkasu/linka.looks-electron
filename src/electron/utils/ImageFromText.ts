@@ -16,8 +16,13 @@ export async function createImageFromText (text: string):Promise<Buffer> {
         return reject(err);
       }
 
-      resolve(await readFile(file));
-      // unlink(file);
+      try {
+        const buffer = await readFile(file);
+        await unlink(file).catch((error) => console.warn("Failed to remove generated image:", error));
+        resolve(buffer);
+      } catch (error) {
+        reject(error);
+      }
     });
   });
 }

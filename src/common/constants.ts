@@ -1,4 +1,4 @@
-import { homedir, userInfo } from "os";
+import { homedir } from "os";
 import { join } from "path";
 const documentsPath = join(homedir(), "Documents");
 const linkedFolderName = "LINKa";

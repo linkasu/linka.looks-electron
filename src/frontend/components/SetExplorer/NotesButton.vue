@@ -67,7 +67,7 @@ const description = computed({
   }
 });
 
-function onDialog (value: boolean) {
+function onDialog () {
   store.commit("button_enabled", !dialog.value);
 }
 </script>

@@ -1,10 +1,8 @@
-import { BrowserElementsState, PageElementsState } from "@/common/interfaces/PageElementsState";
+import { BrowserElementsState } from "@/common/interfaces/PageElementsState";
 import store from "@/frontend/store";
 import { Side } from "@/frontend/store/LINKaStore";
 import { getDistance } from "@/frontend/utils/getDistance";
-import { log } from "console";
 import { ipcRenderer } from "electron";
-import { GamepadWrapper } from "gamepad-wrapper";
 import { uuid } from "uuidv4";
 
 export class PageWatcher {
@@ -29,7 +27,7 @@ export class PageWatcher {
     PageWatcher.instance = this;
     this.watchElementsChange();
     window.addEventListener("resize", () => this.watchElementsChange());
-    const observer = new MutationObserver((m) => {
+    const observer = new MutationObserver(() => {
       this.watchElementsChange();
     });
 
@@ -39,20 +37,20 @@ export class PageWatcher {
     });
 
     ipcRenderer.on("eye-enter", (event, data) => {
-      if (data.id != this.elements.id) return;
+      if (data.id !== this.elements.id) return;
       const element = this.elements.elements[data.elementIndex];
       this.enterWatch(element);
     });
 
     ipcRenderer.on("eye-exit", (event, data) => {
-      if (data?.id != this.elements.id) {
+      if (data?.id !== this.elements.id) {
         return;
       }
 
       this.exitWatch();
     });
     ipcRenderer.on("eye-click", (event, data) => {
-      if (data?.id != this.elements.id) return;
+      if (data?.id !== this.elements.id) return;
 
       const element = this.elements.elements[data.elementIndex];
       if (data.count > 1) return;
@@ -78,7 +76,6 @@ export class PageWatcher {
     for (const gamepad of gamepads) {
       if (!gamepad) continue;
       const buttons = gamepad.buttons.map(({ value }) => !!value);
-      const axes = gamepad.axes;
       // todo
 
       const lasts = this.gamepadButtonsMap.get(gamepad.id);
@@ -104,7 +101,7 @@ export class PageWatcher {
     const eyes = [...document.getElementsByClassName(PageWatcher.CLASS)];
     const bounds = eyes.map((el) => el.getBoundingClientRect());
     if (!force) {
-      const equals = bounds.length == this.elements.bounds.length && !bounds.map((b, index) => {
+      const equals = bounds.length === this.elements.bounds.length && !bounds.map((b, index) => {
         const a = this.elements.bounds[index];
 
         return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -135,8 +132,8 @@ export class PageWatcher {
         }
       }
     }
-    if (action == null) return false;
-    if (this.lastElement?.getBoundingClientRect().width == 0) {
+    if (action === null) return false;
+    if (this.lastElement?.getBoundingClientRect().width === 0) {
       this.lastElement = undefined;
     }
     if (!this.lastElement && elements[0]) {
@@ -213,7 +210,7 @@ export class PageWatcher {
     let distance = Number.MAX_VALUE;
     let next = this.lastElement;
     for (const element of elements) {
-      if (this.lastElement == element) { continue; }
+      if (this.lastElement === element) { continue; }
       const rect = element.getBoundingClientRect();
 
       const rx = rect.x + rect.width / 2;
@@ -236,7 +233,7 @@ export class PageWatcher {
           if (ry <= cy) { continue; }
           break;
       }
-      const v = where != "left" && where !== "right";
+      const v = where !== "left" && where !== "right";
       const xCoof = v ? 1000 : 1;
       const yCoof = !v ? 1000 : 1;
 
@@ -246,8 +243,8 @@ export class PageWatcher {
         next = element;
       }
     }
-    if (next == this.lastElement && !strict) {
-      return this.findNear(elements, where, true)!;
+    if (next === this.lastElement && !strict) {
+      return this.findNear(elements, where, true);
     }
     return next;
   }

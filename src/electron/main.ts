@@ -1,5 +1,5 @@
 "use strict";
-import { app, protocol, BrowserWindow, screen, ipcMain } from "electron";
+import { app, protocol, BrowserWindow, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 import { CardsStorage } from "./services/card-storage-service";
@@ -11,6 +11,7 @@ import { appendFileSync } from "fs";
 Store.initRenderer();
 
 const cardStorage = new CardsStorage();
+void cardStorage;
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 const isUpdateTestMode = process.env.UPDATE_TEST_MODE === "1";
@@ -179,6 +180,7 @@ async function createWindow () {
 
   mainWindow = win;
   const backWatch = new BackWatch(win);
+  void backWatch;
   ipcMain.on("app_version", (event) => {
     event.sender.send("app_version", { version: app.getVersion() });
   });

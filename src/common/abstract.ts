@@ -1,103 +1,33 @@
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
-import { getMethods } from "@/frontend/utils/getMethods";
 
 export abstract class ICloudStorage {
   static getMethods (): Array<keyof ICloudStorage> {
-    const mockImplementation = class extends ICloudStorage {
-      downloadImageFromBank (file: string, id: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      getArgv (): Promise<string[]> {
-        throw new Error("Method not implemented.");
-      }
-
-      downloadAndUnpack (url: string): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-
-      getFiles (path: string): Promise<Directory | null> {
-        throw new Error("Method not implemented.");
-      }
-
-      getConfigFile (path: string): ConfigFile | Promise<ConfigFile | null> | null {
-        throw new Error("Method not implemented.");
-      }
-
-      getDefaultImage (path: string): Buffer | Promise<Uint8Array | null> | null {
-        throw new Error("Method not implemented.");
-      }
-
-      getImage (path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
-        throw new Error("Method not implemented.");
-      }
-
-      getAudio (path: string, entry: string): Buffer | Promise<Uint8Array | null> | null {
-        throw new Error("Method not implemented.");
-      }
-
-      moveToTrash (path: string): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-
-      copyToTemp (path: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      selectImage (path: string): Promise<string | null> {
-        throw new Error("Method not implemented.");
-      }
-
-      selectAudio (path: string): Promise<string | null> {
-        throw new Error("Method not implemented.");
-      }
-
-      createImageFromText (path: string, text: string): Promise<string | null> {
-        throw new Error("Method not implemented.");
-      }
-
-      createAudioFromText (path: string, text: string, voice: string): Promise<string | null> {
-        throw new Error("Method not implemented.");
-      }
-
-      defaultToTemp (file: string): string | Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      saveSet (path: string, location: string, config: ConfigFile): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-
-      moveSet (file: string, location: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      duplicateItem (path: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      renameItem (path: string, newName: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      mergeSets (basePath: string, otherPath: string, targetName?: string): Promise<string> {
-        throw new Error("Method not implemented.");
-      }
-
-      mkdir (file: string): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-
-      rmdir (file: string): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-
-      showItemInFolder (file: string): Promise<void> {
-        throw new Error("Method not implemented.");
-      }
-    };
-    return getMethods<ICloudStorage>(mockImplementation);
+    return [
+      "getFiles",
+      "getConfigFile",
+      "getDefaultImage",
+      "getImage",
+      "getAudio",
+      "moveToTrash",
+      "copyToTemp",
+      "selectImage",
+      "selectAudio",
+      "createImageFromText",
+      "createAudioFromText",
+      "defaultToTemp",
+      "saveSet",
+      "moveSet",
+      "duplicateItem",
+      "renameItem",
+      "mergeSets",
+      "mkdir",
+      "rmdir",
+      "downloadAndUnpack",
+      "showItemInFolder",
+      "getArgv",
+      "downloadImageFromBank"
+    ];
   }
 
   abstract getFiles(path: string): Promise<(Directory | null)>;

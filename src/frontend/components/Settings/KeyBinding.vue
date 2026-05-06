@@ -64,7 +64,7 @@ const selected = computed({
 });
 
 const isCurrent = computed(() => {
-  return selected.value == props.side;
+  return selected.value === props.side;
 });
 
 function onKeyDown (ev: KeyboardEvent) {

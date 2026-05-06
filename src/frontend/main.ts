@@ -7,10 +7,11 @@ import { loadFonts } from "./plugins/webfontloader";
 import { PageWatcher } from "../electron/tobii/pageWatch";
 import "./store/eStore";
 const pageWatcher = new PageWatcher();
+void pageWatcher;
 
 loadFonts();
 
-const vue = createApp(App)
+createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
