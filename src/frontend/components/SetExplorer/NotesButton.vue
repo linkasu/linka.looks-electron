@@ -44,7 +44,7 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, withDefaults, computed, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 

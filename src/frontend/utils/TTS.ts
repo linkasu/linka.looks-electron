@@ -10,9 +10,9 @@ export class TTS {
   isPlaying = false;
   audio = new Audio();
   private _playId = 0;
-  private static _instance: TTS;
+  private static _instance?: TTS;
   static get instance (): TTS {
-    if (TTS._instance == null) {
+    if (TTS._instance === undefined) {
       TTS._instance = new TTS();
     }
     return TTS._instance;

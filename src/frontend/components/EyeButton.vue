@@ -13,7 +13,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, onMounted, defineProps, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 
 interface IEyeButtonProps {

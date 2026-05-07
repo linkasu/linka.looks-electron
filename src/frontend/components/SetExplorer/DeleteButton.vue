@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, defineProps, defineEmits } from "vue";
+import { ref } from "vue";
 
 defineProps<{ file: string }>();
 const emit = defineEmits<{(e: "delete"): void }>();

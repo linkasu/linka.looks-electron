@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWrit
 import { join, basename, extname, normalize, dirname } from "path";
 import { readdir, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
 import { tmpdir } from "os";
-import { uuid } from "uuidv4";
+import { v4 as uuid } from "uuid";
 import AdmZip from "adm-zip";
 import {
   CardType,
@@ -88,11 +88,11 @@ export class CardsStorage extends ICloudStorage {
             file
           };
         }
-      } catch (error) {
+      } catch {
         return null;
       }
       return null;
-    }).filter(f => f != null) as Directory;
+    }).filter(f => f !== null) as Directory;
   }
 
   getConfigFile (path: string) {
@@ -302,7 +302,9 @@ export class CardsStorage extends ICloudStorage {
     const tmp = await this.copyToTemp(base);
     const zipBase = new AdmZip(tmp);
     const zipOther = new AdmZip(other);
-    const existingEntries = new Set(zipBase.getEntries().map((e) => e.entryName));
+    const baseEntries = zipBase.getEntries();
+    baseEntries.forEach((entry) => entry.getData());
+    const existingEntries = new Set(baseEntries.map((e) => e.entryName));
     const entryMap = new Map<string, string>();
 
     const copyEntry = (name?: string) => {
@@ -333,6 +335,10 @@ export class CardsStorage extends ICloudStorage {
       });
       return normalizePage(copy);
     });
+
+    const mergedTmp = `${tmp}.merged`;
+    zipBase.writeZip(mergedTmp);
+    await rename(mergedTmp, tmp);
 
     const mergedConfig: ConfigFile = {
       ...baseConfig,

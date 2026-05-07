@@ -25,7 +25,7 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useStore } from "vuex";
 import { Side } from "@/frontend/store/LINKaStore";
 

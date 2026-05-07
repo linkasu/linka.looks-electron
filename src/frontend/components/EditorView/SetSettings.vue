@@ -87,7 +87,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, withDefaults, defineProps } from "vue";
+import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import type { PageMode, SetPage } from "@/common/interfaces/ConfigFile";
 import { normalizePage } from "@/common/interfaces/ConfigFile";

@@ -89,7 +89,7 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, defineEmits, computed, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { normalizePage, type ConfigFile } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import EyeButton from "@/frontend/components/EyeButton.vue";

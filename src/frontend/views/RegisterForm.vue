@@ -101,7 +101,7 @@ async function checkCode () {
     if (pcHash) {
       store.commit("pcHash", pcHash);
     }
-  } catch (err) {
+  } catch {
     error.value = "Ошибка запроса";
   }
 }

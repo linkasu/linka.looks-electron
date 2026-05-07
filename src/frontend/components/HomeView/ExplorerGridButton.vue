@@ -32,7 +32,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { defineProps, withDefaults, ref, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import { DirectoryFile } from "@/common/interfaces/Directory";

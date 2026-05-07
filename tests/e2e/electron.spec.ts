@@ -1,60 +1,26 @@
-import { _electron as electron, ElectronApplication, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import AdmZip from "adm-zip";
-import { mkdirSync, mkdtempSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
-
-const devServerUrl = "http://localhost:5173";
+import { join } from "node:path";
+import {
+  cleanupE2EContext,
+  createE2EContext,
+  devServerUrl,
+  firstTestWindow,
+  launchTestElectron,
+  standardConfig,
+  writeLinkaSet
+} from "./helpers";
 
 test("editor settings expose row and column controls", async () => {
-  const root = mkdtempSync(join(tmpdir(), "linka-e2e-"));
-  const userDataDir = join(root, "userData");
-  const homeDir = join(root, "LINKa");
-
-  mkdirSync(userDataDir, { recursive: true });
-  mkdirSync(homeDir, { recursive: true });
-  writeFileSync(join(userDataDir, "config.json"), JSON.stringify({
-    pcHash: "00000000-0000-4000-8000-000000000000",
-    first_calibrate: true,
-    defaultSetsDownloaded: 1
+  const context = createE2EContext();
+  const setName = "agent-e2e.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 3 }], {
+    pages: [{ id: "page-1", mode: "standard", columns: 3, rows: 3, cards: [{ id: "card-1", cardType: 3 }] }]
   }));
 
-  const setName = "agent-e2e.linka";
-  const zip = new AdmZip();
-  zip.addFile("config.json", Buffer.from(JSON.stringify({
-    version: "3.0",
-    withoutSpace: false,
-    directSet: false,
-    quizAutoNext: true,
-    quizReadQuestion: false,
-    pages: [
-      {
-        id: "page-1",
-        mode: "standard",
-        columns: 3,
-        rows: 3,
-        cards: [{ id: "card-1", cardType: 3 }]
-      }
-    ]
-  })));
-  zip.writeZip(join(homeDir, setName));
-
-  let electronApp: ElectronApplication | null = null;
-
+  const electronApp = await launchTestElectron(context);
   try {
-    electronApp = await electron.launch({
-      args: ["dist-electron/main.js"],
-      env: {
-        ...process.env,
-        IS_TEST: "1",
-        LINKA_HOME_DIR: homeDir,
-        NODE_ENV: "development",
-        TEST_USER_DATA_DIR: userDataDir,
-        VITE_DEV_SERVER_URL: devServerUrl
-      }
-    });
-
-    const window = await electronApp.firstWindow();
+    const window = await firstTestWindow(electronApp);
     await window.goto(`${devServerUrl}/#/edit/§${setName}`);
 
     await window.getByRole("button", { name: "Открыть настройки набора" }).click();
@@ -64,23 +30,13 @@ test("editor settings expose row and column controls", async () => {
     await window.getByLabel("Количество строк").fill("2");
     await expect(window.getByLabel("Количество строк")).toHaveValue("2");
   } finally {
-    await electronApp?.close();
+    await electronApp.close();
+    cleanupE2EContext(context);
   }
 });
 
 test("set explorer grid fills the viewport above footer", async () => {
-  const root = mkdtempSync(join(tmpdir(), "linka-e2e-"));
-  const userDataDir = join(root, "userData");
-  const homeDir = join(root, "LINKa");
-
-  mkdirSync(userDataDir, { recursive: true });
-  mkdirSync(homeDir, { recursive: true });
-  writeFileSync(join(userDataDir, "config.json"), JSON.stringify({
-    pcHash: "00000000-0000-4000-8000-000000000000",
-    first_calibrate: true,
-    defaultSetsDownloaded: 1
-  }));
-
+  const context = createE2EContext();
   const setName = "layout-e2e.linka";
   const cards = Array.from({ length: 48 }, (_, index) => ({
     id: `card-${index}`,
@@ -88,8 +44,7 @@ test("set explorer grid fills the viewport above footer", async () => {
     title: String(index),
     imagePath: "missing.png"
   }));
-  const zip = new AdmZip();
-  zip.addFile("config.json", Buffer.from(JSON.stringify({
+  writeLinkaSet(context.homeDir, setName, {
     version: "3.0",
     withoutSpace: false,
     directSet: false,
@@ -102,25 +57,11 @@ test("set explorer grid fills the viewport above footer", async () => {
       rows: 4,
       cards
     }))
-  })));
-  zip.writeZip(join(homeDir, setName));
+  });
 
-  let electronApp: ElectronApplication | null = null;
-
+  const electronApp = await launchTestElectron(context);
   try {
-    electronApp = await electron.launch({
-      args: ["dist-electron/main.js"],
-      env: {
-        ...process.env,
-        IS_TEST: "1",
-        LINKA_HOME_DIR: homeDir,
-        NODE_ENV: "development",
-        TEST_USER_DATA_DIR: userDataDir,
-        VITE_DEV_SERVER_URL: devServerUrl
-      }
-    });
-
-    const window = await electronApp.firstWindow();
+    const window = await firstTestWindow(electronApp);
     await window.goto(`${devServerUrl}/#/set/§${setName}`);
     await expect(window.getByText("1 из 2")).toBeVisible();
 
@@ -145,6 +86,146 @@ test("set explorer grid fills the viewport above footer", async () => {
     expect(metrics.leftButtonHeight).toBeGreaterThan(metrics.gridHeight * 0.95);
     expect(metrics.rightButtonHeight).toBeGreaterThan(metrics.gridHeight * 0.95);
   } finally {
-    await electronApp?.close();
+    await electronApp.close();
+    cleanupE2EContext(context);
   }
 });
+
+test("standard set appends clicked cards to text output", async () => {
+  const context = createE2EContext();
+  const setName = "standard-flow.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([
+    { id: "hello", cardType: 0, title: "Hello" },
+    { id: "world", cardType: 0, title: "World" }
+  ], { withoutSpace: true }));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/set/§${setName}`);
+
+    await window.getByRole("button", { name: "Hello" }).click();
+    await window.getByRole("button", { name: "World" }).click();
+
+    await expect(window.locator(".output-text .text")).toContainText("HelloWorld");
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
+test("quiz set handles wrong and correct answers", async () => {
+  const context = createE2EContext();
+  const setName = "quiz-flow.linka";
+  writeLinkaSet(context.homeDir, setName, {
+    version: "3.0",
+    withoutSpace: false,
+    directSet: false,
+    quizAutoNext: false,
+    quizReadQuestion: false,
+    pages: [{
+      id: "quiz-page",
+      mode: "quiz",
+      columns: 2,
+      rows: 1,
+      question: "Choose right",
+      cards: [
+        { id: "wrong", cardType: 0, title: "Wrong" },
+        { id: "right", cardType: 0, title: "Right", answer: true }
+      ]
+    }]
+  });
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/set/§${setName}`);
+    await window.getByRole("button", { name: "Начать" }).click();
+
+    await window.getByRole("button", { name: "Wrong" }).click();
+    await expect.poll(async () => {
+      return window.evaluate(() => !!document.querySelector(".mdi-numeric-1-box"));
+    }).toBe(true);
+    await window.getByRole("button", { name: "Right" }).click();
+
+    await expect(window.getByRole("button", { name: /Далее/ })).toBeVisible();
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
+test("match set handles wrong and correct pairs", async () => {
+  const context = createE2EContext();
+  const setName = "match-flow.linka";
+  writeLinkaSet(context.homeDir, setName, {
+    version: "3.0",
+    withoutSpace: false,
+    directSet: false,
+    quizAutoNext: true,
+    quizReadQuestion: false,
+    pages: [{
+      id: "match-page",
+      mode: "match",
+      columns: 2,
+      rows: 2,
+      cards: [
+        { id: "top-apple", cardType: 0, title: "Apple", matchId: "apple", matchLane: "top" },
+        { id: "top-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "top" },
+        { id: "bottom-apple", cardType: 0, title: "Apple", matchId: "apple", matchLane: "bottom" },
+        { id: "bottom-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "bottom" }
+      ]
+    }]
+  });
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/set/§${setName}`);
+
+    await window.getByRole("button", { name: "Apple" }).nth(0).click();
+    await window.getByRole("button", { name: "Cat" }).nth(1).click();
+    await expect(window.getByText("Неверная пара")).toBeVisible();
+
+    await window.getByRole("button", { name: "Apple" }).nth(0).click();
+    await window.getByRole("button", { name: "Apple" }).nth(1).click();
+    await expect(window.getByText("Верно")).toBeVisible();
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
+test("editor saves changed page settings to set archive", async () => {
+  test.setTimeout(60000);
+  const context = createE2EContext();
+  const setName = "editor-save-flow.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 3 }], {
+    pages: [{ id: "page-1", mode: "standard", columns: 3, rows: 3, cards: [{ id: "card-1", cardType: 3 }] }]
+  }));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/edit/§${setName}`);
+
+    await window.getByRole("button", { name: "Открыть настройки набора" }).click();
+    await window.getByLabel("Количество строк").fill("2");
+    await window.keyboard.press("Escape");
+    await expect(window.getByLabel("Количество строк")).toBeHidden();
+    await window.locator(".v-app-bar button").last().click({ timeout: 5000 });
+    await expect(window.getByText(`Сохранить ${setName}?`)).toBeVisible();
+    await window.getByRole("button", { name: /^Сохранить$/ }).evaluate((button) => (button as HTMLButtonElement).click());
+
+    await expect.poll(() => readSetRows(context.homeDir, setName)).toBe(2);
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
+function readSetRows (homeDir: string, setName: string): number | undefined {
+  const zip = new AdmZip(join(homeDir, setName));
+  const config = JSON.parse(zip.readAsText("config.json")) as { pages?: Array<{ rows?: number }> };
+  return config.pages?.[0].rows;
+}

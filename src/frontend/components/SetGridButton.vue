@@ -50,7 +50,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { defineProps, withDefaults, ref, computed, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";

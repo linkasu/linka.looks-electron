@@ -56,7 +56,73 @@ export default defineConfig(({ command }) => ({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["src/frontend/tests/unit/**/*.spec.ts"]
+    include: ["src/frontend/tests/unit/**/*.spec.ts"],
+    exclude: ["src/frontend/tests/unit/CardsStorage.spec.ts"],
+    setupFiles: ["src/frontend/tests/unit/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/common/**/*.ts", "src/frontend/**/*.{ts,vue}"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/frontend/tests/**",
+        "src/frontend/main.ts"
+      ],
+      thresholds: {
+        branches: 18,
+        functions: 15,
+        lines: 22,
+        statements: 21,
+        "src/common/interfaces/ConfigFile.ts": {
+          branches: 80,
+          functions: 100,
+          lines: 100,
+          statements: 95
+        },
+        "src/frontend/store/index.ts": {
+          branches: 60,
+          functions: 80,
+          lines: 80,
+          statements: 80
+        },
+        "src/frontend/utils/TTS.ts": {
+          branches: 70,
+          functions: 85,
+          lines: 90,
+          statements: 85
+        },
+        "src/frontend/utils/editorLogic.ts": {
+          branches: 75,
+          functions: 100,
+          lines: 90,
+          statements: 90
+        },
+        "src/frontend/utils/setGameLogic.ts": {
+          branches: 90,
+          functions: 100,
+          lines: 100,
+          statements: 100
+        },
+        "src/frontend/components/EyeButton.vue": {
+          branches: 80,
+          functions: 100,
+          lines: 100,
+          statements: 85
+        },
+        "src/frontend/components/OutputLine.vue": {
+          branches: 40,
+          functions: 65,
+          lines: 85,
+          statements: 75
+        },
+        "src/frontend/components/SetGrid.vue": {
+          branches: 60,
+          functions: 50,
+          lines: 80,
+          statements: 75
+        }
+      }
+    }
   },
   clearScreen: false
 }));

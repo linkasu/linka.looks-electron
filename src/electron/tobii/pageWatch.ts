@@ -3,7 +3,7 @@ import store from "@/frontend/store";
 import { Side } from "@/frontend/store/LINKaStore";
 import { getDistance } from "@/frontend/utils/getDistance";
 import { ipcRenderer } from "electron";
-import { uuid } from "uuidv4";
+import { v4 as uuid } from "uuid";
 
 export class PageWatcher {
   private static CLASS = "eye";

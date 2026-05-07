@@ -289,7 +289,7 @@ async function duplicateSelected () {
   try {
     await storageService.duplicateItem(contextItem.value.file);
     loadSets();
-  } catch (err) {
+  } catch {
     errorText.value = "Ошибка дублирования";
     error.value = true;
   }
@@ -328,7 +328,7 @@ async function applyRename () {
   try {
     await storageService.renameItem(contextItem.value.file, name);
     loadSets();
-  } catch (err) {
+  } catch {
     errorText.value = "Ошибка переименования";
     error.value = true;
   } finally {
@@ -347,7 +347,7 @@ async function applyDelete () {
   try {
     await storageService.moveToTrash(contextItem.value.file);
     loadSets();
-  } catch (err) {
+  } catch {
     errorText.value = "Ошибка удаления";
     error.value = true;
   } finally {
@@ -360,7 +360,7 @@ async function showInFolder () {
   closeContextMenu();
   try {
     await storageService.showItemInFolder(contextItem.value.file);
-  } catch (err) {
+  } catch {
     errorText.value = "Ошибка открытия папки";
     error.value = true;
   }
@@ -410,7 +410,7 @@ async function applyMerge () {
   try {
     await storageService.mergeSets(contextItem.value.file, mergeTarget.value, targetName);
     loadSets();
-  } catch (err) {
+  } catch {
     errorText.value = "Ошибка объединения";
     error.value = true;
   } finally {

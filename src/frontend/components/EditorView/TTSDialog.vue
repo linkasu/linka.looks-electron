@@ -63,7 +63,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, defineProps, defineEmits, computed, Ref } from "vue";
+import { ref, watch, computed, Ref } from "vue";
 import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";

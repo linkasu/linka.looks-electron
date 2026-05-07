@@ -70,7 +70,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { defineProps, defineEmits, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useStore } from "vuex";
 
 import { HOME_DIR } from "@/common/constants";

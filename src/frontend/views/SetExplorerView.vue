@@ -62,10 +62,18 @@ import OutputLine from "@/frontend/components/OutputLine.vue";
 import QuizOutputLine from "@/frontend/components/QuizOutputLine.vue";
 import MatchOutputLine from "@/frontend/components/MatchOutputLine.vue";
 import SetGrid from "@/frontend/components/SetGrid.vue";
-import { CardType, normalizePage, type Card } from "@/common/interfaces/ConfigFile";
+import { normalizePage, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import { Metric } from "@/frontend/utils/Metric";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
+import {
+  advanceQuizPage,
+  getSolvedMatchPairs,
+  getTotalMatchPairs,
+  handleMatchCard,
+  handleQuizCard,
+  shouldAddCardToStandardOutput
+} from "@/frontend/utils/setGameLogic";
 
 const store = useStore();
 const route = useRoute();
@@ -121,15 +129,10 @@ const showStandardOutput = computed(() => {
 });
 
 const totalPairs = computed(() => {
-  const ids = new Set(
-    currentPage.value.cards
-      .filter((card) => !!card.matchId)
-      .map((card) => card.matchId)
-  );
-  return Math.max(1, ids.size);
+  return getTotalMatchPairs(currentPage.value.cards);
 });
 
-const solvedPairs = computed(() => matchedCardIds.value.length / 2);
+const solvedPairs = computed(() => getSolvedMatchPairs(matchedCardIds.value));
 
 watch(page, resetPageState);
 watch(currentPage, resetPageState);
@@ -145,12 +148,16 @@ function resetPageState () {
 }
 
 function advancePage () {
-  waitingForNext.value = false;
-  if (page.value < totalPages.value - 1) {
-    page.value++;
-  } else {
-    quizFinished.value = true;
-  }
+  const result = advanceQuizPage({
+    errors: quizErrors.value,
+    page: page.value,
+    quizFinished: quizFinished.value,
+    totalPages: totalPages.value,
+    waitingForNext: waitingForNext.value
+  });
+  page.value = result.page;
+  waitingForNext.value = result.waitingForNext;
+  quizFinished.value = result.quizFinished;
 }
 
 function advanceQuiz () {
@@ -168,10 +175,7 @@ async function addCard (card: Card, index: number) {
     return;
   }
   if (showStandardOutput.value) {
-    if (
-      (config.value?.withoutSpace && [CardType.AudioCard, CardType.SpaceCard].includes(card.cardType)) ||
-      (!config.value?.withoutSpace && card.cardType === CardType.AudioCard)
-    ) {
+    if (shouldAddCardToStandardOutput(card, config.value?.withoutSpace)) {
       cards.value.push(card);
     }
   } else if (filename.value) {
@@ -180,72 +184,54 @@ async function addCard (card: Card, index: number) {
 }
 
 async function onQuizCard (card: Card) {
-  if (waitingForNext.value) return;
-  if (card.answer) {
-    await TTS.instance.forcePlayText("Правильный ответ");
-    if (quizAutoNext.value) {
-      advancePage();
-    } else {
-      waitingForNext.value = true;
-    }
-  } else {
-    await TTS.instance.forcePlayText("Неправильный ответ");
-    quizErrors.value++;
-    if (quizAutoNext.value) {
-      advancePage();
-    }
+  const result = handleQuizCard(card, {
+    errors: quizErrors.value,
+    page: page.value,
+    quizFinished: quizFinished.value,
+    totalPages: totalPages.value,
+    waitingForNext: waitingForNext.value
+  }, quizAutoNext.value);
+  if (result.ignored) return;
+
+  if (result.feedbackText) {
+    await TTS.instance.forcePlayText(result.feedbackText);
   }
+  page.value = result.page;
+  quizErrors.value = result.errors;
+  waitingForNext.value = result.waitingForNext;
+  quizFinished.value = result.quizFinished;
 }
 
 async function onMatchCard (card: Card, index: number) {
-  if (!filename.value || card.cardType !== CardType.AudioCard || matchedCardIds.value.includes(card.id)) return;
+  if (!filename.value) return;
+  const result = handleMatchCard(card, index, {
+    cards: currentPage.value.cards,
+    columns: currentPage.value.columns,
+    matchErrors: matchErrors.value,
+    matchedCardIds: matchedCardIds.value,
+    page: page.value,
+    selectedCardId: selectedCardId.value,
+    totalPages: totalPages.value
+  });
+  if (result.ignored) return;
 
-  const row = index < currentPage.value.columns ? 0 : 1;
-  const previous = currentPage.value.cards.find((item) => item.id === selectedCardId.value);
+  if (result.shouldPlayCard) {
+    await TTS.instance.playCards(filename.value, [card], true);
+  }
+  selectedCardId.value = result.selectedCardId;
+  matchedCardIds.value = result.matchedCardIds;
+  matchErrors.value = result.matchErrors;
+  matchMessage.value = result.matchMessage;
 
-  await TTS.instance.playCards(filename.value, [card], true);
-
-  if (!selectedCardId.value) {
-    selectedCardId.value = card.id;
-    matchMessage.value = "Выберите карточку из другой строки";
-    return;
+  if (result.feedbackText) {
+    await TTS.instance.forcePlayText(result.feedbackText);
   }
 
-  if (selectedCardId.value === card.id) {
-    selectedCardId.value = null;
-    matchMessage.value = "Соотнесите элементы из верхней и нижней строки";
-    return;
+  if (result.advancePageAfterSolved) {
+    setTimeout(() => {
+      page.value++;
+    }, 700);
   }
-
-  const previousIndex = currentPage.value.cards.findIndex((item) => item.id === selectedCardId.value);
-  const previousRow = previousIndex < currentPage.value.columns ? 0 : 1;
-  if (!previous || previousRow === row) {
-    selectedCardId.value = card.id;
-    matchMessage.value = "Выберите карточку из другой строки";
-    return;
-  }
-
-  if (previous.matchId && card.matchId && previous.matchId === card.matchId) {
-    matchedCardIds.value = [...new Set([...matchedCardIds.value, previous.id, card.id])];
-    selectedCardId.value = null;
-    matchMessage.value = "Верно";
-    await TTS.instance.forcePlayText("Правильно");
-
-    if (solvedPairs.value >= totalPairs.value) {
-      matchMessage.value = "Все пары найдены";
-      setTimeout(() => {
-        if (page.value < totalPages.value - 1) {
-          page.value++;
-        }
-      }, 700);
-    }
-    return;
-  }
-
-  selectedCardId.value = null;
-  matchErrors.value++;
-  matchMessage.value = "Неверная пара";
-  await TTS.instance.forcePlayText("Неправильно");
 }
 </script>
 <style scoped>

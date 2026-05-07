@@ -45,7 +45,7 @@ async function create (name: string) {
   try {
     await storageService.mkdir(root + "§" + name);
     window.location.reload();
-  } catch (err) {
+  } catch {
     error.value = true;
   }
 }

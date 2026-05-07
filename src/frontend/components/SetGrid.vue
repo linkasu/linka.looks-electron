@@ -45,7 +45,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineEmits, defineProps, onMounted, watch, withDefaults } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
 import type { ConfigFile, Card, SetPage } from "@/common/interfaces/ConfigFile";
 import { CardType, getPageSize, normalizePage } from "@/common/interfaces/ConfigFile";

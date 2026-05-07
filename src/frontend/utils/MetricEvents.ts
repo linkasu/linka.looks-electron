@@ -1,5 +1,5 @@
 
-const events = [
+export const metricEvents = [
   "start", //
 
   "openSettings", //
@@ -29,4 +29,4 @@ const events = [
 
 ] as const;
 
-export type MetricEvent = typeof events[number]
+export type MetricEvent = typeof metricEvents[number]

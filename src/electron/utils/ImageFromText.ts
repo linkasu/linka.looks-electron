@@ -1,7 +1,7 @@
 import { join } from "path";
 import { execFile } from "child_process";
 import { tmpdir } from "os";
-import { uuid } from "uuidv4";
+import { v4 as uuid } from "uuid";
 import { readFile, unlink } from "fs/promises";
 import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
 

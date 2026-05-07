@@ -31,7 +31,7 @@ export class BackWatch {
           this.multiplyScale = value;
           this.processData();
         });
-      } catch (error) {
+      } catch {
         dialog
           .showErrorBox("Ошибка запуска обработчика айтрекера", "Для исправления проблемы установите Visual Studio 2012 (VC++ 11.0) с обновлением 4 или свяжитесь с Бакаидовым.");
       }

@@ -245,12 +245,20 @@ import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
 import type { Card, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
-import { CardType, cloneCard, createPlaceholderCard, getMatchLane, normalizePage } from "@/common/interfaces/ConfigFile";
+import { CardType, getMatchLane, normalizePage } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
-import { uuid } from "uuidv4";
 import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
 import { Metric } from "@/frontend/utils/Metric";
+import {
+  advanceEditorPage,
+  clearMatchLink as clearEditorMatchLink,
+  copySelectedCard,
+  createEditorPage,
+  isValidEditorCard,
+  resetSelectedCard,
+  toggleMatchLink as toggleEditorMatchLink
+} from "@/frontend/utils/editorLogic";
 
 const store = useStore();
 const route = useRoute();
@@ -414,12 +422,7 @@ const emptyPage = computed(() => {
 });
 
 function isValid (card: Card) {
-  if (card.cardType === CardType.AudioCard) {
-    if (!card.imagePath || !card.title) {
-      return false;
-    }
-  }
-  return true;
+  return isValidEditorCard(card);
 }
 
 async function newFileName (text: string) {
@@ -437,21 +440,9 @@ function select (index: number) {
 }
 
 function copySelected () {
-  if (!selected.value) return;
-  const placeholderIndex = current.value.findIndex((card) => card.cardType === CardType.NewCard);
-  if (placeholderIndex === -1) return;
-
-  const copiedCard = cloneCard(selected.value, true);
-  const nextCards = [...current.value];
-  nextCards.splice(selectedIndex.value + 1, 0, copiedCard);
-
-  const removeIndex = findLastPlaceholder(nextCards);
-  if (removeIndex !== -1) {
-    nextCards.splice(removeIndex, 1);
-  }
-
-  current.value = nextCards;
-  selectedCardId.value = copiedCard.id;
+  const result = copySelectedCard(current.value, selectedCardId.value);
+  current.value = result.cards;
+  selectedCardId.value = result.selectedCardId;
 }
 
 function copyPage () {
@@ -465,21 +456,15 @@ function deletePage () {
 }
 
 function nextPage () {
-  if (page.value < totalPages.value - 1) {
-    page.value++;
-    return;
-  }
-  const nextPages = [...pages.value, createEditorPage(pageMode.value, columns.value, rows.value)];
-  pages.value = nextPages;
-  page.value = nextPages.length - 1;
+  const result = advanceEditorPage(pages.value, page.value);
+  pages.value = result.pages;
+  page.value = result.page;
 }
 
 function resetSelected () {
-  if (!selected.value || selectedIndex.value === -1) return;
-  const nextCards = [...current.value];
-  nextCards[selectedIndex.value] = createPlaceholderCard();
-  current.value = nextCards;
-  selectedCardId.value = nextCards[selectedIndex.value].id;
+  const result = resetSelectedCard(current.value, selectedCardId.value);
+  current.value = result.cards;
+  selectedCardId.value = result.selectedCardId;
 }
 
 async function selectImage () {
@@ -529,62 +514,16 @@ function onTitleSelected (title: string) {
 }
 
 function toggleMatchLink () {
-  if (!selected.value || pageMode.value !== "match") return;
-  if (pendingMatchCardId.value === selected.value.id) {
-    pendingMatchCardId.value = null;
-    return;
-  }
-  if (!pendingMatchCardId.value) {
-    pendingMatchCardId.value = selected.value.id;
-    return;
-  }
-
-  const pendingIndex = current.value.findIndex((card) => card.id === pendingMatchCardId.value);
-  const pendingCard = current.value[pendingIndex];
-  if (!pendingCard) {
-    pendingMatchCardId.value = selected.value.id;
-    return;
-  }
-
-  const pendingLane = getMatchLane(pendingIndex, columns.value);
-  if (pendingLane === selectedLane.value) {
-    pendingMatchCardId.value = selected.value.id;
-    return;
-  }
-
-  const matchId = selected.value.matchId ?? pendingCard.matchId ?? uuid();
-  selected.value.matchId = matchId;
-  pendingCard.matchId = matchId;
-  pendingMatchCardId.value = null;
+  if (pageMode.value !== "match") return;
+  const result = toggleEditorMatchLink(current.value, selectedCardId.value, pendingMatchCardId.value, columns.value);
+  current.value = result.cards;
+  pendingMatchCardId.value = result.pendingMatchCardId;
 }
 
 function clearMatchLink () {
-  if (!selected.value?.matchId) return;
-  const matchId = selected.value.matchId;
-  current.value.forEach((card) => {
-    if (card.matchId === matchId) {
-      delete card.matchId;
-    }
-  });
-  pendingMatchCardId.value = null;
-}
-
-function createEditorPage (mode: PageMode = "standard", pageColumns = 3, pageRows = 3): SetPage {
-  return normalizePage({
-    mode,
-    columns: pageColumns,
-    rows: mode === "match" ? 2 : pageRows,
-    cards: [createPlaceholderCard()]
-  });
-}
-
-function findLastPlaceholder (cards: Card[]) {
-  for (let index = cards.length - 1; index >= 0; index--) {
-    if (cards[index].cardType === CardType.NewCard) {
-      return index;
-    }
-  }
-  return -1;
+  const result = clearEditorMatchLink(current.value, selectedCardId.value);
+  current.value = result.cards;
+  pendingMatchCardId.value = result.pendingMatchCardId;
 }
 </script>
 
