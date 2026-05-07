@@ -3,6 +3,7 @@ name: Electron build
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
 jobs:
   build:
     runs-on: windows-latest
@@ -21,7 +22,15 @@ jobs:
       run: npm run lint
     - name: Unit tests
       run: npm run test:unit
-    - name: Build
+    - name: Build unpacked app for packaged resource smoke test
+      run: npm run electron:build -- --dir
+    - name: Packaged resource smoke test
+      run: npm run test:packaged-resources
+    - name: Build installer
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      run: npm run electron:build -- -p never
+    - name: Build and publish
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       run: npm run electron:build -- -p always
       env:
         GH_TOKEN: ${{secrets.GH_TOKEN}}

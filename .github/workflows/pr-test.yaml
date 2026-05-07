@@ -24,9 +24,9 @@ jobs:
     - name: Unit tests
       run: npm run test:unit
     - name: Build installer
-      run: npm run electron:build -- -p always
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: npm run electron:build -- -p never
+    - name: Packaged resource smoke test
+      run: npm run test:packaged-resources
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:

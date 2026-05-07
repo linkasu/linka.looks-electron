@@ -19,6 +19,7 @@
     "lint": "eslint --ext .js,.vue,.ts src",
     "test:unit": "vitest run",
     "test:e2e": "npm run build && playwright test",
+    "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
     "electron:build": "npm run build && electron-builder",
     "electron:serve": "vite",
     "postinstall": "node postinstall && electron-builder install-app-deps",
