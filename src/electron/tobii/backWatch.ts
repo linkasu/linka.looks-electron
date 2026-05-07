@@ -1,9 +1,9 @@
 import { platform } from "os";
 import { TobiiProcess } from "eyelog/dist/TobiiProcess";
-import { join } from "path";
 import { BrowserWindow, dialog, ipcMain, screen } from "electron";
 import type { PageElementsState } from "@/common/interfaces/PageElementsState";
 import { Bound } from "eyelog/dist/bound";
+import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
 
 export class BackWatch {
   tobii?: TobiiProcess = undefined;
@@ -15,7 +15,7 @@ export class BackWatch {
     this.window = win;
     if (platform() === "win32") {
       try {
-        this.tobii = new TobiiProcess(join(__dirname, ".\\..\\extraResources\\bin\\EyeLog.exe"));
+        this.tobii = new TobiiProcess(resolveExtraResource("bin", "EyeLog.exe"));
         this.tobii?.on("enter", (index: number) => this.onEnter(index));
         this.tobii?.on("exit", () => this.onExit());
         this.tobii?.on("click", (index, count) => this.onClick(index, count));

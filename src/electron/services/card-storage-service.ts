@@ -23,8 +23,9 @@ import { createImageFromText } from "@/electron/utils/ImageFromText";
 import { HOME_DIR } from "../../common/constants";
 import { renameSync } from "original-fs";
 import axios from "axios";
+import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
 
-const DEFAULT_SETS = join(__dirname, "./../extraResources/defaultSets");
+const DEFAULT_SETS = resolveExtraResource("defaultSets");
 const DEFAULT_SEED_ITEMS = [
   "Клавиатура.linka",
   "Крупная клавиатура",

@@ -3,8 +3,9 @@ import { execFile } from "child_process";
 import { tmpdir } from "os";
 import { uuid } from "uuidv4";
 import { readFile, unlink } from "fs/promises";
+import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
 
-const BIN = join(__dirname, ".\\..\\extraResources\\ImageGenerator.exe");
+const BIN = resolveExtraResource("ImageGenerator.exe");
 
 export async function createImageFromText (text: string):Promise<Buffer> {
   return new Promise((resolve, reject) => {
