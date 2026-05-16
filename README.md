@@ -7,22 +7,22 @@
 
 ## Project setup
 ```
-yarn install
+npm ci
 ```
 
 ### Development server start
 ```
-yarn electron:serve
+npm run electron:serve
 ```
 
 ### Compiles and minifies for production
 ```
-yarn electron:build
+npm run electron:build
 ```
 
 ### Run your unit tests
 ```
-yarn test:unit
+npm run test:unit
 ```
 
 ### Customize configuration

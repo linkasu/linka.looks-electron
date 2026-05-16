@@ -10,13 +10,13 @@
 - `docs/` and `agents/` store project documentation and agent guidance.
 
 ## Build, Test, and Development Commands
-Use Yarn (repo is locked to Yarn 1.x) and Node 16.x.
-- `yarn install` — install dependencies (runs `postinstall` to set up Electron native deps).
-- `yarn electron:serve` — run the Electron app in dev mode with hot reload.
-- `yarn electron:build` — build the production Electron installer.
-- `yarn serve` — run the Vue renderer only (useful for UI-only debugging).
-- `yarn test:unit` — run unit tests.
-- `yarn lint` / `yarn lint-fix` — check or auto-fix ESLint issues in `src/`.
+Use npm and Node 22.x for the current baseline.
+- `npm ci` — install dependencies (runs `postinstall` to set up Electron native deps).
+- `npm run electron:serve` — run the Electron app in dev mode with hot reload.
+- `npm run electron:build` — build the production Electron installer.
+- `npm run serve` — run the Vue renderer only (useful for UI-only debugging).
+- `npm run test:unit` — run unit tests.
+- `npm run lint` / `npm run lint-fix` — check or auto-fix ESLint issues in `src/`.
 
 ## Coding Style & Naming Conventions
 - Primary languages: TypeScript + Vue single-file components.
@@ -27,7 +27,7 @@ Use Yarn (repo is locked to Yarn 1.x) and Node 16.x.
 ## Testing Guidelines
 - Frameworks: Mocha + Chai via `@vue/cli-plugin-unit-mocha`.
 - Place unit tests under `src/frontend/tests/unit/` and name them `*.spec.ts`.
-- Run tests locally with `yarn test:unit` before opening a PR.
+- Run tests locally with `npm run test:unit` before opening a PR.
 
 ## Commit & Pull Request Guidelines
 - Commit messages follow a conventional style seen in history: `type: short summary` (e.g., `docs: add CLAUDE.md`).

@@ -9,12 +9,12 @@ LINKa. Looks ("LINKa. смотри") — an Electron desktop app for eye-gaze as
 ## Commands
 
 ```bash
-yarn install            # Install dependencies
-yarn electron:serve     # Dev server with hot reload
-yarn electron:build     # Production build + installer
-yarn test:unit          # Run unit tests (Mocha + Chai)
-yarn lint               # ESLint check
-yarn lint-fix           # ESLint auto-fix
+npm ci                     # Install dependencies
+npm run electron:serve     # Dev server with hot reload
+npm run electron:build     # Production build + installer
+npm run test:unit          # Run unit tests (Vitest)
+npm run lint               # ESLint check
+npm run lint-fix           # ESLint auto-fix
 ```
 
 ## Architecture
@@ -58,13 +58,13 @@ Remote API at `tts.linka.su` via `src/frontend/utils/TTSServer.ts`. Audio playba
 ## Code Style
 
 - Double quotes, semicolons required, no trailing commas
-- ESLint with `@electron-internal` + `@typescript-eslint/recommended` + `plugin:vue/base`
+- ESLint with `@typescript-eslint/recommended` + `plugin:vue/base`
 - `camelcase` rule is off
-- Node 16.17.0 (see `.nvmrc`)
+- Node 22.x (see `.nvmrc`)
 
 ## Build & Deployment
 
-- Vue CLI 5 + `vue-cli-plugin-electron-builder` for build pipeline
+- Vite + `vite-plugin-electron` for build pipeline
 - `electron-builder` produces NSIS installer for Windows
 - Auto-updates via `electron-updater` from GitHub releases
 - `postinstall` script copies eyelog binaries to `extraResources/bin/`
