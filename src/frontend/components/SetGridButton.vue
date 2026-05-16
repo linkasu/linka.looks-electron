@@ -50,7 +50,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, watch } from "vue";
+import { ref, computed, onUnmounted, watch } from "vue";
 import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
@@ -77,11 +77,15 @@ const props = withDefaults(defineProps<ISetGridButtonProps>(), {
 const CardTypes = CardType;
 const store = useStore();
 const image: Ref<string | null> = ref("");
+let objectUrl: string | null = null;
+let loadId = 0;
 
 const canvasRef: Ref<Element | null> = ref(null);
 const clearfixRef: Ref<Element | null> = ref(null);
 
 watch(() => props.card, onCardPropUpdated, { deep: true, immediate: true });
+
+onUnmounted(clearImage);
 
 const animation = computed(() => {
   return store.state.button.animation;
@@ -94,17 +98,28 @@ const fontBold = computed(() => {
   return store.state.layoutSettings.fontBold;
 });
 
-function onCardPropUpdated (card: Card) {
-  if (!card || !card.imagePath || card.cardType !== CardType.AudioCard) return;
+async function onCardPropUpdated (card: Card) {
+  const currentLoadId = ++loadId;
+  if (!card || !card.imagePath || card.cardType !== CardType.AudioCard) {
+    clearImage();
+    return;
+  }
 
-  storageService.getImage(props.file, card.imagePath).then((buffer: ArrayBuffer) => {
-    if (!buffer) return;
-    const url = URL.createObjectURL(new Blob([buffer], { type: "image/png" } /* (1) */));
-    image.value = `url("${url}")`;
-    if (cardHasGIF(card)) {
-      createStaticImage(url);
-    }
-  });
+  const buffer = await storageService.getImage(props.file, card.imagePath);
+  if (!buffer || currentLoadId !== loadId) return;
+
+  clearImage();
+  objectUrl = URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
+  image.value = `url("${objectUrl}")`;
+  if (cardHasGIF(card)) {
+    createStaticImage(objectUrl);
+  }
+}
+
+function clearImage () {
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl = null;
+  image.value = "";
 }
 
 function cardHasGIF (card: Card): boolean {

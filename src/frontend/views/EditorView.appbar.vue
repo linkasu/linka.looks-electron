@@ -35,11 +35,19 @@
       @save="save"
       @saveAs="(title: string) => saveAs(title)"
     />
+    <v-snackbar v-model="saveError" :timeout="5000">
+      Не удалось сохранить набор
+      <template #actions>
+        <v-btn color="blue" variant="text" @click="saveError = false">
+          Закрыть
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-app-bar>
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 
@@ -51,6 +59,7 @@ import { CardType } from "@/common/interfaces/ConfigFile";
 
 const router = useRouter();
 const store = useStore();
+const saveError = ref(false);
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 const page = computed(() => store.state.editor.page ?? 0);
@@ -74,13 +83,23 @@ const title = computed(() => {
 });
 
 async function save () {
-  await store.dispatch("editor_save");
-  router.back();
+  try {
+    await store.dispatch("editor_save");
+    router.back();
+  } catch (error) {
+    console.error(error);
+    saveError.value = true;
+  }
 }
 
 async function saveAs (title: string) {
-  const newLink = await store.dispatch("editor_save_as", title);
-  router.push("/set/" + newLink);
+  try {
+    const newLink = await store.dispatch("editor_save_as", title);
+    router.push("/set/" + newLink);
+  } catch (error) {
+    console.error(error);
+    saveError.value = true;
+  }
 }
 
 function copyPage () {

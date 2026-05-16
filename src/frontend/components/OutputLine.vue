@@ -30,7 +30,7 @@
         mdi-account-voice
       </v-icon>
       <div
-        ref="text"
+        ref="outputTextRef"
         class="output-text"
       >
         <div
@@ -71,7 +71,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed } from "vue";
+import { nextTick, ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
@@ -107,10 +107,16 @@ const withoutSpace = computed(() => {
 });
 
 const clone = computed(() => {
-  scrollEnd();
-
   return [...props.cards];
 });
+
+watch(
+  () => props.cards.length,
+  async () => {
+    await nextTick();
+    scrollEnd();
+  }
+);
 
 const text = computed(() => {
   return clone.value
@@ -146,10 +152,13 @@ function backspace () {
 async function say () {
   if (isPlaying.value) return;
   isPlaying.value = true;
-  if (props.config?.withoutSpace) {
-    if (text.value) await TTS.instance.playText(text.value);
-  } else await TTS.instance.playCards(props.file, props.cards);
-  isPlaying.value = false;
+  try {
+    if (props.config?.withoutSpace) {
+      if (text.value) await TTS.instance.playText(text.value);
+    } else await TTS.instance.playCards(props.file, props.cards);
+  } finally {
+    isPlaying.value = false;
+  }
 }
 </script>
 

@@ -256,6 +256,7 @@ import {
   copySelectedCard,
   createEditorPage,
   isValidEditorCard,
+  isValidMatchCard,
   resetSelectedCard,
   toggleMatchLink as toggleEditorMatchLink
 } from "@/frontend/utils/editorLogic";
@@ -422,6 +423,9 @@ const emptyPage = computed(() => {
 });
 
 function isValid (card: Card) {
+  if (pageMode.value === "match") {
+    return isValidEditorCard(card) && isValidMatchCard(card, current.value, columns.value);
+  }
   return isValidEditorCard(card);
 }
 
@@ -470,12 +474,17 @@ function resetSelected () {
 async function selectImage () {
   if (!filename.value) return;
   store.dispatch("disable_ui");
-  const id = await storageService.selectImage(filename.value);
+  try {
+    const id = await storageService.selectImage(filename.value);
 
-  if (selected.value && selected.value.cardType === CardType.AudioCard) {
-    selected.value.imagePath = id;
+    if (id && selected.value && selected.value.cardType === CardType.AudioCard) {
+      selected.value.imagePath = id;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    store.dispatch("enable_ui");
   }
-  store.dispatch("enable_ui");
 }
 
 function onImageSelected (path: string) {
@@ -493,12 +502,17 @@ function onAudioFromTTS ({ audioSrcFile, audioText, audioVoice }: { audioSrcFile
 async function selectAudio () {
   if (!filename.value) return;
   store.dispatch("disable_ui");
-  const id = await storageService.selectAudio(filename.value);
+  try {
+    const id = await storageService.selectAudio(filename.value);
 
-  if (selected.value && selected.value.cardType === CardType.AudioCard && id) {
-    selected.value.audioPath = id;
+    if (selected.value && selected.value.cardType === CardType.AudioCard && id) {
+      selected.value.audioPath = id;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    store.dispatch("enable_ui");
   }
-  store.dispatch("enable_ui");
 }
 
 function playAudio () {

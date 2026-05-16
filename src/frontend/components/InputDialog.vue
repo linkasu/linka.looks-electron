@@ -54,7 +54,7 @@
 
 <script lang="ts" setup>
 import { ref, watch } from "vue";
-import isValidPath from "is-valid-path";
+import { validateStorageName } from "@/common/utils/storageName";
 
 interface IInputDialogProps {
   title: string
@@ -108,9 +108,6 @@ async function submit () {
 
 function isValid (text: string) {
   if (!props.checkFilePath) return true;
-  if (text.includes("/") || !isValidPath(text)) {
-    return "Название содержит спецсимволы";
-  }
-  return true;
+  return validateStorageName(text);
 }
 </script>

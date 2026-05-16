@@ -10,6 +10,7 @@ import SettingsViewAppBar from "@/frontend/views/SettingsView.appbar.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 import CalibrationView from "../views/CalibrationView.vue";
 import store from "../store";
+import { HOME_DIR } from "@/common/constants";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -58,13 +59,22 @@ const router = createRouter({
   routes
 });
 storageService.getArgv()
-  .then((argv: string[]) => {
-    if (!argv[1] || !argv[1].endsWith("linka")) return;
-    router.push("/set/" + argv[1]);
+  .then(async (argv: string[]) => {
+    const file = argv.find((arg) => arg.toLowerCase().endsWith(".linka"));
+    if (!file) return;
+    const imported = await storageService.importExternalSet(file);
+    router.push("/set/" + toRoutePath(imported));
+  })
+  .catch((error) => {
+    console.error(error);
   });
 
+function toRoutePath (absolutePath: string) {
+  return absolutePath.replace(HOME_DIR, "").replaceAll("/", "§").replaceAll("\\", "§");
+}
+
 setTimeout(() => {
-  if (!store.state.firstCalibrate) {
+  if (!store.state.firstCalibrate && router.currentRoute.value.path !== "/calibration") {
     router.push("/calibration");
   }
 }, 500);

@@ -32,12 +32,16 @@ export class TTS {
 
   private async getVoices () {
     if (TTS.voices.length > 0) return;
-    const { data } = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
-    TTS.voices.push(...data.map(v => ({
-      value: v.id,
-      text: v.name + " (" + v.lang_code + ")",
-      langCode: v.lang_code
-    })));
+    try {
+      const { data } = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
+      TTS.voices.push(...data.map(v => ({
+        value: v.id,
+        text: v.name + " (" + v.lang_code + ")",
+        langCode: v.lang_code
+      })));
+    } catch (error) {
+      console.warn("Failed to load TTS voices", error);
+    }
   }
 
   public async playCards (file: string, cards: Card[], force = false) {
@@ -47,25 +51,37 @@ export class TTS {
       if (!force) return;
     }
     this.isPlaying = true;
-    for (const card of cards) {
-      if (!this.isPlaying) break;
-      if (card.cardType === CardType.AudioCard && card.audioPath) {
-        const buffer = await storageService.getAudio(file, card.audioPath);
-        if (!buffer) continue;
-        const url = URL.createObjectURL(TTS.audioBlob(buffer));
-        await this.playUrl(url);
+    try {
+      for (const card of cards) {
+        if (!this.isPlaying) break;
+        if (card.cardType === CardType.AudioCard && card.audioPath) {
+          const buffer = await storageService.getAudio(file, card.audioPath);
+          if (!buffer) continue;
+          const url = URL.createObjectURL(TTS.audioBlob(buffer));
+          try {
+            await this.playUrl(url);
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        }
       }
+    } finally {
+      this.isPlaying = false;
     }
-    this.isPlaying = false;
   }
 
   public async playText (text: string, voice?: string): Promise<void> {
-    if (this.isPlaying) { this.audio.pause(); return; }
+    if (this.isPlaying) { this.stop(); return; }
     this.isPlaying = true;
-    const buffer = await tts(text, voice ?? this.resolveVoice(text));
-    const url = URL.createObjectURL(TTS.audioBlob(buffer));
-    await this.playUrl(url);
-    this.isPlaying = false;
+    let url: string | null = null;
+    try {
+      const buffer = await tts(text, voice ?? this.resolveVoice(text));
+      url = URL.createObjectURL(TTS.audioBlob(buffer));
+      await this.playUrl(url);
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+      this.isPlaying = false;
+    }
   }
 
   public stop (): void {
@@ -78,12 +94,17 @@ export class TTS {
     this.stop();
     const myId = ++this._playId;
     this.isPlaying = true;
-    const buffer = await tts(text, voice ?? this.resolveVoice(text));
-    if (myId !== this._playId) return;
-    const url = URL.createObjectURL(TTS.audioBlob(buffer));
-    await this.playUrl(url);
-    if (myId === this._playId) {
-      this.isPlaying = false;
+    let url: string | null = null;
+    try {
+      const buffer = await tts(text, voice ?? this.resolveVoice(text));
+      if (myId !== this._playId) return;
+      url = URL.createObjectURL(TTS.audioBlob(buffer));
+      await this.playUrl(url);
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+      if (myId === this._playId) {
+        this.isPlaying = false;
+      }
     }
   }
 

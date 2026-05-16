@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { ipcRenderer } from "electron";
 import { ProgressInfo } from "electron-updater";
 
@@ -59,32 +59,49 @@ const available = ref(false);
 const downloaded = ref(false);
 const errorMessage = ref("");
 
-onMounted((): void => {
-  ipcRenderer.send("app_version");
-  ipcRenderer.on("app_version", (event, data) => {
-    version.value = data.version;
-  });
-  ipcRenderer.on("update_info", (event, data: ProgressInfo) => {
-    percent.value = data.percent;
-  });
+onMounted(async (): Promise<void> => {
+  const appVersion = await ipcRenderer.invoke("app_version");
+  version.value = appVersion.version;
 
-  ipcRenderer.on("update_available", () => {
-    ipcRenderer.removeAllListeners("update_available");
-    available.value = true;
-  });
+  const state = await ipcRenderer.invoke("updater:getState");
+  available.value = state.available;
+  downloaded.value = state.downloaded;
+  errorMessage.value = state.error;
+  percent.value = state.percent;
 
-  ipcRenderer.on("update_downloaded", () => {
-    ipcRenderer.removeAllListeners("update_downloaded");
-    available.value = false;
-    downloaded.value = true;
-  });
-
-  ipcRenderer.on("update_error", (event, message: string) => {
-    errorMessage.value = message;
-    available.value = false;
-    downloaded.value = false;
-  });
+  ipcRenderer.on("update_info", onUpdateInfo);
+  ipcRenderer.on("update_available", onUpdateAvailable);
+  ipcRenderer.on("update_downloaded", onUpdateDownloaded);
+  ipcRenderer.on("update_error", onUpdateError);
 });
+
+onUnmounted((): void => {
+  ipcRenderer.off("update_info", onUpdateInfo);
+  ipcRenderer.off("update_available", onUpdateAvailable);
+  ipcRenderer.off("update_downloaded", onUpdateDownloaded);
+  ipcRenderer.off("update_error", onUpdateError);
+});
+
+function onUpdateInfo (event: unknown, data: ProgressInfo) {
+  percent.value = data.percent;
+}
+
+function onUpdateAvailable () {
+  available.value = true;
+  errorMessage.value = "";
+}
+
+function onUpdateDownloaded () {
+  available.value = false;
+  downloaded.value = true;
+  errorMessage.value = "";
+}
+
+function onUpdateError (event: unknown, message: string) {
+  errorMessage.value = message;
+  available.value = false;
+  downloaded.value = false;
+}
 
 function update () {
   ipcRenderer.send("restart_app");

@@ -56,6 +56,7 @@
         <v-text-field
           v-model="newTitle"
           suffix=".linka"
+          :rules="[isValid]"
         />
       </v-card-text>
       <v-card-actions>
@@ -78,6 +79,7 @@
 
 <script lang="ts" setup>
 import { ref } from "vue";
+import { validateStorageName } from "@/common/utils/storageName";
 
 const props = defineProps<{ title: string }>();
 
@@ -91,7 +93,12 @@ const saveAsNew = ref(false);
 const newTitle = ref(props.title.slice(0, -6));
 
 function on_save_click () {
+  if (isValid(newTitle.value) !== true) return;
   if (newTitle.value) { emit("saveAs", newTitle.value + ".linka"); }
   dialog.value = false;
+}
+
+function isValid (text: string) {
+  return validateStorageName(text ? text + ".linka" : text);
 }
 </script>

@@ -33,6 +33,20 @@ export function isValidEditorCard (card: Card): boolean {
   return true;
 }
 
+export function isValidMatchCard (card: Card, cards: Card[], columns: number): boolean {
+  if (card.cardType !== CardType.AudioCard) return true;
+  if (!card.matchId) return false;
+  const index = cards.findIndex((item) => item.id === card.id);
+  const row = index < columns ? "top" : "bottom";
+  const matches = cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
+  if (matches.length !== 2) return false;
+  return matches.some((item) => {
+    const matchIndex = cards.findIndex((cardItem) => cardItem.id === item.id);
+    const matchRow = matchIndex < columns ? "top" : "bottom";
+    return item.id !== card.id && matchRow !== row;
+  });
+}
+
 export function createEditorPage (mode: PageMode = "standard", pageColumns = 3, pageRows = 3): SetPage {
   return normalizePage({
     mode,

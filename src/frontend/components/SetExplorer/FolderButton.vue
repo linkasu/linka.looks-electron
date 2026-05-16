@@ -86,14 +86,19 @@ const emit = defineEmits<{(e: "move", payload: string): void }>();
 const dialog = ref(false);
 const dirs: Ref<Directory> = ref([]);
 const current: Ref<string> = ref(props.file.split("§").slice(0, -1).join("/"));
+const previousButtonEnabled = ref<boolean | null>(null);
 
 watch(dialog, onDialog);
 
 function onDialog (v: boolean) {
-  store.commit("button_enabled", !v);
   if (v) {
+    previousButtonEnabled.value = store.state.button.enabled;
+    store.commit("button_enabled", false);
     current.value = props.file.split("§").slice(0, -1).join("/");
     loadSet();
+  } else if (previousButtonEnabled.value !== null) {
+    store.commit("button_enabled", previousButtonEnabled.value);
+    previousButtonEnabled.value = null;
   }
 }
 

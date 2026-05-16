@@ -1,7 +1,7 @@
 <template>
   <div class="grid">
     <div class="left-grid">
-      <eye-button v-if="isExitButton" color="accent" @click="$router.back()">
+      <eye-button v-if="showExitButton" color="accent" @click="$router.back()">
         <v-icon>mdi-exit-run</v-icon>
       </eye-button>
       <v-btn
@@ -57,6 +57,7 @@ interface ISetGridProps {
   config: ConfigFile;
   file: string;
   page: number;
+  showExitButton?: boolean;
   matchedCardIds?: string[];
   selectedCardId?: string | null;
 }
@@ -64,6 +65,7 @@ interface ISetGridProps {
 const store = useStore();
 
 const props = withDefaults(defineProps<ISetGridProps>(), {
+  showExitButton: false,
   matchedCardIds: () => [],
   selectedCardId: null
 });
@@ -91,10 +93,6 @@ const currentPage = computed<SetPage>(() => {
 const current = computed(() => {
   const page = currentPage.value;
   return page.cards.slice(0, getPageSize(page));
-});
-
-const isExitButton = computed(() => {
-  return store.state.ui.exitButton && !store.state.ui.outputLine;
 });
 
 const showPagination = computed(() => {

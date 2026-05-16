@@ -25,11 +25,15 @@ const emit = defineEmits<{
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
-function create (text: string) {
+async function create (text: string) {
   store.dispatch("disable_ui");
-  storageService.createImageFromText(props.file, text).then((value: string) => {
-    emit("image", value);
+  try {
+    const value = await storageService.createImageFromText(props.file, text);
+    if (value) emit("image", value);
+  } catch (error) {
+    console.error(error);
+  } finally {
     store.dispatch("enable_ui");
-  });
+  }
 }
 </script>

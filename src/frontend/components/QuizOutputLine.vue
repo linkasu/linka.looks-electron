@@ -12,7 +12,7 @@
       <h1>
         <v-icon
           color="error"
-          :icon="`mdi-numeric-${errors}-box`"
+          :icon="errorIcon"
         />
       </h1>
       <eye-button @click="sayQuestion">
@@ -123,6 +123,8 @@ const currentPage = computed(() => {
 const question = computed(() => {
   return currentPage.value.question ?? "";
 });
+
+const errorIcon = computed(() => props.errors > 9 ? "mdi-numeric-9-plus-box" : `mdi-numeric-${props.errors}-box`);
 
 const totalPages = computed(() => {
   return Math.max(1, props.config.pages?.length ?? 0);

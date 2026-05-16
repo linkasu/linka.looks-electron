@@ -55,6 +55,7 @@ const props = withDefaults(defineProps<{ config?: ConfigFile; edit?: boolean }>(
 });
 
 const dialog = ref(false);
+const previousButtonEnabled = ref<boolean | null>(null);
 
 watch(dialog, onDialog);
 
@@ -68,6 +69,12 @@ const description = computed({
 });
 
 function onDialog () {
-  store.commit("button_enabled", !dialog.value);
+  if (dialog.value) {
+    previousButtonEnabled.value = store.state.button.enabled;
+    store.commit("button_enabled", false);
+  } else if (previousButtonEnabled.value !== null) {
+    store.commit("button_enabled", previousButtonEnabled.value);
+    previousButtonEnabled.value = null;
+  }
 }
 </script>

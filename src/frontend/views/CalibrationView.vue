@@ -14,7 +14,7 @@
                 </v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn to="/">
+                    <v-btn @click="finishCalibration">
                         Готово.
                     </v-btn>
                 </v-card-actions>
@@ -32,10 +32,11 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import EyeButton from "../components/EyeButton.vue";
 import store from "../store";
 
-store.commit("first_calibrate", true);
+const router = useRouter();
 
 const multiplyScale = computed({
   get () {
@@ -45,6 +46,11 @@ const multiplyScale = computed({
     store.commit("button_multiply_scale", v);
   }
 });
+
+function finishCalibration () {
+  store.commit("first_calibrate", true);
+  router.push("/");
+}
 
 </script>
 

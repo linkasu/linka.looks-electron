@@ -65,6 +65,7 @@ export async function launchTestElectron (context: E2EContext): Promise<Electron
       IS_TEST: "1",
       LINKA_HOME_DIR: context.homeDir,
       NODE_ENV: "development",
+      NO_PROXY: [process.env.NO_PROXY, "localhost", "127.0.0.1", "::1"].filter(Boolean).join(","),
       TEST_USER_DATA_DIR: context.userDataDir,
       VITE_DEV_SERVER_URL: devServerUrl
     }

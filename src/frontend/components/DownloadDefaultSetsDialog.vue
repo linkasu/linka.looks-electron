@@ -24,6 +24,11 @@
       <v-card-text v-if="downloading">
         <v-progress-linear color="green" :model-value="progress" />
       </v-card-text>
+      <v-card-text v-if="error">
+        <v-alert color="error">
+          {{ error }}
+        </v-alert>
+      </v-card-text>
 
       <v-card-actions v-if="!downloading">
         <v-spacer />
@@ -39,10 +44,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
-import { shell } from "electron";
+import { ipcRenderer, shell } from "electron";
 import { LINKaStore } from "../store/LINKaStore";
 
 const store = useStore<LINKaStore>();
@@ -50,32 +55,55 @@ const store = useStore<LINKaStore>();
 const dialog = ref(false);
 const downloading = ref(false);
 const progress = ref(0);
+const error = ref("");
+const previousButtonEnabled = ref<boolean | null>(null);
 
-// onMounted((): void => {
-// const newLocal = +store.state.defaultSetsDownloaded;
+onMounted((): void => {
+  // const newLocal = +store.state.defaultSetsDownloaded;
 
-// dialog.value = (newLocal) < 2;
+  // dialog.value = (newLocal) < 2;
 
-// // dialog = true
-// store.commit("button_enabled", !dialog.value);
-// ipcRenderer.on("download_progress", (_, prog) => {
-//   progress.value = prog;
-// });
-// });
+  // // dialog = true
+  // store.commit("button_enabled", !dialog.value);
+  ipcRenderer.on("download_progress", onDownloadProgress);
+});
+
+onUnmounted((): void => {
+  ipcRenderer.off("download_progress", onDownloadProgress);
+});
+
+function onDownloadProgress (_: unknown, prog: string | number) {
+  progress.value = Number(prog);
+}
 
 async function download () {
+  error.value = "";
+  progress.value = 0;
   downloading.value = true;
-  await storageService.downloadAndUnpack("https://linka.su/dist/linka.looks/sasha.sets.zip");
-  dialog.value = false;
-  window.location.reload();
+  try {
+    await storageService.downloadAndUnpack("https://linka.su/dist/linka.looks/sasha.sets.zip");
+    dialog.value = false;
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    error.value = "Не удалось скачать наборы. Проверьте интернет и попробуйте еще раз.";
+  } finally {
+    downloading.value = false;
+  }
 }
 async function consultation () {
   shell.openExternal("https://forms.gle/raD3VV6aCGEGzoGz7");
 }
 
 function onDialog (v: boolean) {
-  if (!v) {
-    store.commit("button_enabled", !v);
+  if (v) {
+    previousButtonEnabled.value = store.state.button.enabled;
+    store.commit("button_enabled", false);
+  } else {
+    if (previousButtonEnabled.value !== null) {
+      store.commit("button_enabled", previousButtonEnabled.value);
+      previousButtonEnabled.value = null;
+    }
     store.commit("defaultSetsDownloaded", 2);
   }
 }

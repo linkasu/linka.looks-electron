@@ -1,7 +1,7 @@
 <template>
   <button ref="elRef" class="eyebtn" :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
     :data-eye-disabled="props.eyeDisabled ? '1' : null"
-    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }" :disabled="!buttonEnabled" @click="click()">
+    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }" :disabled="nativeDisabled" @click="click()">
     <slot />
     <div v-if="isInside || (!buttonEnabled && !lock)" class="overlay" :class="{ disabled: !buttonEnabled && !lock }">
       <div v-if="circle" class="progress-bar" :style="{ '--seconds': seconds, '--size': size }">
@@ -63,6 +63,11 @@ const buttonEnabled = computed(() => {
     return !props.disabled;
   }
   return store.state.button.enabled && !props.disabled;
+});
+
+const nativeDisabled = computed(() => {
+  if (props.lock) return props.disabled;
+  return !buttonEnabled.value;
 });
 
 const size = computed(() => {

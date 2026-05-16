@@ -31,7 +31,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn @click="getCode()">
+        <v-btn :disabled="loading" :loading="loading" @click="getCode()">
           Получить код
         </v-btn>
       </v-card-actions>
@@ -60,6 +60,8 @@
         <v-spacer />
         <v-btn
           v-if="code.length === 6"
+          :disabled="loading"
+          :loading="loading"
           @click="checkCode()"
         >
           Проверить код
@@ -81,28 +83,44 @@ const step = ref(0);
 const code = ref("");
 const email: Ref<string> = ref("");
 const error: Ref<string> = ref("");
+const loading = ref(false);
 
 async function getCode () {
+  if (loading.value) return;
+  if (!isValidEmail(email.value)) {
+    error.value = "Введите корректный email";
+    return;
+  }
+  loading.value = true;
   try {
     await Metric.sendActivationEmail(email.value);
     step.value = 1;
     error.value = "";
   } catch (err) {
-    email.value = "";
     console.error(err);
-    error.value = "Ошибка запроса";
+    error.value = "Не удалось отправить код. Проверьте интернет и попробуйте еще раз.";
+  } finally {
+    loading.value = false;
   }
 }
 
 async function checkCode () {
   if (code.value.length !== 6) return;
+  if (loading.value) return;
+  loading.value = true;
   try {
     const pcHash = await Metric.activateAccount(email.value, code.value);
     if (pcHash) {
       store.commit("pcHash", pcHash);
     }
   } catch {
-    error.value = "Ошибка запроса";
+    error.value = "Не удалось проверить код. Проверьте код и интернет.";
+  } finally {
+    loading.value = false;
   }
+}
+
+function isValidEmail (value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 </script>

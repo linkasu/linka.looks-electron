@@ -26,6 +26,7 @@ export abstract class ICloudStorage {
       "downloadAndUnpack",
       "showItemInFolder",
       "getArgv",
+      "importExternalSet",
       "downloadImageFromBank"
     ];
   }
@@ -56,6 +57,8 @@ export abstract class ICloudStorage {
   abstract showItemInFolder(file: string): Promise<void>;
 
   abstract getArgv(): Promise<string[]>;
+
+  abstract importExternalSet(path: string): Promise<string>;
 
   abstract downloadImageFromBank(file: string, id: string): Promise<string>;
 }

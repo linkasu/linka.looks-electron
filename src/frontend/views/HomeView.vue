@@ -156,7 +156,7 @@ import type { Ref } from "vue";
 import { ref, computed, ComputedRef, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
-import isValidPath from "is-valid-path";
+import { validateStorageName } from "@/common/utils/storageName";
 
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
@@ -190,7 +190,10 @@ onMounted(() => {
 });
 
 const sorted: ComputedRef<Directory> = computed(() => {
-  return files.value.map((f) => f).sort((f: DirectoryFile) => (f.directory ? -1 : 1));
+  return [...files.value].sort((a: DirectoryFile, b: DirectoryFile) => {
+    if (a.directory !== b.directory) return a.directory ? -1 : 1;
+    return toDisplayName(a).localeCompare(toDisplayName(b), "ru", { numeric: true, sensitivity: "base" });
+  });
 });
 
 const isHome = computed(() => {
@@ -303,19 +306,12 @@ function startRename () {
 }
 
 function isValidName (text: string) {
-  if (!text || !text.trim()) return "Введите название";
-  if (text.includes("/") || !isValidPath(text)) {
-    return "Название содержит спецсимволы";
-  }
-  return true;
+  return validateStorageName(text);
 }
 
 function isValidMergeName (text: string) {
   if (!text || !text.trim()) return true;
-  if (text.includes("/") || !isValidPath(text)) {
-    return "Название содержит спецсимволы";
-  }
-  return true;
+  return validateStorageName(text);
 }
 
 async function applyRename () {

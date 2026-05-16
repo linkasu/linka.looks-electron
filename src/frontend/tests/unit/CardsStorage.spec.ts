@@ -62,6 +62,36 @@ describe("CardsStorage", () => {
     expect(config.pages?.[0].cards[0].cardType).to.equal(CardType.NewCard);
   });
 
+  it("accepts route-style paths when creating folders and temp sets", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+
+    await storage.mkdir("§folder");
+    const tmpFile = await storage.defaultToTemp("folder§nested.linka");
+    tmpFiles.push(tmpFile);
+
+    expect(existsSync(join(homeDir, "folder"))).to.equal(true);
+    expect(existsSync(tmpFile)).to.equal(true);
+  });
+
+  it("rejects unsafe imported linka archives", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+    const root = mkdtempSync(join(tmpdir(), "linka-import-test-"));
+    roots.push(root);
+    const external = join(root, "external.linka");
+    writeLinka(external, baseConfig(), {
+      "../unsafe.txt": Buffer.from("unsafe")
+    });
+
+    try {
+      await storage.importExternalSet(external);
+      throw new Error("Expected importExternalSet to reject");
+    } catch (error) {
+      expect((error as Error).message).to.equal("Архив содержит небезопасный путь");
+    }
+  });
+
   it("saves normalized sets and converts editor placeholders to empty cards", async () => {
     const homeDir = createHomeDir();
     const storage = await createStorage(homeDir);

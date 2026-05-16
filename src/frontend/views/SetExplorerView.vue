@@ -45,6 +45,7 @@
       :config="config"
       :file="filename"
       :page="page"
+      :show-exit-button="showGridExitButton"
       :matched-card-ids="matchedCardIds"
       :selected-card-id="selectedCardId"
       @update:page="page = $event"
@@ -55,7 +56,7 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import OutputLine from "@/frontend/components/OutputLine.vue";
@@ -88,14 +89,17 @@ const matchMessage = ref("Соотнесите элементы из верхн�
 const selectedCardId = ref<string | null>(null);
 const matchedCardIds = ref<string[]>([]);
 
-onMounted(async () => {
-  filename.value = route.params.path.toString();
-  await store.dispatch("open_file", filename.value);
-  await store.dispatch("editor_current", filename.value);
-  Metric.registerEvent(store.state.pcHash, "openSet", { filename: filename.value });
-});
+const isSettingsOpened = computed(() => store.state.layoutSettings.isOpened);
 
-const config = computed(() => store.state.explorer.config);
+const config = computed(() => {
+  if (isSettingsOpened.value && store.state.explorer.config) {
+    return {
+      ...store.state.explorer.config,
+      pages: store.state.editor.pages
+    };
+  }
+  return store.state.explorer.config;
+});
 
 const totalPages = computed(() => Math.max(1, config.value?.pages?.length ?? 0));
 
@@ -122,20 +126,31 @@ const interfaceOutputLine = computed(() => store.state.ui.outputLine);
 const isQuiz = computed(() => currentPage.value.mode === "quiz");
 const isMatch = computed(() => currentPage.value.mode === "match");
 const quizAutoNext = computed(() => config.value?.quizAutoNext);
-const isSettingsOpened = computed(() => store.state.layoutSettings.isOpened);
 
 const showStandardOutput = computed(() => {
   return interfaceOutputLine.value && !isQuiz.value && !isMatch.value && !isSettingsOpened.value;
 });
 
+const showGridExitButton = computed(() => {
+  return store.state.ui.exitButton && !showStandardOutput.value;
+});
+
 const totalPairs = computed(() => {
-  return getTotalMatchPairs(currentPage.value.cards);
+  return getTotalMatchPairs(currentPage.value.cards, currentPage.value.columns);
 });
 
 const solvedPairs = computed(() => getSolvedMatchPairs(matchedCardIds.value));
 
 watch(page, resetPageState);
 watch(currentPage, resetPageState);
+watch(
+  () => route.params.path,
+  async (value) => {
+    if (!value) return;
+    await loadSet(value.toString());
+  },
+  { immediate: true }
+);
 
 function resetPageState () {
   cards.value = [];
@@ -145,6 +160,17 @@ function resetPageState () {
   matchedCardIds.value = [];
   matchErrors.value = 0;
   matchMessage.value = "Соотнесите элементы из верхней и нижней строки";
+}
+
+async function loadSet (nextFilename: string) {
+  store.commit("explorer_config", undefined);
+  cards.value = [];
+  quizErrors.value = 0;
+  resetPageState();
+  await store.dispatch("open_file", nextFilename);
+  await store.dispatch("editor_current", nextFilename);
+  filename.value = nextFilename;
+  Metric.registerEvent(store.state.pcHash, "openSet", { filename: nextFilename });
 }
 
 function advancePage () {

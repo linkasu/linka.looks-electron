@@ -87,13 +87,26 @@ export function handleQuizCard (card: Card, state: QuizState, quizAutoNext?: boo
   };
 }
 
-export function getTotalMatchPairs (cards: Card[]): number {
-  const ids = new Set(
-    cards
-      .filter((card) => !!card.matchId)
-      .map((card) => card.matchId)
-  );
-  return Math.max(1, ids.size);
+export function getTotalMatchPairs (cards: Card[], columns?: number): number {
+  const groups = new Map<string, Card[]>();
+  for (const card of cards) {
+    if (card.cardType !== CardType.AudioCard || !card.matchId) continue;
+    const group = groups.get(card.matchId) ?? [];
+    group.push(card);
+    groups.set(card.matchId, group);
+  }
+
+  return [...groups.values()].filter((group) => isValidMatchGroup(group, cards, columns)).length;
+}
+
+function isValidMatchGroup (group: Card[], cards: Card[], columns?: number): boolean {
+  if (group.length !== 2) return false;
+  if (columns === undefined) return true;
+  const rows = group.map((card) => {
+    const index = cards.findIndex((item) => item.id === card.id);
+    return index < columns ? "top" : "bottom";
+  });
+  return new Set(rows).size === 2;
 }
 
 export function getSolvedMatchPairs (matchedCardIds: string[]): number {
@@ -154,10 +167,11 @@ export function handleMatchCard (card: Card, index: number, state: MatchState): 
     };
   }
 
-  if (previous.matchId && card.matchId && previous.matchId === card.matchId) {
+  const matchGroup = state.cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
+  if (previous.matchId && card.matchId && previous.matchId === card.matchId && isValidMatchGroup(matchGroup, state.cards, state.columns)) {
     const matchedCardIds = [...new Set([...state.matchedCardIds, previous.id, card.id])];
     const solvedPairs = getSolvedMatchPairs(matchedCardIds);
-    const allPairsSolved = solvedPairs >= getTotalMatchPairs(state.cards);
+    const allPairsSolved = solvedPairs >= getTotalMatchPairs(state.cards, state.columns);
     return {
       advancePageAfterSolved: allPairsSolved && state.page < state.totalPages - 1,
       feedbackText: "Правильно",

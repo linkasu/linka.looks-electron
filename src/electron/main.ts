@@ -28,6 +28,15 @@ let autoUpdaterInitialized = false;
 let isDownloadingUpdate = false;
 let isQuittingForUpdate = false;
 let downloadedVersion: string | null = null;
+const updateState = {
+  available: false,
+  downloaded: false,
+  error: "",
+  percent: 0
+};
+
+ipcMain.handle("app_version", () => ({ version: app.getVersion() }));
+ipcMain.handle("updater:getState", () => updateState);
 
 function logUpdate (message: string, payload?: unknown): void {
   if (!updateLogPath) {
@@ -101,6 +110,9 @@ function setupAutoUpdater (): void {
   autoUpdater.on("error", (error) => {
     isDownloadingUpdate = false;
     const message = error instanceof Error ? error.message : String(error);
+    updateState.error = message;
+    updateState.available = false;
+    updateState.downloaded = false;
     logUpdate("update_error", { message });
     sendToRenderer("update_error", message);
   });
@@ -111,6 +123,9 @@ function setupAutoUpdater (): void {
     }
     isDownloadingUpdate = true;
     downloadedVersion = info.version;
+    updateState.available = true;
+    updateState.downloaded = false;
+    updateState.error = "";
     logUpdate("update_available", info);
     sendToRenderer("update_available", info);
     autoUpdater.downloadUpdate().catch((error) => {
@@ -123,10 +138,12 @@ function setupAutoUpdater (): void {
 
   autoUpdater.on("update-not-available", () => {
     isDownloadingUpdate = false;
+    updateState.available = false;
     logUpdate("update_not_available");
   });
 
   autoUpdater.on("download-progress", (info) => {
+    updateState.percent = info.percent;
     logUpdate("download_progress", info);
     sendToRenderer("update_info", info);
   });
@@ -134,6 +151,9 @@ function setupAutoUpdater (): void {
   autoUpdater.on("update-downloaded", (info) => {
     isDownloadingUpdate = false;
     downloadedVersion = info.version;
+    updateState.available = false;
+    updateState.downloaded = true;
+    updateState.error = "";
     logUpdate("update_downloaded", info);
     sendToRenderer("update_downloaded", info);
     if (isUpdateTestMode && !isQuittingForUpdate) {
@@ -146,7 +166,7 @@ function setupAutoUpdater (): void {
 
   ipcMain.removeAllListeners("restart_app");
   ipcMain.on("restart_app", () => {
-    if (isQuittingForUpdate) {
+    if (isQuittingForUpdate || !downloadedVersion || !updateState.downloaded) {
       return;
     }
     isQuittingForUpdate = true;
@@ -157,6 +177,9 @@ function setupAutoUpdater (): void {
 
   autoUpdater.checkForUpdates().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
+    updateState.error = message;
+    updateState.available = false;
+    updateState.downloaded = false;
     logUpdate("update_check_error", { message });
     sendToRenderer("update_error", message);
   });
@@ -182,11 +205,6 @@ async function createWindow () {
   mainWindow = win;
   const backWatch = new BackWatch(win);
   void backWatch;
-  ipcMain.on("app_version", (event) => {
-    event.sender.send("app_version", { version: app.getVersion() });
-  });
-
-  setupAutoUpdater();
   win.maximize();
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -194,6 +212,7 @@ async function createWindow () {
   } else {
     await win.loadFile(join(__dirname, "../dist/index.html"));
   }
+  setupAutoUpdater();
 }
 
 // Quit when all windows are closed.

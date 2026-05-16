@@ -123,6 +123,9 @@ async function closeSettings () {
 
 async function save () {
   await store.dispatch("editor_save");
+  if (store.state.editor.current) {
+    await store.dispatch("open_file", store.state.editor.current);
+  }
 }
 
 const currentPageIndex = computed(() => store.state.explorer.page ?? 0);

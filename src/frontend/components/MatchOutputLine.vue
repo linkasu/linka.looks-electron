@@ -4,7 +4,7 @@
       <v-icon>mdi-call-split</v-icon>
     </h1>
     <h1>
-      <v-icon color="error" :icon="`mdi-numeric-${errors}-box`" />
+      <v-icon color="error" :icon="errorIcon" />
     </h1>
     <div class="message">
       {{ message }}
@@ -16,12 +16,16 @@
 </template>
 
 <script lang="ts" setup>
-defineProps<{
+import { computed } from "vue";
+
+const props = defineProps<{
   errors: number;
   message: string;
   solvedPairs: number;
   totalPairs: number;
 }>();
+
+const errorIcon = computed(() => props.errors > 9 ? "mdi-numeric-9-plus-box" : `mdi-numeric-${props.errors}-box`);
 </script>
 
 <style scoped>

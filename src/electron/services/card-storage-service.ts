@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWriteStream, WriteStream } from "fs";
-import { join, basename, extname, normalize, dirname } from "path";
-import { readdir, copyFile, readFile, rename, mkdir, rm } from "fs/promises";
+import { join, basename, extname, normalize, dirname, resolve, sep, isAbsolute } from "path";
+import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 import AdmZip from "adm-zip";
@@ -24,6 +24,7 @@ import { HOME_DIR } from "../../common/constants";
 import { renameSync } from "original-fs";
 import axios from "axios";
 import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
+import { assertValidStorageName } from "@/common/utils/storageName";
 
 const DEFAULT_SETS = resolveExtraResource("defaultSets");
 const DEFAULT_SEED_ITEMS = [
@@ -31,10 +32,15 @@ const DEFAULT_SEED_ITEMS = [
   "Крупная клавиатура",
   "цифры знаки.linka"
 ];
+const DEFAULT_SETS_URL = "https://linka.su/dist/linka.looks/sasha.sets.zip";
+const MAX_UNPACKED_SIZE = 500 * 1024 * 1024;
+const MAX_UNPACKED_ENTRIES = 2000;
 
 let win: BrowserWindow | null = null;
 
 export class CardsStorage extends ICloudStorage {
+  private readonly tempPaths = new Set<string>();
+
   constructor () {
     super();
     this.init();
@@ -53,8 +59,14 @@ export class CardsStorage extends ICloudStorage {
   }
 
   init () {
-    if (!existsSync(HOME_DIR)) {
-      mkdirSync(HOME_DIR);
+    try {
+      mkdirSync(HOME_DIR, { recursive: true });
+    } catch (error) {
+      dialog.showErrorBox(
+        "Не удалось открыть папку LINKa",
+        `Проверьте доступ к папке: ${HOME_DIR}`
+      );
+      throw error;
     }
     this.copyDefaultSets(DEFAULT_SETS, HOME_DIR);
   }
@@ -109,8 +121,23 @@ export class CardsStorage extends ICloudStorage {
   }
 
   private checkPath (path: string): string {
-    if (path[1] === ":") return path;
-    return normalize(path.includes(HOME_DIR) || path.includes(tmpdir()) ? path : join(HOME_DIR, path).replace(/§/g, "/"));
+    const home = resolve(HOME_DIR);
+    if (!path || path === "/" || path === "§") return home;
+
+    const normalized = normalize(path.includes("§")
+      ? path.replace(/§/g, "/").replace(/^[/\\]+/, "")
+      : path);
+    const resolved = isAbsolute(normalized) ? resolve(normalized) : resolve(HOME_DIR, normalized);
+
+    if (this.tempPaths.has(resolved)) {
+      return resolved;
+    }
+
+    if (resolved === home || resolved.startsWith(home + sep)) {
+      return resolved;
+    }
+
+    throw new Error("Путь вне папки LINKa");
   }
 
   getImage (path: string, entry: string) {
@@ -140,7 +167,9 @@ export class CardsStorage extends ICloudStorage {
   }
 
   public mkdir (file: string): Promise<void> {
-    return mkdir(this.checkPath(file));
+    const target = this.checkPath(file);
+    assertValidStorageName(basename(target));
+    return mkdir(target);
   }
 
   public rmdir (file: string): Promise<void> {
@@ -153,13 +182,16 @@ export class CardsStorage extends ICloudStorage {
 
   public async copyToTemp (path: string): Promise<string> {
     path = this.checkPath(path);
-    const tmp = this.getTmpFilename(path);
+    const tmp = await this.getTmpFilename(path);
     await copyFile(path, tmp);
     return tmp;
   }
 
-  private getTmpFilename (path: string) {
-    return join(tmpdir(), basename(path));
+  private async getTmpFilename (path: string) {
+    const dir = await mkdtemp(join(tmpdir(), "linka-set-"));
+    const tmp = join(dir, `${uuid()}${extname(path) || ".linka"}`);
+    this.tempPaths.add(resolve(tmp));
+    return tmp;
   }
 
   public async selectImage (path: string) {
@@ -206,8 +238,8 @@ export class CardsStorage extends ICloudStorage {
   }
 
   async defaultToTemp (path: string): Promise<string> {
-    path = this.checkPath(path);
-    const tmp = join(tmpdir(), basename(path));
+    assertValidStorageName(basename(this.checkPath(path)));
+    const tmp = await this.getTmpFilename(path);
     const config: ConfigFile = {
       withoutSpace: false,
       directSet: false,
@@ -233,8 +265,9 @@ export class CardsStorage extends ICloudStorage {
   async saveSet (path: string, location: string, config: ConfigFile): Promise<void> {
     path = this.checkPath(path);
     location = this.checkPath(location);
+    assertValidStorageName(basename(location));
     const normalized = normalizeConfigFile(config);
-    if (!normalized) return;
+    if (!normalized) throw new Error("Некорректная конфигурация набора");
 
     await this.cleanFile(path, normalized);
     normalized.pages = (normalized.pages ?? []).map((page) => {
@@ -253,13 +286,7 @@ export class CardsStorage extends ICloudStorage {
     });
 
     const json = JSON.stringify(normalized);
-    try {
-      await this.addBuffer(path, Buffer.from(json), "json", "config");
-    } catch (error) {
-      console.error(error);
-
-      return;
-    }
+    await this.addBuffer(path, Buffer.from(json), "json", "config");
     await delay(500);
     await copyFile(path, location);
   }
@@ -284,6 +311,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   async renameItem (path: string, newName: string): Promise<string> {
+    assertValidStorageName(newName);
     const source = this.checkPath(path);
     const target = this.checkPath(join(dirname(source), newName));
     await rename(source, target);
@@ -413,6 +441,7 @@ export class CardsStorage extends ICloudStorage {
       ? targetName.trim()
       : `${baseName} + ${otherName}`;
     const safeName = basename(mergedName);
+    assertValidStorageName(safeName);
     const nameBase = safeName.toLowerCase().endsWith(ext)
       ? safeName.slice(0, -ext.length)
       : safeName;
@@ -426,7 +455,10 @@ export class CardsStorage extends ICloudStorage {
   }
 
   async downloadAndUnpack (url: string): Promise<void> {
-    const file = this.getTmpFilename(basename(url));
+    if (url !== DEFAULT_SETS_URL) {
+      throw new Error("Недопустимый адрес загрузки наборов");
+    }
+    const file = await this.getTmpFilename(basename(url));
     const stream = createWriteStream(file);
     await this.downloadToStream(url, stream);
     await this.unpack(file, HOME_DIR);
@@ -435,6 +467,7 @@ export class CardsStorage extends ICloudStorage {
   private unpack (file: string, target: string) {
     return new Promise((resolve, reject) => {
       const zip = new AdmZip(file);
+      this.validateZipEntries(zip);
       zip.extractAllToAsync(target, true, undefined, (error) => {
         if (error) {
           reject(error);
@@ -445,27 +478,49 @@ export class CardsStorage extends ICloudStorage {
     });
   }
 
+  private validateZipEntries (zip: AdmZip) {
+    const entries = zip.getEntries();
+    if (entries.length > MAX_UNPACKED_ENTRIES) {
+      throw new Error("Архив содержит слишком много файлов");
+    }
+    let totalSize = 0;
+    for (const entry of entries) {
+      const name = entry.entryName.replace(/\\/g, "/");
+      const normalized = normalize(name);
+      if (normalized.startsWith("..") || isAbsolute(normalized)) {
+        throw new Error("Архив содержит небезопасный путь");
+      }
+      totalSize += entry.header.size;
+      if (totalSize > MAX_UNPACKED_SIZE) {
+        throw new Error("Архив слишком большой");
+      }
+    }
+  }
+
   private downloadToStream (url: string, stream: WriteStream) {
     return new Promise((resolve, reject) => {
       const request = get(url, (response) => {
-        if (!response.headers["content-length"]) return;
-        const len = parseInt(response.headers["content-length"], 10);
+        if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(`Ошибка загрузки: ${response.statusCode}`));
+          response.resume();
+          return;
+        }
+        const len = parseInt(response.headers["content-length"] ?? "0", 10);
         let cur = 0;
 
-        response.pipe(stream);
         response.on("data", (chunk) => {
           cur += chunk.length;
-          if (win) { win.webContents.send("download_progress", (100.0 * cur / len).toFixed(2)); }
+          if (len > 0 && win) { win.webContents.send("download_progress", (100.0 * cur / len).toFixed(2)); }
         });
 
-        response.on("end", () => {
+        stream.on("finish", () => {
           resolve(void 0);
         });
-
-        request.on("error", (e) => {
-          reject(e);
-        });
+        stream.on("error", reject);
+        response.on("error", reject);
+        response.pipe(stream);
       });
+      request.on("error", reject);
     });
   }
 
@@ -504,5 +559,22 @@ export class CardsStorage extends ICloudStorage {
 
   async getArgv (): Promise<string[]> {
     return process.argv;
+  }
+
+  async importExternalSet (path: string): Promise<string> {
+    const source = resolve(path);
+    if (extname(source).toLowerCase() !== ".linka") {
+      throw new Error("Можно импортировать только .linka файл");
+    }
+    assertValidStorageName(basename(source));
+    this.validateZipEntries(new AdmZip(source));
+    const home = resolve(HOME_DIR);
+    if (source === home || source.startsWith(home + sep)) {
+      return source;
+    }
+    const initialTarget = join(HOME_DIR, basename(source));
+    const target = existsSync(initialTarget) ? this.getDuplicatePath(initialTarget) : initialTarget;
+    await copyFile(source, target);
+    return target;
   }
 }

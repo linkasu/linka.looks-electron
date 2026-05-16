@@ -76,12 +76,12 @@ describe("setGameLogic", () => {
   });
 
   it("counts total and solved match pairs", () => {
-    expect(getTotalMatchPairs([{ id: "card", cardType: CardType.AudioCard }])).to.equal(1);
+    expect(getTotalMatchPairs([{ id: "card", cardType: CardType.AudioCard }])).to.equal(0);
     expect(getTotalMatchPairs([
       { id: "top-1", cardType: CardType.AudioCard, matchId: "m1" },
       { id: "bottom-1", cardType: CardType.AudioCard, matchId: "m1" },
       { id: "top-2", cardType: CardType.AudioCard, matchId: "m2" }
-    ])).to.equal(2);
+    ])).to.equal(1);
     expect(getSolvedMatchPairs(["top-1", "bottom-1"])).to.equal(1);
   });
 

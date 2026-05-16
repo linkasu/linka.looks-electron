@@ -43,11 +43,12 @@ const titles: { [key in Side]: string } = {
 
 onMounted((): void => {
   document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("joystick-keydown", console.log);
+  document.addEventListener("joystick-keydown", onJoystickKeyDown);
 });
 
 onUnmounted((): void => {
   document.removeEventListener("keydown", onKeyDown);
+  document.removeEventListener("joystick-keydown", onJoystickKeyDown);
 });
 
 const keys = computed(() => {
@@ -71,6 +72,10 @@ function onKeyDown (ev: KeyboardEvent) {
   if (isCurrent.value) {
     store.dispatch("keymap_push", { side: props.side, code: ev.code });
   }
+}
+
+function onJoystickKeyDown () {
+  // Listener is intentionally empty: PageWatcher consumes joystick events globally.
 }
 
 function remove (code: string) {

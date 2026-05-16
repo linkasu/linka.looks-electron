@@ -12,6 +12,10 @@ class StorageService extends ICloudStorage {
     return ipcRenderer.invoke("storage:getArgv");
   }
 
+  importExternalSet (path: string): Promise<string> {
+    return ipcRenderer.invoke("storage:importExternalSet", path);
+  }
+
   downloadAndUnpack (url: string): Promise<void> {
     return ipcRenderer.invoke("storage:downloadAndUnpack", url);
   }

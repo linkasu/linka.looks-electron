@@ -99,13 +99,19 @@ const currentVoice = computed({
 
 watch(dialog, onDialog);
 
-function create () {
+async function create () {
   store.dispatch("disable_ui");
-  storageService.createAudioFromText(props.file, currentAudioText.value, currentVoice.value).then((audioSrcFile: string) => {
+  try {
+    const audioSrcFile = await storageService.createAudioFromText(props.file, currentAudioText.value, currentVoice.value);
+    if (!audioSrcFile) return;
+
     emit("audio", { audioSrcFile, audioText: audioText.value, audioVoice: voice.value });
-    store.dispatch("enable_ui");
     dialog.value = false;
-  });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    store.dispatch("enable_ui");
+  }
 }
 
 function onDialog (v: boolean) {
