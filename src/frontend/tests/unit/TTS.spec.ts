@@ -11,6 +11,19 @@ const get = axios.get as unknown as ReturnType<typeof vi.fn>;
 const getAudio = storageService.getAudio as unknown as ReturnType<typeof vi.fn>;
 const requestTts = tts as unknown as ReturnType<typeof vi.fn>;
 
+interface MockedAudio {
+  currentTime: number;
+  oncanplay: (() => void | Promise<void>) | null;
+  onended: (() => void) | null;
+  pause: ReturnType<typeof vi.fn>;
+  play: ReturnType<typeof vi.fn>;
+  src: string;
+}
+
+function mockedAudio (player: TTS): MockedAudio {
+  return player.audio as unknown as MockedAudio;
+}
+
 vi.mock("axios", () => ({
   default: {
     get: vi.fn()
@@ -69,6 +82,7 @@ describe("TTS", () => {
 
   it("plays card audio from storage", async () => {
     const player = new TTS();
+    const audio = mockedAudio(player);
     getAudio.mockResolvedValue(new Uint8Array([9, 8, 7]));
 
     const playing = player.playCards("set.linka", [
@@ -77,29 +91,31 @@ describe("TTS", () => {
     ]);
 
     await vi.waitFor(() => {
-      expect(player.audio.src).to.equal("blob:unit-test");
+      expect(audio.src).to.equal("blob:unit-test");
     });
-    await player.audio.oncanplay?.();
-    player.audio.onended?.();
+    await audio.oncanplay?.();
+    audio.onended?.();
     await playing;
 
     expect(getAudio.mock.calls).to.deep.equal([["set.linka", "audio.mp3"]]);
-    expect(player.audio.play.mock.calls).to.have.length(1);
+    expect(audio.play.mock.calls).to.have.length(1);
     expect(player.isPlaying).to.equal(false);
   });
 
   it("stops current card playback when called without force", async () => {
     const player = new TTS();
+    const audio = mockedAudio(player);
     player.isPlaying = true;
 
     await player.playCards("set.linka", [{ id: "audio", cardType: CardType.AudioCard, audioPath: "audio.mp3" }]);
 
-    expect(player.audio.pause.mock.calls).to.have.length(1);
+    expect(audio.pause.mock.calls).to.have.length(1);
     expect(getAudio.mock.calls).to.have.length(0);
   });
 
   it("plays text through TTS server", async () => {
     const player = new TTS();
+    const audio = mockedAudio(player);
     store.commit("voiceEn", "john");
 
     const playing = player.playText("hello");
@@ -107,26 +123,28 @@ describe("TTS", () => {
     await vi.waitFor(() => {
       expect(requestTts.mock.calls[0]).to.deep.equal(["hello", "john"]);
     });
-    await player.audio.oncanplay?.();
-    player.audio.onended?.();
+    await audio.oncanplay?.();
+    audio.onended?.();
     await playing;
 
-    expect(player.audio.play.mock.calls).to.have.length(1);
+    expect(audio.play.mock.calls).to.have.length(1);
     expect(player.isPlaying).to.equal(false);
   });
 
   it("pauses existing text playback instead of starting another request", async () => {
     const player = new TTS();
+    const audio = mockedAudio(player);
     player.isPlaying = true;
 
     await player.playText("hello");
 
-    expect(player.audio.pause.mock.calls).to.have.length(1);
+    expect(audio.pause.mock.calls).to.have.length(1);
     expect(requestTts.mock.calls).to.have.length(0);
   });
 
   it("force plays text after stopping current audio", async () => {
     const player = new TTS();
+    const audio = mockedAudio(player);
     player.isPlaying = true;
 
     const playing = player.forcePlayText("привет", "alena");
@@ -134,11 +152,11 @@ describe("TTS", () => {
     await vi.waitFor(() => {
       expect(requestTts.mock.calls[0]).to.deep.equal(["привет", "alena"]);
     });
-    expect(player.audio.currentTime).to.equal(0);
-    expect(player.audio.pause.mock.calls).to.have.length(1);
+    expect(audio.currentTime).to.equal(0);
+    expect(audio.pause.mock.calls).to.have.length(1);
 
-    await player.audio.oncanplay?.();
-    player.audio.onended?.();
+    await audio.oncanplay?.();
+    audio.onended?.();
     await playing;
 
     expect(player.isPlaying).to.equal(false);

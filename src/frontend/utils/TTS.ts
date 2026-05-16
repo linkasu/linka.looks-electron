@@ -20,6 +20,12 @@ export class TTS {
 
   static voices:Voice[] = reactive([]);
 
+  private static audioBlob (buffer: Uint8Array): Blob {
+    const arrayBuffer = new ArrayBuffer(buffer.byteLength);
+    new Uint8Array(arrayBuffer).set(buffer);
+    return new Blob([arrayBuffer], { type: "audio/mp3" });
+  }
+
   constructor () {
     this.getVoices();
   }
@@ -46,9 +52,7 @@ export class TTS {
       if (card.cardType === CardType.AudioCard && card.audioPath) {
         const buffer = await storageService.getAudio(file, card.audioPath);
         if (!buffer) continue;
-        const url = URL.createObjectURL(
-          new Blob([buffer], { type: "audio/mp3" } /* (1) */)
-        );
+        const url = URL.createObjectURL(TTS.audioBlob(buffer));
         await this.playUrl(url);
       }
     }
@@ -59,9 +63,7 @@ export class TTS {
     if (this.isPlaying) { this.audio.pause(); return; }
     this.isPlaying = true;
     const buffer = await tts(text, voice ?? this.resolveVoice(text));
-    const url = URL.createObjectURL(
-      new Blob([buffer], { type: "audio/mp3" } /* (1) */)
-    );
+    const url = URL.createObjectURL(TTS.audioBlob(buffer));
     await this.playUrl(url);
     this.isPlaying = false;
   }
@@ -78,9 +80,7 @@ export class TTS {
     this.isPlaying = true;
     const buffer = await tts(text, voice ?? this.resolveVoice(text));
     if (myId !== this._playId) return;
-    const url = URL.createObjectURL(
-      new Blob([buffer], { type: "audio/mp3" } /* (1) */)
-    );
+    const url = URL.createObjectURL(TTS.audioBlob(buffer));
     await this.playUrl(url);
     if (myId === this._playId) {
       this.isPlaying = false;

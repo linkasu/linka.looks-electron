@@ -25,7 +25,7 @@ function Build-Installer {
     [string]$OutputDir,
     [switch]$IncludeLatest
   )
-  $distDir = Join-Path $repoRoot "dist_electron"
+  $distDir = Join-Path $repoRoot "dist"
   if (Test-Path $distDir) {
     Remove-Item -Path $distDir -Recurse -Force
   }
@@ -72,7 +72,7 @@ function Build-Installer {
       if ($foundInstaller) {
         $installerPath = $foundInstaller.FullName
       } else {
-        Write-Host "Installer not found at expected path. dist_electron contents:"
+        Write-Host "Installer not found at expected path. dist contents:"
         Get-ChildItem -Path $distDir -Recurse -File | Select-Object FullName | Write-Host
         throw "Installer not found: $installerPath"
       }

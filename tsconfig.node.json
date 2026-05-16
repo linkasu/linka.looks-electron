@@ -1,8 +1,0 @@
-{
-  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["src/renderer/*", "electron/*", "src/common/*", "src/main/CardsStorage", "electron/utils"],
-  "compilerOptions": {
-    "composite": true,
-    "types": ["electron-vite/node"]
-  }
-}

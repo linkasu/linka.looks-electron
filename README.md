@@ -26,7 +26,7 @@ npm run test:unit
 ```
 
 ### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Build configuration lives in `vite.config.ts` and `package.json`.
 
 </details>
 

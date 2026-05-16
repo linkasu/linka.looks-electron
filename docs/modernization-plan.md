@@ -1,36 +1,39 @@
 # План модернизации стека
 
-Документ описывает безопасный порядок перехода проекта с текущего стека на npm, Node 22, Vite/electron-vite, свежий Electron, Vue и тестовую инфраструктуру. Цель плана - обновлять стек по изолированным этапам, чтобы источник каждой поломки был понятен.
+Документ фиксирует статус модернизации стека и оставшиеся этапы после перехода проекта на npm, Node 22, Vite, свежий Electron, Vue и тестовую инфраструктуру. Цель плана - сохранять изолированные этапы, чтобы источник каждой поломки был понятен.
 
 ## Цели
 
-- Перейти с Yarn 1 на npm.
-- Перейти с Node 16 на Node 22 LTS.
-- Убрать зависимость от Vue CLI и `vue-cli-plugin-electron-builder`.
-- Перевести сборку Electron-приложения на Vite/electron-vite или эквивалентную Vite-схему.
-- Обновить Electron, packaging и updater stack.
-- Обновить Vue, Vuetify, TypeScript, ESLint и unit-тесты.
+- Сохранять npm как package manager.
+- Сохранять Node 22 LTS как runtime baseline.
+- Поддерживать Vite-сборку Electron-приложения без Vue CLI и `vue-cli-plugin-electron-builder`.
+- Поддерживать актуальный Electron, packaging и updater stack.
+- Поддерживать Vue, Vuetify, TypeScript, ESLint и unit-тесты на текущих версиях.
 - Сохранить поведение приложения, installer, file associations и auto-update.
 - Не смешивать крупные миграции в один PR.
 
 ## Текущее состояние
 
-- Node: `16.20.0` в `.nvmrc`.
-- npm не используется как основной package manager.
-- Yarn: `1.22.22` в `packageManager`.
-- Lockfile: `yarn.lock`.
-- `package-lock.json` отсутствует.
-- Сборка renderer: `vue-cli-service`.
-- Electron integration: `vue-cli-plugin-electron-builder@2.1.1`.
-- Vue: `3.2.13`.
-- Vue Router: `4.0.3`.
-- Vuex: `4.0.0`.
-- Vuetify: `3.0.0`.
-- TypeScript: `4.5.5`.
-- Electron: `37.2.3`.
-- electron-updater: `6.1.4`.
-- CI: GitHub Actions на Node `16.x` и Yarn.
-- В репозитории есть `vite.config.ts`, но его пути не соответствуют текущей структуре проекта.
+- Node: `v22.22.2` в `.nvmrc`.
+- npm используется как основной package manager.
+- Package manager: `npm@10.9.7` в `packageManager`.
+- Lockfile: `package-lock.json`.
+- `yarn.lock` отсутствует.
+- Сборка renderer: Vite через `vite.config.ts`.
+- Electron integration: `vite-plugin-electron` и `vite-plugin-electron-renderer`.
+- Electron main entry: `src/electron/main.ts`, output `dist-electron/main.js`.
+- Renderer entry: `index.html` -> `src/frontend/main.ts`, output `dist`.
+- Vue: `3.5.x`.
+- Vue Router: `4.6.x`.
+- Vuex: `4.1.x`.
+- Vuetify: `3.12.x`.
+- TypeScript: `5.9.x`.
+- Electron: `42.x`.
+- electron-builder: `26.x`.
+- electron-updater: `6.8.x`.
+- Unit tests: Vitest with jsdom and a separate node config for storage tests.
+- CI: GitHub Actions на Node `22.x` и npm.
+- Не выполнено: preload/security hardening; renderer пока использует прямые Electron imports.
 
 ## Целевое состояние
 
@@ -57,21 +60,22 @@
 
 ## Этап 0. Baseline
 
-Цель: понять, что работает и что уже сломано до миграции.
+Цель: понять, что работает и что уже сломано на текущем npm/Vite baseline.
 
 Команды:
 
 ```bash
-yarn install --frozen-lockfile
-yarn lint
-yarn test:unit
-yarn electron:build
+npm ci
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run electron:build
 ```
 
 Дополнительная проверка:
 
 ```bash
-yarn electron:serve
+npm run electron:serve
 ```
 
 Критерии готовности:
@@ -84,13 +88,15 @@ yarn electron:serve
 
 Камни:
 
-- Если baseline красный, нельзя смешивать его исправление с npm/Vite/Electron migration.
+- Если baseline красный, нельзя смешивать его исправление с очередной миграцией.
 - Локальная macOS-сборка не заменяет Windows CI build.
 - В рабочем дереве уже могут быть чужие изменения; их нельзя откатывать в рамках плана.
 
 ## Этап 1. Переход с Yarn на npm
 
 Цель: сменить package manager без major-обновления зависимостей.
+
+Статус: выполнено. Проект использует npm, `package-lock.json` и `npm ci` в CI.
 
 Изменения:
 
@@ -119,6 +125,7 @@ yarn electron:serve
 ```bash
 npm install
 npm run lint
+npm run typecheck
 npm run test:unit
 npm run electron:build
 ```
@@ -150,6 +157,8 @@ npm run electron:build -- -p always
 ## Этап 2. Node 16 -> Node 22
 
 Цель: подготовить проект к свежему Electron, Vite и ESLint.
+
+Статус: выполнено. `.nvmrc`, `package.json engines` и GitHub Actions используют Node 22.
 
 Изменения:
 
@@ -185,6 +194,8 @@ npm run electron:build
 
 Цель: убрать устаревший build layer и сделать сборку контролируемой.
 
+Статус: выполнено для main/renderer build. Используется `vite-plugin-electron`; preload entrypoint пока отсутствует и должен появиться в отдельном security-hardening этапе.
+
 Рекомендуемый вариант:
 
 - Использовать `electron-vite`, если он покрывает текущие требования.
@@ -206,9 +217,9 @@ npm run electron:build
 
 Особое внимание:
 
-- Текущий `vite.config.ts` содержит пути `electron/main/index.ts` и `electron/preload/index.ts`, а реальный main находится в `src/electron/main.ts`.
-- Текущий `vite.config.ts` содержит aliases, не совпадающие с `vue.config.js`.
-- `process.env.WEBPACK_DEV_SERVER_URL` исчезнет и должен быть заменен на Vite dev server env.
+- `vite.config.ts` использует реальный main entry `src/electron/main.ts`.
+- Aliases `@frontend`, `@electron`, `@common` и `@` настроены в Vite и Vitest configs.
+- Dev loading использует `process.env.VITE_DEV_SERVER_URL`.
 
 Команды проверки:
 
@@ -236,6 +247,8 @@ npm run electron:build
 ## Этап 4. Electron packaging stack
 
 Цель: обновить builder/updater/rebuild без одновременного UI update.
+
+Статус: выполнено для `electron-builder@26.x` и `electron-updater@6.8.x`.
 
 Пакеты:
 
@@ -279,6 +292,8 @@ npm run electron:build
 ## Этап 5. Electron 37 -> Electron 42
 
 Цель: перейти на поддерживаемую ветку Electron.
+
+Статус: выполнено. Проект использует Electron `42.x`.
 
 Изменения:
 
@@ -350,6 +365,8 @@ npm run electron:build
 
 Цель: обновить Vue runtime без переписывания состояния и UI.
 
+Статус: выполнено. Проект использует Vue `3.5.x`.
+
 Пакеты:
 
 - `vue@3.5.x`.
@@ -367,6 +384,7 @@ npm run electron:build
 
 ```bash
 npm run lint
+npm run typecheck
 npm run test:unit
 npm run electron:serve
 npm run electron:build
@@ -387,6 +405,8 @@ npm run electron:build
 ## Этап 8. Vuetify
 
 Цель: обновить UI framework без одновременной смены major UI API.
+
+Статус: выполнено для Vuetify latest `3.x`. Vuetify `4.x` остается отдельным решением.
 
 Порядок:
 
@@ -420,6 +440,8 @@ npm run electron:build
 
 Цель: обновить TypeScript без лавины не связанных изменений.
 
+Статус: выполнено для TypeScript `5.x`. TypeScript `6.x` остается отдельным решением.
+
 Порядок:
 
 - Поднять TypeScript до `5.x`.
@@ -435,18 +457,15 @@ npm run electron:build
 - `types`.
 - `include`.
 
-Особый риск:
+Проверено:
 
-```json
-"src/frontend/tests/**/*.tsage/tests/**/*.ts",
-"src/frontend/tests/**/*.tsxge/tests/**/*.tsx"
-```
-
-Эти include paths выглядят поврежденными и должны быть исправлены отдельным маленьким изменением.
+- Устаревший `tsconfig.node.json` удален, потому что текущие scripts не используют `electron-vite` и `@electron-toolkit/tsconfig`.
+- `mocha` types удалены из `tsconfig.json`; unit-тесты используют Vitest globals и Chai assertions.
 
 Критерии готовности:
 
 - Type check проходит.
+- `npm run typecheck` проходит.
 - Vite build проходит.
 - Electron main/preload типизируются.
 - Unit-тесты видят нужные globals/types.
@@ -489,6 +508,8 @@ npm run electron:build
 
 Цель: убрать зависимость тестов от `vue-cli-service`.
 
+Статус: выполнено. Unit-тесты запускаются через Vitest.
+
 Изменения:
 
 - Добавить `vitest`.
@@ -500,7 +521,7 @@ npm run electron:build
 Script:
 
 ```json
-"test:unit": "vitest run"
+"test:unit": "vitest run && vitest run --config vitest.node.config.ts"
 ```
 
 Критерии готовности:
@@ -519,6 +540,8 @@ Script:
 
 Цель: все workflows отражают npm/Node 22 и новую сборку.
 
+Статус: почти выполнено. Основные workflows используют Node 22, npm cache и `npm ci`; update smoke должен проверяться на Windows после изменений installer output.
+
 Обновить:
 
 - `.github/workflows/electron.yml`.
@@ -533,6 +556,7 @@ Script:
 - `cache: npm`.
 - `npm ci`.
 - `npm run lint`.
+- `npm run typecheck`.
 - `npm run test:unit`.
 - `npm run electron:build -- -p always`.
 
@@ -634,13 +658,14 @@ Script:
 
 ## Первый практический шаг
 
-Начать с baseline на текущем стеке:
+Текущий практический порядок:
 
 ```bash
-yarn install --frozen-lockfile
-yarn lint
-yarn test:unit
-yarn electron:build
+npm ci
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run build
 ```
 
-После фиксации результата делать отдельный этап `Yarn -> npm` без обновления major-версий.
+После зеленого baseline отдельно выполнять оставшиеся рискованные этапы: update smoke на Windows, затем preload/security hardening.

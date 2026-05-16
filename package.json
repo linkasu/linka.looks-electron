@@ -17,6 +17,7 @@
     "build": "vite build",
     "lint-fix": "eslint --fix --ext .js,.vue,.ts src",
     "lint": "eslint --ext .js,.vue,.ts src",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
     "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
     "test:unit:coverage": "vitest run --coverage && vitest run --config vitest.node.config.ts --coverage",
     "test:e2e": "npm run build && playwright test",

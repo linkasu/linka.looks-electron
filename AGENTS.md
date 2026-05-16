@@ -4,7 +4,7 @@
 - `src/frontend/` contains the Vue 3 renderer app (views, components, store, router, services).
 - `src/electron/` hosts the Electron main-process code and app lifecycle wiring.
 - `src/common/` is shared logic used by both renderer and main process.
-- `src/frontend/tests/unit/` holds unit tests (Mocha + Chai). Example: `TTSServer.spec.ts`.
+- `src/frontend/tests/unit/` holds unit tests (Vitest + Chai assertions). Example: `TTSServer.spec.ts`.
 - `public/` provides static assets bundled into the renderer build.
 - `extraResources/` and `build/` contain Electron packaging assets and installer resources.
 - `docs/` and `agents/` store project documentation and agent guidance.
@@ -16,6 +16,7 @@ Use npm and Node 22.x for the current baseline.
 - `npm run electron:build` — build the production Electron installer.
 - `npm run serve` — run the Vue renderer only (useful for UI-only debugging).
 - `npm run test:unit` — run unit tests.
+- `npm run typecheck` — run TypeScript no-emit checks.
 - `npm run lint` / `npm run lint-fix` — check or auto-fix ESLint issues in `src/`.
 
 ## Coding Style & Naming Conventions
@@ -25,7 +26,7 @@ Use npm and Node 22.x for the current baseline.
 - Keep module and component names descriptive and aligned with existing patterns (e.g., `TTSServer`, `App.vue`).
 
 ## Testing Guidelines
-- Frameworks: Mocha + Chai via `@vue/cli-plugin-unit-mocha`.
+- Frameworks: Vitest + Chai assertions.
 - Place unit tests under `src/frontend/tests/unit/` and name them `*.spec.ts`.
 - Run tests locally with `npm run test:unit` before opening a PR.
 
@@ -35,5 +36,5 @@ Use npm and Node 22.x for the current baseline.
 - PRs should include: a clear description, linked issue(s) when applicable, and screenshots for UI changes.
 
 ## Configuration Tips
-- Node version is pinned in `.nvmrc` (`v16.20.0`); keep tooling aligned with `package.json` engines.
+- Node version is pinned in `.nvmrc` (`v22.22.2`); keep tooling aligned with `package.json` engines.
 - Electron build resources live in `build/` and `extraResources/`; update these when changing installers.

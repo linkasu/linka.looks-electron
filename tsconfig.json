@@ -16,7 +16,6 @@
     "types": [
       "vite/client",
       "vitest/globals",
-      "mocha",
       "chai"
     ],
     "paths": {
