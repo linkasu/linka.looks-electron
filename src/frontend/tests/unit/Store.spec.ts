@@ -37,6 +37,14 @@ describe("store", () => {
     expect(send.mock.calls[0]).to.deep.equal(["button_timeout", 2500]);
   });
 
+  it("uses mouse and eyes as the default page turn mode and updates it", () => {
+    expect(store.state.button.pageTurnMode).to.equal("mouseAndEyes");
+
+    store.commit("button_pageTurnMode", "mouseOnly");
+
+    expect(store.state.button.pageTurnMode).to.equal("mouseOnly");
+  });
+
   it("toggles output line and gaze lock through actions", async () => {
     await store.dispatch("interface_outputLine");
     await store.dispatch("button_enabled");
@@ -221,6 +229,7 @@ describe("store", () => {
 function resetStoreState () {
   store.commit("button_enabled", true);
   store.commit("button_timeout", 1000);
+  store.commit("button_pageTurnMode", "mouseAndEyes");
   store.commit("editor_current", "");
   store.commit("editor_temp", "");
   store.commit("editor_description", undefined);

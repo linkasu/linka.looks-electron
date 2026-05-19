@@ -87,11 +87,11 @@ function onExit () {
 
 function onEnter (eye: boolean) {
   if (eye && props.eyeDisabled) return;
-  if (eye && !store.state.button.eyeSelect) return;
+  if (eye && !store.state.button.eyeSelect && !props.lock) return;
   if (!eye && !store.state.button.keyboardActivation) return;
   if (!eye && !store.state.button.joystickActivation) return;
   isInside.value = true;
-  circle.value = store.state.button.eyeActivation && eye;
+  circle.value = (store.state.button.eyeActivation || props.lock) && eye;
 }
 
 function click () {

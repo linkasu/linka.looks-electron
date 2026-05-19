@@ -117,6 +117,40 @@ describe("eye button", () => {
     expect(wrapper.find(".progress-bar").exists()).to.equal(false);
   });
 
+  it("allows lock buttons to show gaze progress when eye selection is disabled", async () => {
+    const wrapper = mount(EyeButton, {
+      props: {
+        lock: true
+      },
+      global: {
+        plugins: [createVuexStore({ eyeSelect: false })]
+      }
+    });
+
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".overlay").exists()).to.equal(true);
+    expect(wrapper.find(".progress-bar").exists()).to.equal(true);
+  });
+
+  it("allows lock buttons to show gaze progress when eye activation is disabled", async () => {
+    const wrapper = mount(EyeButton, {
+      props: {
+        lock: true
+      },
+      global: {
+        plugins: [createVuexStore({ eyeActivation: false })]
+      }
+    });
+
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".overlay").exists()).to.equal(true);
+    expect(wrapper.find(".progress-bar").exists()).to.equal(true);
+  });
+
   it("plays click sound when enabled", async () => {
     const play = vi.fn();
     const audio = document.createElement("audio");

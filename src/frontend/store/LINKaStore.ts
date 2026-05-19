@@ -8,6 +8,7 @@ interface KeyMap {
     enter: string[]
 }
 export type Side = keyof KeyMap
+export type PageTurnMode = "mouseOnly" | "mouseAndEyes"
 export interface LINKaStore {
     pcHash: string,
     popupVersion: number
@@ -30,6 +31,7 @@ export interface LINKaStore {
         joystickActivation: boolean,
         keyboardActivation: boolean,
         mouseActivation: boolean,
+        pageTurnMode: PageTurnMode,
         borders: number;
         enabled: boolean;
         clickSound: boolean;

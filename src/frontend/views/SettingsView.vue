@@ -22,6 +22,18 @@
               />
             </v-container>
             <v-container>
+              <v-select
+                v-model="pageTurnMode"
+                :items="pageTurnModeOptions"
+                label="Способ перелистывания"
+                item-title="text"
+                item-value="value"
+              />
+              <div class="settings-help">
+                Настройка влияет только на левую и правую стрелки перелистывания страниц в просмотре набора.
+              </div>
+            </v-container>
+            <v-container>
               <v-row>
                 <v-col xs="6">
                   <v-checkbox
@@ -120,8 +132,14 @@ import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
 import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
 import { Metric } from "@/frontend/utils/Metric";
+import type { PageTurnMode } from "@/frontend/store/LINKaStore";
 
 const store = useStore();
+
+const pageTurnModeOptions: { text: string; value: PageTurnMode }[] = [
+  { text: "Только мышь", value: "mouseOnly" },
+  { text: "Мышь и глаза", value: "mouseAndEyes" }
+];
 
 onMounted(() => {
   Metric.registerEvent(store.state.pcHash, "openSettings");
@@ -151,6 +169,15 @@ const clickSound = computed({
   },
   set (value: boolean) {
     store.commit("button_clickSound", value);
+  }
+});
+
+const pageTurnMode = computed({
+  get () {
+    return store.state.button.pageTurnMode;
+  },
+  set (value: PageTurnMode) {
+    store.commit("button_pageTurnMode", value);
   }
 });
 
@@ -209,3 +236,11 @@ const isExitButton = computed({
 });
 
 </script>
+
+<style scoped>
+.settings-help {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  margin-top: -12px;
+}
+</style>

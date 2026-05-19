@@ -1,6 +1,6 @@
 import { createStore } from "vuex";
 
-import { LINKaStore, Side } from "./LINKaStore";
+import { LINKaStore, PageTurnMode, Side } from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
@@ -32,6 +32,7 @@ const fields = [
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
   { commit: "button_keyboardActivation", default: true } as Field<boolean>,
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
+  { commit: "button_pageTurnMode", default: "mouseAndEyes" } as Field<PageTurnMode>,
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
   { commit: "button_animation", default: true } as Field<boolean>,
@@ -66,6 +67,7 @@ const store = createStore<LINKaStore>({
       joystickActivation: true,
       keyboardActivation: true,
       mouseActivation: true,
+      pageTurnMode: "mouseAndEyes",
       clickSound: true,
       borders: 1,
       animation: true,
@@ -221,6 +223,9 @@ const store = createStore<LINKaStore>({
     },
     button_mouseActivation ({ button }, value) {
       button.mouseActivation = value;
+    },
+    button_pageTurnMode ({ button }, value: PageTurnMode) {
+      button.pageTurnMode = value;
     },
     button_borders ({ button }, value) {
       button.borders = value;

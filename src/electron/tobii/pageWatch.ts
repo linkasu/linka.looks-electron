@@ -176,7 +176,7 @@ export class PageWatcher {
   enterWatch (el: Element) {
     if (!el) return;
     if (this.isEyeDisabled(el)) return;
-    if (!store.state.button.eyeSelect) return;
+    if (!store.state.button.eyeSelect && !this.isLocked(el)) return;
     this.lastElement = el;
 
     const e = new CustomEvent("eye-enter", {
@@ -188,7 +188,7 @@ export class PageWatcher {
   }
 
   exitWatch () {
-    if (!store.state.button.eyeSelect) return;
+    if (!store.state.button.eyeSelect && !this.isLocked(this.lastElement)) return;
     if (this.lastElement && this.isEyeDisabled(this.lastElement)) return;
     const e = new CustomEvent("eye-exit", {
       detail: {
@@ -202,6 +202,10 @@ export class PageWatcher {
   private isEyeDisabled (el?: Element): boolean {
     if (!el) return false;
     return (el as HTMLElement).dataset.eyeDisabled === "1";
+  }
+
+  private isLocked (el?: Element): boolean {
+    return !!el?.classList.contains("lock");
   }
 
   private findNear (elements: HTMLCollectionOf<Element>, where: Side, strict = false): Element | null {

@@ -32,7 +32,7 @@ describe("SetGrid", () => {
     expect(cardButtons(wrapper).map((button) => button.text())).to.deep.equal(["second"]);
   });
 
-  it("emits next page and stores explorer page on pagination click", async () => {
+  it("emits next page and stores explorer page on page turn button click", async () => {
     const store = createVuexStore();
     const wrapper = mountSetGrid({
       config: createConfig([
@@ -43,13 +43,54 @@ describe("SetGrid", () => {
       store
     });
 
-    await wrapper.findAll(".v-btn-stub")[1].trigger("click");
+    await pageTurnButtons(wrapper)[1].trigger("click");
 
     expect(wrapper.emitted("update:page")?.[0]).to.deep.equal([1]);
     expect(store.state.explorer.page).to.equal(1);
   });
 
-  it("hides pagination for quiz pages", () => {
+  it("emits previous page and stores explorer page on page turn button click", async () => {
+    const store = createVuexStore();
+    const wrapper = mountSetGrid({
+      config: createConfig([
+        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
+        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+      ]),
+      page: 1,
+      store
+    });
+
+    await pageTurnButtons(wrapper)[0].trigger("click");
+
+    expect(wrapper.emitted("update:page")?.[0]).to.deep.equal([0]);
+    expect(store.state.explorer.page).to.equal(0);
+  });
+
+  it("disables gaze for page turn buttons in mouse only mode", () => {
+    const wrapper = mountSetGrid({
+      config: createConfig([
+        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
+        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+      ]),
+      store: createVuexStore("mouseOnly")
+    });
+
+    expect(pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))).to.deep.equal(["true", "true"]);
+  });
+
+  it("allows gaze for page turn buttons in mouse and eyes mode", () => {
+    const wrapper = mountSetGrid({
+      config: createConfig([
+        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
+        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+      ]),
+      store: createVuexStore("mouseAndEyes")
+    });
+
+    expect(pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))).to.deep.equal([undefined, undefined]);
+  });
+
+  it("hides page turn buttons for quiz pages", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
         { id: "page-1", mode: "quiz", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
@@ -57,7 +98,7 @@ describe("SetGrid", () => {
       ])
     });
 
-    expect(wrapper.findAll(".v-btn-stub")).to.have.length(0);
+    expect(pageTurnButtons(wrapper)).to.have.length(0);
   });
 
   it("disables empty, new and matched cards", () => {
@@ -129,14 +170,12 @@ function mountSetGrid ({
       plugins: [store],
       stubs: {
         EyeButton: {
-          template: "<button class=\"eye-button-stub\" @click=\"$emit(&quot;click&quot;)\"><slot /></button>"
+          props: ["eyeDisabled", "lock"],
+          template: "<button class=\"eye-button-stub\" :class=\"{ lock }\" :data-eye-disabled=\"eyeDisabled ? 'true' : null\" @click=\"$emit(&quot;click&quot;)\"><slot /></button>"
         },
         SetGridButton: {
           props: ["card", "disabled"],
           template: "<button class=\"card-button\" :data-id=\"card.id\" :disabled=\"disabled\" @click=\"$emit(&quot;click&quot;)\">{{ card.title || card.id }}</button>"
-        },
-        VBtn: {
-          template: "<button class=\"v-btn-stub\" @click=\"$emit(&quot;click&quot;)\"><slot /></button>"
         },
         VIcon: true
       }
@@ -144,9 +183,12 @@ function mountSetGrid ({
   });
 }
 
-function createVuexStore () {
+function createVuexStore (pageTurnMode = "mouseAndEyes") {
   return createStore({
     state: {
+      button: {
+        pageTurnMode
+      },
       explorer: {
         page: 0
       },
@@ -175,4 +217,8 @@ function createConfig (pages: ConfigFile["pages"] = [
 
 function cardButtons (wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll(".card-button");
+}
+
+function pageTurnButtons (wrapper: ReturnType<typeof mount>) {
+  return wrapper.findAll(".eye-button-stub");
 }

@@ -4,16 +4,15 @@
       <eye-button v-if="showExitButton" color="accent" @click="$router.back()">
         <v-icon>mdi-exit-run</v-icon>
       </eye-button>
-      <v-btn
+      <eye-button
         v-if="showPagination"
         color="primary"
-        tabindex="-1"
-        @keydown.prevent
-        @keyup.prevent
+        lock
+        :eye-disabled="isPageTurnEyeDisabled"
         @click="changePage(-1)"
       >
         <v-icon> mdi-arrow-left </v-icon>
-      </v-btn>
+      </eye-button>
     </div>
 
     <div class="cards" :style="{ '--rows': currentPage.rows, '--columns': currentPage.columns }">
@@ -31,16 +30,15 @@
       />
     </div>
 
-    <v-btn
+    <eye-button
       v-if="showPagination"
       color="primary"
-      tabindex="-1"
-      @keydown.prevent
-      @keyup.prevent
+      lock
+      :eye-disabled="isPageTurnEyeDisabled"
       @click="changePage(1)"
     >
       <v-icon> mdi-arrow-right </v-icon>
-    </v-btn>
+    </eye-button>
   </div>
 </template>
 
@@ -101,6 +99,7 @@ const showPagination = computed(() => {
 
 const matchedCardIds = computed(() => props.matchedCardIds ?? []);
 const selectedCardId = computed(() => props.selectedCardId ?? null);
+const isPageTurnEyeDisabled = computed(() => store.state.button.pageTurnMode === "mouseOnly");
 
 watch(() => props.page, onPageChanged);
 watch(currentPage, () => {
