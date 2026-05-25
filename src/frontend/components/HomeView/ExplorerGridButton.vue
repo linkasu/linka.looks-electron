@@ -22,9 +22,8 @@
           :style="{ '--image': image }"
         />
       </div>
-      <div>
-        <span v-if="file">{{ toBasename(file.file).slice(0, 25) }}</span>
-        <span v-if="back">Шаг назад</span>
+      <div class="label" :title="displayName">
+        <span>{{ displayName }}</span>
       </div>
     </div>
   </eye-button>
@@ -32,16 +31,27 @@
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import { DirectoryFile } from "@/common/interfaces/Directory";
-import pathModule from "path";
 import { storageService } from "@/frontend/services/card-storage-service";
 
 const props = withDefaults(defineProps<{ file?: DirectoryFile; back?: boolean }>(), { back: false });
 
 const image: Ref<string | null> = ref("");
+
+const displayName = computed(() => {
+  if (props.back) return "Шаг назад";
+  if (!props.file) return "";
+
+  const name = toBasename(props.file.file);
+  if (!props.file.directory && name.toLowerCase().endsWith(".linka")) {
+    return name.slice(0, -".linka".length);
+  }
+
+  return name;
+});
 
 onMounted(() => {
   if (props.back) {
@@ -57,7 +67,7 @@ onMounted(() => {
 });
 
 function toBasename (path: string) {
-  return pathModule.basename(path);
+  return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 </script>
 
@@ -65,12 +75,24 @@ function toBasename (path: string) {
 .content {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 3em;
-  gap: 1em;
+  grid-template-rows: minmax(0, 1fr) 3.5em;
+  gap: 0.5em;
+  padding: 0.5em;
 }
 .icon {
   height: 100%;
   font-size: 5em;
+}
+.label {
+  align-items: center;
+  display: flex;
+  font-size: 1.1em;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.15;
+  overflow: hidden;
+  text-align: center;
+  word-break: break-word;
 }
 .img {
   background-image: var(--image);
