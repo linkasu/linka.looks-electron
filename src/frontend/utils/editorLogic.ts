@@ -56,6 +56,14 @@ export function createEditorPage (mode: PageMode = "standard", pageColumns = 3, 
   });
 }
 
+export function clearCardAudio (card: Card): Card {
+  const next = cloneCard(card);
+  delete next.audioPath;
+  delete next.audioText;
+  delete next.audioVoice;
+  return next;
+}
+
 export function copySelectedCard (cards: Card[], selectedCardId: string | null): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };

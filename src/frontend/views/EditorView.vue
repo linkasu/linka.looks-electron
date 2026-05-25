@@ -169,9 +169,16 @@
                         </v-btn>
                       </v-row>
                       <v-row v-if="selected.audioPath">
-                        <v-btn block :disabled="ui_disabled" @click="playAudio">
-                          Послушать озвучку
-                        </v-btn>
+                        <v-col>
+                          <v-btn block :disabled="ui_disabled" @click="playAudio">
+                            Послушать озвучку
+                          </v-btn>
+                        </v-col>
+                        <v-col>
+                          <v-btn block color="error" :disabled="ui_disabled" @click="clearAudio">
+                            Удалить озвучку
+                          </v-btn>
+                        </v-col>
                       </v-row>
                     </v-container>
                   </v-card-text>
@@ -252,6 +259,7 @@ import draggable from "vuedraggable";
 import { Metric } from "@/frontend/utils/Metric";
 import {
   advanceEditorPage,
+  clearCardAudio,
   clearMatchLink as clearEditorMatchLink,
   copySelectedCard,
   createEditorPage,
@@ -506,7 +514,9 @@ async function selectAudio () {
     const id = await storageService.selectAudio(filename.value);
 
     if (selected.value && selected.value.cardType === CardType.AudioCard && id) {
-      selected.value.audioPath = id;
+      const next = clearCardAudio(selected.value);
+      next.audioPath = id;
+      replaceSelected(next);
     }
   } catch (error) {
     console.error(error);
@@ -519,6 +529,18 @@ function playAudio () {
   if (filename.value && selected.value && selected.value.cardType === CardType.AudioCard) {
     TTS.instance.playCards(filename.value, [selected.value]);
   }
+}
+
+function clearAudio () {
+  if (!selected.value || selected.value.cardType !== CardType.AudioCard) return;
+  replaceSelected(clearCardAudio(selected.value));
+}
+
+function replaceSelected (card: Card) {
+  if (selectedIndex.value === -1) return;
+  const nextCards = [...current.value];
+  nextCards[selectedIndex.value] = card;
+  current.value = nextCards;
 }
 
 function onTitleSelected (title: string) {

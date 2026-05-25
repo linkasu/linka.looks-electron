@@ -2,6 +2,7 @@ import chai from "chai";
 import { Card, CardType, normalizePage } from "@/common/interfaces/ConfigFile";
 import {
   advanceEditorPage,
+  clearCardAudio,
   clearMatchLink,
   copyEditorPage,
   copySelectedCard,
@@ -32,6 +33,28 @@ describe("editorLogic", () => {
     expect(match.columns).to.equal(3);
     expect(match.rows).to.equal(2);
     expect(match.cards).to.have.length(6);
+  });
+
+  it("clears only audio data from a card", () => {
+    const card: Card = {
+      id: "audio-1",
+      cardType: CardType.AudioCard,
+      title: "one",
+      imagePath: "one.png",
+      audioPath: "voice.mp3",
+      audioText: "hello",
+      audioVoice: "alena"
+    };
+
+    const result = clearCardAudio(card);
+
+    expect(result).to.not.equal(card);
+    expect(result.audioPath).to.equal(undefined);
+    expect(result.audioText).to.equal(undefined);
+    expect(result.audioVoice).to.equal(undefined);
+    expect(result.title).to.equal("one");
+    expect(result.imagePath).to.equal("one.png");
+    expect(card.audioPath).to.equal("voice.mp3");
   });
 
   it("copies selected card after itself and removes last placeholder", () => {
