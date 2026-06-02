@@ -141,8 +141,8 @@ const totalPairs = computed(() => {
 
 const solvedPairs = computed(() => getSolvedMatchPairs(matchedCardIds.value));
 
-watch(page, resetPageState);
-watch(currentPage, resetPageState);
+watch(page, resetInteractivePageState);
+watch(currentPage, resetInteractivePageState);
 watch(
   () => route.params.path,
   async (value) => {
@@ -152,8 +152,7 @@ watch(
   { immediate: true }
 );
 
-function resetPageState () {
-  cards.value = [];
+function resetInteractivePageState () {
   waitingForNext.value = false;
   quizFinished.value = false;
   selectedCardId.value = null;
@@ -166,7 +165,7 @@ async function loadSet (nextFilename: string) {
   store.commit("explorer_config", undefined);
   cards.value = [];
   quizErrors.value = 0;
-  resetPageState();
+  resetInteractivePageState();
   await store.dispatch("open_file", nextFilename);
   await store.dispatch("editor_current", nextFilename);
   filename.value = nextFilename;

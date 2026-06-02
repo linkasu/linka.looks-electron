@@ -114,6 +114,38 @@ test("standard set appends clicked cards to text output", async () => {
   }
 });
 
+test("standard set preserves typed output while turning pages", async () => {
+  const context = createE2EContext();
+  const setName = "keyboard-page-turn-flow.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([], {
+    withoutSpace: true,
+    pages: [
+      { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-a", cardType: 0, title: "А" }] },
+      { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-b", cardType: 0, title: "Б" }] },
+      { id: "page-3", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-v", cardType: 0, title: "В" }] }
+    ]
+  }));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/set/§${setName}`);
+
+    await window.getByRole("button", { name: "А", exact: true }).click();
+    await expect(window.locator(".output-text .text")).toContainText("А");
+
+    await window.locator(".grid > button").click();
+    await expect(window.getByText("2 из 3")).toBeVisible();
+    await expect(window.locator(".output-text .text")).toContainText("А");
+
+    await window.getByRole("button", { name: "Б", exact: true }).click();
+    await expect(window.locator(".output-text .text")).toContainText("АБ");
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
 test("quiz set handles wrong and correct answers", async () => {
   const context = createE2EContext();
   const setName = "quiz-flow.linka";
