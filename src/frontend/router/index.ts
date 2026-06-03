@@ -9,6 +9,7 @@ import SettingsView from "@/frontend/views/SettingsView.vue";
 import SettingsViewAppBar from "@/frontend/views/SettingsView.appbar.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 import CalibrationView from "../views/CalibrationView.vue";
+import TobiiCalibrationView from "../views/TobiiCalibrationView.vue";
 import store from "../store";
 import { HOME_DIR } from "@/common/constants";
 
@@ -50,6 +51,12 @@ const routes: Array<RouteRecordRaw> = [
     path: "/calibration",
     components: {
       default: CalibrationView
+    }
+  },
+  {
+    path: "/tobii-calibration",
+    components: {
+      default: TobiiCalibrationView
     }
   }
 ];

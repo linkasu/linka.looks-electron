@@ -7,7 +7,7 @@
                 </v-card-title>
                 <v-card-text>
                     Пожалуйста, настройте соотношение экрана и его воспринятия айтрекером. <br>
-                    Для этого используйте переключатель ниже и смотрите на кнопкb с мишенями. Взгляд и реакция должны совпадать.
+                    Для этого используйте переключатель ниже и смотрите на кнопки с мишенями. Взгляд и реакция должны совпадать.
                 </v-card-text>
                 <v-card-text>
                     <v-checkbox v-model="multiplyScale" label="Учитывать масштабирование экрана?"></v-checkbox>
@@ -21,7 +21,7 @@
             </v-card>
         </v-container>
         <div class="corner">
-        <eye-button class="button" v-for="i in 4">
+        <eye-button class="button" v-for="i in 4" :key="i">
             🎯
         </eye-button>
 

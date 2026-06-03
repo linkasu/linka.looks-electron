@@ -16,6 +16,11 @@
               </v-btn>
             </v-container>
             <v-container>
+              <v-btn to="/tobii-calibration" color="primary" variant="tonal">
+                Калибровка Tobii.
+              </v-btn>
+            </v-container>
+            <v-container>
               <v-checkbox
                 v-model="isExitButton"
                 label="Кнопка выхода из набора глазами"
