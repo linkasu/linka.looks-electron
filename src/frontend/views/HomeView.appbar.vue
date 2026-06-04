@@ -8,6 +8,15 @@
     <rmdir-button />
     <mkdir-button />
     <v-btn
+      v-if="$platform.isMacOS"
+      flat
+      icon
+      to="/tobii-calibration"
+      aria-label="Калибровка Tobii"
+    >
+      <v-icon>mdi-eye</v-icon>
+    </v-btn>
+    <v-btn
       flat
       icon
       :to="newHref"
