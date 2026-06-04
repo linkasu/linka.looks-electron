@@ -4,8 +4,12 @@ on:
   push:
     branches: [ "main" ]
     tags: [ "v*" ]
+
+permissions:
+  contents: write
+
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -33,4 +37,40 @@ jobs:
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       run: npm run electron:build -- -p always
       env:
-        GH_TOKEN: ${{secrets.GH_TOKEN}}
+        GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install deps
+      run: npm ci
+    - name: Build unpacked app for packaged resource smoke test
+      run: npm run electron:build -- --mac --x64 --arm64 --dir
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+    - name: Packaged resource smoke test
+      run: npm run test:packaged-resources
+    - name: Build macOS artifacts
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      run: npm run electron:build -- --mac --x64 --arm64 -p never
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+    - name: Build and publish macOS artifacts
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      run: npm run electron:build -- --mac --x64 --arm64 -p always
+      env:
+        CSC_LINK: ${{ secrets.CSC_LINK }}
+        CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        CSC_NAME: "Developer ID Application: Иван Бакаидов (29HEQ626X2)"
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}

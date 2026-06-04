@@ -10,6 +10,7 @@ const external = [
   ...builtinModules,
   ...builtinModules.map((moduleName) => `node:${moduleName}`),
   ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.optionalDependencies || {}),
   "original-fs",
   "eyelog/dist/TobiiProcess",
   "eyelog/dist/bound"

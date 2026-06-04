@@ -26,6 +26,10 @@ pnpm-debug.log*
 /dist_electron
 /dist-electron
 
+# Native addon local build outputs
+/native/*/build
+/native/*/node_modules
+
 # Playwright output
 /test-results
 /playwright-report

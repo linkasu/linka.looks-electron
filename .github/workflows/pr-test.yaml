@@ -6,7 +6,7 @@ on:
     branches: ['main']
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -30,5 +30,38 @@ jobs:
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: installer
+        name: windows-installer
         path: dist
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install deps
+      run: npm ci
+    - name: Build unpacked app for packaged resource smoke test
+      run: npm run electron:build -- --mac --x64 --arm64 --dir
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+    - name: Packaged resource smoke test
+      run: npm run test:packaged-resources
+    - name: Build macOS artifacts
+      run: npm run electron:build -- --mac --x64 --arm64 -p never
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-artifacts
+        path: |
+          dist/*.dmg
+          dist/*.zip
+          dist/*.blockmap
+          dist/latest-mac.yml

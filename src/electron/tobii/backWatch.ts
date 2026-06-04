@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, 
 import type { PageElementsState } from "@/common/interfaces/PageElementsState";
 import type { EyeTrackerBound, EyeTrackerProcess } from "./EyeTrackerProcess";
 import { EyeLogTrackerProcess } from "./EyeLogTrackerProcess";
+import { NativeTobiiTrackerProcess } from "./NativeTobiiTrackerProcess";
 import { TobiiFreeTrackerProcess } from "./TobiiFreeTrackerProcess";
 
 export class BackWatch {
@@ -87,7 +88,16 @@ export class BackWatch {
 
   private createTracker (): EyeTrackerProcess | undefined {
     if (platform() === "win32") return new EyeLogTrackerProcess();
-    if (platform() === "darwin") return new TobiiFreeTrackerProcess();
+    if (platform() === "darwin") {
+      if (process.env.TOBII_NATIVE === "1") {
+        try {
+          return new NativeTobiiTrackerProcess();
+        } catch (error) {
+          console.warn("[tobii] native tracker unavailable, falling back to helper", error);
+        }
+      }
+      return new TobiiFreeTrackerProcess();
+    }
     return undefined;
   }
 

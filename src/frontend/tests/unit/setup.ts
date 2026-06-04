@@ -1,7 +1,8 @@
 const mocks = vi.hoisted(() => ({
   electron: {
     app: {
-      isPackaged: false
+      isPackaged: false,
+      getPath: vi.fn(() => "/tmp/linka-look-tests")
     },
     BrowserWindow: {
       fromWebContents: vi.fn(() => null)

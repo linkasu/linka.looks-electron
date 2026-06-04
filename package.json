@@ -21,6 +21,8 @@
     "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
     "test:unit:coverage": "vitest run --coverage && vitest run --config vitest.node.config.ts --coverage",
     "test:e2e": "npm run build && playwright test",
+    "native:build": "npm --prefix native/tobiifree-native run build",
+    "native:test-load": "npm --prefix native/tobiifree-native run test:load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
     "electron:build": "npm run build && electron-builder",
     "electron:serve": "vite",
@@ -57,9 +59,21 @@
   "build": {
     "productName": "LINKa. смотри",
     "appId": "su.linka.looks",
+    "asarUnpack": [
+      "node_modules/@linka/tobiifree-native/**/*.node"
+    ],
     "files": [
       "dist/**/*",
+      "!dist/mac/**/*",
+      "!dist/mac-arm64/**/*",
+      "!dist/win-unpacked/**/*",
+      "!dist/*.dmg",
+      "!dist/*.zip",
+      "!dist/*.blockmap",
+      "!dist/latest*.yml",
+      "!dist/builder-debug.yml",
       "dist-electron/**/*",
+      "node_modules/@linka/tobiifree-native/**/*",
       "package.json"
     ],
     "fileAssociations": [
@@ -70,6 +84,31 @@
     "publish": [
       "github"
     ],
+    "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.education",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
     "win": {
       "icon": "build/icons/icon.ico",
       "signAndEditExecutable": true,
@@ -102,6 +141,9 @@
         ]
       }
     ]
+  },
+  "optionalDependencies": {
+    "@linka/tobiifree-native": "file:native/tobiifree-native"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

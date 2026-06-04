@@ -1,25 +1,32 @@
-const { existsSync, mkdtempSync, rmSync, statSync } = require("fs");
+const { existsSync, mkdtempSync, readdirSync, rmSync, statSync } = require("fs");
 const { spawn, spawnSync } = require("child_process");
 const { join } = require("path");
 const { tmpdir } = require("os");
 
-if (process.platform !== "win32") {
-  console.log("Packaged resource smoke test is Windows-only; skipping on", process.platform);
-  process.exit(0);
-}
-
 const projectRoot = join(__dirname, "..", "..");
-const extraResourcesDir = join(projectRoot, "dist", "win-unpacked", "resources", "extraResources");
-const imageGenerator = join(extraResourcesDir, "ImageGenerator.exe");
-const eyeLog = join(extraResourcesDir, "bin", "EyeLog.exe");
+const distDir = join(projectRoot, "dist");
 
 function assertFile (file) {
   if (!existsSync(file)) {
     throw new Error(`Required packaged resource is missing: ${file}`);
   }
+  if (!statSync(file).isFile()) {
+    throw new Error(`Required packaged resource is not a file: ${file}`);
+  }
+}
+
+function assertDirectory (directory) {
+  if (!existsSync(directory)) {
+    throw new Error(`Required packaged directory is missing: ${directory}`);
+  }
+  if (!statSync(directory).isDirectory()) {
+    throw new Error(`Required packaged resource is not a directory: ${directory}`);
+  }
 }
 
 function smokeImageGenerator () {
+  const extraResourcesDir = getWindowsExtraResourcesDir();
+  const imageGenerator = join(extraResourcesDir, "ImageGenerator.exe");
   assertFile(imageGenerator);
 
   const outputDir = mkdtempSync(join(tmpdir(), "linka-image-generator-"));
@@ -54,6 +61,8 @@ function hasNonEmptyFile (file) {
 }
 
 function smokeEyeLog () {
+  const extraResourcesDir = getWindowsExtraResourcesDir();
+  const eyeLog = join(extraResourcesDir, "bin", "EyeLog.exe");
   assertFile(eyeLog);
 
   return new Promise((resolve, reject) => {
@@ -107,9 +116,78 @@ function isExpectedEyeLogCiFailure (stderr) {
     );
 }
 
+function getWindowsExtraResourcesDir () {
+  return join(distDir, "win-unpacked", "resources", "extraResources");
+}
+
+function findMacAppBundle () {
+  const appBundles = [];
+
+  function scan (directory, depth) {
+    if (!existsSync(directory) || depth > 3) return;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const entryPath = join(directory, entry.name);
+      if (entry.name.endsWith(".app")) {
+        appBundles.push(entryPath);
+        continue;
+      }
+      scan(entryPath, depth + 1);
+    }
+  }
+
+  scan(distDir, 0);
+  return appBundles.sort()[0];
+}
+
+function assertMacIcon (resourcesDir) {
+  const icons = readdirSync(resourcesDir).filter((name) => name.endsWith(".icns"));
+  if (icons.length === 0) {
+    throw new Error(`No macOS .icns icon found in ${resourcesDir}`);
+  }
+  assertFile(join(resourcesDir, icons[0]));
+}
+
+function smokeMacNativeAddon (resourcesDir) {
+  const unpackedDir = join(resourcesDir, "app.asar.unpacked", "node_modules", "@linka", "tobiifree-native");
+  if (!existsSync(unpackedDir)) {
+    console.warn("Native Tobii addon is not packaged; helper fallback remains available.");
+    return;
+  }
+
+  assertFile(join(unpackedDir, "package.json"));
+  assertFile(join(unpackedDir, "index.js"));
+}
+
+function smokeMacPackage () {
+  const appBundle = findMacAppBundle();
+  if (!appBundle) {
+    throw new Error(`No packaged .app bundle found in ${distDir}`);
+  }
+
+  const contentsDir = join(appBundle, "Contents");
+  const resourcesDir = join(contentsDir, "Resources");
+  const extraResourcesDir = join(resourcesDir, "extraResources");
+
+  assertFile(join(contentsDir, "Info.plist"));
+  assertMacIcon(resourcesDir);
+  assertDirectory(extraResourcesDir);
+  assertDirectory(join(extraResourcesDir, "defaultSets"));
+  assertFile(join(extraResourcesDir, "bin", "tobiifree-helper", "index.mjs"));
+  assertFile(join(extraResourcesDir, "bin", "tobiifree-sdk", "package.json"));
+  smokeMacNativeAddon(resourcesDir);
+}
+
 (async () => {
-  smokeImageGenerator();
-  await smokeEyeLog();
+  if (process.platform === "win32") {
+    smokeImageGenerator();
+    await smokeEyeLog();
+  } else if (process.platform === "darwin") {
+    smokeMacPackage();
+  } else {
+    console.log("Packaged resource smoke test is supported on Windows and macOS; skipping on", process.platform);
+    return;
+  }
   console.log("Packaged resource smoke test passed.");
 })().catch((error) => {
   console.error(error);
