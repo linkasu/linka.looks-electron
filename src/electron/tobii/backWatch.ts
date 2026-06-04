@@ -1,5 +1,5 @@
 import { platform } from "os";
-import { BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, screen } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, screen } from "electron";
 import type { PageElementsState } from "@/common/interfaces/PageElementsState";
 import type { EyeTrackerBound, EyeTrackerProcess } from "./EyeTrackerProcess";
 import { EyeLogTrackerProcess } from "./EyeLogTrackerProcess";
@@ -11,6 +11,7 @@ export class BackWatch {
   hid = "";
   multiplyScale = false;
   data?: PageElementsState = undefined;
+  private debugEnabled = false;
   private boundsLogged = false;
   private readonly onEyeElements = (event: IpcMainEvent, data: PageElementsState) => {
     this.hid = data.id;
@@ -25,6 +26,11 @@ export class BackWatch {
   private readonly onButtonMultiplyScale = (event: IpcMainEvent, value: boolean) => {
     this.multiplyScale = value;
     this.processData();
+  };
+
+  private readonly onDebugSetEnabled = (event: IpcMainEvent, value: boolean) => {
+    this.debugEnabled = value;
+    this.tobii?.setDebugEnabled?.(value);
   };
 
   private readonly onCalibrationStart = async () => {
@@ -57,12 +63,18 @@ export class BackWatch {
       this.tobii?.on("enter", (index: number) => this.onEnter(index));
       this.tobii?.on("exit", () => this.onExit());
       this.tobii?.on("click", (index, count) => this.onClick(index, count));
+      if (!app.isPackaged) {
+        this.tobii?.on("debug", (state) => {
+          if (this.debugEnabled) this.window?.webContents.send("tobii:debug", state);
+        });
+      }
       void this.tobii?.initialize?.()
         .then(() => console.warn("[tobii] tracker initialized"))
         .catch((error) => console.warn("[tobii] tracker initialization failed", error));
       ipcMain.on("eye-elements", this.onEyeElements);
       ipcMain.on("button_timeout", this.onButtonTimeout);
       ipcMain.on("button_multiply_scale", this.onButtonMultiplyScale);
+      ipcMain.on("tobii:debug:set-enabled", this.onDebugSetEnabled);
       ipcMain.handle("tobii:calibration:start", this.onCalibrationStart);
       ipcMain.handle("tobii:calibration:add-point", this.onCalibrationAddPoint);
       ipcMain.handle("tobii:calibration:finish", this.onCalibrationFinish);
@@ -118,6 +130,7 @@ export class BackWatch {
     ipcMain.off("eye-elements", this.onEyeElements);
     ipcMain.off("button_timeout", this.onButtonTimeout);
     ipcMain.off("button_multiply_scale", this.onButtonMultiplyScale);
+    ipcMain.off("tobii:debug:set-enabled", this.onDebugSetEnabled);
     ipcMain.removeHandler("tobii:calibration:start");
     ipcMain.removeHandler("tobii:calibration:add-point");
     ipcMain.removeHandler("tobii:calibration:finish");

@@ -30,8 +30,10 @@
     </v-container>
 
     <div v-else class="calibration-stage" :class="{ 'is-finishing': phase === 'finish' }">
+      <div v-if="showDebug && debugState" class="debug-gaze-marker" :style="debugMarkerStyle"></div>
       <div
         v-for="(point, index) in currentGroup"
+        v-if="pointStates[index] !== 'done'"
         :key="`${activeGroupIndex}-${index}`"
         class="calibration-target eye lock"
         :class="targetClasses(index)"
@@ -48,6 +50,25 @@
           <div class="target-dot"></div>
         </div>
       </div>
+
+      <v-card v-if="showDebug" class="debug-panel" density="compact">
+        <v-card-title class="text-subtitle-2">
+          Tobii debug
+        </v-card-title>
+        <v-card-text>
+          <div>phase: {{ phase }} group: {{ activeGroupIndex + 1 }} active: {{ activePointIndex ?? '-' }}</div>
+          <div>states: {{ pointStates.join(', ') }}</div>
+          <div v-if="debugState">
+            raw: {{ formatPoint(debugState.raw) }} normalized: {{ formatPoint(debugState.normalized) }}
+          </div>
+          <div v-if="debugState">
+            screen: {{ formatPoint(debugState.screen) }} viewport: {{ formatPoint(debugViewportPoint) }} hit: {{ debugState.hitIndex }} / {{ debugState.boundsCount }} sw: {{ debugState.softwareCalibration ? 'on' : 'off' }}
+          </div>
+          <div v-if="debugTargets.length">
+            targets: {{ debugTargets.join(' | ') }}
+          </div>
+        </v-card-text>
+      </v-card>
     </div>
   </div>
 </template>
@@ -55,13 +76,22 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ipcRenderer } from "electron";
+import { ipcRenderer, type IpcRendererEvent } from "electron";
 
 type CalibrationPhase = "idle" | "start" | "look" | "finish";
 type CalibrationPointState = "idle" | "holding" | "bursting" | "done";
 type CalibrationPoint = {
   x: number
   y: number
+};
+type TobiiDebugState = {
+  raw: CalibrationPoint
+  normalized: CalibrationPoint
+  screen: CalibrationPoint
+  screenRect: { x: number, y: number, width: number, height: number }
+  boundsCount: number
+  hitIndex: number
+  softwareCalibration: boolean
 };
 
 const router = useRouter();
@@ -76,10 +106,13 @@ const activePointIndex = ref<number | null>(null);
 const pointStates = ref<CalibrationPointState[]>([]);
 const holdProgress = ref(0);
 const completingPoint = ref(false);
+const debugState = ref<TobiiDebugState>();
+const debugTargets = ref<string[]>([]);
+const showDebug = import.meta.env.DEV && window.localStorage.getItem("tobiiDebug") === "1";
 
 const holdMs = 1600;
-const burstMs = 650;
-const groupPauseMs = 500;
+const burstMs = 280;
+const groupPauseMs = 120;
 let holdFrame: number | undefined;
 
 const calibrationGroups: CalibrationPoint[][] = [
@@ -96,6 +129,17 @@ const calibrationGroups: CalibrationPoint[][] = [
 ];
 
 const currentGroup = computed(() => calibrationGroups[activeGroupIndex.value]);
+const debugViewportPoint = computed(() => {
+  if (!debugState.value) return { x: 0, y: 0 };
+  return {
+    x: debugState.value.screen.x - debugState.value.screenRect.x,
+    y: debugState.value.screen.y - debugState.value.screenRect.y
+  };
+});
+const debugMarkerStyle = computed(() => ({
+  left: `${debugViewportPoint.value.x}px`,
+  top: `${debugViewportPoint.value.y}px`
+}));
 
 async function startTobiiCalibration () {
   if (calibrationBusy.value) return;
@@ -212,9 +256,10 @@ async function completePoint (index: number) {
   setPointState(index, "bursting");
 
   try {
-    await ipcRenderer.invoke("tobii:calibration:add-point", currentGroup.value[index]);
-    if (cancelled.value) return;
-    await wait(burstMs);
+    await Promise.all([
+      ipcRenderer.invoke("tobii:calibration:add-point", currentGroup.value[index]),
+      wait(burstMs)
+    ]);
     if (cancelled.value) return;
     setPointState(index, "done");
     completingPoint.value = false;
@@ -283,10 +328,35 @@ function onKeydown (event: KeyboardEvent) {
   cancelTobiiCalibration();
 }
 
-onMounted(() => window.addEventListener("keydown", onKeydown));
+function onTobiiDebug (event: IpcRendererEvent, state: TobiiDebugState) {
+  debugState.value = state;
+  debugTargets.value = currentGroup.value.map((point, index) => {
+    const el = document.querySelectorAll(".calibration-target")[index];
+    const rect = el?.getBoundingClientRect();
+    const target = `${index}:${pointStates.value[index] || "?"}`;
+    if (!rect) return target;
+    return `${target}@${Math.round(rect.x + rect.width / 2)},${Math.round(rect.y + rect.height / 2)} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
+  });
+}
+
+function formatPoint (point: CalibrationPoint) {
+  return `${point.x.toFixed(3)}, ${point.y.toFixed(3)}`;
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", onKeydown);
+  if (showDebug) {
+    ipcRenderer.send("tobii:debug:set-enabled", true);
+    ipcRenderer.on("tobii:debug", onTobiiDebug);
+  }
+});
 onBeforeUnmount(() => {
   stopHoldTimer();
   window.removeEventListener("keydown", onKeydown);
+  if (showDebug) {
+    ipcRenderer.send("tobii:debug:set-enabled", false);
+    ipcRenderer.off("tobii:debug", onTobiiDebug);
+  }
 });
 </script>
 
@@ -305,8 +375,10 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 1000;
   overflow: hidden;
-  background: radial-gradient(circle at center, #f9fbff 0%, #edf3ff 52%, #dfe9fb 100%);
-  color: #111;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(42, 101, 255, 0.24) 0%, rgba(6, 17, 45, 0.92) 45%, #020817 100%),
+    #020817;
+  color: #fff;
   transition: opacity 240ms ease;
 }
 
@@ -314,10 +386,32 @@ onBeforeUnmount(() => {
   opacity: 0.5;
 }
 
+.debug-panel {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  max-width: min(720px, calc(100vw - 32px));
+  font-family: monospace;
+  opacity: 0.88;
+}
+
+.debug-gaze-marker {
+  position: fixed;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border: 3px solid #f44336;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
 .calibration-target {
   position: fixed;
-  width: 132px;
-  height: 132px;
+  width: 360px;
+  height: 360px;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
@@ -344,10 +438,12 @@ onBeforeUnmount(() => {
   place-items: center;
   border-radius: 50%;
   background: conic-gradient(
-    rgb(var(--v-theme-primary)) var(--hold-progress),
-    rgba(var(--v-theme-primary), 0.22) 0
+    #4dffea var(--hold-progress),
+    rgba(77, 255, 234, 0.26) 0
   );
-  box-shadow: 0 18px 44px rgba(32, 64, 128, 0.18);
+  box-shadow:
+    0 0 28px rgba(77, 255, 234, 0.7),
+    0 0 76px rgba(54, 116, 255, 0.38);
 }
 
 .target-ring::before {
@@ -355,7 +451,8 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 10px;
   border-radius: 50%;
-  background: #fff;
+  background: #04122e;
+  box-shadow: inset 0 0 18px rgba(77, 255, 234, 0.18);
 }
 
 .is-holding .target-ring {
@@ -363,7 +460,7 @@ onBeforeUnmount(() => {
 }
 
 .is-bursting .target-ring {
-  animation: target-burst 650ms ease-out forwards;
+  animation: target-burst 280ms ease-out forwards;
 }
 
 .target-dot {
@@ -372,12 +469,14 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: rgb(var(--v-theme-secondary));
-  box-shadow: 0 0 0 8px rgba(var(--v-theme-secondary), 0.16);
+  background: #ffec5c;
+  box-shadow:
+    0 0 0 8px rgba(255, 236, 92, 0.22),
+    0 0 24px rgba(255, 236, 92, 0.9);
 }
 
 .is-bursting .target-dot {
-  animation: dot-burst 650ms ease-out forwards;
+  animation: dot-burst 280ms ease-out forwards;
 }
 
 .target-sparks {
@@ -395,9 +494,10 @@ onBeforeUnmount(() => {
   height: 7px;
   margin: -3.5px 0 0 -3.5px;
   border-radius: 50%;
-  background: rgb(var(--v-theme-secondary));
+  background: #ffec5c;
   opacity: 0;
   transform: rotate(var(--spark-angle)) translateX(24px) scale(0.4);
+  box-shadow: 0 0 14px rgba(255, 236, 92, 0.95);
 }
 
 .is-holding .target-spark {
@@ -405,7 +505,7 @@ onBeforeUnmount(() => {
 }
 
 .is-bursting .target-spark {
-  animation: spark-burst 650ms ease-out forwards;
+  animation: spark-burst 280ms ease-out forwards;
 }
 
 .target-spark:nth-child(1) { --spark-angle: 0deg; }

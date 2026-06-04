@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import type { Readable, Writable } from "stream";
 import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
-import type { EyeTrackerBound, EyeTrackerProcess } from "./EyeTrackerProcess";
+import type { EyeTrackerBound, EyeTrackerDebugState, EyeTrackerProcess } from "./EyeTrackerProcess";
 
 type TobiiHelperProcess = ChildProcessByStdio<Writable, Readable, Readable>;
 type PendingRequest = {
@@ -51,6 +51,7 @@ type TobiiFreeEvents = {
   enter: [index: number];
   exit: [];
   click: [index: number, count: number];
+  debug: [state: EyeTrackerDebugState];
 };
 
 type TobiiFreeEventName = keyof TobiiFreeEvents;
@@ -73,6 +74,8 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
   private clicked = false;
   private requestId = 1;
   private gazeSamples = 0;
+  private lastDebugAt = 0;
+  private debugEnabled = false;
   private boundsLogged = false;
   private displayLogged = false;
   private pending = new Map<number, PendingRequest>();
@@ -120,6 +123,10 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
     this.displayLogged = false;
   }
 
+  setDebugEnabled (value: boolean) {
+    this.debugEnabled = value;
+  }
+
   async initialize () {
     await this.waitForHelperReady(15000);
   }
@@ -140,7 +147,6 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
     this.requireDirectUsbCalibration();
     this.resetTarget(true);
     this.calibrationSamples = [];
-    this.softwareCalibration = undefined;
     await this.sendCommand("calibration.start");
   }
 
@@ -318,6 +324,7 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
         point.y >= bound.y && point.y <= bound.y + bound.height;
     });
     this.gazeSamples += 1;
+    this.emitDebugState(rawPoint, normalizedPoint, point, index);
     if (this.gazeSamples === 1 || this.gazeSamples % 120 === 0) {
       console.warn("[tobiifree-helper] gaze sample", {
         raw: rawPoint,
@@ -354,6 +361,21 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
       x: Math.round((this.screenRect.x + x * this.screenRect.width + this.extraOffsetX) * this.scaleFactor),
       y: Math.round((this.screenRect.y + y * this.screenRect.height + this.extraOffsetY) * this.scaleFactor)
     };
+  }
+
+  private emitDebugState (raw: GazePoint, normalized: GazePoint, point: GazePoint, hitIndex: number) {
+    const now = Date.now();
+    if (!this.debugEnabled || now - this.lastDebugAt < 250) return;
+    this.lastDebugAt = now;
+    this.emit("debug", {
+      raw,
+      normalized,
+      screen: point,
+      screenRect: this.screenRect,
+      boundsCount: this.bounds.length,
+      hitIndex,
+      softwareCalibration: !!this.softwareCalibration
+    });
   }
 
   private rememberRecentGazePoint (point: GazePoint) {

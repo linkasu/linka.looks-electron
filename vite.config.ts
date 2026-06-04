@@ -31,6 +31,10 @@ export default defineConfig(({ command }) => ({
     electron({
       main: {
         entry: "src/electron/main.ts",
+        onstart ({ startup }) {
+          const port = process.env.ELECTRON_REMOTE_DEBUGGING_PORT || "9222";
+          void startup([".", "--no-sandbox", `--remote-debugging-port=${port}`]);
+        },
         vite: {
           resolve: {
             alias
