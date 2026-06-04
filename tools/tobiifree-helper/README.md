@@ -1,7 +1,7 @@
 # TobiiFree helper
 
-Experimental macOS helper for Tobii Eye Tracker 5. It does not run calibration;
-it only streams normalized gaze points to the Electron main process.
+Experimental macOS helper for Tobii Eye Tracker 5. It streams normalized gaze
+points to the Electron main process and accepts direct-USB calibration commands.
 
 ## Daemon mode
 
@@ -13,11 +13,12 @@ TOBIIFREE_DAEMON_URL=ws://127.0.0.1:7081 npm run electron:serve
 
 ## Direct USB mode
 
-Install or otherwise expose `tobiifree-sdk-ts` to Node resolution, then start
-Electron normally. Override the package name if needed:
+The helper uses the local SDK copied into `tools/tobiifree-sdk` by default. Start
+Electron normally. Override the SDK module URL only when testing another SDK
+build:
 
 ```sh
-TOBIIFREE_SDK_PACKAGE=tobiifree-sdk-ts npm run electron:serve
+TOBIIFREE_SDK_MODULE=file:///path/to/tobiifree-sdk/src/index.ts npm run electron:serve
 ```
 
 ## Custom command

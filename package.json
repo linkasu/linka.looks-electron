@@ -45,6 +45,7 @@
     "linebreak-next": "^1.0.3",
     "pictures.bank-api": "https://github.com/linkasu/pictures.bank-client.git",
     "roboto-fontface": "*",
+    "usb": "^2.17.0",
     "uuid": "^14.0.0",
     "vue": "^3.5.34",
     "vue-router": "^4.6.4",
@@ -82,6 +83,20 @@
       {
         "from": "./extraResources/",
         "to": "extraResources",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "./tools/tobiifree-helper/",
+        "to": "extraResources/bin/tobiifree-helper",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "./tools/tobiifree-sdk/",
+        "to": "extraResources/bin/tobiifree-sdk",
         "filter": [
           "**/*"
         ]

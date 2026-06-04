@@ -1,4 +1,4 @@
-const sdkPackage = process.env.TOBIIFREE_SDK_PACKAGE || "tobiifree-sdk-ts";
+const sdkModule = process.env.TOBIIFREE_SDK_MODULE || new URL("../tobiifree-sdk/src/index.ts", import.meta.url).href;
 const daemonUrl = process.env.TOBIIFREE_DAEMON_URL;
 
 const HEADER_SIZE = 5;
@@ -166,7 +166,7 @@ async function startDaemonMode (url) {
 }
 
 async function startDirectUsbMode () {
-  const { Tobii } = await import(sdkPackage);
+  const { Tobii } = await import(sdkModule);
   source = await Tobii.fromUsb();
   await ensureDisplayArea();
 

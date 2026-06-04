@@ -57,6 +57,10 @@ type TobiiFreeEventName = keyof TobiiFreeEvents;
 
 export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerProcess {
   private process?: TobiiHelperProcess;
+  private helperReady = false;
+  private readonly helperReadyPromise: Promise<void>;
+  private resolveHelperReady!: () => void;
+  private rejectHelperReady!: (error: Error) => void;
   private buffer = "";
   private bounds: EyeTrackerBound[] = [];
   private screenRect = { x: 0, y: 0, width: 1, height: 1 };
@@ -80,6 +84,10 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
 
   constructor () {
     super();
+    this.helperReadyPromise = new Promise((resolve, reject) => {
+      this.resolveHelperReady = resolve;
+      this.rejectHelperReady = reject;
+    });
     this.startHelper();
   }
 
@@ -112,6 +120,10 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
     this.displayLogged = false;
   }
 
+  async initialize () {
+    await this.waitForHelperReady(15000);
+  }
+
   destroy () {
     this.resetTarget(true);
     for (const [, request] of this.pending) {
@@ -119,22 +131,27 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
       request.reject(new Error("TobiiFree helper stopped"));
     }
     this.pending.clear();
+    this.rejectHelperReady(new Error("TobiiFree helper stopped"));
     this.process?.kill();
     this.process = undefined;
   }
 
   async startCalibration () {
+    this.requireDirectUsbCalibration();
     this.resetTarget(true);
     this.calibrationSamples = [];
+    this.softwareCalibration = undefined;
     await this.sendCommand("calibration.start");
   }
 
   async addCalibrationPoint (x: number, y: number) {
+    this.requireDirectUsbCalibration();
     this.rememberSoftwareCalibrationPoint({ x, y });
     await this.sendCommand("calibration.addPoint", { x, y });
   }
 
   async finishCalibration () {
+    this.requireDirectUsbCalibration();
     const blobBase64 = await this.sendCommand("calibration.finish", undefined, 30000);
     if (!blobBase64) return;
     await mkdir(app.getPath("userData"), { recursive: true });
@@ -143,6 +160,7 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
   }
 
   async applySavedCalibration () {
+    this.requireDirectUsbCalibration();
     try {
       const blob = await readFile(this.calibrationPath);
       await this.sendCommand("calibration.apply", { blobBase64: blob.toString("base64") }, 15000);
@@ -170,9 +188,13 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
 
     this.process.stdout.on("data", (chunk) => this.onStdout(chunk.toString()));
     this.process.stderr.on("data", (chunk) => console.warn("[tobiifree-helper]", chunk.toString().trim()));
-    this.process.on("error", (error) => console.warn("[tobiifree-helper] failed to start", error));
+    this.process.on("error", (error) => {
+      this.rejectHelperReady(error);
+      console.warn("[tobiifree-helper] failed to start", error);
+    });
     this.process.on("exit", (code, signal) => {
       this.resetTarget(true);
+      this.rejectHelperReady(new Error("TobiiFree helper exited before becoming ready. Check that the local TobiiFree SDK is available and Tobii Eye Tracker is connected."));
       for (const [, request] of this.pending) {
         clearTimeout(request.timer);
         request.reject(new Error("TobiiFree helper exited"));
@@ -195,7 +217,9 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
   private onLine (line: string) {
     if (!line) return;
     if (line === "ready") {
-      void this.applySavedCalibration();
+      this.helperReady = true;
+      this.resolveHelperReady();
+      void this.applySavedCalibration().catch((error) => console.warn("[tobiifree-helper] could not auto-apply saved calibration", error));
       return;
     }
     if (line === "invalid") {
@@ -236,25 +260,42 @@ export class TobiiFreeTrackerProcess extends EventEmitter implements EyeTrackerP
   }
 
   private sendCommand (command: string, payload: Record<string, unknown> = {}, timeoutMs = 10000) {
-    if (!this.process || this.process.stdin.destroyed || !this.process.stdin.writable) {
-      return Promise.reject(new Error("TobiiFree helper is not running"));
-    }
+    return this.waitForHelperReady(timeoutMs).then(() => {
+      if (!this.process || this.process.stdin.destroyed || !this.process.stdin.writable) {
+        return Promise.reject(new Error("TobiiFree helper is not running"));
+      }
 
-    const id = this.requestId++;
-    const message = JSON.stringify({ id, command, ...payload }) + "\n";
-    return new Promise<string | undefined>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(new Error(`TobiiFree helper command timed out: ${command}`));
-      }, timeoutMs);
-      this.pending.set(id, { resolve, reject, timer });
-      this.process?.stdin.write(message, (error) => {
-        if (!error) return;
-        this.pending.delete(id);
-        clearTimeout(timer);
-        reject(error);
+      const id = this.requestId++;
+      const message = JSON.stringify({ id, command, ...payload }) + "\n";
+      return new Promise<string | undefined>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          this.pending.delete(id);
+          reject(new Error(`TobiiFree helper command timed out: ${command}`));
+        }, timeoutMs);
+        this.pending.set(id, { resolve, reject, timer });
+        this.process?.stdin.write(message, (error) => {
+          if (!error) return;
+          this.pending.delete(id);
+          clearTimeout(timer);
+          reject(error);
+        });
       });
     });
+  }
+
+  private waitForHelperReady (timeoutMs: number) {
+    if (this.helperReady) return Promise.resolve();
+    return Promise.race([
+      this.helperReadyPromise,
+      new Promise<void>((resolve, reject) => {
+        setTimeout(() => reject(new Error("TobiiFree helper is not ready. Check that Tobii Eye Tracker is connected and available.")), timeoutMs);
+      })
+    ]);
+  }
+
+  private requireDirectUsbCalibration () {
+    if (!process.env.TOBIIFREE_DAEMON_URL) return;
+    throw new Error("Калибровка Tobii недоступна в daemon-режиме. Перезапустите приложение без TOBIIFREE_DAEMON_URL, чтобы helper подключился к устройству напрямую по USB.");
   }
 
   private onGaze (payload: string) {

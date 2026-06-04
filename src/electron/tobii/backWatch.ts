@@ -57,6 +57,9 @@ export class BackWatch {
       this.tobii?.on("enter", (index: number) => this.onEnter(index));
       this.tobii?.on("exit", () => this.onExit());
       this.tobii?.on("click", (index, count) => this.onClick(index, count));
+      void this.tobii?.initialize?.()
+        .then(() => console.warn("[tobii] tracker initialized"))
+        .catch((error) => console.warn("[tobii] tracker initialization failed", error));
       ipcMain.on("eye-elements", this.onEyeElements);
       ipcMain.on("button_timeout", this.onButtonTimeout);
       ipcMain.on("button_multiply_scale", this.onButtonMultiplyScale);

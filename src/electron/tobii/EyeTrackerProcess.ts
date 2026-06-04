@@ -13,6 +13,7 @@ export interface EyeTrackerProcess {
   setTimeout(value: number): void;
   setScaleFactor?(value: number): void;
   setScreenRect?(x: number, y: number, width: number, height: number): void;
+  initialize?(): Promise<void>;
   startCalibration?(): Promise<void>;
   addCalibrationPoint?(x: number, y: number): Promise<void>;
   finishCalibration?(): Promise<void>;
