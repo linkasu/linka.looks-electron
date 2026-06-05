@@ -83,7 +83,7 @@ jobs:
         cache: 'npm'
 
     - name: Install Linux native build dependencies
-      run: sudo apt-get update && sudo apt-get install -y libudev-dev
+      run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
     - name: Install deps
       run: npm ci
     - name: Unit tests

@@ -119,6 +119,7 @@
     },
     "linux": {
       "category": "Education",
+      "maintainer": "Ivan Bakaidov <ivan@aacidov.ru>",
       "target": [
         "AppImage",
         "deb"
