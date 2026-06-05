@@ -71,6 +71,8 @@ jobs:
 
   build-linux-experimental:
     runs-on: ubuntu-latest
+    env:
+      CXXFLAGS: -std=gnu++17
     steps:
     - uses: actions/checkout@v4
 
