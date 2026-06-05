@@ -36,7 +36,7 @@ jobs:
             "${{ secrets.LINKA_SU_USER }}@${{ secrets.LINKA_SU_HOST }}" \
             "EXPECTED_VERSION='$expected_version' bash -s" <<'REMOTE'
           set -euo pipefail
-          cd /var/www/linka.su/dist/linka.looks
+          cd /home/aacidov/linka-docker/wordpress/dist/linka.looks
 
           node update.js
 
