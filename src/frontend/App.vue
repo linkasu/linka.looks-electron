@@ -21,18 +21,27 @@
 
 <script lang="ts" setup>
 import { computed, onMounted } from "vue";
+import { ipcRenderer } from "electron";
 import store from "./store";
 import RegisterForm from "@/frontend/views/RegisterForm.vue";
 import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
 import NotificationPopup from "@/frontend/components/NotificationPopup.vue";
 import DownloadDefaultSetsDialog from "@/frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
+import { platform } from "@/frontend/plugins/platform";
 
 const pcHash = computed(() => store.state.pcHash);
 
-onMounted(() => {
+onMounted(async () => {
   if (pcHash.value.length === 36) {
-    Metric.registerEvent(pcHash.value, "start");
+    const appInfo = await ipcRenderer.invoke("app_version");
+    const payload = {
+      platform: appInfo.platform || platform.name,
+      version: appInfo.version,
+      isPackaged: appInfo.isPackaged
+    };
+    Metric.registerEvent(pcHash.value, "platformDetected", payload);
+    Metric.registerEvent(pcHash.value, "start", payload);
   }
 });
 

@@ -13,6 +13,7 @@
       icon
       to="/tobii-calibration"
       aria-label="Калибровка Tobii"
+      @click="trackTobiiCalibrationOpen"
     >
       <v-icon>mdi-eye</v-icon>
     </v-btn>
@@ -40,6 +41,8 @@ import { useRoute } from "vue-router";
 import MkdirButton from "@/frontend/components/HomeView/MkdirButton.vue";
 import RmdirButton from "@/frontend/components/HomeView/RmdirButton.vue";
 import ShareButton from "@/frontend/components/ShareButton.vue";
+import store from "@/frontend/store";
+import { Metric } from "@/frontend/utils/Metric";
 
 const route = useRoute();
 
@@ -54,4 +57,8 @@ const title = computed(() => {
 const newHref = computed(() => {
   return "/edit/" + root.value.replace(/\//g, "§") + "§" + "new";
 });
+
+function trackTobiiCalibrationOpen () {
+  Metric.registerEvent(store.state.pcHash, "openTobiiCalibration", { platform: "darwin" });
+}
 </script>

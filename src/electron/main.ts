@@ -35,7 +35,11 @@ const updateState = {
   percent: 0
 };
 
-ipcMain.handle("app_version", () => ({ version: app.getVersion() }));
+ipcMain.handle("app_version", () => ({
+  version: app.getVersion(),
+  platform: process.platform,
+  isPackaged: app.isPackaged
+}));
 ipcMain.handle("updater:getState", () => updateState);
 
 function logUpdate (message: string, payload?: unknown): void {

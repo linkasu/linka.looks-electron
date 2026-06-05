@@ -74,3 +74,30 @@ jobs:
         APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+
+  build-linux-experimental:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install deps
+      run: npm ci
+    - name: Unit tests
+      run: npm run test:unit
+    - name: Build Linux experimental artifacts
+      run: npm run electron:build:linux
+    - name: Upload Linux experimental artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-experimental-artifacts
+        path: |
+          dist/*.AppImage
+          dist/*.deb
+          dist/*.blockmap
+          dist/latest-linux.yml

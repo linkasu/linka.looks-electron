@@ -25,6 +25,9 @@
     "native:test-load": "npm --prefix native/tobiifree-native run test:load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
     "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run electron:build -- --win -p never",
+    "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
+    "electron:build:linux": "npm run electron:build -- --linux -p never",
     "electron:serve": "vite",
     "postinstall": "node postinstall && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
@@ -113,6 +116,13 @@
       "icon": "build/icons/icon.ico",
       "signAndEditExecutable": true,
       "verifyUpdateCodeSignature": false
+    },
+    "linux": {
+      "category": "Education",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     },
     "nsis": {
       "include": "build/installer.nsh",

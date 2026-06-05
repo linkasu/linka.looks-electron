@@ -221,11 +221,13 @@ const store = createStore<LINKaStore>({
       Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
       button.keyboardActivation = value;
     },
-    button_mouseActivation ({ button }, value) {
+    button_mouseActivation ({ button, pcHash }, value) {
       button.mouseActivation = value;
+      Metric.registerEvent(pcHash, "settingsToggleMouseActivation", { value });
     },
-    button_pageTurnMode ({ button }, value: PageTurnMode) {
+    button_pageTurnMode ({ button, pcHash }, value: PageTurnMode) {
       button.pageTurnMode = value;
+      Metric.registerEvent(pcHash, "settingsTogglePageTurnMode", { value });
     },
     button_borders ({ button }, value) {
       button.borders = value;
@@ -237,9 +239,10 @@ const store = createStore<LINKaStore>({
       button.clickSound = value;
       Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
     },
-    button_multiply_scale ({ button }, value) {
+    button_multiply_scale ({ button, pcHash }, value) {
       button.multiplyScale = value;
       ipcRenderer.send("button_multiply_scale", value);
+      Metric.registerEvent(pcHash, "settingsToggleEyeScale", { value });
     },
     layoutSettings_isOpened ({ layoutSettings }, value) {
       layoutSettings.isOpened = value;

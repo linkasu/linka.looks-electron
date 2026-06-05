@@ -65,3 +65,30 @@ jobs:
           dist/*.zip
           dist/*.blockmap
           dist/latest-mac.yml
+
+  build-linux-experimental:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install deps
+      run: npm ci
+    - name: Unit tests
+      run: npm run test:unit
+    - name: Build Linux experimental artifacts
+      run: npm run electron:build:linux
+    - name: Upload Linux experimental artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-experimental-artifacts
+        path: |
+          dist/*.AppImage
+          dist/*.deb
+          dist/*.blockmap
+          dist/latest-linux.yml

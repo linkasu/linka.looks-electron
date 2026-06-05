@@ -52,6 +52,12 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { ipcRenderer } from "electron";
 import { ProgressInfo } from "electron-updater";
+import store from "@/frontend/store";
+import { Metric } from "@/frontend/utils/Metric";
+
+type UpdateInfo = {
+  version?: string;
+};
 
 const percent = ref(0);
 const version = ref("");
@@ -86,25 +92,33 @@ function onUpdateInfo (event: unknown, data: ProgressInfo) {
   percent.value = data.percent;
 }
 
-function onUpdateAvailable () {
+function onUpdateAvailable (event: unknown, info?: UpdateInfo) {
   available.value = true;
   errorMessage.value = "";
+  trackUpdateMetric("updateAvailable", { version: info?.version || version.value });
 }
 
-function onUpdateDownloaded () {
+function onUpdateDownloaded (event: unknown, info?: UpdateInfo) {
   available.value = false;
   downloaded.value = true;
   errorMessage.value = "";
+  trackUpdateMetric("updateDownloaded", { version: info?.version || version.value });
 }
 
 function onUpdateError (event: unknown, message: string) {
   errorMessage.value = message;
   available.value = false;
   downloaded.value = false;
+  trackUpdateMetric("updateError", { message, version: version.value });
 }
 
 function update () {
+  trackUpdateMetric("updateInstallConfirmed", { version: version.value });
   ipcRenderer.send("restart_app");
+}
+
+function trackUpdateMetric (eventName: Parameters<typeof Metric.registerEvent>[1], eventData?: unknown) {
+  Metric.registerEvent(store.state.pcHash, eventName, eventData);
 }
 </script>
 

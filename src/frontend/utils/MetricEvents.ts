@@ -1,11 +1,13 @@
 
 export const metricEvents = [
   "start", //
+  "platformDetected", //
 
   "openSettings", //
   "openSet", //
   "openFolder", //
   "openEditor", //
+  "openTobiiCalibration", //
 
   "cardClick", //
   "toggleOutputLine", //
@@ -25,7 +27,24 @@ export const metricEvents = [
   "settingsToggleKeyboardActivation", //
   "settingsToggleJoystickActivation", //
   "settingsToggleTypeSound", //
-  "settingsSetTimeout" //
+  "settingsToggleMouseActivation", //
+  "settingsTogglePageTurnMode", //
+  "settingsToggleEyeScale", //
+  "settingsSetTimeout", //
+
+  "tobiiCalibrationStart", //
+  "tobiiCalibrationPoint", //
+  "tobiiCalibrationFinish", //
+  "tobiiCalibrationCancel", //
+  "tobiiCalibrationError", //
+  "tobiiCalibrationApplySaved", //
+  "tobiiCalibrationApplySavedResult", //
+  "tobiiCalibrationUnavailable", //
+
+  "updateAvailable", //
+  "updateDownloaded", //
+  "updateError", //
+  "updateInstallConfirmed" //
 
 ] as const;
 
