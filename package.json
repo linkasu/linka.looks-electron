@@ -1,6 +1,6 @@
 {
   "name": "linka.looks",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "author": "ibakaidov",
   "private": true,
   "engines": {
@@ -134,7 +134,11 @@
         "from": "./extraResources/",
         "to": "extraResources",
         "filter": [
-          "**/*"
+          "**/*",
+          "!defaultSets/**/*",
+          "defaultSets/Клавиатура.linka",
+          "defaultSets/Крупная клавиатура/**/*",
+          "defaultSets/цифры знаки.linka"
         ]
       },
       {
