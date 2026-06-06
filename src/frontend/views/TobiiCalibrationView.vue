@@ -7,6 +7,12 @@
         </v-card-title>
         <v-card-text>
           Смотрите на любую доступную точку и удерживайте взгляд, пока она не сработает. Если отвести взгляд раньше времени, точка вернётся в исходное состояние. Для отмены нажмите Escape.
+          <v-alert class="mt-4" :type="tobiiStatusAlertType" variant="tonal">
+            <div>{{ tobiiStatusMessage }}</div>
+            <div v-if="tobiiStatus?.lastError">
+              Ошибка: {{ tobiiStatus.lastError }}
+            </div>
+          </v-alert>
           <v-alert v-if="calibrationMessage" class="mt-4" type="info" variant="tonal">
             {{ calibrationMessage }}
           </v-alert>
@@ -15,10 +21,10 @@
           </v-alert>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :loading="calibrationBusy" @click="startTobiiCalibration">
+          <v-btn color="primary" :disabled="!canUseTobii" :loading="calibrationBusy" @click="startTobiiCalibration">
             Начать калибровку
           </v-btn>
-          <v-btn :loading="calibrationBusy" @click="applySavedCalibration">
+          <v-btn :disabled="!canUseTobii" :loading="calibrationBusy" @click="applySavedCalibration">
             Применить сохранённую
           </v-btn>
           <v-spacer></v-spacer>
@@ -80,6 +86,7 @@ import { ipcRenderer, type IpcRendererEvent } from "electron";
 import store from "@/frontend/store";
 import { platform } from "@/frontend/plugins/platform";
 import { Metric } from "@/frontend/utils/Metric";
+import type { TobiiStatus } from "@/electron/tobii/EyeTrackerProcess";
 
 type CalibrationPhase = "idle" | "start" | "look" | "finish";
 type CalibrationPointState = "idle" | "holding" | "bursting" | "done";
@@ -111,6 +118,7 @@ const holdProgress = ref(0);
 const completingPoint = ref(false);
 const debugState = ref<TobiiDebugState>();
 const debugTargets = ref<string[]>([]);
+const tobiiStatus = ref<TobiiStatus>();
 const showDebug = import.meta.env.DEV && window.localStorage.getItem("tobiiDebug") === "1";
 
 const holdMs = 1600;
@@ -143,6 +151,14 @@ const debugMarkerStyle = computed(() => ({
   left: `${debugViewportPoint.value.x}px`,
   top: `${debugViewportPoint.value.y}px`
 }));
+const canUseTobii = computed(() => tobiiStatus.value?.state === "connected" || tobiiStatus.value?.state === "tracking");
+const tobiiStatusMessage = computed(() => tobiiStatus.value?.message || "Проверяю состояние Tobii...");
+const tobiiStatusAlertType = computed(() => {
+  if (!tobiiStatus.value) return "info";
+  if (canUseTobii.value) return "success";
+  if (tobiiStatus.value.state === "waiting_device" || tobiiStatus.value.state === "connecting" || tobiiStatus.value.state === "reconnecting" || tobiiStatus.value.state === "service_starting") return "warning";
+  return "error";
+});
 
 async function startTobiiCalibration () {
   if (calibrationBusy.value) return;
@@ -359,6 +375,24 @@ function onTobiiDebug (event: IpcRendererEvent, state: TobiiDebugState) {
   });
 }
 
+function onTobiiStatus (event: IpcRendererEvent, status: TobiiStatus) {
+  tobiiStatus.value = status;
+}
+
+async function loadTobiiStatus () {
+  try {
+    tobiiStatus.value = await ipcRenderer.invoke("tobii:status:get");
+  } catch (error) {
+    tobiiStatus.value = {
+      state: "service_unavailable",
+      mode: "socket-service",
+      message: error instanceof Error ? error.message : String(error),
+      deviceFound: false,
+      updatedAt: Date.now()
+    };
+  }
+}
+
 function formatPoint (point: CalibrationPoint) {
   return `${point.x.toFixed(3)}, ${point.y.toFixed(3)}`;
 }
@@ -372,6 +406,8 @@ onMounted(() => {
     trackTobiiMetric("tobiiCalibrationUnavailable", { platform: platform.name });
   }
   window.addEventListener("keydown", onKeydown);
+  void loadTobiiStatus();
+  ipcRenderer.on("tobii:status", onTobiiStatus);
   if (showDebug) {
     ipcRenderer.send("tobii:debug:set-enabled", true);
     ipcRenderer.on("tobii:debug", onTobiiDebug);
@@ -380,6 +416,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopHoldTimer();
   window.removeEventListener("keydown", onKeydown);
+  ipcRenderer.off("tobii:status", onTobiiStatus);
   if (showDebug) {
     ipcRenderer.send("tobii:debug:set-enabled", false);
     ipcRenderer.off("tobii:debug", onTobiiDebug);

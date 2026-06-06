@@ -154,6 +154,20 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "./node_modules/usb/",
+        "to": "extraResources/bin/node_modules/usb",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "./node_modules/node-gyp-build/",
+        "to": "extraResources/bin/node_modules/node-gyp-build",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },

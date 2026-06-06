@@ -15,11 +15,37 @@ export interface EyeTrackerDebugState {
   softwareCalibration: boolean;
 }
 
+export type TobiiStatusState =
+  | "unsupported"
+  | "service_starting"
+  | "service_unavailable"
+  | "connecting"
+  | "waiting_device"
+  | "connected"
+  | "tracking"
+  | "reconnecting"
+  | "error";
+
+export interface TobiiStatus {
+  state: TobiiStatusState;
+  mode: "socket-service" | "direct" | "native" | "unsupported";
+  message: string;
+  socketPath?: string;
+  servicePid?: number;
+  deviceFound: boolean;
+  lastGazeAt?: number;
+  lastError?: string;
+  reconnectAttempt?: number;
+  updatedAt: number;
+}
+
 export interface EyeTrackerProcess {
   on(event: "enter", listener: (index: number) => void): this;
   on(event: "exit", listener: () => void): this;
   on(event: "click", listener: (index: number, count: number) => void): this;
   on(event: "debug", listener: (state: EyeTrackerDebugState) => void): this;
+  on(event: "status", listener: (status: TobiiStatus) => void): this;
+  getStatus?(): TobiiStatus;
   setBounds(bounds: EyeTrackerBound[]): void;
   setTimeout(value: number): void;
   setScaleFactor?(value: number): void;

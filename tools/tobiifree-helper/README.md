@@ -3,6 +3,32 @@
 Experimental macOS helper for Tobii Eye Tracker 5. It streams normalized gaze
 points to the Electron main process and accepts direct-USB calibration commands.
 
+## Socket service mode
+
+Production macOS builds run the helper as a local background service over a Unix
+socket. The service is started with Electron's bundled Node runtime, so an
+installed `node` binary is not required:
+
+```sh
+ELECTRON_RUN_AS_NODE=1 /path/to/LINKa.app/Contents/MacOS/LINKa \
+  /path/to/extraResources/bin/tobiifree-helper/index.mjs \
+  --service --socket /tmp/su.linka.looks.tobiifree.$UID.sock
+```
+
+The Electron main process first tries to connect to the socket. If the socket is
+missing or stale, it starts the service in the background and reconnects. The
+service owns the USB connection and retries automatically when Tobii is unplugged
+and plugged in again.
+
+Service messages are JSON lines:
+
+```json
+{"type":"status","state":"waiting_device","message":"Tobii не найден. Подключите айтрекер."}
+{"type":"gaze","x":0.5,"y":0.5,"timestamp":1710000000000}
+{"type":"invalid","reason":"eyes_not_detected"}
+{"type":"response","id":1,"ok":true}
+```
+
 ## Daemon mode
 
 Run `tobiifreed` with WebSocket support, then start Electron with:

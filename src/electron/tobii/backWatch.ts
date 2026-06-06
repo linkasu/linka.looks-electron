@@ -1,7 +1,7 @@
 import { platform } from "os";
 import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, IpcMainInvokeEvent, screen } from "electron";
 import type { PageElementsState } from "@/common/interfaces/PageElementsState";
-import type { EyeTrackerBound, EyeTrackerProcess } from "./EyeTrackerProcess";
+import type { EyeTrackerBound, EyeTrackerProcess, TobiiStatus } from "./EyeTrackerProcess";
 import { EyeLogTrackerProcess } from "./EyeLogTrackerProcess";
 import { NativeTobiiTrackerProcess } from "./NativeTobiiTrackerProcess";
 import { TobiiFreeTrackerProcess } from "./TobiiFreeTrackerProcess";
@@ -14,6 +14,13 @@ export class BackWatch {
   data?: PageElementsState = undefined;
   private debugEnabled = false;
   private boundsLogged = false;
+  private status: TobiiStatus = {
+    state: "unsupported",
+    mode: "unsupported",
+    message: "Tobii недоступен на этой платформе",
+    deviceFound: false,
+    updatedAt: Date.now()
+  };
   private readonly onEyeElements = (event: IpcMainEvent, data: PageElementsState) => {
     this.hid = data.id;
     this.data = data;
@@ -56,6 +63,26 @@ export class BackWatch {
     return await this.requireCalibrationMethod("applySavedCalibration")();
   };
 
+  private readonly onStatus = (status: TobiiStatus) => {
+    this.status = status;
+    this.sendStatus();
+  };
+
+  private readonly onStatusGet = () => {
+    return this.status;
+  };
+
+  private readonly onServiceRestart = async () => {
+    const restartable = this.tobii as EyeTrackerProcess & { restartService?: () => void } | undefined;
+    if (!restartable?.restartService) throw new Error("Перезапуск службы Tobii недоступен");
+    restartable.restartService();
+    return true;
+  };
+
+  private readonly onRendererReady = () => {
+    this.sendStatus();
+  };
+
   constructor (win: BrowserWindow) {
     this.window = win;
     win.on("closed", () => this.destroy());
@@ -64,6 +91,8 @@ export class BackWatch {
       this.tobii?.on("enter", (index: number) => this.onEnter(index));
       this.tobii?.on("exit", () => this.onExit());
       this.tobii?.on("click", (index, count) => this.onClick(index, count));
+      this.status = this.tobii?.getStatus?.() || this.status;
+      this.tobii?.on("status", this.onStatus);
       if (!app.isPackaged) {
         this.tobii?.on("debug", (state) => {
           if (this.debugEnabled) this.window?.webContents.send("tobii:debug", state);
@@ -80,6 +109,9 @@ export class BackWatch {
       ipcMain.handle("tobii:calibration:add-point", this.onCalibrationAddPoint);
       ipcMain.handle("tobii:calibration:finish", this.onCalibrationFinish);
       ipcMain.handle("tobii:calibration:apply-saved", this.onCalibrationApplySaved);
+      ipcMain.handle("tobii:status:get", this.onStatusGet);
+      ipcMain.handle("tobii:service:restart", this.onServiceRestart);
+      win.webContents.on("did-finish-load", this.onRendererReady);
     } catch {
       dialog
         .showErrorBox("Ошибка запуска обработчика айтрекера", "Для исправления проблемы установите Visual Studio 2012 (VC++ 11.0) с обновлением 4 или свяжитесь с Бакаидовым.");
@@ -145,6 +177,9 @@ export class BackWatch {
     ipcMain.removeHandler("tobii:calibration:add-point");
     ipcMain.removeHandler("tobii:calibration:finish");
     ipcMain.removeHandler("tobii:calibration:apply-saved");
+    ipcMain.removeHandler("tobii:status:get");
+    ipcMain.removeHandler("tobii:service:restart");
+    this.window?.webContents.off("did-finish-load", this.onRendererReady);
     this.tobii?.destroy();
     this.tobii = undefined;
     this.window = undefined;
@@ -170,5 +205,10 @@ export class BackWatch {
       elementIndex: index,
       id: this.hid
     });
+  }
+
+  private sendStatus () {
+    if (!this.window || this.window.isDestroyed()) return;
+    this.window.webContents.send("tobii:status", this.status);
   }
 }

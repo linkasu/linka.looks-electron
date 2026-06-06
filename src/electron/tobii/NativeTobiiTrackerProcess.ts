@@ -3,7 +3,7 @@ import { app } from "electron";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { createRequire } from "module";
 import { join } from "path";
-import type { EyeTrackerBound, EyeTrackerDebugState, EyeTrackerProcess } from "./EyeTrackerProcess";
+import type { EyeTrackerBound, EyeTrackerDebugState, EyeTrackerProcess, TobiiStatus } from "./EyeTrackerProcess";
 
 const requireNative = createRequire(__filename);
 
@@ -46,6 +46,7 @@ type NativeTobiiEvents = {
   exit: [];
   click: [index: number, count: number];
   debug: [state: EyeTrackerDebugState];
+  status: [status: TobiiStatus];
 };
 
 type NativeTobiiEventName = keyof NativeTobiiEvents;
@@ -53,6 +54,13 @@ type NativeTobiiEventName = keyof NativeTobiiEvents;
 export class NativeTobiiTrackerProcess extends EventEmitter implements EyeTrackerProcess {
   private readonly tracker: NativeTobiiTracker;
   private readonly calibrationPath = join(app.getPath("userData"), "tobiifree-native-calibration.bin");
+  private status: TobiiStatus = {
+    state: "connecting",
+    mode: "native",
+    message: "Подключение к Tobii",
+    deviceFound: false,
+    updatedAt: Date.now()
+  };
 
   constructor (nativeModule = loadNativeTobiiModule()) {
     super();
@@ -70,7 +78,12 @@ export class NativeTobiiTrackerProcess extends EventEmitter implements EyeTracke
 
   async initialize () {
     await this.tracker.start();
+    this.updateStatus({ state: "connected", message: "Tobii подключён", deviceFound: true });
     await this.applySavedCalibration();
+  }
+
+  getStatus () {
+    return this.status;
   }
 
   setBounds (bounds: EyeTrackerBound[]) {
@@ -141,7 +154,17 @@ export class NativeTobiiTrackerProcess extends EventEmitter implements EyeTracke
       this.emit("debug", event.state);
       return;
     }
+    this.updateStatus({ state: "error", message: event.message, lastError: event.message, deviceFound: false });
     console.warn("[tobiifree-native]", event);
+  }
+
+  private updateStatus (patch: Partial<TobiiStatus>) {
+    this.status = {
+      ...this.status,
+      ...patch,
+      updatedAt: Date.now()
+    };
+    this.emit("status", this.status);
   }
 }
 

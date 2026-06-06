@@ -175,6 +175,9 @@ function smokeMacPackage () {
   assertDirectory(join(extraResourcesDir, "defaultSets"));
   assertFile(join(extraResourcesDir, "bin", "tobiifree-helper", "index.mjs"));
   assertFile(join(extraResourcesDir, "bin", "tobiifree-sdk", "package.json"));
+  assertFile(join(extraResourcesDir, "bin", "node_modules", "usb", "package.json"));
+  assertDirectory(join(extraResourcesDir, "bin", "node_modules", "usb", "prebuilds"));
+  assertFile(join(extraResourcesDir, "bin", "node_modules", "node-gyp-build", "package.json"));
   smokeMacNativeAddon(resourcesDir);
 }
 

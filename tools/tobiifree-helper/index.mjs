@@ -1,5 +1,11 @@
+import net from "node:net";
+import { mkdir, rm } from "node:fs/promises";
+import { dirname } from "node:path";
+
 const sdkModule = process.env.TOBIIFREE_SDK_MODULE || new URL("../tobiifree-sdk/src/index.ts", import.meta.url).href;
 const daemonUrl = process.env.TOBIIFREE_DAEMON_URL;
+const serviceMode = process.argv.includes("--service");
+const serviceSocketPath = getArgValue("--socket") || process.env.TOBIIFREE_SERVICE_SOCKET;
 
 const HEADER_SIZE = 5;
 const CMD_SUBSCRIBE = 0x01;
@@ -7,6 +13,8 @@ const SRV_GAZE = 0x01;
 const BIT_GAZE_2D = 1 << 6;
 const BIT_VALIDITY_L = 1 << 2;
 const BIT_VALIDITY_R = 1 << 3;
+const SERVICE_RETRY_MAX_MS = 5000;
+const SERVICE_SAMPLE_STALE_MS = 30000;
 const DEFAULT_DISPLAY_AREA = {
   tl: { x: -500, y: 500, z: 0 },
   tr: { x: 500, y: 500, z: 0 },
@@ -16,22 +24,77 @@ const DEFAULT_DISPLAY_AREA = {
 let source;
 let stdinBuffer = "";
 let invalidSamples = 0;
+let serviceServer;
+let serviceStopping = false;
+let serviceReconnectAttempt = 0;
+let lastServiceSampleAt = 0;
+const serviceClients = new Set();
+let currentStatus = makeStatus("service_starting", "Запуск службы Tobii");
+
+function getArgValue (name) {
+  const index = process.argv.indexOf(name);
+  if (index < 0) return undefined;
+  return process.argv[index + 1];
+}
+
+function makeStatus (state, message, payload = {}) {
+  return {
+    type: "status",
+    state,
+    mode: serviceMode ? "socket-service" : (daemonUrl ? "direct" : "direct"),
+    message,
+    servicePid: process.pid,
+    deviceFound: state === "connected" || state === "tracking",
+    reconnectAttempt: serviceReconnectAttempt,
+    updatedAt: Date.now(),
+    ...payload
+  };
+}
+
+function setStatus (state, message, payload = {}) {
+  currentStatus = makeStatus(state, message, payload);
+  if (serviceMode) broadcast(currentStatus);
+  logDiagnostic("status", currentStatus);
+}
 
 function writeLine (line) {
   process.stdout.write(`${line}\n`);
 }
 
+function writeFrame (client, message) {
+  if (client.destroyed) return;
+  client.write(`${JSON.stringify(message)}\n`);
+}
+
+function broadcast (message) {
+  for (const client of serviceClients) writeFrame(client, message);
+}
+
 function writeError (error) {
   const message = error instanceof Error ? error.message : String(error);
+  if (serviceMode) {
+    setStatus("error", "Ошибка службы Tobii", { lastError: message, deviceFound: false });
+    broadcast({ type: "diagnostic", level: "error", message, updatedAt: Date.now() });
+    return;
+  }
   writeLine(`error:${message}`);
 }
 
-function writeResponse (id, ok, payload = {}) {
-  writeLine(JSON.stringify({ type: "response", id, ok, ...payload }));
+function writeResponse (id, ok, payload = {}, client) {
+  const message = { type: "response", id, ok, ...payload };
+  if (serviceMode) {
+    if (client) writeFrame(client, message);
+    else broadcast(message);
+    return;
+  }
+  writeLine(JSON.stringify(message));
 }
 
 function logDiagnostic (message, data) {
   process.stderr.write(`[diagnostic] ${message}${data === undefined ? "" : ` ${JSON.stringify(data)}`}\n`);
+  if (serviceMode) {
+    broadcast({ type: "diagnostic", level: "info", message, data, updatedAt: Date.now() });
+  }
 }
 
 function isResetArea (area) {
@@ -71,10 +134,6 @@ function bestGazePoint (sample) {
     sample?.gaze_point_2d_R_norm;
 }
 
-function clamp01 (value) {
-  return Math.max(0, Math.min(1, value));
-}
-
 function readGazeSample (payload) {
   if (payload.byteLength < 56) return undefined;
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
@@ -94,7 +153,13 @@ function readGazeSample (payload) {
 }
 
 function writeSample (sample) {
+  if (!sample) {
+    if (serviceMode) broadcast({ type: "invalid", reason: "missing_gaze_sample", updatedAt: Date.now() });
+    else writeLine("invalid");
+    return;
+  }
   const point = bestGazePoint(sample);
+  lastServiceSampleAt = Date.now();
   if (!isValidGaze(sample)) {
     invalidSamples += 1;
     if (invalidSamples === 1 || invalidSamples % 120 === 0) {
@@ -109,6 +174,10 @@ function writeSample (sample) {
         point
       });
     }
+    if (serviceMode) {
+      broadcast({ type: "invalid", reason: "eyes_not_detected", updatedAt: Date.now() });
+      return;
+    }
     writeLine("invalid");
     return;
   }
@@ -121,6 +190,13 @@ function writeSample (sample) {
     });
   }
   invalidSamples = 0;
+  if (serviceMode) {
+    if (currentStatus.state !== "tracking") {
+      setStatus("tracking", "Tobii передаёт данные взгляда", { lastGazeAt: lastServiceSampleAt });
+    }
+    broadcast({ type: "gaze", x: point.x, y: point.y, timestamp: lastServiceSampleAt });
+    return;
+  }
   writeLine(`gaze:${point.x},${point.y}`);
 }
 
@@ -165,55 +241,80 @@ async function startDaemonMode (url) {
   process.on("SIGINT", () => ws.close());
 }
 
-async function startDirectUsbMode () {
+async function createDirectUsbSource () {
   const { Tobii } = await import(sdkModule);
   source = await Tobii.fromUsb();
   await ensureDisplayArea();
-
-  process.on("SIGTERM", () => {
-    void source.close().finally(() => process.exit(0));
-  });
-  process.on("SIGINT", () => {
-    void source.close().finally(() => process.exit(0));
-  });
-
-  writeLine("ready");
   source.subscribeToGaze(writeSample);
 }
 
-async function handleCommand (message) {
+async function closeSource () {
+  const current = source;
+  source = undefined;
+  if (!current?.close) return;
+  try {
+    await current.close();
+  } catch (error) {
+    logDiagnostic("source close failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
+async function startDirectUsbMode () {
+  await createDirectUsbSource();
+
+  process.on("SIGTERM", () => {
+    void closeSource().finally(() => process.exit(0));
+  });
+  process.on("SIGINT", () => {
+    void closeSource().finally(() => process.exit(0));
+  });
+
+  writeLine("ready");
+}
+
+async function handleCommand (message, client) {
   const id = message.id;
+  if (message.command === "status.get") {
+    if (typeof id === "number") writeResponse(id, true, { status: currentStatus }, client);
+    else if (serviceMode && client) writeFrame(client, currentStatus);
+    return;
+  }
+  if (message.command === "subscribe.gaze") {
+    if (serviceMode && client) writeFrame(client, currentStatus);
+    if (typeof id === "number") writeResponse(id, true, {}, client);
+    return;
+  }
   if (typeof id !== "number") return;
   if (!source) {
-    writeResponse(id, false, { error: "Tobii source is not ready" });
+    writeResponse(id, false, { error: "Tobii source is not ready" }, client);
     return;
   }
 
   try {
     if (message.command === "calibration.start") {
       await source.startCalibration();
-      writeResponse(id, true);
+      writeResponse(id, true, {}, client);
       return;
     }
     if (message.command === "calibration.addPoint") {
       await source.addCalibrationPoint(message.x, message.y);
-      writeResponse(id, true);
+      writeResponse(id, true, {}, client);
       return;
     }
     if (message.command === "calibration.finish") {
       const blob = await source.finishCalibration();
-      writeResponse(id, true, { blobBase64: Buffer.from(blob).toString("base64") });
+      writeResponse(id, true, { blobBase64: Buffer.from(blob).toString("base64") }, client);
       return;
     }
     if (message.command === "calibration.apply") {
       await source.calApply(Buffer.from(message.blobBase64, "base64"));
-      writeResponse(id, true);
+      writeResponse(id, true, {}, client);
       return;
     }
-    writeResponse(id, false, { error: `Unknown command: ${message.command}` });
+    writeResponse(id, false, { error: `Unknown command: ${message.command}` }, client);
   } catch (error) {
     const messageText = error instanceof Error ? error.message : String(error);
-    writeResponse(id, false, { error: messageText });
+    writeResponse(id, false, { error: messageText }, client);
   }
 }
 
@@ -234,12 +335,122 @@ function startCommandReader () {
   });
 }
 
+async function startServiceMode () {
+  if (!serviceSocketPath) throw new Error("Missing --socket for Tobii service mode");
+
+  await mkdir(dirname(serviceSocketPath), { recursive: true });
+  await rm(serviceSocketPath, { force: true });
+
+  serviceServer = net.createServer((client) => {
+    serviceClients.add(client);
+    writeFrame(client, currentStatus);
+    let buffer = "";
+    client.setEncoding("utf8");
+    client.on("data", (chunk) => {
+      buffer += chunk;
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          void handleCommand(JSON.parse(line), client);
+        } catch (error) {
+          writeError(error);
+        }
+      }
+    });
+    client.on("close", () => serviceClients.delete(client));
+    client.on("error", () => serviceClients.delete(client));
+  });
+
+  serviceServer.on("error", (error) => {
+    writeError(error);
+    process.exitCode = 1;
+  });
+
+  await new Promise((resolve, reject) => {
+    serviceServer.once("error", reject);
+    serviceServer.listen(serviceSocketPath, () => {
+      serviceServer.off("error", reject);
+      resolve();
+    });
+  });
+
+  setStatus("service_starting", "Служба Tobii запущена", { socketPath: serviceSocketPath });
+  void runServiceUsbLoop();
+}
+
+async function runServiceUsbLoop () {
+  while (!serviceStopping) {
+    try {
+      serviceReconnectAttempt += 1;
+      setStatus("connecting", "Подключение к Tobii", { deviceFound: false });
+      lastServiceSampleAt = Date.now();
+      await closeSource();
+      await createDirectUsbSource();
+      serviceReconnectAttempt = 0;
+      setStatus("connected", "Tobii подключён", { deviceFound: true });
+      await waitForServiceStaleOrStop();
+      if (!serviceStopping) {
+        setStatus("reconnecting", "Поток Tobii остановился, переподключаюсь", { deviceFound: false });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const missingDevice = message.includes("ET5 not found") || message.includes("not found");
+      setStatus(missingDevice ? "waiting_device" : "reconnecting", missingDevice ? "Tobii не найден. Подключите айтрекер." : "Ошибка Tobii, переподключаюсь", {
+        deviceFound: false,
+        lastError: message
+      });
+    } finally {
+      await closeSource();
+    }
+    await delay(Math.min(SERVICE_RETRY_MAX_MS, 500 * Math.max(1, serviceReconnectAttempt)));
+  }
+}
+
+function waitForServiceStaleOrStop () {
+  return new Promise((resolve) => {
+    const timer = setInterval(() => {
+      if (serviceStopping) {
+        clearInterval(timer);
+        resolve();
+        return;
+      }
+      if (Date.now() - lastServiceSampleAt < SERVICE_SAMPLE_STALE_MS) return;
+      clearInterval(timer);
+      logDiagnostic("gaze stream stale", { lastServiceSampleAt });
+      resolve();
+    }, 3000);
+  });
+}
+
+function delay (durationMs) {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+async function stopService () {
+  serviceStopping = true;
+  for (const client of serviceClients) client.destroy();
+  serviceClients.clear();
+  await closeSource();
+  if (serviceServer) {
+    await new Promise((resolve) => serviceServer.close(resolve));
+  }
+  if (serviceSocketPath) await rm(serviceSocketPath, { force: true });
+}
+
 try {
-  startCommandReader();
-  if (daemonUrl) {
-    await startDaemonMode(daemonUrl);
+  if (serviceMode) {
+    process.on("SIGTERM", () => void stopService().finally(() => process.exit(0)));
+    process.on("SIGINT", () => void stopService().finally(() => process.exit(0)));
+    await startServiceMode();
   } else {
-    await startDirectUsbMode();
+    startCommandReader();
+    if (daemonUrl) {
+      await startDaemonMode(daemonUrl);
+    } else {
+      await startDirectUsbMode();
+    }
   }
 } catch (error) {
   writeError(error);
