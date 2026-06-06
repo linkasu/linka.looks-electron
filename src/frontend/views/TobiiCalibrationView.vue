@@ -6,6 +6,9 @@
           Калибровка Tobii Eye Tracker 5
         </v-card-title>
         <v-card-text>
+          <v-alert v-if="firstFlow" class="mb-4" type="info" variant="tonal">
+            Tobii подключён. Перед первым использованием выполните калибровку или примените сохранённую.
+          </v-alert>
           Смотрите на любую доступную точку и удерживайте взгляд, пока она не сработает. Если отвести взгляд раньше времени, точка вернётся в исходное состояние. Для отмены нажмите Escape.
           <v-alert class="mt-4" :type="tobiiStatusAlertType" variant="tonal">
             <div>{{ tobiiStatusMessage }}</div>
@@ -28,7 +31,10 @@
             Применить сохранённую
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="router.back()">
+          <v-btn v-if="firstFlow" @click="skipFirstTobiiCalibration">
+            Пропустить
+          </v-btn>
+          <v-btn v-else @click="router.back()">
             Назад
           </v-btn>
         </v-card-actions>
@@ -81,7 +87,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ipcRenderer, type IpcRendererEvent } from "electron";
 import store from "@/frontend/store";
 import { platform } from "@/frontend/plugins/platform";
@@ -105,6 +111,7 @@ type TobiiDebugState = {
 };
 
 const router = useRouter();
+const route = useRoute();
 const calibrationBusy = ref(false);
 const calibrationActive = ref(false);
 const calibrationMessage = ref("");
@@ -152,6 +159,7 @@ const debugMarkerStyle = computed(() => ({
   top: `${debugViewportPoint.value.y}px`
 }));
 const canUseTobii = computed(() => tobiiStatus.value?.state === "connected" || tobiiStatus.value?.state === "tracking");
+const firstFlow = computed(() => route.query.first === "1");
 const tobiiStatusMessage = computed(() => tobiiStatus.value?.message || "Проверяю состояние Tobii...");
 const tobiiStatusAlertType = computed(() => {
   if (!tobiiStatus.value) return "info";
@@ -204,6 +212,7 @@ async function applySavedCalibration () {
     const applied = await ipcRenderer.invoke("tobii:calibration:apply-saved");
     calibrationMessage.value = applied ? "Сохранённая калибровка применена." : "Сохранённая калибровка пока не найдена.";
     trackTobiiMetric("tobiiCalibrationApplySavedResult", { applied, platform: platform.name });
+    if (applied && firstFlow.value) finishFirstFlow();
   } catch (error) {
     calibrationError.value = error instanceof Error ? error.message : String(error);
     trackTobiiMetric("tobiiCalibrationError", { action: "applySaved", message: calibrationError.value, platform: platform.name });
@@ -314,6 +323,10 @@ async function continueAfterPoint () {
     await ipcRenderer.invoke("tobii:calibration:finish");
     calibrationMessage.value = "Калибровка Tobii сохранена и применена.";
     trackTobiiMetric("tobiiCalibrationFinish", { platform: platform.name });
+    if (firstFlow.value) {
+      finishFirstFlow();
+      return;
+    }
     calibrationActive.value = false;
     phase.value = "idle";
   } catch (error) {
@@ -352,6 +365,19 @@ function failCalibration (error: unknown) {
   completingPoint.value = false;
   activePointIndex.value = null;
   phase.value = "idle";
+}
+
+function skipFirstTobiiCalibration () {
+  trackTobiiMetric("tobiiCalibrationCancel", { phase: "firstSkip", platform: platform.name });
+  finishFirstFlow();
+}
+
+function finishFirstFlow () {
+  store.commit("first_calibrate", true);
+  calibrationActive.value = false;
+  calibrationBusy.value = false;
+  phase.value = "idle";
+  router.push("/");
 }
 
 function wait (durationMs: number) {
