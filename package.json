@@ -33,7 +33,7 @@
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@linkasu/tobii-electron": "github:linkasu/linka-tobii-electron#v0.2.5",
+    "@linkasu/tobii-electron": "github:linkasu/linka-tobii-electron#v0.2.6",
     "@mdi/font": "7.3.67",
     "@sindresorhus/chunkify": "^0.2.0",
     "@types/adm-zip": "^0.5.0",
