@@ -14,7 +14,7 @@ import TobiiCalibrationView from "../views/TobiiCalibrationView.vue";
 import store from "../store";
 import { HOME_DIR } from "@/common/constants";
 import { platform } from "@/frontend/plugins/platform";
-import type { TobiiStatus } from "@/electron/tobii/EyeTrackerProcess";
+import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 const routes: Array<RouteRecordRaw> = [
   {

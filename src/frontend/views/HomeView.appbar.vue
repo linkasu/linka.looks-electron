@@ -70,7 +70,7 @@ import RmdirButton from "@/frontend/components/HomeView/RmdirButton.vue";
 import ShareButton from "@/frontend/components/ShareButton.vue";
 import store from "@/frontend/store";
 import { Metric } from "@/frontend/utils/Metric";
-import type { TobiiStatus } from "@/electron/tobii/EyeTrackerProcess";
+import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 const route = useRoute();
 const tobiiStatus = ref<TobiiStatus>();

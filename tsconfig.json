@@ -22,6 +22,8 @@
       "@frontend": ["./src/frontend"],
       "@electron": ["./src/electron"],
       "@common": ["./src/common"],
+      "@linkasu/tobii-electron/main": ["./node_modules/@linkasu/tobii-electron/dist/main/index.d.ts"],
+      "@linkasu/tobii-electron/renderer": ["./node_modules/@linkasu/tobii-electron/dist/renderer/index.d.ts"],
       "@/*": [
         "src/*"
       ]

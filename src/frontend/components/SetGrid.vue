@@ -49,7 +49,7 @@ import type { ConfigFile, Card, SetPage } from "@/common/interfaces/ConfigFile";
 import { CardType, getPageSize, normalizePage } from "@/common/interfaces/ConfigFile";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
-import { PageWatcher } from "@/electron/tobii/pageWatch";
+import { PageWatcher } from "@linkasu/tobii-electron/renderer";
 
 interface ISetGridProps {
   config: ConfigFile;
@@ -103,12 +103,12 @@ const isPageTurnEyeDisabled = computed(() => store.state.button.pageTurnMode ===
 
 watch(() => props.page, onPageChanged);
 watch(currentPage, () => {
-  setTimeout(() => PageWatcher.instance.watchElementsChange(true), 10);
+  setTimeout(() => PageWatcher.instance?.watchElementsChange(true), 10);
 });
 
 onMounted(() => {
   store.commit("explorer_page", currentPageIndex.value);
-  setTimeout(() => PageWatcher.instance.watchElementsChange(true), 10);
+  setTimeout(() => PageWatcher.instance?.watchElementsChange(true), 10);
 });
 
 function changePage (offset: number) {

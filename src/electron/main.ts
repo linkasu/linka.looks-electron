@@ -1,12 +1,13 @@
 "use strict";
 import { app, protocol, BrowserWindow, ipcMain } from "electron";
+import { BackWatch } from "@linkasu/tobii-electron/main";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 import { CardsStorage } from "./services/card-storage-service";
 import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
-import { BackWatch } from "./tobii/backWatch";
 import { appendFileSync } from "fs";
 import { join } from "path";
+import { resolveExtraResource } from "./utils/resolveExtraResource";
 
 if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
   app.setPath("userData", process.env.TEST_USER_DATA_DIR);
@@ -207,7 +208,10 @@ async function createWindow () {
   });
 
   mainWindow = win;
-  const backWatch = new BackWatch(win);
+  const backWatch = new BackWatch(win, {
+    resolveExtraResource,
+    socketName: "su.linka.looks.tobiifree"
+  });
   void backWatch;
   win.maximize();
   if (process.env.VITE_DEV_SERVER_URL) {

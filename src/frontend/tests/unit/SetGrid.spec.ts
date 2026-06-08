@@ -3,11 +3,11 @@ import { mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 import SetGrid from "@/frontend/components/SetGrid.vue";
 import { CardType, type ConfigFile } from "@/common/interfaces/ConfigFile";
-import { PageWatcher } from "@/electron/tobii/pageWatch";
+import { PageWatcher } from "@linkasu/tobii-electron/renderer";
 
 const expect = chai.expect;
 
-vi.mock("@/electron/tobii/pageWatch", () => ({
+vi.mock("@linkasu/tobii-electron/renderer", () => ({
   PageWatcher: {
     instance: {
       watchElementsChange: vi.fn()
@@ -17,7 +17,7 @@ vi.mock("@/electron/tobii/pageWatch", () => ({
 
 describe("SetGrid", () => {
   beforeEach(() => {
-    (PageWatcher.instance.watchElementsChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+    (PageWatcher.instance?.watchElementsChange as unknown as ReturnType<typeof vi.fn>).mockClear();
   });
 
   it("renders cards from the selected page", () => {

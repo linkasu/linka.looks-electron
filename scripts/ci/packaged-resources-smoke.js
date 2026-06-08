@@ -149,8 +149,13 @@ function assertMacIcon (resourcesDir) {
 }
 
 function smokeMacNativeAddon (resourcesDir) {
-  const unpackedDir = join(resourcesDir, "app.asar.unpacked", "node_modules", "@linka", "tobiifree-native");
-  if (!existsSync(unpackedDir)) {
+  const candidates = [
+    join(resourcesDir, "app.asar.unpacked", "node_modules", "@linkasu", "tobii-electron", "native", "tobiifree-native"),
+    join(resourcesDir, "app.asar.unpacked", "node_modules", "@linkasu", "tobii-electron", "node_modules", "@linka", "tobiifree-native"),
+    join(resourcesDir, "app.asar.unpacked", "node_modules", "@linka", "tobiifree-native")
+  ];
+  const unpackedDir = candidates.find((candidate) => existsSync(candidate));
+  if (!unpackedDir) {
     console.warn("Native Tobii addon is not packaged; helper fallback remains available.");
     return;
   }

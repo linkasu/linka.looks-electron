@@ -92,7 +92,7 @@ import { ipcRenderer, type IpcRendererEvent } from "electron";
 import store from "@/frontend/store";
 import { platform } from "@/frontend/plugins/platform";
 import { Metric } from "@/frontend/utils/Metric";
-import type { TobiiStatus } from "@/electron/tobii/EyeTrackerProcess";
+import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 type CalibrationPhase = "idle" | "start" | "look" | "finish";
 type CalibrationPointState = "idle" | "holding" | "bursting" | "done";

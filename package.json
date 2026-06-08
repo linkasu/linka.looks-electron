@@ -21,18 +21,19 @@
     "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
     "test:unit:coverage": "vitest run --coverage && vitest run --config vitest.node.config.ts --coverage",
     "test:e2e": "npm run build && playwright test",
-    "native:build": "npm --prefix native/tobiifree-native run build",
-    "native:test-load": "npm --prefix native/tobiifree-native run test:load",
+    "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",
+    "native:test-load": "npm --prefix node_modules/@linkasu/tobii-electron run native:test-load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run electron:build -- --win -p never",
     "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
     "electron:build:linux": "npm run electron:build -- --linux -p never",
     "electron:serve": "vite",
-    "postinstall": "node postinstall && electron-builder install-app-deps",
+    "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@linkasu/tobii-electron": "github:linkasu/linka-tobii-electron#v0.2.1",
     "@mdi/font": "7.3.67",
     "@sindresorhus/chunkify": "^0.2.0",
     "@types/adm-zip": "^0.5.0",
@@ -44,13 +45,11 @@
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.3",
     "extract-zip": "^2.0.1",
-    "eyelog": "linkasu/node-eyelog",
     "gamepad-wrapper": "^1.2.0",
     "is-valid-path": "^0.1.1",
     "linebreak-next": "^1.0.3",
     "pictures.bank-api": "https://github.com/linkasu/pictures.bank-client.git",
     "roboto-fontface": "*",
-    "usb": "^2.17.0",
     "uuid": "^14.0.0",
     "vue": "^3.5.34",
     "vue-router": "^4.6.4",
@@ -63,6 +62,8 @@
     "productName": "LINKa. смотри",
     "appId": "su.linka.looks",
     "asarUnpack": [
+      "node_modules/@linkasu/tobii-electron/native/tobiifree-native/**/*.node",
+      "node_modules/@linkasu/tobii-electron/node_modules/@linka/tobiifree-native/**/*.node",
       "node_modules/@linka/tobiifree-native/**/*.node"
     ],
     "files": [
@@ -76,7 +77,7 @@
       "!dist/latest*.yml",
       "!dist/builder-debug.yml",
       "dist-electron/**/*",
-      "node_modules/@linka/tobiifree-native/**/*",
+      "node_modules/@linkasu/tobii-electron/**/*",
       "package.json"
     ],
     "fileAssociations": [
@@ -142,14 +143,14 @@
         ]
       },
       {
-        "from": "./tools/tobiifree-helper/",
+        "from": "./node_modules/@linkasu/tobii-electron/tools/tobiifree-helper/",
         "to": "extraResources/bin/tobiifree-helper",
         "filter": [
           "**/*"
         ]
       },
       {
-        "from": "./tools/tobiifree-sdk/",
+        "from": "./node_modules/@linkasu/tobii-electron/tools/tobiifree-sdk/",
         "to": "extraResources/bin/tobiifree-sdk",
         "filter": [
           "**/*"
@@ -168,11 +169,17 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "./node_modules/@linkasu/tobii-electron/extraResources/bin/",
+        "to": "extraResources/bin",
+        "filter": [
+          "EyeLog.exe",
+          "*.dll",
+          "*.config"
+        ]
       }
     ]
-  },
-  "optionalDependencies": {
-    "@linka/tobiifree-native": "file:native/tobiifree-native"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
