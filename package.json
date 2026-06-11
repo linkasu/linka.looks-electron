@@ -33,7 +33,7 @@
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@linkasu/tobii-electron": "github:linkasu/linka-tobii-electron#v0.2.6",
+    "@linkasu/tobii-electron": "https://github.com/linkasu/linka-tobii-electron/releases/download/v0.2.10/linkasu-tobii-electron-0.2.10.tgz",
     "@mdi/font": "7.3.67",
     "@sindresorhus/chunkify": "^0.2.0",
     "@types/adm-zip": "^0.5.0",
@@ -200,6 +200,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-vue": "^9.33.0",
     "jsdom": "^27.4.0",
+    "node-gyp": "^11.5.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.2",
     "vite-plugin-electron": "^0.29.1",
