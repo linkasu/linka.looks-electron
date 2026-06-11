@@ -35,6 +35,54 @@ test("editor settings expose row and column controls", async () => {
   }
 });
 
+test("assistant settings page scrolls within the main content area", async () => {
+  const context = createE2EContext();
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.setViewportSize({ width: 800, height: 600 });
+    await window.goto(`${devServerUrl}/#/settings`);
+    await expect(window.getByText("Главные настройки")).toBeVisible();
+
+    const main = window.locator(".app-main");
+    const metrics = await main.evaluate((el) => ({
+      clientHeight: el.clientHeight,
+      overflowY: getComputedStyle(el).overflowY,
+      scrollHeight: el.scrollHeight
+    }));
+    expect(metrics.overflowY).toBe("auto");
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+
+    await main.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(window.getByText("Настройки кнопок")).toBeVisible();
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
+test("gaze set explorer keeps page scrolling disabled", async () => {
+  const context = createE2EContext();
+  const setName = "gaze-scroll-lock.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 0, title: "Карточка" }]));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/set/§${setName}`);
+    await expect(window.getByRole("button", { name: "Карточка" })).toBeVisible();
+
+    const overflowY = await window.locator(".app-main").evaluate((el) => getComputedStyle(el).overflowY);
+    expect(overflowY).toBe("hidden");
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
 test("set explorer grid fills the viewport above footer", async () => {
   const context = createE2EContext();
   const setName = "layout-e2e.linka";
