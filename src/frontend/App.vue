@@ -4,10 +4,7 @@
     <notification-popup />
     <router-view name="appbar" />
     <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
-    <v-main
-      class="app-main"
-      :class="`app-main--${interactionMode}`"
-    >
+    <v-main class="app-main">
       <router-view />
     </v-main>
     <v-footer class="footer">
@@ -25,7 +22,6 @@
 <script lang="ts" setup>
 import { computed, onMounted } from "vue";
 import { ipcRenderer } from "electron";
-import { useRoute } from "vue-router";
 import store from "./store";
 import RegisterForm from "@/frontend/views/RegisterForm.vue";
 import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
@@ -35,8 +31,6 @@ import { Metric } from "./utils/Metric";
 import { platform } from "@/frontend/plugins/platform";
 
 const pcHash = computed(() => store.state.pcHash);
-const route = useRoute();
-const interactionMode = computed(() => route.meta.interactionMode === "assistant" ? "assistant" : "gaze");
 
 onMounted(async () => {
   if (pcHash.value.length === 36) {
@@ -81,16 +75,7 @@ function hexToRGB (input: string) {
 
 .app-main {
   height: calc(100vh - 40px);
-  min-height: 0;
-}
-
-.app-main--gaze {
   overflow: hidden;
-}
-
-.app-main--assistant {
-  overflow-x: hidden;
-  overflow-y: auto;
 }
 
 :root {
