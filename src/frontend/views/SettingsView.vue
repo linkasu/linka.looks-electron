@@ -1,127 +1,211 @@
 <template>
-  <v-container>
-    <v-row>
+  <v-container
+    fluid
+    class="py-2"
+  >
+    <v-row dense>
       <v-col
         cols="12"
-        md="8"
+        lg="8"
       >
-        <v-card>
-          <v-card-title primary-title>
+        <v-card density="compact">
+          <v-card-title class="text-subtitle-1 py-2">
             Главные настройки
           </v-card-title>
-          <v-card-text>
-            <v-container>
-              <v-btn to="/calibration">
-                Калибровка смещения.
-              </v-btn>
-            </v-container>
-            <v-container>
-              <v-btn to="/tobii-calibration" color="primary" variant="tonal">
-                Калибровка Tobii.
-              </v-btn>
-            </v-container>
-            <v-container>
-              <v-checkbox
-                v-model="isExitButton"
-                label="Кнопка выхода из набора глазами"
-              />
-            </v-container>
-            <v-container>
-              <v-select
-                v-model="pageTurnMode"
-                :items="pageTurnModeOptions"
-                label="Способ перелистывания"
-                item-title="text"
-                item-value="value"
-              />
-              <div class="settings-help">
-                Настройка влияет только на левую и правую стрелки перелистывания страниц в просмотре набора.
+          <v-card-text class="py-2">
+            <v-row dense>
+              <v-col
+                cols="12"
+                sm="6"
+              >
+                <v-btn
+                  block
+                  density="comfortable"
+                  to="/calibration"
+                >
+                  Калибровка смещения
+                </v-btn>
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+              >
+                <v-btn
+                  block
+                  color="primary"
+                  density="comfortable"
+                  to="/tobii-calibration"
+                  variant="tonal"
+                >
+                  Калибровка Tobii
+                </v-btn>
+              </v-col>
+              <v-col
+                cols="12"
+                md="6"
+              >
+                <v-select
+                  v-model="pageTurnMode"
+                  :items="pageTurnModeOptions"
+                  density="compact"
+                  hide-details
+                  item-title="text"
+                  item-value="value"
+                  label="Способ перелистывания"
+                />
+                <div class="text-caption text-medium-emphasis mt-1">
+                  Только для стрелок перелистывания в просмотре набора.
+                </div>
+              </v-col>
+              <v-col
+                cols="12"
+                md="6"
+              >
+                <v-checkbox
+                  v-model="isExitButton"
+                  density="compact"
+                  hide-details
+                  label="Кнопка выхода из набора глазами"
+                />
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-2" />
+
+            <div class="text-subtitle-2 mb-1">
+              Управление и обратная связь
+            </div>
+            <v-row dense>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="eyeSelect"
+                  density="compact"
+                  hide-details
+                  label="Выбор глазами"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="eyeActivation"
+                  density="compact"
+                  hide-details
+                  label="Активация глазами"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="mouseActivation"
+                  density="compact"
+                  hide-details
+                  label="Активация мышкой"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="keyboardActivation"
+                  density="compact"
+                  hide-details
+                  label="Активация клавиатурой"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="joystickActivation"
+                  density="compact"
+                  hide-details
+                  label="Активация джойстиком"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="clickSound"
+                  density="compact"
+                  hide-details
+                  label="Звук щелчка"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                sm="6"
+                md="4"
+              >
+                <v-checkbox
+                  v-model="animation"
+                  density="compact"
+                  hide-details
+                  label="Анимация изображений"
+                />
+              </v-col>
+            </v-row>
+
+            <template v-if="eyeActivation">
+              <v-divider class="my-2" />
+              <div class="d-flex align-center ga-3">
+                <div class="text-subtitle-2">
+                  Задержка взгляда для активации
+                </div>
+                <v-chip
+                  color="primary"
+                  size="small"
+                  variant="tonal"
+                >
+                  {{ timeout }} с
+                </v-chip>
               </div>
-            </v-container>
-            <v-container>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="eyeSelect"
-                    label="Выбор карточки глазами"
-                  />
-                </v-col>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="eyeActivation"
-                    label="Активация карточки глазами"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="joystickActivation"
-                    label="Активация карточки джойстиком"
-                  />
-                </v-col>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="keyboardActivation"
-                    label="Активация карточки клавиатурой"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="mouseActivation"
-                    label="Активация карточки мышкой"
-                  />
-                </v-col>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="clickSound"
-                    label="Звук щелчка при активации кнопки"
-                  />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col xs="6">
-                  <v-checkbox
-                    v-model="animation"
-                    label="Анимация изображений"
-                  />
-                </v-col>
-              </v-row>
-            </v-container>
-            <v-slider
-              v-if="eyeActivation"
-              v-model="timeout"
-              type="number"
-              :label="`Время задержки взгляда для активации в секундах: ${timeout}`"
-              min="0.1"
-              max="5"
-              step="0.1"
-            />
+              <v-slider
+                v-model="timeout"
+                class="mt-1"
+                density="compact"
+                hide-details
+                max="5"
+                min="0.1"
+                step="0.1"
+                thumb-label
+              />
+            </template>
           </v-card-text>
         </v-card>
       </v-col>
 
       <v-col
         cols="12"
-        md="4"
+        lg="4"
       >
         <color-settings />
       </v-col>
-    </v-row>
-    <v-row>
       <v-col
         cols="12"
-        md="8"
+        lg="6"
       >
         <voice-settings />
       </v-col>
-    </v-row>
-    <v-row>
       <v-col
         cols="12"
-        md="12"
+        lg="6"
       >
         <input-settings />
       </v-col>
@@ -241,11 +325,3 @@ const isExitButton = computed({
 });
 
 </script>
-
-<style scoped>
-.settings-help {
-  color: rgba(0, 0, 0, 0.6);
-  font-size: 0.875rem;
-  margin-top: -12px;
-}
-</style>

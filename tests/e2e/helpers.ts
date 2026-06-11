@@ -4,7 +4,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export const devServerUrl = "http://localhost:5173";
+export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://localhost:5174";
+const testElectronRemoteDebuggingPort = process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "9323";
 
 export interface E2EContext {
   root: string;
@@ -59,9 +60,10 @@ export function writeLinkaSet (homeDir: string, setName: string, config: TestSet
 
 export async function launchTestElectron (context: E2EContext): Promise<ElectronApplication> {
   return electron.launch({
-    args: ["dist-electron/main.js"],
+    args: [`--remote-debugging-port=${testElectronRemoteDebuggingPort}`, "dist-electron/main.js"],
     env: {
       ...process.env,
+      ELECTRON_REMOTE_DEBUGGING_PORT: testElectronRemoteDebuggingPort,
       IS_TEST: "1",
       LINKA_HOME_DIR: context.homeDir,
       NODE_ENV: "development",
