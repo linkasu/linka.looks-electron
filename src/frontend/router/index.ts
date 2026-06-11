@@ -16,35 +16,23 @@ import { HOME_DIR } from "@/common/constants";
 import { platform } from "@/frontend/plugins/platform";
 import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
+type InteractionMode = "gaze" | "assistant";
+
+declare module "vue-router" {
+  interface RouteMeta {
+    interactionMode: InteractionMode
+  }
+}
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
-    redirect: "/§"
-  },
-  {
-    path: "/:path",
-    name: "home",
-    components: {
-      default: HomeView,
-      appbar: HomeViewAppBar
-    }
-  }, {
-    path: "/set/:path",
-    name: "SetExplorer",
-    components: {
-      default: SetExplorerView,
-      appbar: SetExplorerViewAppBar
-    }
-  }, {
-    path: "/edit/:path",
-    name: "Editor",
-    components: {
-      default: EditorView,
-      appbar: EditorViewAppBar
-    }
+    redirect: "/§",
+    meta: { interactionMode: "gaze" }
   },
   {
     path: "/settings",
+    meta: { interactionMode: "assistant" },
     components: {
       default: SettingsView,
       appbar: SettingsViewAppBar
@@ -52,14 +40,42 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/calibration",
+    meta: { interactionMode: "gaze" },
     components: {
       default: CalibrationView
     }
   },
   {
     path: "/tobii-calibration",
+    meta: { interactionMode: "gaze" },
     components: {
       default: TobiiCalibrationView
+    }
+  },
+  {
+    path: "/set/:path",
+    name: "SetExplorer",
+    meta: { interactionMode: "gaze" },
+    components: {
+      default: SetExplorerView,
+      appbar: SetExplorerViewAppBar
+    }
+  }, {
+    path: "/edit/:path",
+    name: "Editor",
+    meta: { interactionMode: "assistant" },
+    components: {
+      default: EditorView,
+      appbar: EditorViewAppBar
+    }
+  },
+  {
+    path: "/:path",
+    name: "home",
+    meta: { interactionMode: "gaze" },
+    components: {
+      default: HomeView,
+      appbar: HomeViewAppBar
     }
   }
 ];
