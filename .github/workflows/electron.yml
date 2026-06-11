@@ -24,7 +24,7 @@ jobs:
         cache: 'npm'
 
     - name: Install deps
-      run: npm ci
+      run: npm ci --omit=optional
     - name: Linter
       run: npm run lint
     - name: Unit tests
@@ -94,7 +94,7 @@ jobs:
     - name: Install Linux native build dependencies
       run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
     - name: Install deps
-      run: npm ci
+      run: npm ci --omit=optional
     - name: Unit tests
       run: npm run test:unit
     - name: Build Linux experimental artifacts
