@@ -5,6 +5,7 @@ import {
   cloneCard,
   clonePage,
   createPlaceholderCard,
+  getCardGridPlacements,
   getMatchLane,
   normalizePage,
   PageMode,
@@ -24,6 +25,19 @@ export interface EditorPagesResult {
 export interface MatchLinkResult {
   cards: Card[];
   pendingMatchCardId: string | null;
+}
+
+export interface CardSpanInfo {
+  canFillRow: boolean;
+  canGrowDown: boolean;
+  canGrowRight: boolean;
+  canReset: boolean;
+  currentHeight: number;
+  currentWidth: number;
+  fillRowWidth: number;
+  maxHeight: number;
+  maxWidth: number;
+  mergeable: boolean;
 }
 
 export function isValidEditorCard (card: Card): boolean {
@@ -97,6 +111,73 @@ export function resetSelectedCard (cards: Card[], selectedCardId: string | null)
     cards: nextCards,
     selectedCardId: nextCards[selectedIndex].id
   };
+}
+
+export function isCardMerged (card: Card | null | undefined): boolean {
+  return !!card && ((card.width ?? 1) > 1 || (card.height ?? 1) > 1);
+}
+
+export function getSelectedCardSpanInfo (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): CardSpanInfo {
+  const fallback = createCardSpanInfo(false);
+  const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
+  if (selectedIndex === -1 || mode === "match") return fallback;
+
+  const selected = cards[selectedIndex];
+  if (!isMergeableCardType(selected.cardType)) return fallback;
+
+  const placements = getCardGridPlacements({ columns, rows, cards });
+  const placement = placements[selectedIndex];
+  if (!placement || placement.covered) return fallback;
+
+  const maxWidth = getMaxAvailableWidth(cards, placements, selectedIndex, columns, rows, placement.width, placement.height);
+  const maxHeight = getMaxAvailableHeight(cards, placements, selectedIndex, columns, rows, placement.width, placement.height);
+
+  return {
+    canFillRow: maxWidth > placement.width,
+    canGrowDown: maxHeight > placement.height,
+    canGrowRight: maxWidth > placement.width,
+    canReset: placement.width > 1 || placement.height > 1,
+    currentHeight: placement.height,
+    currentWidth: placement.width,
+    fillRowWidth: maxWidth,
+    maxHeight,
+    maxWidth,
+    mergeable: true
+  };
+}
+
+export function canMergeSelectedCard (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): boolean {
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+  return info.canReset || info.canGrowRight || info.canGrowDown;
+}
+
+export function toggleSelectedCardMerge (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+  if (info.canReset) return resetSelectedCardSpan(cards, selectedCardId);
+  if (info.canGrowRight) return growSelectedCardRight(cards, selectedCardId, columns, rows, mode);
+  return growSelectedCardDown(cards, selectedCardId, columns, rows, mode);
+}
+
+export function growSelectedCardRight (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+  if (!info.canGrowRight) return { cards, selectedCardId };
+  return resizeSelectedCard(cards, selectedCardId, info.currentWidth + 1, info.currentHeight);
+}
+
+export function growSelectedCardDown (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+  if (!info.canGrowDown) return { cards, selectedCardId };
+  return resizeSelectedCard(cards, selectedCardId, info.currentWidth, info.currentHeight + 1);
+}
+
+export function mergeSelectedCardFullRow (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+  if (!info.canFillRow) return { cards, selectedCardId };
+  return resizeSelectedCard(cards, selectedCardId, info.fillRowWidth, info.currentHeight);
+}
+
+export function resetSelectedCardSpan (cards: Card[], selectedCardId: string | null): EditorCardsResult {
+  return resizeSelectedCard(cards, selectedCardId, 1, 1);
 }
 
 export function advanceEditorPage (pages: SetPage[], page: number): EditorPagesResult {
@@ -207,6 +288,95 @@ function findLastPlaceholder (cards: Card[]): number {
     }
   }
   return -1;
+}
+
+function isMergeableCardType (cardType: CardType): boolean {
+  return cardType === CardType.AudioCard || cardType === CardType.SpaceCard;
+}
+
+function createCardSpanInfo (mergeable: boolean): CardSpanInfo {
+  return {
+    canFillRow: false,
+    canGrowDown: false,
+    canGrowRight: false,
+    canReset: false,
+    currentHeight: 1,
+    currentWidth: 1,
+    fillRowWidth: 1,
+    maxHeight: 1,
+    maxWidth: 1,
+    mergeable
+  };
+}
+
+function resizeSelectedCard (cards: Card[], selectedCardId: string | null, width: number, height: number): EditorCardsResult {
+  const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
+  if (selectedIndex === -1) return { cards, selectedCardId };
+
+  const nextCards = cards.map((card) => cloneCard(card));
+  const nextSelected = nextCards[selectedIndex];
+  if (width > 1) {
+    nextSelected.width = width;
+  } else {
+    delete nextSelected.width;
+  }
+  if (height > 1) {
+    nextSelected.height = height;
+  } else {
+    delete nextSelected.height;
+  }
+
+  return { cards: nextCards, selectedCardId };
+}
+
+function getMaxAvailableWidth (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, currentWidth: number, currentHeight: number): number {
+  const column = selectedIndex % columns;
+  let maxWidth = currentWidth;
+  for (let width = currentWidth + 1; width <= columns - column; width++) {
+    if (!isSpanAvailable(cards, placements, selectedIndex, columns, rows, width, currentHeight, currentWidth, currentHeight)) break;
+    maxWidth = width;
+  }
+  return maxWidth;
+}
+
+function getMaxAvailableHeight (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, currentWidth: number, currentHeight: number): number {
+  const row = Math.floor(selectedIndex / columns);
+  let maxHeight = currentHeight;
+  for (let height = currentHeight + 1; height <= rows - row; height++) {
+    if (!isSpanAvailable(cards, placements, selectedIndex, columns, rows, currentWidth, height, currentWidth, currentHeight)) break;
+    maxHeight = height;
+  }
+  return maxHeight;
+}
+
+function isSpanAvailable (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, width: number, height: number, currentWidth: number, currentHeight: number): boolean {
+  const startRow = Math.floor(selectedIndex / columns);
+  const startColumn = selectedIndex % columns;
+  if (startColumn + width > columns || startRow + height > rows) return false;
+
+  for (let y = startRow; y < startRow + height; y++) {
+    for (let x = startColumn; x < startColumn + width; x++) {
+      const index = y * columns + x;
+      if (isInsideSelectedSpan(selectedIndex, index, columns, currentWidth, currentHeight)) continue;
+      if (!isMergeTargetAvailable(cards, placements, index)) return false;
+    }
+  }
+
+  return true;
+}
+
+function isInsideSelectedSpan (selectedIndex: number, index: number, columns: number, width: number, height: number): boolean {
+  const startRow = Math.floor(selectedIndex / columns);
+  const startColumn = selectedIndex % columns;
+  const row = Math.floor(index / columns);
+  const column = index % columns;
+  return row >= startRow && row < startRow + height && column >= startColumn && column < startColumn + width;
+}
+
+function isMergeTargetAvailable (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, index: number): boolean {
+  const card = cards[index];
+  const placement = placements[index];
+  return !!card && !placement?.covered && [CardType.NewCard, CardType.EmptyCard].includes(card.cardType);
 }
 
 function clampPageIndex (page: number, length: number): number {

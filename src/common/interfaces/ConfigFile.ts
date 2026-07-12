@@ -12,6 +12,8 @@ export type PageMode = "standard" | "quiz" | "match";
 export interface Card {
   id: string;
   cardType: CardType;
+  width?: number;
+  height?: number;
   imagePath?: string;
   title?: string;
   audioPath?: string;
@@ -46,6 +48,16 @@ export interface ConfigFile {
   description?: string;
 }
 
+export interface CardGridPlacement {
+  card: Card;
+  index: number;
+  row: number;
+  column: number;
+  width: number;
+  height: number;
+  covered: boolean;
+}
+
 export const CURRENT_SET_VERSION = "3.0";
 export const DEFAULT_COLUMNS = 3;
 export const DEFAULT_ROWS = 3;
@@ -60,8 +72,48 @@ export function clampPageDimension (value?: number, fallback = DEFAULT_COLUMNS):
   return Math.max(1, Math.floor(value));
 }
 
+export function clampCardSpan (value?: number, fallback = 1): number {
+  if (!value || Number.isNaN(value)) return fallback;
+  return Math.max(1, Math.floor(value));
+}
+
 export function getPageSize (page: Pick<SetPage, "rows" | "columns">): number {
   return Math.max(1, clampPageDimension(page.rows, DEFAULT_ROWS) * clampPageDimension(page.columns, DEFAULT_COLUMNS));
+}
+
+export function getCardGridPlacements (page: Pick<SetPage, "rows" | "columns" | "cards">): CardGridPlacement[] {
+  const columns = clampPageDimension(page.columns, DEFAULT_COLUMNS);
+  const rows = clampPageDimension(page.rows, DEFAULT_ROWS);
+  const occupied = new Set<number>();
+
+  return page.cards.slice(0, rows * columns).map((card, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const covered = occupied.has(index);
+    const width = Math.min(clampCardSpan(card.width), columns - column);
+    const height = Math.min(clampCardSpan(card.height), rows - row);
+
+    if (!covered) {
+      for (let y = row; y < row + height; y++) {
+        for (let x = column; x < column + width; x++) {
+          const occupiedIndex = y * columns + x;
+          if (occupiedIndex !== index) {
+            occupied.add(occupiedIndex);
+          }
+        }
+      }
+    }
+
+    return {
+      card,
+      index,
+      row: row + 1,
+      column: column + 1,
+      width,
+      height,
+      covered
+    };
+  });
 }
 
 export function createPlaceholderCard (cardType = CardType.NewCard): Card {
@@ -90,12 +142,29 @@ export function getMatchLane (index: number, columns: number): "top" | "bottom" 
   return index < columns ? "top" : "bottom";
 }
 
-function normalizeCard (card: Card, mode: PageMode, columns: number, index: number): Card {
+function normalizeCard (card: Card, mode: PageMode, columns: number, rows: number, index: number): Card {
   const normalized = {
     ...card,
     id: card?.id ?? uuid(),
     cardType: card?.cardType ?? CardType.NewCard
   };
+  if (mode === "standard" || mode === "quiz") {
+    const width = Math.min(clampCardSpan(card?.width), columns);
+    const height = Math.min(clampCardSpan(card?.height), rows);
+    if (width > 1) {
+      normalized.width = width;
+    } else {
+      delete normalized.width;
+    }
+    if (height > 1) {
+      normalized.height = height;
+    } else {
+      delete normalized.height;
+    }
+  } else {
+    delete normalized.width;
+    delete normalized.height;
+  }
   if (mode === "match") {
     normalized.matchLane = getMatchLane(index, columns);
   } else {
@@ -121,10 +190,10 @@ export function normalizePage (page: Partial<SetPage>, fallback?: Partial<SetPag
   const cards = (page.cards ?? [])
     .filter(Boolean)
     .slice(0, size)
-    .map((card, index) => normalizeCard(card, mode, columns, index));
+    .map((card, index) => normalizeCard(card, mode, columns, rows, index));
 
   while (cards.length < size) {
-    cards.push(normalizeCard(createPlaceholderCard(CardType.NewCard), mode, columns, cards.length));
+    cards.push(normalizeCard(createPlaceholderCard(CardType.NewCard), mode, columns, rows, cards.length));
   }
 
   return {

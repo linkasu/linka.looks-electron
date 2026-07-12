@@ -143,6 +143,27 @@ describe("SetGrid", () => {
     expect(wrapper.find('[data-id="selected"]').classes()).to.include("active");
     expect(wrapper.find('[data-id="matched"]').classes()).to.include("matched");
   });
+
+  it("renders merged cards as a grid span and hides covered slots", () => {
+    const wrapper = mountSetGrid({
+      config: createConfig([
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 3,
+          rows: 1,
+          cards: [
+            { id: "wide", cardType: CardType.AudioCard, title: "wide", width: 2 },
+            { id: "covered", cardType: CardType.NewCard },
+            { id: "next", cardType: CardType.AudioCard, title: "next" }
+          ]
+        }
+      ])
+    });
+
+    expect(cardButtons(wrapper).map((button) => button.attributes("data-id"))).to.deep.equal(["wide", "next"]);
+    expect(wrapper.find('[data-id="wide"]').attributes("style")).to.contain("grid-column: 1 / span 2");
+  });
 });
 
 function mountSetGrid ({

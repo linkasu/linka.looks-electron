@@ -17,16 +17,17 @@
 
     <div class="cards" :style="{ '--rows': currentPage.rows, '--columns': currentPage.columns }">
       <set-grid-button
-        v-for="(card, index) in current"
-        :key="card.id"
-        :card="card"
+        v-for="placement in visiblePlacements"
+        :key="placement.card.id"
+        :card="placement.card"
         :file="file"
-        :disabled="isCardDisabled(card)"
+        :disabled="isCardDisabled(placement.card)"
+        :style="getPlacementStyle(placement)"
         :class="{
-          active: selectedCardId === card.id,
-          matched: matchedCardIds.includes(card.id)
+          active: selectedCardId === placement.card.id,
+          matched: matchedCardIds.includes(placement.card.id)
         }"
-        @click="emit('card', card, index)"
+        @click="emit('card', placement.card, placement.index)"
       />
     </div>
 
@@ -45,8 +46,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, watch } from "vue";
 import { useStore } from "vuex";
-import type { ConfigFile, Card, SetPage } from "@/common/interfaces/ConfigFile";
-import { CardType, getPageSize, normalizePage } from "@/common/interfaces/ConfigFile";
+import type { CardGridPlacement, ConfigFile, Card, SetPage } from "@/common/interfaces/ConfigFile";
+import { CardType, getCardGridPlacements, normalizePage } from "@/common/interfaces/ConfigFile";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import SetGridButton from "@/frontend/components/SetGridButton.vue";
 import { PageWatcher } from "@linkasu/tobii-electron/renderer";
@@ -88,10 +89,16 @@ const currentPage = computed<SetPage>(() => {
   });
 });
 
-const current = computed(() => {
-  const page = currentPage.value;
-  return page.cards.slice(0, getPageSize(page));
-});
+const placements = computed(() => getCardGridPlacements(currentPage.value));
+
+const visiblePlacements = computed(() => placements.value.filter((placement) => !placement.covered));
+
+function getPlacementStyle (placement: CardGridPlacement) {
+  return {
+    gridColumn: `${placement.column} / span ${placement.width}`,
+    gridRow: `${placement.row} / span ${placement.height}`
+  };
+}
 
 const showPagination = computed(() => {
   return currentPage.value.mode !== "quiz" && totalPages.value > 1;

@@ -32,8 +32,11 @@
                 :class="{
                   selected: selected?.id === element?.id,
                   nonValid: !isValid(element),
-                  pendingMatch: pendingMatchCardId === element.id
+                  pendingMatch: pendingMatchCardId === element.id,
+                  mergedCovered: isPlacementCovered(index),
+                  mergedCard: isMergedCard(index)
                 }"
+                :style="getPlacementStyle(index)"
                 :dot="pageMode === 'quiz' && !!element.answer"
                 @click="select(index)"
               />
@@ -115,6 +118,48 @@
                   item-value="value"
                   :disabled="ui_disabled"
                 />
+              </v-col>
+            </v-row>
+            <v-row v-if="showMergeControls">
+              <v-col>
+                <v-card width="100%" elevation="0" class="span-settings">
+                  <v-card-title primary-title>
+                    Размер карточки
+                  </v-card-title>
+                  <v-card-subtitle>
+                    Сейчас: {{ cardSpanLabel }}
+                  </v-card-subtitle>
+                  <v-card-text>
+                    <v-container>
+                      <v-row>
+                        <v-col>
+                          <v-btn block color="primary" :disabled="ui_disabled || !cardSpanInfo.canFillRow" @click="mergeFullRow">
+                            {{ cardSpanInfo.canFillRow ? "Объединить строку" : "Строка занята" }}
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+                      <v-row>
+                        <v-col>
+                          <v-btn block variant="tonal" :disabled="ui_disabled || !cardSpanInfo.canGrowRight" @click="growRight">
+                            {{ cardSpanInfo.canGrowRight ? "+ вправо" : "Справа занято" }}
+                          </v-btn>
+                        </v-col>
+                        <v-col>
+                          <v-btn block variant="tonal" :disabled="ui_disabled || !cardSpanInfo.canGrowDown" @click="growDown">
+                            {{ cardSpanInfo.canGrowDown ? "+ вниз" : "Снизу занято" }}
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+                      <v-row>
+                        <v-col>
+                          <v-btn block color="error" variant="tonal" :disabled="ui_disabled || !cardSpanInfo.canReset" @click="resetSpan">
+                            Сбросить до 1×1
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+                    </v-container>
+                  </v-card-text>
+                </v-card>
               </v-col>
             </v-row>
             <section v-if="selected.cardType === CardTypes.AudioCard">
@@ -251,8 +296,8 @@ import PictureBankDialog from "@/frontend/components/EditorView/PictureBank/Pict
 import NewFileDialog from "@/frontend/components/EditorView/NewFileDialog.vue";
 import TTSDialog from "@/frontend/components/EditorView/TTSDialog.vue";
 
-import type { Card, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
-import { CardType, getMatchLane, normalizePage } from "@/common/interfaces/ConfigFile";
+import type { Card, CardGridPlacement, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
+import { CardType, getCardGridPlacements, getMatchLane, normalizePage } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
@@ -263,8 +308,13 @@ import {
   clearMatchLink as clearEditorMatchLink,
   copySelectedCard,
   createEditorPage,
+  getSelectedCardSpanInfo,
+  growSelectedCardDown,
+  growSelectedCardRight,
   isValidEditorCard,
   isValidMatchCard,
+  mergeSelectedCardFullRow,
+  resetSelectedCardSpan,
   resetSelectedCard,
   toggleMatchLink as toggleEditorMatchLink
 } from "@/frontend/utils/editorLogic";
@@ -382,6 +432,8 @@ const current = computed({
   }
 });
 
+const placements = computed(() => getCardGridPlacements(currentPage.value));
+
 const question = computed({
   get (): string {
     return currentPage.value.question ?? "";
@@ -420,6 +472,18 @@ const matchButtonLabel = computed(() => {
   return "Выбрать карточку для связи";
 });
 
+const cardSpanInfo = computed(() => {
+  return getSelectedCardSpanInfo(current.value, selectedCardId.value, columns.value, rows.value, pageMode.value);
+});
+
+const showMergeControls = computed(() => {
+  return cardSpanInfo.value.mergeable;
+});
+
+const cardSpanLabel = computed(() => {
+  return `${cardSpanInfo.value.currentWidth}×${cardSpanInfo.value.currentHeight}`;
+});
+
 watch(pageMode, (mode) => {
   if (mode !== "match") {
     pendingMatchCardId.value = null;
@@ -448,7 +512,31 @@ async function loadSet () {
 }
 
 function select (index: number) {
+  if (isPlacementCovered(index)) return;
   selectedCardId.value = current.value[index]?.id ?? null;
+}
+
+function getPlacement (index: number): CardGridPlacement | undefined {
+  return placements.value[index];
+}
+
+function getPlacementStyle (index: number) {
+  const placement = getPlacement(index);
+  if (!placement) return undefined;
+  return {
+    gridColumn: `${placement.column} / span ${placement.width}`,
+    gridRow: `${placement.row} / span ${placement.height}`,
+    zIndex: placement.covered ? 0 : 1
+  };
+}
+
+function isPlacementCovered (index: number) {
+  return !!getPlacement(index)?.covered;
+}
+
+function isMergedCard (index: number) {
+  const placement = getPlacement(index);
+  return !!placement && !placement.covered && (placement.width > 1 || placement.height > 1);
 }
 
 function copySelected () {
@@ -475,6 +563,27 @@ function nextPage () {
 
 function resetSelected () {
   const result = resetSelectedCard(current.value, selectedCardId.value);
+  current.value = result.cards;
+  selectedCardId.value = result.selectedCardId;
+}
+
+function growRight () {
+  applySpanResult(growSelectedCardRight(current.value, selectedCardId.value, columns.value, rows.value, pageMode.value));
+}
+
+function growDown () {
+  applySpanResult(growSelectedCardDown(current.value, selectedCardId.value, columns.value, rows.value, pageMode.value));
+}
+
+function mergeFullRow () {
+  applySpanResult(mergeSelectedCardFullRow(current.value, selectedCardId.value, columns.value, rows.value, pageMode.value));
+}
+
+function resetSpan () {
+  applySpanResult(resetSelectedCardSpan(current.value, selectedCardId.value));
+}
+
+function applySpanResult (result: { cards: Card[], selectedCardId: string | null }) {
   current.value = result.cards;
   selectedCardId.value = result.selectedCardId;
 }
@@ -603,6 +712,15 @@ function clearMatchLink () {
 
 .pendingMatch {
   border: 3px dashed rgb(var(--v-theme-primary));
+}
+
+.mergedCovered {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.mergedCard {
+  box-shadow: inset 0 0 0 4px rgb(var(--v-theme-primary));
 }
 
 .delete {

@@ -26,6 +26,7 @@ Files with the `.linka` extension are regular ZIP archives. They store card sets
         {
           "id": "card-uuid",
           "cardType": 0,
+          "width": 2,
           "imagePath": "...png",
           "title": "text",
           "audioPath": "...mp3",
@@ -56,8 +57,11 @@ Each page contains:
 
 Cards may additionally contain:
 
+- **width** and **height** – card size in grid cells. These fields are optional and default to `1`. Values greater than `1` are supported on `standard` and `quiz` pages; `match` pages always use `1×1` cards.
 - **answer** – marks the correct answer on `quiz` pages.
 - **matchId** – pair identifier for `match` pages.
 - **matchLane** – row placement (`top` or `bottom`) for `match` pages.
+
+When a card spans multiple cells, the covered positions in `cards` should be filled with empty cards (`cardType: 2`) so older app versions degrade safely. Older versions may ignore `width`/`height` and render those cards as regular `1×1` cards.
 
 Legacy `2.0` files with a flat `cards` array are still supported and normalized into `pages` when loaded.

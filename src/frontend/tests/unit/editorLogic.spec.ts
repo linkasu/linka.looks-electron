@@ -2,15 +2,23 @@ import chai from "chai";
 import { Card, CardType, normalizePage } from "@/common/interfaces/ConfigFile";
 import {
   advanceEditorPage,
+  canMergeSelectedCard,
   clearCardAudio,
   clearMatchLink,
   copyEditorPage,
   copySelectedCard,
   createEditorPage,
+  getSelectedCardSpanInfo,
+  growSelectedCardDown,
+  growSelectedCardRight,
+  isCardMerged,
   deleteEditorPage,
   isValidEditorCard,
+  mergeSelectedCardFullRow,
   resetSelectedCard,
-  toggleMatchLink
+  resetSelectedCardSpan,
+  toggleMatchLink,
+  toggleSelectedCardMerge
 } from "@/frontend/utils/editorLogic";
 
 const expect = chai.expect;
@@ -94,6 +102,104 @@ describe("editorLogic", () => {
     expect(result.cards[0].cardType).to.equal(CardType.NewCard);
     expect(result.cards[0].id).to.not.equal("audio-1");
     expect(result.selectedCardId).to.equal(result.cards[0].id);
+  });
+
+  it("merges selected card into a free cell and then splits it", () => {
+    const cards: Card[] = [
+      { id: "audio-1", cardType: CardType.AudioCard, title: "one", imagePath: "one.png" },
+      { id: "new", cardType: CardType.NewCard }
+    ];
+
+    const merged = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
+    const split = toggleSelectedCardMerge(merged.cards, "audio-1", 2, 1, "standard");
+
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(true);
+    expect(merged.cards[0].width).to.equal(2);
+    expect(isCardMerged(merged.cards[0])).to.equal(true);
+    expect(split.cards[0].width).to.equal(undefined);
+    expect(isCardMerged(split.cards[0])).to.equal(false);
+  });
+
+  it("does not merge into an occupied neighboring cell", () => {
+    const cards: Card[] = [
+      { id: "audio-1", cardType: CardType.AudioCard, title: "one", imagePath: "one.png" },
+      { id: "audio-2", cardType: CardType.AudioCard, title: "two", imagePath: "two.png" }
+    ];
+
+    const result = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
+
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(false);
+    expect(result.cards).to.equal(cards);
+  });
+
+  it("merges space cards into a free cell", () => {
+    const cards: Card[] = [
+      { id: "space", cardType: CardType.SpaceCard, title: " " },
+      { id: "new", cardType: CardType.NewCard }
+    ];
+
+    const result = toggleSelectedCardMerge(cards, "space", 2, 1, "standard");
+
+    expect(canMergeSelectedCard(cards, "space", 2, 1, "standard")).to.equal(true);
+    expect(result.cards[0].width).to.equal(2);
+  });
+
+  it("merges a space card to the end of the row", () => {
+    const cards: Card[] = [
+      { id: "space", cardType: CardType.SpaceCard, title: " " },
+      { id: "new-1", cardType: CardType.NewCard },
+      { id: "new-2", cardType: CardType.NewCard },
+      { id: "new-3", cardType: CardType.NewCard }
+    ];
+
+    const info = getSelectedCardSpanInfo(cards, "space", 4, 1, "standard");
+    const result = mergeSelectedCardFullRow(cards, "space", 4, 1, "standard");
+
+    expect(info.canFillRow).to.equal(true);
+    expect(info.fillRowWidth).to.equal(4);
+    expect(result.cards[0].width).to.equal(4);
+  });
+
+  it("stops row merge before an occupied card", () => {
+    const cards: Card[] = [
+      { id: "space", cardType: CardType.SpaceCard, title: " " },
+      { id: "new", cardType: CardType.NewCard },
+      { id: "audio", cardType: CardType.AudioCard, title: "busy" },
+      { id: "new-2", cardType: CardType.NewCard }
+    ];
+
+    const info = getSelectedCardSpanInfo(cards, "space", 4, 1, "standard");
+    const result = mergeSelectedCardFullRow(cards, "space", 4, 1, "standard");
+
+    expect(info.fillRowWidth).to.equal(2);
+    expect(result.cards[0].width).to.equal(2);
+  });
+
+  it("grows cards right, down and resets spans", () => {
+    const cards: Card[] = [
+      { id: "audio", cardType: CardType.AudioCard },
+      { id: "new-1", cardType: CardType.NewCard },
+      { id: "new-2", cardType: CardType.NewCard },
+      { id: "new-3", cardType: CardType.NewCard }
+    ];
+
+    const wide = growSelectedCardRight(cards, "audio", 2, 2, "standard");
+    const tall = growSelectedCardDown(wide.cards, "audio", 2, 2, "standard");
+    const reset = resetSelectedCardSpan(tall.cards, "audio");
+
+    expect(wide.cards[0].width).to.equal(2);
+    expect(tall.cards[0].height).to.equal(2);
+    expect(reset.cards[0].width).to.equal(undefined);
+    expect(reset.cards[0].height).to.equal(undefined);
+  });
+
+  it("does not merge cards on match pages", () => {
+    const cards: Card[] = [
+      { id: "audio-1", cardType: CardType.AudioCard },
+      { id: "new", cardType: CardType.NewCard }
+    ];
+
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "match")).to.equal(false);
   });
 
   it("advances within existing pages before creating a new page", () => {

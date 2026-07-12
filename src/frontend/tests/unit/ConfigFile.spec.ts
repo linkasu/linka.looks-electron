@@ -5,6 +5,7 @@ import {
   CURRENT_SET_VERSION,
   DEFAULT_COLUMNS,
   DEFAULT_ROWS,
+  getCardGridPlacements,
   getPageSize,
   normalizeConfigFile,
   normalizePage
@@ -80,6 +81,52 @@ describe("config file normalization", () => {
     });
 
     expect(page.cards.map((card) => card.id)).to.deep.equal(["1", "2"]);
+  });
+
+  it("preserves multi-cell card spans for standard and quiz pages", () => {
+    const page = normalizePage({
+      mode: "standard",
+      columns: 3,
+      rows: 2,
+      cards: [
+        { id: "1", cardType: CardType.AudioCard, width: 2, title: "wide" },
+        { id: "2", cardType: CardType.NewCard }
+      ]
+    });
+
+    expect(page.cards[0].width).to.equal(2);
+    expect(page.cards[0].height).to.equal(undefined);
+  });
+
+  it("removes multi-cell spans from match pages", () => {
+    const page = normalizePage({
+      mode: "match",
+      columns: 2,
+      rows: 2,
+      cards: [{ id: "1", cardType: CardType.AudioCard, width: 2, height: 2 }]
+    });
+
+    expect(page.cards[0].width).to.equal(undefined);
+    expect(page.cards[0].height).to.equal(undefined);
+  });
+
+  it("calculates covered grid cells for multi-cell cards", () => {
+    const page = normalizePage({
+      mode: "standard",
+      columns: 3,
+      rows: 1,
+      cards: [
+        { id: "wide", cardType: CardType.AudioCard, width: 2 },
+        { id: "covered", cardType: CardType.NewCard },
+        { id: "next", cardType: CardType.AudioCard }
+      ]
+    });
+
+    const placements = getCardGridPlacements(page);
+
+    expect(placements[0]).to.deep.include({ index: 0, column: 1, row: 1, width: 2, height: 1, covered: false });
+    expect(placements[1].covered).to.equal(true);
+    expect(placements[2]).to.deep.include({ index: 2, column: 3, row: 1, width: 1, height: 1, covered: false });
   });
 
   it("sanitizes unsupported dimensions and mode", () => {

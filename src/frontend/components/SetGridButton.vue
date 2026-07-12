@@ -40,7 +40,7 @@
         v-if="card.cardType === CardTypes.AudioCard"
         class="text"
       >
-      <span :style="{fontSize: `${fontSize}px`, fontWeight: fontBold? 700 : 400}">
+      <span :style="{fontSize: `${titleFontSize}px`, fontWeight: fontBold? 700 : 400}">
         {{ card.title?.slice(0, 50) }}
       </span>
       </div>
@@ -96,6 +96,11 @@ const fontSize = computed(() => {
 });
 const fontBold = computed(() => {
   return store.state.layoutSettings.fontBold;
+});
+const titleFontSize = computed(() => {
+  const width = Math.max(1, props.card.width ?? 1);
+  const height = Math.max(1, props.card.height ?? 1);
+  return Math.round(fontSize.value * Math.min(2, Math.sqrt(width * height)));
 });
 
 async function onCardPropUpdated (card: Card) {
