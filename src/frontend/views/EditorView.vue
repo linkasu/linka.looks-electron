@@ -75,7 +75,7 @@
           </v-layout>
         </v-card-text>
       </v-card>
-      <v-card v-if="selected" class="mt-7">
+      <v-card v-if="selected" class="editor-side-panel editor-side-panel--selected mt-7">
         <v-card-title primary-title>
           Редактирование
           <v-spacer />
@@ -269,7 +269,7 @@
           </v-form>
         </v-card-text>
       </v-card>
-      <v-card v-else>
+      <v-card v-else class="editor-side-panel">
         <v-card-title primary-title>
           Выберите картинку для начала работы
         </v-card-title>
@@ -680,8 +680,19 @@ function clearMatchLink () {
 
 .editor-body {
   height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: 8fr 4fr;
+}
+
+.editor-side-panel {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.editor-side-panel--selected {
+  height: calc(100% - 28px);
 }
 
 .cards {

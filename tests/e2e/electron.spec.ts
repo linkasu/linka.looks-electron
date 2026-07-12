@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import AdmZip from "adm-zip";
 import { join } from "node:path";
 import {
@@ -35,6 +35,45 @@ test("editor settings expose row and column controls", async () => {
   }
 });
 
+test("editor side panel scrolls to audio controls", async () => {
+  const context = createE2EContext();
+  const setName = "editor-audio-scroll.linka";
+  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" }], {
+    pages: [{
+      id: "page-1",
+      mode: "standard",
+      columns: 3,
+      rows: 3,
+      cards: [
+        { id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" },
+        { id: "new-1", cardType: 3 },
+        { id: "new-2", cardType: 3 },
+        { id: "new-3", cardType: 3 },
+        { id: "new-4", cardType: 3 },
+        { id: "new-5", cardType: 3 },
+        { id: "new-6", cardType: 3 },
+        { id: "new-7", cardType: 3 },
+        { id: "new-8", cardType: 3 }
+      ]
+    }]
+  }));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    for (const viewport of [
+      { width: 800, height: 600 },
+      { width: 1024, height: 768 },
+      { width: 1366, height: 768 }
+    ]) {
+      await expectEditorAudioControlsReachable(window, setName, viewport);
+    }
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
 test("assistant settings page scrolls within the main content area", async () => {
   const context = createE2EContext();
 
@@ -63,6 +102,44 @@ test("assistant settings page scrolls within the main content area", async () =>
     cleanupE2EContext(context);
   }
 });
+
+async function expectEditorAudioControlsReachable (window: Page, setName: string, viewport: { width: number, height: number }) {
+  await window.setViewportSize(viewport);
+  await window.goto(`${devServerUrl}/#/edit/§${setName}`);
+  await window.getByRole("button", { name: "Карточка", exact: true }).click();
+  await expect(window.getByText("Редактирование")).toBeVisible();
+
+  const panel = window.locator(".editor-side-panel");
+  await panel.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+
+  const metrics = await panel.evaluate((el) => {
+    const panelRect = el.getBoundingClientRect();
+    const button = Array.from(el.querySelectorAll("button"))
+      .find((candidate) => candidate.textContent?.includes("оздать из текста"));
+    const buttonRect = button?.getBoundingClientRect();
+
+    return {
+      buttonBottom: buttonRect?.bottom ?? 0,
+      buttonTop: buttonRect?.top ?? 0,
+      clientHeight: el.clientHeight,
+      overflowY: getComputedStyle(el).overflowY,
+      panelBottom: panelRect.bottom,
+      panelTop: panelRect.top,
+      scrollHeight: el.scrollHeight,
+      viewportHeight: window.innerHeight
+    };
+  });
+
+  expect(metrics.overflowY).toBe("auto");
+  expect(metrics.buttonTop).toBeGreaterThanOrEqual(metrics.panelTop - 1);
+  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.panelBottom + 1);
+  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+  if (viewport.height <= 600) {
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  }
+}
 
 test("gaze set explorer keeps page scrolling disabled", async () => {
   const context = createE2EContext();
