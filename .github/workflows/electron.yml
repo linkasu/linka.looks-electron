@@ -2,7 +2,6 @@ name: Electron build
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ "v*" ]
 
 permissions:
@@ -23,6 +22,18 @@ jobs:
         node-version: 22.x
         cache: 'npm'
 
+    - name: Cache Electron downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-
+
     - name: Install deps
       run: npm ci
     - name: Linter
@@ -33,11 +44,7 @@ jobs:
       run: npm run electron:build -- --dir
     - name: Packaged resource smoke test
       run: npm run test:packaged-resources
-    - name: Build installer
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: npm run electron:build -- -p never
     - name: Build and publish
-      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       run: npm run electron:build -- -p always
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
@@ -53,6 +60,18 @@ jobs:
         node-version: 22.x
         cache: 'npm'
 
+    - name: Cache Electron downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-
+
     - name: Install deps
       run: npm ci
     - name: Build unpacked app for packaged resource smoke test
@@ -61,13 +80,7 @@ jobs:
         CSC_IDENTITY_AUTO_DISCOVERY: false
     - name: Packaged resource smoke test
       run: npm run test:packaged-resources
-    - name: Build macOS artifacts
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: npm run electron:build -- --mac --x64 --arm64 -p never
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
     - name: Build and publish macOS artifacts
-      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       run: npm run electron:build -- --mac --x64 --arm64 -p always
       env:
         CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -90,6 +103,18 @@ jobs:
       with:
         node-version: 22.x
         cache: 'npm'
+
+    - name: Cache Electron downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-
 
     - name: Install Linux native build dependencies
       run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools

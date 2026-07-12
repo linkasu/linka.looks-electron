@@ -2,8 +2,17 @@ name: Electron test
 
 on:
   pull_request:
-    types: [opened, reopened, edited, synchronize]
-    branches: ['main']
+    types: [ opened, reopened, edited, synchronize ]
+    branches: [ "main" ]
+    paths-ignore:
+      - "docs/**"
+      - "agents/**"
+      - "README*"
+      - "**/*.md"
+
+concurrency:
+  group: electron-test-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -20,21 +29,24 @@ jobs:
         node-version: 22.x
         cache: 'npm'
 
+    - name: Cache Electron downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-
+
     - name: Install deps
       run: npm ci
-    - name: Lint
-      run: npm run lint
-    - name: Unit tests
-      run: npm run test:unit
-    - name: Build installer
-      run: npm run electron:build -- -p never
+    - name: Build unpacked app for packaged resource smoke test
+      run: npm run electron:build -- --dir
     - name: Packaged resource smoke test
       run: npm run test:packaged-resources
-    - name: Upload installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-installer
-        path: dist
 
   build-macos:
     runs-on: macos-latest
@@ -47,55 +59,23 @@ jobs:
         node-version: 22.x
         cache: 'npm'
 
+    - name: Cache Electron downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-
+
     - name: Install deps
       run: npm ci
     - name: Build unpacked app for packaged resource smoke test
-      run: npm run electron:build -- --mac --x64 --arm64 --dir
+      run: npm run electron:build -- --mac --x64 --dir
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
     - name: Packaged resource smoke test
       run: npm run test:packaged-resources
-    - name: Build macOS artifacts
-      run: npm run electron:build -- --mac --x64 --arm64 -p never
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
-    - name: Upload macOS artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-artifacts
-        path: |
-          dist/*.dmg
-          dist/*.zip
-          dist/*.blockmap
-          dist/latest-mac.yml
-
-  build-linux-experimental:
-    runs-on: ubuntu-latest
-    env:
-      CXXFLAGS: -std=gnu++17
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22.x
-        cache: 'npm'
-
-    - name: Install Linux native build dependencies
-      run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
-    - name: Install deps
-      run: npm ci
-    - name: Unit tests
-      run: npm run test:unit
-    - name: Build Linux experimental artifacts
-      run: npm run electron:build:linux
-    - name: Upload Linux experimental artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-experimental-artifacts
-        path: |
-          dist/*.AppImage
-          dist/*.deb
-          dist/*.blockmap
-          dist/latest-linux.yml

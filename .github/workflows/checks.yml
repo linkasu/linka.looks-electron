@@ -1,0 +1,50 @@
+name: Checks
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - "docs/**"
+      - "agents/**"
+      - "README*"
+      - "**/*.md"
+  pull_request:
+    types: [ opened, reopened, edited, synchronize ]
+    branches: [ "main" ]
+    paths-ignore:
+      - "docs/**"
+      - "agents/**"
+      - "README*"
+      - "**/*.md"
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      CXXFLAGS: -std=gnu++17
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+
+    - name: Install Linux native build dependencies
+      run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
+    - name: Install deps
+      run: npm ci
+    - name: Lint
+      run: npm run lint
+    - name: Typecheck
+      run: npm run typecheck
+    - name: Unit tests
+      run: npm run test:unit
