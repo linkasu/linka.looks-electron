@@ -53,7 +53,7 @@
         :style="targetStyle(point, index)"
         @eye-enter="onPointEnter(index)"
         @eye-exit="onPointExit(index)"
-        @click.prevent
+        @click.prevent="onPointClick(index)"
       >
         <div class="target-sparks" aria-hidden="true">
           <span v-for="spark in 10" :key="spark" class="target-spark"></span>
@@ -129,9 +129,11 @@ const tobiiStatus = ref<TobiiStatus>();
 const showDebug = import.meta.env.DEV && window.localStorage.getItem("tobiiDebug") === "1";
 
 const holdMs = 1600;
+const settleMs = 800;
 const burstMs = 280;
 const groupPauseMs = 120;
 let holdFrame: number | undefined;
+let settleTimer: number | undefined;
 
 const calibrationGroups: CalibrationPoint[][] = [
   [
@@ -186,6 +188,7 @@ async function startTobiiCalibration () {
     phase.value = "start";
     await ipcRenderer.invoke("tobii:calibration:start");
     phase.value = "look";
+    startNextPointTimer();
   } catch (error) {
     failCalibration(error);
   }
@@ -194,6 +197,7 @@ async function startTobiiCalibration () {
 function cancelTobiiCalibration () {
   const cancelledPhase = phase.value;
   stopHoldTimer();
+  stopSettleTimer();
   cancelled.value = true;
   calibrationActive.value = false;
   calibrationBusy.value = false;
@@ -244,13 +248,15 @@ function isPointEyeDisabled (index: number) {
   if (completingPoint.value) return true;
   const state = pointStates.value[index];
   if (state === "done" || state === "bursting") return true;
-  return activePointIndex.value !== null && activePointIndex.value !== index;
+  return activePointIndex.value !== index;
 }
 
 function onPointEnter (index: number) {
+  if (activePointIndex.value !== null) return;
   if (isPointEyeDisabled(index)) return;
   if (pointStates.value[index] === "holding") return;
   stopHoldTimer();
+  stopSettleTimer();
   activePointIndex.value = index;
   holdProgress.value = 0;
   setPointState(index, "holding");
@@ -258,15 +264,23 @@ function onPointEnter (index: number) {
 }
 
 function onPointExit (index: number) {
+  if (activePointIndex.value !== null) return;
   if (activePointIndex.value !== index) return;
   if (pointStates.value[index] !== "holding") return;
   stopHoldTimer();
+  stopSettleTimer();
   activePointIndex.value = null;
   holdProgress.value = 0;
   setPointState(index, "idle");
 }
 
+function onPointClick (index: number) {
+  if (isPointEyeDisabled(index)) return;
+  void completePoint(index);
+}
+
 function startHoldTimer (index: number) {
+  stopSettleTimer();
   const startedAt = performance.now();
   const tick = (now: number) => {
     if (cancelled.value || activePointIndex.value !== index || pointStates.value[index] !== "holding") return;
@@ -281,10 +295,26 @@ function startHoldTimer (index: number) {
   holdFrame = window.requestAnimationFrame(tick);
 }
 
+function startNextPointTimer () {
+  if (cancelled.value || phase.value !== "look" || completingPoint.value) return;
+  const index = pointStates.value.findIndex((state) => state === "idle");
+  if (index < 0) return;
+  stopHoldTimer();
+  stopSettleTimer();
+  activePointIndex.value = index;
+  holdProgress.value = 0;
+  setPointState(index, "holding");
+  settleTimer = window.setTimeout(() => {
+    settleTimer = undefined;
+    startHoldTimer(index);
+  }, settleMs);
+}
+
 async function completePoint (index: number) {
   if (completingPoint.value) return;
   completingPoint.value = true;
   stopHoldTimer();
+  stopSettleTimer();
   activePointIndex.value = null;
   holdProgress.value = 100;
   setPointState(index, "bursting");
@@ -309,12 +339,16 @@ async function completePoint (index: number) {
 }
 
 async function continueAfterPoint () {
-  if (!pointStates.value.every((state) => state === "done")) return;
+  if (!pointStates.value.every((state) => state === "done")) {
+    startNextPointTimer();
+    return;
+  }
   if (activeGroupIndex.value < calibrationGroups.length - 1) {
     await wait(groupPauseMs);
     if (cancelled.value) return;
     activeGroupIndex.value += 1;
     resetPointStates();
+    startNextPointTimer();
     return;
   }
 
@@ -352,8 +386,15 @@ function stopHoldTimer () {
   holdFrame = undefined;
 }
 
+function stopSettleTimer () {
+  if (settleTimer === undefined) return;
+  window.clearTimeout(settleTimer);
+  settleTimer = undefined;
+}
+
 function failCalibration (error: unknown) {
   stopHoldTimer();
+  stopSettleTimer();
   calibrationError.value = error instanceof Error ? error.message : String(error);
   trackTobiiMetric("tobiiCalibrationError", {
     phase: phase.value,
@@ -441,6 +482,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   stopHoldTimer();
+  stopSettleTimer();
   window.removeEventListener("keydown", onKeydown);
   ipcRenderer.off("tobii:status", onTobiiStatus);
   if (showDebug) {
