@@ -14,25 +14,45 @@ vi.mock("axios", () => ({
 describe("Metric", () => {
   beforeEach(() => {
     post.mockReset();
+    Metric.setTelemetryConsent("unknown");
   });
 
-  it("does not send events for invalid pcHash", async () => {
-    await Metric.registerEvent("bad-hash", "openSet", { filename: "test.linka" });
+  it("does not send events before the user makes a choice", async () => {
+    await Metric.registerEvent("00000000-0000-4000-8000-000000000000", "openSet");
 
     expect(post.mock.calls).to.have.length(0);
   });
 
-  it("sends events for valid pcHash", async () => {
-    post.mockResolvedValue({ data: {} });
+  it("does not send events after opt-out", async () => {
+    Metric.setTelemetryConsent("disabled");
+    await Metric.registerEvent("00000000-0000-4000-8000-000000000000", "openSet");
 
-    await Metric.registerEvent("00000000-0000-4000-8000-000000000000", "openSet", { filename: "test.linka" });
+    expect(post.mock.calls).to.have.length(0);
+  });
+
+  it("does not send events for invalid pcHash after opt-in", async () => {
+    Metric.setTelemetryConsent("enabled");
+    await Metric.registerEvent("bad-hash", "openSet");
+
+    expect(post.mock.calls).to.have.length(0);
+  });
+
+  it("sends the event name and current consent proof after opt-in", async () => {
+    post.mockResolvedValue({ data: {} });
+    Metric.setTelemetryConsent("enabled");
+
+    await Metric.registerEvent("00000000-0000-4000-8000-000000000000", "openSet");
 
     expect(post.mock.calls[0]).to.deep.equal([
       "https://metric.linka.su/registerEvent",
       {
         hash: "00000000-0000-4000-8000-000000000000",
         eventName: "openSet",
-        eventData: { filename: "test.linka" }
+        consent: {
+          policy: "technical-events",
+          version: 1,
+          granted: true
+        }
       }
     ]);
   });
@@ -40,6 +60,7 @@ describe("Metric", () => {
   it("does not throw when event registration fails", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     post.mockRejectedValue(new Error("network down"));
+    Metric.setTelemetryConsent("enabled");
 
     await Metric.registerEvent("00000000-0000-4000-8000-000000000000", "openEditor");
 
@@ -47,7 +68,7 @@ describe("Metric", () => {
     errorSpy.mockRestore();
   });
 
-  it("requests activation email", async () => {
+  it("requests activation email without telemetry consent", async () => {
     post.mockResolvedValue({ data: {} });
 
     await Metric.sendActivationEmail("user@example.com");
@@ -59,8 +80,9 @@ describe("Metric", () => {
     ]);
   });
 
-  it("returns activation hash from server response", async () => {
+  it("returns activation hash after telemetry opt-out", async () => {
     post.mockResolvedValue({ data: { hash: "hash-value" } });
+    Metric.setTelemetryConsent("disabled");
 
     const hash = await Metric.activateAccount("user@example.com", "1234");
 

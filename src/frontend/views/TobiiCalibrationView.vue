@@ -172,7 +172,7 @@ const tobiiStatusAlertType = computed(() => {
 
 async function startTobiiCalibration () {
   if (calibrationBusy.value) return;
-  trackTobiiMetric("tobiiCalibrationStart", { platform: platform.name });
+  trackTobiiMetric("tobiiCalibrationStart");
   calibrationBusy.value = true;
   calibrationActive.value = true;
   calibrationError.value = "";
@@ -195,7 +195,6 @@ async function startTobiiCalibration () {
 }
 
 function cancelTobiiCalibration () {
-  const cancelledPhase = phase.value;
   stopHoldTimer();
   stopSettleTimer();
   cancelled.value = true;
@@ -205,21 +204,21 @@ function cancelTobiiCalibration () {
   activePointIndex.value = null;
   completingPoint.value = false;
   calibrationMessage.value = "Калибровка Tobii отменена.";
-  trackTobiiMetric("tobiiCalibrationCancel", { phase: cancelledPhase, platform: platform.name });
+  trackTobiiMetric("tobiiCalibrationCancel");
 }
 
 async function applySavedCalibration () {
   calibrationBusy.value = true;
   calibrationError.value = "";
-  trackTobiiMetric("tobiiCalibrationApplySaved", { platform: platform.name });
+  trackTobiiMetric("tobiiCalibrationApplySaved");
   try {
     const applied = await ipcRenderer.invoke("tobii:calibration:apply-saved");
     calibrationMessage.value = applied ? "Сохранённая калибровка применена." : "Сохранённая калибровка пока не найдена.";
-    trackTobiiMetric("tobiiCalibrationApplySavedResult", { applied, platform: platform.name });
+    trackTobiiMetric("tobiiCalibrationApplySavedResult");
     if (applied && firstFlow.value) finishFirstFlow();
   } catch (error) {
     calibrationError.value = error instanceof Error ? error.message : String(error);
-    trackTobiiMetric("tobiiCalibrationError", { action: "applySaved", message: calibrationError.value, platform: platform.name });
+    trackTobiiMetric("tobiiCalibrationError");
   } finally {
     calibrationBusy.value = false;
   }
@@ -326,11 +325,7 @@ async function completePoint (index: number) {
     ]);
     if (cancelled.value) return;
     setPointState(index, "done");
-    trackTobiiMetric("tobiiCalibrationPoint", {
-      group: activeGroupIndex.value + 1,
-      index: index + 1,
-      platform: platform.name
-    });
+    trackTobiiMetric("tobiiCalibrationPoint");
     completingPoint.value = false;
     await continueAfterPoint();
   } catch (error) {
@@ -356,7 +351,7 @@ async function continueAfterPoint () {
   try {
     await ipcRenderer.invoke("tobii:calibration:finish");
     calibrationMessage.value = "Калибровка Tobii сохранена и применена.";
-    trackTobiiMetric("tobiiCalibrationFinish", { platform: platform.name });
+    trackTobiiMetric("tobiiCalibrationFinish");
     if (firstFlow.value) {
       finishFirstFlow();
       return;
@@ -396,11 +391,7 @@ function failCalibration (error: unknown) {
   stopHoldTimer();
   stopSettleTimer();
   calibrationError.value = error instanceof Error ? error.message : String(error);
-  trackTobiiMetric("tobiiCalibrationError", {
-    phase: phase.value,
-    message: calibrationError.value,
-    platform: platform.name
-  });
+  trackTobiiMetric("tobiiCalibrationError");
   calibrationActive.value = false;
   calibrationBusy.value = false;
   completingPoint.value = false;
@@ -409,7 +400,7 @@ function failCalibration (error: unknown) {
 }
 
 function skipFirstTobiiCalibration () {
-  trackTobiiMetric("tobiiCalibrationCancel", { phase: "firstSkip", platform: platform.name });
+  trackTobiiMetric("tobiiCalibrationCancel");
   finishFirstFlow();
 }
 
@@ -464,13 +455,13 @@ function formatPoint (point: CalibrationPoint) {
   return `${point.x.toFixed(3)}, ${point.y.toFixed(3)}`;
 }
 
-function trackTobiiMetric (eventName: Parameters<typeof Metric.registerEvent>[1], eventData?: unknown) {
-  Metric.registerEvent(store.state.pcHash, eventName, eventData);
+function trackTobiiMetric (eventName: Parameters<typeof Metric.registerEvent>[1]) {
+  Metric.registerEvent(store.state.pcHash, eventName);
 }
 
 onMounted(() => {
   if (!platform.isMacOS) {
-    trackTobiiMetric("tobiiCalibrationUnavailable", { platform: platform.name });
+    trackTobiiMetric("tobiiCalibrationUnavailable");
   }
   window.addEventListener("keydown", onKeydown);
   void loadTobiiStatus();

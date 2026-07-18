@@ -55,10 +55,6 @@ import { ProgressInfo } from "electron-updater";
 import store from "@/frontend/store";
 import { Metric } from "@/frontend/utils/Metric";
 
-type UpdateInfo = {
-  version?: string;
-};
-
 const percent = ref(0);
 const version = ref("");
 const available = ref(false);
@@ -92,33 +88,33 @@ function onUpdateInfo (event: unknown, data: ProgressInfo) {
   percent.value = data.percent;
 }
 
-function onUpdateAvailable (event: unknown, info?: UpdateInfo) {
+function onUpdateAvailable () {
   available.value = true;
   errorMessage.value = "";
-  trackUpdateMetric("updateAvailable", { version: info?.version || version.value });
+  trackUpdateMetric("updateAvailable");
 }
 
-function onUpdateDownloaded (event: unknown, info?: UpdateInfo) {
+function onUpdateDownloaded () {
   available.value = false;
   downloaded.value = true;
   errorMessage.value = "";
-  trackUpdateMetric("updateDownloaded", { version: info?.version || version.value });
+  trackUpdateMetric("updateDownloaded");
 }
 
 function onUpdateError (event: unknown, message: string) {
   errorMessage.value = message;
   available.value = false;
   downloaded.value = false;
-  trackUpdateMetric("updateError", { message, version: version.value });
+  trackUpdateMetric("updateError");
 }
 
 function update () {
-  trackUpdateMetric("updateInstallConfirmed", { version: version.value });
+  trackUpdateMetric("updateInstallConfirmed");
   ipcRenderer.send("restart_app");
 }
 
-function trackUpdateMetric (eventName: Parameters<typeof Metric.registerEvent>[1], eventData?: unknown) {
-  Metric.registerEvent(store.state.pcHash, eventName, eventData);
+function trackUpdateMetric (eventName: Parameters<typeof Metric.registerEvent>[1]) {
+  Metric.registerEvent(store.state.pcHash, eventName);
 }
 </script>
 

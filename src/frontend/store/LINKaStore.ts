@@ -1,4 +1,5 @@
 import { ConfigFile, SetPage } from "@/common/interfaces/ConfigFile";
+import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
 interface KeyMap {
     up: string[]
@@ -11,6 +12,7 @@ export type Side = keyof KeyMap
 export type PageTurnMode = "mouseOnly" | "mouseAndEyes"
 export interface LINKaStore {
     pcHash: string,
+    telemetryConsent: TelemetryConsent,
     popupVersion: number
     defaultSetsDownloaded: number
     firstCalibrate: boolean

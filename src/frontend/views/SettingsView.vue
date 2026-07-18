@@ -187,6 +187,26 @@
                 thumb-label
               />
             </template>
+
+            <v-divider class="my-2" />
+            <div class="text-subtitle-2 mb-1">
+              Конфиденциальность
+            </div>
+            <v-radio-group
+              v-model="telemetryConsent"
+              density="compact"
+              hide-details
+              inline
+            >
+              <v-radio label="Не отправлять" value="disabled" />
+              <v-radio label="Отправлять" value="enabled" />
+            </v-radio-group>
+            <div class="text-caption text-medium-emphasis">
+              Отправляются только названия действий и версия приложения. Содержимое карточек, названия файлов, пути и тексты ошибок не отправляются.
+            </div>
+            <v-btn class="mt-1" size="small" variant="text" @click="openPrivacy">
+              Политика конфиденциальности
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -216,12 +236,14 @@
 <script lang="ts" setup>
 import { computed, onMounted } from "vue";
 import { useStore } from "vuex";
+import { shell } from "electron";
 
 import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
 import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
 import { Metric } from "@/frontend/utils/Metric";
 import type { PageTurnMode } from "@/frontend/store/LINKaStore";
+import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
 const store = useStore();
 
@@ -323,5 +345,18 @@ const isExitButton = computed({
     store.commit("ui_exitButton", value);
   }
 });
+
+const telemetryConsent = computed({
+  get () {
+    return store.state.telemetryConsent as TelemetryConsent;
+  },
+  set (value: TelemetryConsent) {
+    store.commit("telemetryConsent", value);
+  }
+});
+
+function openPrivacy () {
+  shell.openExternal("https://metric.linka.su/privacy");
+}
 
 </script>

@@ -3,10 +3,13 @@ import { ipcRenderer } from "electron";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { CardType, CURRENT_SET_VERSION, normalizePage } from "@/common/interfaces/ConfigFile";
 import store from "@/frontend/store";
+import { eStore } from "@/frontend/store/eStore";
+import { Metric } from "@/frontend/utils/Metric";
 
 const expect = chai.expect;
 const send = ipcRenderer.send as unknown as ReturnType<typeof vi.fn>;
 const storage = storageService as unknown as Record<string, ReturnType<typeof vi.fn>>;
+const setTelemetryConsent = Metric.setTelemetryConsent as unknown as ReturnType<typeof vi.fn>;
 
 vi.mock("@/frontend/services/card-storage-service", () => ({
   storageService: {
@@ -19,7 +22,8 @@ vi.mock("@/frontend/services/card-storage-service", () => ({
 
 vi.mock("@/frontend/utils/Metric", () => ({
   Metric: {
-    registerEvent: vi.fn()
+    registerEvent: vi.fn(),
+    setTelemetryConsent: vi.fn()
   }
 }));
 
@@ -35,6 +39,23 @@ describe("store", () => {
 
     expect(store.state.button.timeout).to.equal(2500);
     expect(send.mock.calls[0]).to.deep.equal(["button_timeout", 2500]);
+  });
+
+  it("persists explicit telemetry choices and updates the metric gate", () => {
+    setTelemetryConsent.mockClear();
+
+    store.commit("telemetryConsent", "enabled");
+
+    expect(store.state.telemetryConsent).to.equal("enabled");
+    expect(eStore.get("telemetryConsent")).to.equal("enabled");
+    expect(setTelemetryConsent.mock.calls[0]).to.deep.equal(["enabled"]);
+  });
+
+  it("does not treat an existing activation hash as telemetry consent", () => {
+    store.commit("pcHash", "00000000-0000-4000-8000-000000000000");
+    store.commit("telemetryConsent", "invalid persisted value");
+
+    expect(store.state.telemetryConsent).to.equal("unknown");
   });
 
   it("uses mouse and eyes as the default page turn mode and updates it", () => {
@@ -227,6 +248,7 @@ describe("store", () => {
 });
 
 function resetStoreState () {
+  store.commit("telemetryConsent", "unknown");
   store.commit("button_enabled", true);
   store.commit("button_timeout", 1000);
   store.commit("button_pageTurnMode", "mouseAndEyes");

@@ -169,7 +169,7 @@ async function loadSet (nextFilename: string) {
   await store.dispatch("open_file", nextFilename);
   await store.dispatch("editor_current", nextFilename);
   filename.value = nextFilename;
-  Metric.registerEvent(store.state.pcHash, "openSet", { filename: nextFilename });
+  Metric.registerEvent(store.state.pcHash, "openSet");
 }
 
 function advancePage () {
@@ -190,7 +190,7 @@ function advanceQuiz () {
 }
 
 async function addCard (card: Card, index: number) {
-  Metric.registerEvent(store.state.pcHash, "cardClick", { card });
+  Metric.registerEvent(store.state.pcHash, "cardClick");
   if (isQuiz.value) {
     await onQuizCard(card);
     return;
