@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
       send: vi.fn()
     },
     shell: {
+      openExternal: vi.fn(),
       showItemInFolder: vi.fn(),
       trashItem: vi.fn(() => Promise.resolve())
     }

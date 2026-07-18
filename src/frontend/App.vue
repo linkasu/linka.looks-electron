@@ -1,55 +1,51 @@
 <template>
-  <v-app v-if="pcHash != 'unknow'">
-    <download-default-sets-dialog />
-    <notification-popup />
-    <router-view name="appbar" />
-    <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
-    <v-main
-      class="app-main"
-      :class="`app-main--${interactionMode}`"
-    >
-      <router-view />
-    </v-main>
-    <v-footer class="footer">
-      <update-status-bar />
-    </v-footer>
-    <!-- <bubble /> -->
-  </v-app>
-  <v-app v-else>
-    <v-main>
+  <v-app>
+    <telemetry-consent-notice />
+    <template v-if="pcHash != 'unknow'">
+      <download-default-sets-dialog />
+      <notification-popup v-if="telemetryConsent !== 'unknown'" />
+      <router-view name="appbar" />
+      <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
+      <v-main
+        class="app-main"
+        :class="`app-main--${interactionMode}`"
+      >
+        <router-view />
+      </v-main>
+      <v-footer class="footer">
+        <update-status-bar />
+      </v-footer>
+      <!-- <bubble /> -->
+    </template>
+    <v-main v-else>
       <RegisterForm />
     </v-main>
   </v-app>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted } from "vue";
-import { ipcRenderer } from "electron";
+import { computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import store from "./store";
 import RegisterForm from "@/frontend/views/RegisterForm.vue";
 import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
 import NotificationPopup from "@/frontend/components/NotificationPopup.vue";
+import TelemetryConsentNotice from "@/frontend/components/TelemetryConsentNotice.vue";
 import DownloadDefaultSetsDialog from "@/frontend/components/DownloadDefaultSetsDialog.vue";
 import { Metric } from "./utils/Metric";
-import { platform } from "@/frontend/plugins/platform";
 
 const pcHash = computed(() => store.state.pcHash);
+const telemetryConsent = computed(() => store.state.telemetryConsent);
 const route = useRoute();
 const interactionMode = computed(() => route.meta.interactionMode === "assistant" ? "assistant" : "gaze");
 
-onMounted(async () => {
-  if (pcHash.value.length === 36) {
-    const appInfo = await ipcRenderer.invoke("app_version");
-    const payload = {
-      platform: appInfo.platform || platform.name,
-      version: appInfo.version,
-      isPackaged: appInfo.isPackaged
-    };
-    Metric.registerEvent(pcHash.value, "platformDetected", payload);
-    Metric.registerEvent(pcHash.value, "start", payload);
-  }
-});
+let startupTracked = false;
+watch([pcHash, telemetryConsent], ([hash, consent]) => {
+  if (startupTracked || hash.length !== 36 || consent !== "enabled") return;
+  startupTracked = true;
+  Metric.registerEvent(hash, "platformDetected");
+  Metric.registerEvent(hash, "start");
+}, { immediate: true });
 
 const primary = computed(() => {
   return hexToRGB(store.state.colors.primary);

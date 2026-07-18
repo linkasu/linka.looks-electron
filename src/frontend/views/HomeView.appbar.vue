@@ -114,7 +114,7 @@ const tobiiStatusColor = computed(() => {
 });
 
 function trackTobiiCalibrationOpen () {
-  Metric.registerEvent(store.state.pcHash, "openTobiiCalibration", { platform: "darwin" });
+  Metric.registerEvent(store.state.pcHash, "openTobiiCalibration");
 }
 
 function onTobiiStatus (event: IpcRendererEvent, status: TobiiStatus) {

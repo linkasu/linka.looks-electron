@@ -13,6 +13,7 @@ import {
   normalizeConfigFile,
   normalizePage
 } from "@/common/interfaces/ConfigFile";
+import { normalizeTelemetryConsent, type TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
@@ -43,7 +44,8 @@ const fields = [
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
   { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
-  { commit: "first_calibrate", default: false } as Field<boolean>
+  { commit: "first_calibrate", default: false } as Field<boolean>,
+  { commit: "telemetryConsent", default: "unknown" } as Field<TelemetryConsent>
 ];
 
 const store = createStore<LINKaStore>({
@@ -51,6 +53,7 @@ const store = createStore<LINKaStore>({
     popupVersion: 0,
     defaultSetsDownloaded: 0,
     pcHash: "unknow",
+    telemetryConsent: "unknown",
     firstCalibrate: false,
     colors: {
       secondary: "",
@@ -126,7 +129,7 @@ const store = createStore<LINKaStore>({
     },
     ui_exitButton (state, value) {
       state.ui.exitButton = value;
-      Metric.registerEvent(state.pcHash, "settingsToggleEyeExit", { value });
+      Metric.registerEvent(state.pcHash, "settingsToggleEyeExit");
     },
     keyMapping_up ({ keyMapping }, value) {
       keyMapping.up = value;
@@ -203,31 +206,31 @@ const store = createStore<LINKaStore>({
     },
     button_enabled ({ button, pcHash }, value) {
       button.enabled = value;
-      Metric.registerEvent(pcHash, "toggleGazeLock", { value });
+      Metric.registerEvent(pcHash, "toggleGazeLock");
     },
     button_eyeSelect ({ button, pcHash }, value) {
       button.eyeSelect = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeChoose", { value });
+      Metric.registerEvent(pcHash, "settingsToggleEyeChoose");
     },
     button_eyeActivation ({ button, pcHash }, value) {
       button.eyeActivation = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeActivation", { value });
+      Metric.registerEvent(pcHash, "settingsToggleEyeActivation");
     },
     button_joystickActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleJoystickActivation", { value });
+      Metric.registerEvent(pcHash, "settingsToggleJoystickActivation");
       button.joystickActivation = value;
     },
     button_keyboardActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation", { value });
+      Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation");
       button.keyboardActivation = value;
     },
     button_mouseActivation ({ button, pcHash }, value) {
       button.mouseActivation = value;
-      Metric.registerEvent(pcHash, "settingsToggleMouseActivation", { value });
+      Metric.registerEvent(pcHash, "settingsToggleMouseActivation");
     },
     button_pageTurnMode ({ button, pcHash }, value: PageTurnMode) {
       button.pageTurnMode = value;
-      Metric.registerEvent(pcHash, "settingsTogglePageTurnMode", { value });
+      Metric.registerEvent(pcHash, "settingsTogglePageTurnMode");
     },
     button_borders ({ button }, value) {
       button.borders = value;
@@ -237,22 +240,27 @@ const store = createStore<LINKaStore>({
     },
     button_clickSound ({ button, pcHash }, value) {
       button.clickSound = value;
-      Metric.registerEvent(pcHash, "settingsToggleTypeSound", { value });
+      Metric.registerEvent(pcHash, "settingsToggleTypeSound");
     },
     button_multiply_scale ({ button, pcHash }, value) {
       button.multiplyScale = value;
       ipcRenderer.send("button_multiply_scale", value);
-      Metric.registerEvent(pcHash, "settingsToggleEyeScale", { value });
+      Metric.registerEvent(pcHash, "settingsToggleEyeScale");
     },
     layoutSettings_isOpened ({ layoutSettings }, value) {
       layoutSettings.isOpened = value;
     },
     interface_outputLine ({ ui, pcHash }, value) {
       ui.outputLine = value;
-      Metric.registerEvent(pcHash, "toggleOutputLine", value);
+      Metric.registerEvent(pcHash, "toggleOutputLine");
     },
     pcHash (state, hash) {
       state.pcHash = hash;
+    },
+    telemetryConsent (state, value: unknown) {
+      const consent = normalizeTelemetryConsent(value);
+      state.telemetryConsent = consent;
+      Metric.setTelemetryConsent(consent);
     },
     first_calibrate (state, value) {
       state.firstCalibrate = value;

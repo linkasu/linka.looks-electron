@@ -234,7 +234,7 @@ function loadSets () {
 function select (item: DirectoryFile) {
   if (item.directory) {
     mroot.value += "§" + pathModule.basename(item.file);
-    Metric.registerEvent(store.state.pcHash, "openFolder", { folder: item.file });
+    Metric.registerEvent(store.state.pcHash, "openFolder");
   } else {
     router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + pathModule.basename(item.file));
   }

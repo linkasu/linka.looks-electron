@@ -38,6 +38,7 @@ export function createE2EContext (): E2EContext {
   mkdirSync(homeDir, { recursive: true });
   writeFileSync(join(userDataDir, "config.json"), JSON.stringify({
     pcHash: "test",
+    telemetryConsent: "disabled",
     first_calibrate: true,
     defaultSetsDownloaded: 1
   }));

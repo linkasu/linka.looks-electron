@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AdmZip from "adm-zip";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanupE2EContext,
@@ -10,6 +11,29 @@ import {
   standardConfig,
   writeLinkaSet
 } from "./helpers";
+
+test("existing activation still requires an explicit telemetry choice", async () => {
+  const context = createE2EContext();
+  writeFileSync(join(context.userDataDir, "config.json"), JSON.stringify({
+    pcHash: "00000000-0000-4000-8000-000000000000",
+    first_calibrate: true,
+    defaultSetsDownloaded: 1
+  }));
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await expect(window.getByText("Техническая статистика", { exact: true })).toBeVisible();
+    await window.getByRole("button", { name: "Не отправлять" }).click();
+    await expect(window.getByText("Техническая статистика", { exact: true })).toBeHidden();
+
+    const config = JSON.parse(readFileSync(join(context.userDataDir, "config.json"), "utf8")) as { telemetryConsent?: string };
+    expect(config.telemetryConsent).toBe("disabled");
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
 
 test("editor settings expose row and column controls", async () => {
   const context = createE2EContext();
