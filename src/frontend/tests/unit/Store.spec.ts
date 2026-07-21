@@ -4,12 +4,12 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { CardType, CURRENT_SET_VERSION, normalizePage } from "@/common/interfaces/ConfigFile";
 import store from "@/frontend/store";
 import { eStore } from "@/frontend/store/eStore";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 
 const expect = chai.expect;
 const send = ipcRenderer.send as unknown as ReturnType<typeof vi.fn>;
 const storage = storageService as unknown as Record<string, ReturnType<typeof vi.fn>>;
-const setTelemetryConsent = Metric.setTelemetryConsent as unknown as ReturnType<typeof vi.fn>;
+const setTelemetryPreference = Telemetry.setPreference as unknown as ReturnType<typeof vi.fn>;
 
 vi.mock("@/frontend/services/card-storage-service", () => ({
   storageService: {
@@ -20,10 +20,12 @@ vi.mock("@/frontend/services/card-storage-service", () => ({
   }
 }));
 
-vi.mock("@/frontend/utils/Metric", () => ({
-  Metric: {
-    registerEvent: vi.fn(),
-    setTelemetryConsent: vi.fn()
+vi.mock("@/frontend/utils/Telemetry", () => ({
+  Telemetry: {
+    product: vi.fn(),
+    outcome: vi.fn(),
+    getPreference: vi.fn(async () => "unknown"),
+    setPreference: vi.fn(async (preference: "enabled" | "disabled") => preference)
   }
 }));
 
@@ -41,14 +43,14 @@ describe("store", () => {
     expect(send.mock.calls[0]).to.deep.equal(["button_timeout", 2500]);
   });
 
-  it("persists explicit telemetry choices and updates the metric gate", () => {
-    setTelemetryConsent.mockClear();
+  it("keeps legacy local consent unknown until the main-process V3 preference is confirmed", async () => {
+    setTelemetryPreference.mockClear();
 
-    store.commit("telemetryConsent", "enabled");
+    await store.dispatch("setTelemetryPreference", "enabled");
 
     expect(store.state.telemetryConsent).to.equal("enabled");
-    expect(eStore.get("telemetryConsent")).to.equal("enabled");
-    expect(setTelemetryConsent.mock.calls[0]).to.deep.equal(["enabled"]);
+    expect(eStore.has("telemetryConsent")).to.equal(false);
+    expect(setTelemetryPreference.mock.calls[0]).to.deep.equal(["enabled"]);
   });
 
   it("does not treat an existing activation hash as telemetry consent", () => {

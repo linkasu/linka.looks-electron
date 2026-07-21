@@ -8,6 +8,10 @@ import Store from "electron-store";
 import { appendFileSync } from "fs";
 import { join } from "path";
 import { resolveExtraResource } from "./utils/resolveExtraResource";
+import { TelemetryController } from "./telemetry/controller";
+import { createLooksTelemetry } from "./telemetry";
+import { registerTelemetryIpc } from "./telemetry/ipc";
+import { TelemetryPreferenceStore } from "./telemetry/preference";
 
 if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
   app.setPath("userData", process.env.TEST_USER_DATA_DIR);
@@ -255,7 +259,10 @@ app.on("ready", async () => {
       console.error("Vue Devtools failed to install:", (e as Error).toString());
     }
   }
-  createWindow();
+  const telemetryController = new TelemetryController(new TelemetryPreferenceStore(app.getPath("userData")), createLooksTelemetry);
+  await telemetryController.initialize();
+  registerTelemetryIpc(telemetryController);
+  await createWindow();
 });
 
 // Exit cleanly on request from parent process in development mode.
