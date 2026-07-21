@@ -131,7 +131,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import { storageService } from "@/frontend/services/card-storage-service";
 import ShareButton from "@/frontend/components/ShareButton.vue";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import pathModule from "path";
 import { Directory } from "@/common/interfaces/Directory";
 import { HOME_DIR } from "@/common/constants";
@@ -204,13 +204,13 @@ async function save () {
 async function del () {
   await storageService.moveToTrash(file.value);
   back();
-  Metric.registerEvent(store.state.pcHash, "trash");
+  Telemetry.product("trash");
 }
 
 async function move (location: string) {
   const target = await storageService.moveSet(file.value, location);
   router.push("/set/" + toRoutePath(target));
-  Metric.registerEvent(store.state.pcHash, "move");
+  Telemetry.product("move");
 }
 
 async function duplicateSet () {

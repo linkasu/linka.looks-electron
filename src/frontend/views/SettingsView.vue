@@ -241,7 +241,7 @@ import { shell } from "electron";
 import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
 import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { PageTurnMode } from "@/frontend/store/LINKaStore";
 import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
@@ -253,7 +253,7 @@ const pageTurnModeOptions: { text: string; value: PageTurnMode }[] = [
 ];
 
 onMounted(() => {
-  Metric.registerEvent(store.state.pcHash, "openSettings");
+  Telemetry.product("openSettings");
 });
 
 const timeout = computed({
@@ -351,7 +351,7 @@ const telemetryConsent = computed({
     return store.state.telemetryConsent as TelemetryConsent;
   },
   set (value: TelemetryConsent) {
-    store.commit("telemetryConsent", value);
+    if (value !== "unknown") void store.dispatch("setTelemetryPreference", value);
   }
 });
 

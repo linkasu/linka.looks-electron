@@ -91,7 +91,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ipcRenderer, type IpcRendererEvent } from "electron";
 import store from "@/frontend/store";
 import { platform } from "@/frontend/plugins/platform";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 type CalibrationPhase = "idle" | "start" | "look" | "finish";
@@ -172,7 +172,7 @@ const tobiiStatusAlertType = computed(() => {
 
 async function startTobiiCalibration () {
   if (calibrationBusy.value) return;
-  trackTobiiMetric("tobiiCalibrationStart");
+  trackTobiiTelemetry("tobiiCalibrationStart");
   calibrationBusy.value = true;
   calibrationActive.value = true;
   calibrationError.value = "";
@@ -204,21 +204,22 @@ function cancelTobiiCalibration () {
   activePointIndex.value = null;
   completingPoint.value = false;
   calibrationMessage.value = "Калибровка Tobii отменена.";
-  trackTobiiMetric("tobiiCalibrationCancel");
+  trackTobiiTelemetry("tobiiCalibrationCancel");
+  Telemetry.outcome({ kind: "gaze_calibration_completed", result: "cancelled" });
 }
 
 async function applySavedCalibration () {
   calibrationBusy.value = true;
   calibrationError.value = "";
-  trackTobiiMetric("tobiiCalibrationApplySaved");
+  trackTobiiTelemetry("tobiiCalibrationApplySaved");
   try {
     const applied = await ipcRenderer.invoke("tobii:calibration:apply-saved");
     calibrationMessage.value = applied ? "Сохранённая калибровка применена." : "Сохранённая калибровка пока не найдена.";
-    trackTobiiMetric("tobiiCalibrationApplySavedResult");
+    trackTobiiTelemetry("tobiiCalibrationApplySavedResult");
     if (applied && firstFlow.value) finishFirstFlow();
   } catch (error) {
     calibrationError.value = error instanceof Error ? error.message : String(error);
-    trackTobiiMetric("tobiiCalibrationError");
+    trackTobiiTelemetry("tobiiCalibrationError");
   } finally {
     calibrationBusy.value = false;
   }
@@ -325,7 +326,7 @@ async function completePoint (index: number) {
     ]);
     if (cancelled.value) return;
     setPointState(index, "done");
-    trackTobiiMetric("tobiiCalibrationPoint");
+    trackTobiiTelemetry("tobiiCalibrationPoint");
     completingPoint.value = false;
     await continueAfterPoint();
   } catch (error) {
@@ -351,7 +352,8 @@ async function continueAfterPoint () {
   try {
     await ipcRenderer.invoke("tobii:calibration:finish");
     calibrationMessage.value = "Калибровка Tobii сохранена и применена.";
-    trackTobiiMetric("tobiiCalibrationFinish");
+    trackTobiiTelemetry("tobiiCalibrationFinish");
+    Telemetry.outcome({ kind: "gaze_calibration_completed", result: "completed" });
     if (firstFlow.value) {
       finishFirstFlow();
       return;
@@ -391,7 +393,8 @@ function failCalibration (error: unknown) {
   stopHoldTimer();
   stopSettleTimer();
   calibrationError.value = error instanceof Error ? error.message : String(error);
-  trackTobiiMetric("tobiiCalibrationError");
+  trackTobiiTelemetry("tobiiCalibrationError");
+  Telemetry.outcome({ kind: "gaze_calibration_completed", result: "failed", failure_code: "calibration_failed" });
   calibrationActive.value = false;
   calibrationBusy.value = false;
   completingPoint.value = false;
@@ -400,7 +403,8 @@ function failCalibration (error: unknown) {
 }
 
 function skipFirstTobiiCalibration () {
-  trackTobiiMetric("tobiiCalibrationCancel");
+  trackTobiiTelemetry("tobiiCalibrationCancel");
+  Telemetry.outcome({ kind: "gaze_calibration_completed", result: "cancelled" });
   finishFirstFlow();
 }
 
@@ -455,13 +459,13 @@ function formatPoint (point: CalibrationPoint) {
   return `${point.x.toFixed(3)}, ${point.y.toFixed(3)}`;
 }
 
-function trackTobiiMetric (eventName: Parameters<typeof Metric.registerEvent>[1]) {
-  Metric.registerEvent(store.state.pcHash, eventName);
+function trackTobiiTelemetry (eventName: "tobiiCalibrationStart" | "tobiiCalibrationPoint" | "tobiiCalibrationFinish" | "tobiiCalibrationCancel" | "tobiiCalibrationError" | "tobiiCalibrationApplySaved" | "tobiiCalibrationApplySavedResult" | "tobiiCalibrationUnavailable") {
+  Telemetry.product(eventName);
 }
 
 onMounted(() => {
   if (!platform.isMacOS) {
-    trackTobiiMetric("tobiiCalibrationUnavailable");
+    trackTobiiTelemetry("tobiiCalibrationUnavailable");
   }
   window.addEventListener("keydown", onKeydown);
   void loadTobiiStatus();

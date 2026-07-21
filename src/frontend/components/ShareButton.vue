@@ -11,15 +11,13 @@
 
 <script lang="ts" setup>
 import { useRoute } from "vue-router";
-import { useStore } from "vuex";
 import { storageService } from "@/frontend/services/card-storage-service";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 
-const store = useStore();
 const route = useRoute();
 
 function share () {
   storageService.showItemInFolder(route.params.path.toString());
-  Metric.registerEvent(store.state.pcHash, "share");
+  Telemetry.product("share");
 }
 </script>

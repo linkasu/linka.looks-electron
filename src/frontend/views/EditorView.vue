@@ -301,7 +301,7 @@ import { CardType, getCardGridPlacements, getMatchLane, normalizePage } from "@/
 import { storageService } from "@/frontend/services/card-storage-service";
 import { TTS } from "@/frontend/utils/TTS";
 import draggable from "vuedraggable";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import {
   advanceEditorPage,
   clearCardAudio,
@@ -331,7 +331,7 @@ onMounted(() => {
     newFileDialogShow.value = true;
   } else loadSet();
 
-  Metric.registerEvent(store.state.pcHash, "openEditor");
+  Telemetry.product("openEditor");
 });
 
 const CardTypes = CardType;

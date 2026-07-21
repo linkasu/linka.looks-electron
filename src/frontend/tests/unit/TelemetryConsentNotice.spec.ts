@@ -54,6 +54,11 @@ function createConsentStore () {
       telemetryConsent (state, value: "enabled" | "disabled") {
         state.telemetryConsent = value;
       }
+    },
+    actions: {
+      setTelemetryPreference ({ commit }, value: "enabled" | "disabled") {
+        commit("telemetryConsent", value);
+      }
     }
   });
 }

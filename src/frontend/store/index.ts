@@ -4,7 +4,7 @@ import { LINKaStore, PageTurnMode, Side } from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { ConfigFile, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
 import {
   CURRENT_SET_VERSION,
@@ -44,8 +44,7 @@ const fields = [
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
   { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
-  { commit: "first_calibrate", default: false } as Field<boolean>,
-  { commit: "telemetryConsent", default: "unknown" } as Field<TelemetryConsent>
+  { commit: "first_calibrate", default: false } as Field<boolean>
 ];
 
 const store = createStore<LINKaStore>({
@@ -129,7 +128,7 @@ const store = createStore<LINKaStore>({
     },
     ui_exitButton (state, value) {
       state.ui.exitButton = value;
-      Metric.registerEvent(state.pcHash, "settingsToggleEyeExit");
+      Telemetry.product("settingsToggleEyeExit");
     },
     keyMapping_up ({ keyMapping }, value) {
       keyMapping.up = value;
@@ -204,33 +203,33 @@ const store = createStore<LINKaStore>({
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
     },
-    button_enabled ({ button, pcHash }, value) {
+    button_enabled ({ button }, value) {
       button.enabled = value;
-      Metric.registerEvent(pcHash, "toggleGazeLock");
+      Telemetry.product("toggleGazeLock");
     },
-    button_eyeSelect ({ button, pcHash }, value) {
+    button_eyeSelect ({ button }, value) {
       button.eyeSelect = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeChoose");
+      Telemetry.product("settingsToggleEyeChoose");
     },
-    button_eyeActivation ({ button, pcHash }, value) {
+    button_eyeActivation ({ button }, value) {
       button.eyeActivation = value;
-      Metric.registerEvent(pcHash, "settingsToggleEyeActivation");
+      Telemetry.product("settingsToggleEyeActivation");
     },
-    button_joystickActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleJoystickActivation");
+    button_joystickActivation ({ button }, value) {
+      Telemetry.product("settingsToggleJoystickActivation");
       button.joystickActivation = value;
     },
-    button_keyboardActivation ({ button, pcHash }, value) {
-      Metric.registerEvent(pcHash, "settingsToggleKeyboardActivation");
+    button_keyboardActivation ({ button }, value) {
+      Telemetry.product("settingsToggleKeyboardActivation");
       button.keyboardActivation = value;
     },
-    button_mouseActivation ({ button, pcHash }, value) {
+    button_mouseActivation ({ button }, value) {
       button.mouseActivation = value;
-      Metric.registerEvent(pcHash, "settingsToggleMouseActivation");
+      Telemetry.product("settingsToggleMouseActivation");
     },
-    button_pageTurnMode ({ button, pcHash }, value: PageTurnMode) {
+    button_pageTurnMode ({ button }, value: PageTurnMode) {
       button.pageTurnMode = value;
-      Metric.registerEvent(pcHash, "settingsTogglePageTurnMode");
+      Telemetry.product("settingsTogglePageTurnMode");
     },
     button_borders ({ button }, value) {
       button.borders = value;
@@ -238,29 +237,27 @@ const store = createStore<LINKaStore>({
     button_animation ({ button }, value) {
       button.animation = value;
     },
-    button_clickSound ({ button, pcHash }, value) {
+    button_clickSound ({ button }, value) {
       button.clickSound = value;
-      Metric.registerEvent(pcHash, "settingsToggleTypeSound");
+      Telemetry.product("settingsToggleTypeSound");
     },
-    button_multiply_scale ({ button, pcHash }, value) {
+    button_multiply_scale ({ button }, value) {
       button.multiplyScale = value;
       ipcRenderer.send("button_multiply_scale", value);
-      Metric.registerEvent(pcHash, "settingsToggleEyeScale");
+      Telemetry.product("settingsToggleEyeScale");
     },
     layoutSettings_isOpened ({ layoutSettings }, value) {
       layoutSettings.isOpened = value;
     },
-    interface_outputLine ({ ui, pcHash }, value) {
+    interface_outputLine ({ ui }, value) {
       ui.outputLine = value;
-      Metric.registerEvent(pcHash, "toggleOutputLine");
+      Telemetry.product("toggleOutputLine");
     },
     pcHash (state, hash) {
       state.pcHash = hash;
     },
     telemetryConsent (state, value: unknown) {
-      const consent = normalizeTelemetryConsent(value);
-      state.telemetryConsent = consent;
-      Metric.setTelemetryConsent(consent);
+      state.telemetryConsent = normalizeTelemetryConsent(value);
     },
     first_calibrate (state, value) {
       state.firstCalibrate = value;
@@ -305,6 +302,14 @@ const store = createStore<LINKaStore>({
 
     button_animation_toggle ({ state, commit }) {
       commit("button_animation", !state.button.animation);
+    },
+
+    async loadTelemetryPreference ({ commit }) {
+      commit("telemetryConsent", await Telemetry.getPreference());
+    },
+
+    async setTelemetryPreference ({ commit }, preference: Exclude<TelemetryConsent, "unknown">) {
+      commit("telemetryConsent", await Telemetry.setPreference(preference));
     },
 
     fontBold_toggle ({ state, commit }) {
@@ -355,6 +360,7 @@ const store = createStore<LINKaStore>({
 
     async editor_save ({ state }) {
       await storageService.saveSet(state.editor.temp, state.editor.current, buildEditorConfig(state));
+      Telemetry.outcome({ kind: "set_saved", result: "completed", source: "edited", count_bucket: countBucket(state.editor.pages) });
     },
 
     async editor_save_as ({ state }, title) {
@@ -362,6 +368,7 @@ const store = createStore<LINKaStore>({
       parts[parts.length - 1] = title;
       const current = parts.join("§");
       await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
+      Telemetry.outcome({ kind: "set_saved", result: "completed", source: "created", count_bucket: countBucket(state.editor.pages) });
       return current;
     },
 
@@ -454,4 +461,12 @@ function buildEditorConfig (state: LINKaStore): ConfigFile {
 function clampPageIndex (page: number, length: number): number {
   if (!length) return 0;
   return Math.max(0, Math.min(length - 1, page ?? 0));
+}
+
+function countBucket (pages: SetPage[]): "one" | "two_to_five" | "six_to_twenty" | "more_than_twenty" {
+  const count = pages.reduce((total, page) => total + page.cards.length, 0);
+  if (count <= 1) return "one";
+  if (count <= 5) return "two_to_five";
+  if (count <= 20) return "six_to_twenty";
+  return "more_than_twenty";
 }

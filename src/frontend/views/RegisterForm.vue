@@ -75,7 +75,7 @@
 import type { Ref } from "vue";
 import { ref } from "vue";
 import { useStore } from "vuex";
-import { Metric } from "../utils/Metric";
+import { activationService } from "@/frontend/services/ActivationService";
 
 const store = useStore();
 
@@ -93,7 +93,7 @@ async function getCode () {
   }
   loading.value = true;
   try {
-    await Metric.sendActivationEmail(email.value);
+    await activationService.sendEmail(email.value);
     step.value = 1;
     error.value = "";
   } catch (err) {
@@ -109,7 +109,7 @@ async function checkCode () {
   if (loading.value) return;
   loading.value = true;
   try {
-    const pcHash = await Metric.activateAccount(email.value, code.value);
+    const pcHash = await activationService.activate(email.value, code.value);
     if (pcHash) {
       store.commit("pcHash", pcHash);
     }

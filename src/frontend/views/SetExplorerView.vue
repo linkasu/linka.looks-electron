@@ -65,7 +65,7 @@ import MatchOutputLine from "@/frontend/components/MatchOutputLine.vue";
 import SetGrid from "@/frontend/components/SetGrid.vue";
 import { normalizePage, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 import {
   advanceQuizPage,
@@ -169,7 +169,7 @@ async function loadSet (nextFilename: string) {
   await store.dispatch("open_file", nextFilename);
   await store.dispatch("editor_current", nextFilename);
   filename.value = nextFilename;
-  Metric.registerEvent(store.state.pcHash, "openSet");
+  Telemetry.product("openSet");
 }
 
 function advancePage () {
@@ -190,7 +190,7 @@ function advanceQuiz () {
 }
 
 async function addCard (card: Card, index: number) {
-  Metric.registerEvent(store.state.pcHash, "cardClick");
+  Telemetry.product("cardClick");
   if (isQuiz.value) {
     await onQuizCard(card);
     return;

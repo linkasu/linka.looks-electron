@@ -155,16 +155,13 @@
 import type { Ref } from "vue";
 import { ref, computed, ComputedRef, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
 import { validateStorageName } from "@/common/utils/storageName";
 
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
 import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
 import { storageService } from "@/frontend/services/card-storage-service";
-import { Metric } from "../utils/Metric";
-
-const store = useStore();
+import { Telemetry } from "@/frontend/utils/Telemetry";
 
 const router = useRouter();
 const route = useRoute();
@@ -234,7 +231,7 @@ function loadSets () {
 function select (item: DirectoryFile) {
   if (item.directory) {
     mroot.value += "§" + pathModule.basename(item.file);
-    Metric.registerEvent(store.state.pcHash, "openFolder");
+    Telemetry.product("openFolder");
   } else {
     router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + pathModule.basename(item.file));
   }

@@ -68,8 +68,7 @@ import { ipcRenderer, type IpcRendererEvent } from "electron";
 import MkdirButton from "@/frontend/components/HomeView/MkdirButton.vue";
 import RmdirButton from "@/frontend/components/HomeView/RmdirButton.vue";
 import ShareButton from "@/frontend/components/ShareButton.vue";
-import store from "@/frontend/store";
-import { Metric } from "@/frontend/utils/Metric";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 const route = useRoute();
@@ -114,7 +113,7 @@ const tobiiStatusColor = computed(() => {
 });
 
 function trackTobiiCalibrationOpen () {
-  Metric.registerEvent(store.state.pcHash, "openTobiiCalibration");
+  Telemetry.product("openTobiiCalibration");
 }
 
 function onTobiiStatus (event: IpcRendererEvent, status: TobiiStatus) {

@@ -32,7 +32,7 @@ import UpdateStatusBar from "@/frontend/components/UpdateStatusBar.vue";
 import NotificationPopup from "@/frontend/components/NotificationPopup.vue";
 import TelemetryConsentNotice from "@/frontend/components/TelemetryConsentNotice.vue";
 import DownloadDefaultSetsDialog from "@/frontend/components/DownloadDefaultSetsDialog.vue";
-import { Metric } from "./utils/Metric";
+import { Telemetry } from "./utils/Telemetry";
 
 const pcHash = computed(() => store.state.pcHash);
 const telemetryConsent = computed(() => store.state.telemetryConsent);
@@ -40,11 +40,12 @@ const route = useRoute();
 const interactionMode = computed(() => route.meta.interactionMode === "assistant" ? "assistant" : "gaze");
 
 let startupTracked = false;
-watch([pcHash, telemetryConsent], ([hash, consent]) => {
-  if (startupTracked || hash.length !== 36 || consent !== "enabled") return;
+void store.dispatch("loadTelemetryPreference");
+watch(telemetryConsent, (consent) => {
+  if (startupTracked || consent !== "enabled") return;
   startupTracked = true;
-  Metric.registerEvent(hash, "platformDetected");
-  Metric.registerEvent(hash, "start");
+  Telemetry.product("platformDetected");
+  Telemetry.product("start");
 }, { immediate: true });
 
 const primary = computed(() => {

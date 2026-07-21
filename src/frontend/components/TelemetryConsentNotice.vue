@@ -42,7 +42,7 @@ const deferred = ref(false);
 const showNotice = computed(() => telemetryConsent.value === "unknown" && !deferred.value);
 
 function choose (consent: Exclude<TelemetryConsent, "unknown">) {
-  store.commit("telemetryConsent", consent);
+  void store.dispatch("setTelemetryPreference", consent);
 }
 
 function defer () {
