@@ -51,13 +51,14 @@ Each page contains:
 
 - **mode** – page mode: `standard`, `quiz`, or `match`.
 - **columns** and **rows** – grid size for this specific page.
+- **topColumns** and **bottomColumns** – optional independent top/bottom sizes for `match` pages; when absent, `columns` is used for both rows.
 - **question** – quiz question for `quiz` pages.
 - **cards** – list of cards on the page.
 
 Cards may additionally contain:
 
 - **answer** – marks the correct answer on `quiz` pages.
-- **matchId** – pair identifier for `match` pages.
+- **matchId** – connection-group identifier for `match` pages; every top card and bottom card sharing an ID forms an intended connection.
 - **matchLane** – row placement (`top` or `bottom`) for `match` pages.
 
 Legacy `2.0` files with a flat `cards` array are still supported and normalized into `pages` when loaded.

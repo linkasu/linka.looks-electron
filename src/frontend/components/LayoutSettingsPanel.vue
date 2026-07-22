@@ -31,7 +31,7 @@
       <v-card-text>
         <v-form @submit.prevent="">
           <v-card-subtitle>Настройки размера сетки</v-card-subtitle>
-          <v-row class="pl-0 pr-0 grid_settings">
+          <v-row v-if="currentPage.mode !== 'match'" class="pl-0 pr-0 grid_settings">
             <v-col sm="6" cols="12">
               <v-text-field
                 v-model="columns"
@@ -40,10 +40,28 @@
                 type="number"
               />
             </v-col>
-            <v-col sm="6"  cols="12">
+            <v-col sm="6" cols="12">
               <v-text-field
                 v-model="rows"
                 label="Количество строк"
+                :min="1"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+          <v-row v-else class="pl-0 pr-0 grid_settings">
+            <v-col sm="6" cols="12">
+              <v-text-field
+                v-model="topColumns"
+                label="Карточки в верхней строке"
+                :min="1"
+                type="number"
+              />
+            </v-col>
+            <v-col sm="6" cols="12">
+              <v-text-field
+                v-model="bottomColumns"
+                label="Карточки в нижней строке"
                 :min="1"
                 type="number"
               />
@@ -108,7 +126,25 @@ const rows = computed({
     return currentPage.value.rows;
   },
   async set (v: number) {
-    currentPage.value = { ...currentPage.value, rows: currentPage.value.mode === "match" ? 2 : v };
+    currentPage.value = { ...currentPage.value, rows: v };
+  }
+});
+
+const topColumns = computed({
+  get (): number {
+    return currentPage.value.topColumns ?? currentPage.value.columns;
+  },
+  async set (v: number) {
+    currentPage.value = { ...currentPage.value, topColumns: v };
+  }
+});
+
+const bottomColumns = computed({
+  get (): number {
+    return currentPage.value.bottomColumns ?? currentPage.value.columns;
+  },
+  async set (v: number) {
+    currentPage.value = { ...currentPage.value, bottomColumns: v };
   }
 });
 

@@ -33,7 +33,7 @@
               />
             </v-col>
           </v-row>
-          <v-row>
+          <v-row v-if="mode !== 'match'">
             <v-col cols="12" sm="6">
               <v-text-field
                 v-model="columns"
@@ -47,7 +47,24 @@
                 v-model="rows"
                 label="Количество строк"
                 :min="1"
-                :disabled="mode === 'match'"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+          <v-row v-else>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="topColumns"
+                label="Карточки в верхней строке"
+                :min="1"
+                type="number"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="bottomColumns"
+                label="Карточки в нижней строке"
+                :min="1"
                 type="number"
               />
             </v-col>
@@ -145,7 +162,25 @@ const rows = computed({
     return currentPage.value.rows;
   },
   set (value: number) {
-    currentPage.value = { ...currentPage.value, rows: mode.value === "match" ? 2 : value };
+    currentPage.value = { ...currentPage.value, rows: value };
+  }
+});
+
+const topColumns = computed({
+  get (): number {
+    return currentPage.value.topColumns ?? currentPage.value.columns;
+  },
+  set (value: number) {
+    currentPage.value = { ...currentPage.value, topColumns: value };
+  }
+});
+
+const bottomColumns = computed({
+  get (): number {
+    return currentPage.value.bottomColumns ?? currentPage.value.columns;
+  },
+  set (value: number) {
+    currentPage.value = { ...currentPage.value, bottomColumns: value };
   }
 });
 

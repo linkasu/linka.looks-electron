@@ -33,18 +33,19 @@ export function isValidEditorCard (card: Card): boolean {
   return true;
 }
 
-export function isValidMatchCard (card: Card, cards: Card[], columns: number): boolean {
+export function isValidMatchCard (card: Card, cards: Card[], topColumns: number, bottomColumns = topColumns): boolean {
   if (card.cardType !== CardType.AudioCard) return true;
-  if (!card.matchId) return false;
   const index = cards.findIndex((item) => item.id === card.id);
-  const row = index < columns ? "top" : "bottom";
+  if (index === -1 || index >= topColumns + bottomColumns || !card.matchId) return false;
+
   const matches = cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
-  if (matches.length !== 2) return false;
-  return matches.some((item) => {
-    const matchIndex = cards.findIndex((cardItem) => cardItem.id === item.id);
-    const matchRow = matchIndex < columns ? "top" : "bottom";
-    return item.id !== card.id && matchRow !== row;
-  });
+  return matches.some((item) => item.id !== card.id &&
+    getMatchLane(cards.findIndex((cardItem) => cardItem.id === item.id), topColumns) !== getMatchLane(index, topColumns));
+}
+
+export function isValidMatchPage (cards: Card[], topColumns: number, bottomColumns = topColumns): boolean {
+  if (cards.length > topColumns + bottomColumns) return false;
+  return cards.every((card) => isValidEditorCard(card) && isValidMatchCard(card, cards, topColumns, bottomColumns));
 }
 
 export function createEditorPage (mode: PageMode = "standard", pageColumns = 3, pageRows = 3): SetPage {
@@ -162,6 +163,12 @@ export function toggleMatchLink (cards: Card[], selectedCardId: string | null, p
 
   const nextCards = cards.map((card) => cloneCard(card));
   const matchId = nextCards[selectedIndex].matchId ?? nextCards[pendingIndex].matchId ?? uuid();
+  const existingMatchIds = [nextCards[selectedIndex].matchId, nextCards[pendingIndex].matchId]
+    .filter((value): value is string => !!value);
+
+  for (const card of nextCards) {
+    if (existingMatchIds.includes(card.matchId ?? "")) card.matchId = matchId;
+  }
   nextCards[selectedIndex].matchId = matchId;
   nextCards[pendingIndex].matchId = matchId;
 

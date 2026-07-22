@@ -28,6 +28,8 @@ export interface SetPage {
   columns: number;
   rows: number;
   cards: Card[];
+  topColumns?: number;
+  bottomColumns?: number;
   question?: string;
 }
 
@@ -60,7 +62,22 @@ export function clampPageDimension (value?: number, fallback = DEFAULT_COLUMNS):
   return Math.max(1, Math.floor(value));
 }
 
-export function getPageSize (page: Pick<SetPage, "rows" | "columns">): number {
+export function getMatchTopColumns (page: Partial<SetPage>, fallback?: Partial<SetPage>): number {
+  const columns = clampPageDimension(page.columns, clampPageDimension(fallback?.columns, DEFAULT_COLUMNS));
+  return clampPageDimension(page.topColumns, clampPageDimension(fallback?.topColumns, columns));
+}
+
+export function getMatchBottomColumns (page: Partial<SetPage>, fallback?: Partial<SetPage>): number {
+  const columns = clampPageDimension(page.columns, clampPageDimension(fallback?.columns, DEFAULT_COLUMNS));
+  return clampPageDimension(page.bottomColumns, clampPageDimension(fallback?.bottomColumns, columns));
+}
+
+export function getMatchCapacity (page: Partial<SetPage>, fallback?: Partial<SetPage>): number {
+  return getMatchTopColumns(page, fallback) + getMatchBottomColumns(page, fallback);
+}
+
+export function getPageSize (page: Partial<SetPage>): number {
+  if (page.mode === "match") return getMatchCapacity(page);
   return Math.max(1, clampPageDimension(page.rows, DEFAULT_ROWS) * clampPageDimension(page.columns, DEFAULT_COLUMNS));
 }
 
@@ -90,14 +107,14 @@ export function getMatchLane (index: number, columns: number): "top" | "bottom" 
   return index < columns ? "top" : "bottom";
 }
 
-function normalizeCard (card: Card, mode: PageMode, columns: number, index: number): Card {
+function normalizeCard (card: Card, mode: PageMode, topColumns: number, index: number): Card {
   const normalized = {
     ...card,
     id: card?.id ?? uuid(),
     cardType: card?.cardType ?? CardType.NewCard
   };
   if (mode === "match") {
-    normalized.matchLane = getMatchLane(index, columns);
+    normalized.matchLane = getMatchLane(index, topColumns);
   } else {
     delete normalized.matchLane;
     delete normalized.matchId;
@@ -117,14 +134,17 @@ export function normalizePage (page: Partial<SetPage>, fallback?: Partial<SetPag
   const rows = mode === "match"
     ? 2
     : clampPageDimension(page.rows, clampPageDimension(fallback?.rows, rowsFallback));
-  const size = Math.max(1, rows * columns);
-  const cards = (page.cards ?? [])
-    .filter(Boolean)
-    .slice(0, size)
-    .map((card, index) => normalizeCard(card, mode, columns, index));
+  const topColumns = mode === "match" ? getMatchTopColumns(page, fallback) : undefined;
+  const bottomColumns = mode === "match" ? getMatchBottomColumns(page, fallback) : undefined;
+  const size = mode === "match"
+    ? (topColumns ?? DEFAULT_COLUMNS) + (bottomColumns ?? DEFAULT_COLUMNS)
+    : Math.max(1, rows * columns);
+  const sourceCards = (page.cards ?? []).filter(Boolean);
+  const cards = (mode === "match" ? sourceCards : sourceCards.slice(0, size))
+    .map((card, index) => normalizeCard(card, mode, topColumns ?? columns, index));
 
   while (cards.length < size) {
-    cards.push(normalizeCard(createPlaceholderCard(CardType.NewCard), mode, columns, cards.length));
+    cards.push(normalizeCard(createPlaceholderCard(CardType.NewCard), mode, topColumns ?? columns, cards.length));
   }
 
   return {
@@ -133,6 +153,8 @@ export function normalizePage (page: Partial<SetPage>, fallback?: Partial<SetPag
     columns,
     rows,
     cards,
+    topColumns,
+    bottomColumns,
     question: mode === "quiz" ? page.question ?? fallback?.question ?? "" : undefined
   };
 }

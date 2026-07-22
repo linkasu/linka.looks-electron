@@ -12,7 +12,7 @@
             :disabled="ui_disabled"
           />
           <div v-if="pageMode === 'match'" class="match-hint">
-            Верхняя и нижняя строки образуют пары. Выберите карточку и свяжите её с карточкой из другой строки.
+            Связывайте карточки попарно: выберите карточку сверху и снизу. Повторные связи объединяют группы; каждая карточка сверху должна быть связана со всеми подходящими карточками снизу.
           </div>
         </v-card-text>
         <v-card-text class="cards-wrapper">
@@ -20,7 +20,7 @@
             v-model="current"
             item-key="id"
             class="cards"
-            :style="{ '--rows': rows, '--columns': columns }"
+            :style="{ '--rows': pageMode === 'match' ? 2 : rows, '--columns': pageMode === 'match' ? matchGridColumns : columns }"
             :disabled="ui_disabled"
           >
             <template #item="{ element, index }">
@@ -29,6 +29,7 @@
                 :file="filename"
                 :card="element"
                 editor
+                :style="cardPosition(index)"
                 :class="{
                   selected: selected?.id === element?.id,
                   nonValid: !isValid(element),
@@ -197,8 +198,8 @@
                       <div class="mb-2">
                         Строка: {{ selectedLane === "top" ? "верхняя" : "нижняя" }}
                       </div>
-                      <div class="mb-2" v-if="linkedCard">
-                        Связана с: {{ linkedCard.title || "без названия" }}
+                      <div class="mb-2" v-if="linkedCards.length">
+                        Связана с: {{ linkedCards.map((card) => card.title || "без названия").join(", ") }}
                       </div>
                       <div class="mb-2" v-else>
                         Связь не задана
@@ -350,6 +351,10 @@ const columns = computed({
   }
 });
 
+const topColumns = computed(() => currentPage.value.topColumns ?? currentPage.value.columns);
+const bottomColumns = computed(() => currentPage.value.bottomColumns ?? currentPage.value.columns);
+const matchGridColumns = computed(() => Math.max(topColumns.value, bottomColumns.value, current.value.length - topColumns.value, 1));
+
 const rows = computed({
   get () {
     return currentPage.value.rows;
@@ -397,12 +402,12 @@ const selected = computed<Card | null>(() => {
 
 const selectedLane = computed(() => {
   if (selectedIndex.value === -1) return "top";
-  return getMatchLane(selectedIndex.value, columns.value);
+  return getMatchLane(selectedIndex.value, topColumns.value);
 });
 
-const linkedCard = computed(() => {
-  if (!selected.value?.matchId) return null;
-  return current.value.find((card) => card.id !== selected.value?.id && card.matchId === selected.value?.matchId) ?? null;
+const linkedCards = computed(() => {
+  if (!selected.value?.matchId) return [];
+  return current.value.filter((card) => card.id !== selected.value?.id && card.matchId === selected.value?.matchId);
 });
 
 const matchButtonLabel = computed(() => {
@@ -424,9 +429,20 @@ const emptyPage = computed(() => {
 
 function isValid (card: Card) {
   if (pageMode.value === "match") {
-    return isValidEditorCard(card) && isValidMatchCard(card, current.value, columns.value);
+    const index = current.value.findIndex((item) => item.id === card.id);
+    return index < topColumns.value + bottomColumns.value &&
+      isValidEditorCard(card) && isValidMatchCard(card, current.value, topColumns.value, bottomColumns.value);
   }
   return isValidEditorCard(card);
+}
+
+function cardPosition (index: number) {
+  if (pageMode.value !== "match") return undefined;
+  const top = index < topColumns.value;
+  return {
+    gridRow: top ? 1 : 2,
+    gridColumn: top ? index + 1 : index - topColumns.value + 1
+  };
 }
 
 async function newFileName (text: string) {
@@ -529,7 +545,7 @@ function onTitleSelected (title: string) {
 
 function toggleMatchLink () {
   if (pageMode.value !== "match") return;
-  const result = toggleEditorMatchLink(current.value, selectedCardId.value, pendingMatchCardId.value, columns.value);
+  const result = toggleEditorMatchLink(current.value, selectedCardId.value, pendingMatchCardId.value, topColumns.value);
   current.value = result.cards;
   pendingMatchCardId.value = result.pendingMatchCardId;
 }
