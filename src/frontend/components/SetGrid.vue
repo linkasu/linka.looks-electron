@@ -15,14 +15,20 @@
       </eye-button>
     </div>
 
-    <div class="cards" :style="{ '--rows': currentPage.rows, '--columns': currentPage.columns }">
+    <div
+      class="cards"
+      :style="{
+        '--rows': currentPage.mode === 'match' ? 2 : currentPage.rows,
+        '--columns': currentPage.mode === 'match' ? matchGridColumns : currentPage.columns
+      }"
+    >
       <set-grid-button
         v-for="placement in visiblePlacements"
         :key="placement.card.id"
         :card="placement.card"
         :file="file"
         :disabled="isCardDisabled(placement.card)"
-        :style="getPlacementStyle(placement)"
+        :style="currentPage.mode === 'match' ? cardPosition(placement.index) : getPlacementStyle(placement)"
         :class="{
           active: selectedCardId === placement.card.id,
           matched: matchedCardIds.includes(placement.card.id)
@@ -100,6 +106,15 @@ function getPlacementStyle (placement: CardGridPlacement) {
   };
 }
 
+const topColumns = computed(() => currentPage.value.topColumns ?? currentPage.value.columns);
+const bottomColumns = computed(() => currentPage.value.bottomColumns ?? currentPage.value.columns);
+const matchGridColumns = computed(() => Math.max(
+  topColumns.value,
+  bottomColumns.value,
+  currentPage.value.cards.length - topColumns.value,
+  1
+));
+
 const showPagination = computed(() => {
   return currentPage.value.mode !== "quiz" && totalPages.value > 1;
 });
@@ -126,6 +141,15 @@ function changePage (offset: number) {
 
 function onPageChanged (page: number) {
   store.commit("explorer_page", Math.max(0, Math.min(totalPages.value - 1, page ?? 0)));
+}
+
+function cardPosition (index: number) {
+  if (currentPage.value.mode !== "match") return undefined;
+  const top = index < topColumns.value;
+  return {
+    gridRow: top ? 1 : 2,
+    gridColumn: top ? index + 1 : index - topColumns.value + 1
+  };
 }
 
 function isCardDisabled (card: Card): boolean {

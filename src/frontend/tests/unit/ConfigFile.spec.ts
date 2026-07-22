@@ -55,6 +55,31 @@ describe("config file normalization", () => {
     expect(page.cards[3].matchLane).to.equal("bottom");
   });
 
+  it("supports unequal match rows and preserves overflow cards", () => {
+    const legacy = normalizePage({
+      mode: "match",
+      columns: 2,
+      rows: 2,
+      cards: []
+    });
+    const page = normalizePage({
+      mode: "match",
+      columns: 3,
+      topColumns: 2,
+      bottomColumns: 3,
+      rows: 2,
+      cards: Array.from({ length: 6 }, (_, index) => ({ id: String(index), cardType: CardType.AudioCard }))
+    });
+
+    expect(legacy.topColumns).to.equal(2);
+    expect(legacy.bottomColumns).to.equal(2);
+    expect(page.topColumns).to.equal(2);
+    expect(page.bottomColumns).to.equal(3);
+    expect(page.cards).to.have.length(6);
+    expect(page.cards[1].matchLane).to.equal("top");
+    expect(page.cards[2].matchLane).to.equal("bottom");
+  });
+
   it("fills missing cards with placeholders up to page size", () => {
     const page = normalizePage({
       mode: "standard",

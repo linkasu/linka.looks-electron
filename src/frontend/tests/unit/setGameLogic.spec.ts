@@ -2,6 +2,7 @@ import chai from "chai";
 import { Card, CardType } from "@/common/interfaces/ConfigFile";
 import {
   advanceQuizPage,
+  getSolvedMatchPairCount,
   getSolvedMatchPairs,
   getTotalMatchPairs,
   handleMatchCard,
@@ -85,6 +86,34 @@ describe("setGameLogic", () => {
     expect(getSolvedMatchPairs(["top-1", "bottom-1"])).to.equal(1);
   });
 
+  it("requires every cross-row pair in a many-to-many group", () => {
+    const cards: Card[] = [
+      { id: "top-1", cardType: CardType.AudioCard, matchId: "group" },
+      { id: "top-2", cardType: CardType.AudioCard, matchId: "group" },
+      { id: "bottom-1", cardType: CardType.AudioCard, matchId: "group" },
+      { id: "bottom-2", cardType: CardType.AudioCard, matchId: "group" }
+    ];
+    let state = createMatchState(cards, { solvedPairIds: [] });
+
+    expect(getTotalMatchPairs(cards, 2, 2)).to.equal(4);
+    state = applyMatch(state, cards[0], 0);
+    state = applyMatch(state, cards[2], 2);
+    expect(state.matchedCardIds).to.deep.equal([]);
+    expect(getSolvedMatchPairCount(state.solvedPairIds ?? [])).to.equal(1);
+
+    const duplicate = handleMatchCard(cards[2], 2, { ...state, selectedCardId: cards[0].id });
+    expect(duplicate.ignored).to.equal(true);
+
+    state = applyMatch(state, cards[0], 0);
+    state = applyMatch(state, cards[3], 3);
+    state = applyMatch(state, cards[1], 1);
+    state = applyMatch(state, cards[2], 2);
+    state = applyMatch(state, cards[1], 1);
+    state = applyMatch(state, cards[3], 3);
+    expect(state.matchedCardIds).to.have.length(4);
+    expect(state.solvedPairIds).to.have.length(4);
+  });
+
   it("handles first match selection and repeated click", () => {
     const cards = createMatchCards();
     const first = handleMatchCard(cards[0], 0, createMatchState(cards));
@@ -94,7 +123,7 @@ describe("setGameLogic", () => {
     expect(first.selectedCardId).to.equal("top-1");
     expect(first.matchMessage).to.equal("Выберите карточку из другой строки");
     expect(repeated.selectedCardId).to.equal(null);
-    expect(repeated.matchMessage).to.equal("Соотнесите элементы из верхней и нижней строки");
+    expect(repeated.matchMessage).to.equal("Соотнесите каждый элемент верхней строки со всеми подходящими элементами нижней строки");
   });
 
   it("switches selection when the second card is in the same row", () => {
@@ -114,7 +143,7 @@ describe("setGameLogic", () => {
     }));
 
     expect(result.feedbackText).to.equal("Правильно");
-    expect(result.matchMessage).to.equal("Все пары найдены");
+    expect(result.matchMessage).to.equal("Все связи найдены");
     expect(result.matchedCardIds).to.deep.equal(["top-2", "bottom-2", "top-1", "bottom-1"]);
     expect(result.selectedCardId).to.equal(null);
     expect(result.advancePageAfterSolved).to.equal(true);
@@ -161,5 +190,15 @@ function createMatchState (cards: Card[], overrides: Partial<Parameters<typeof h
     selectedCardId: null,
     totalPages: 2,
     ...overrides
+  };
+}
+
+function applyMatch (state: Parameters<typeof handleMatchCard>[2], card: Card, index: number) {
+  const result = handleMatchCard(card, index, state);
+  return {
+    ...state,
+    matchedCardIds: result.matchedCardIds,
+    selectedCardId: result.selectedCardId,
+    solvedPairIds: result.solvedPairIds
   };
 }

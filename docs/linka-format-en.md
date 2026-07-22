@@ -52,6 +52,7 @@ Each page contains:
 
 - **mode** – page mode: `standard`, `quiz`, or `match`.
 - **columns** and **rows** – grid size for this specific page.
+- **topColumns** and **bottomColumns** – optional independent top/bottom sizes for `match` pages; when absent, `columns` is used for both rows.
 - **question** – quiz question for `quiz` pages.
 - **cards** – list of cards on the page.
 
@@ -59,7 +60,7 @@ Cards may additionally contain:
 
 - **width** and **height** – card size in grid cells. These fields are optional and default to `1`. Values greater than `1` are supported on `standard` and `quiz` pages; `match` pages always use `1×1` cards.
 - **answer** – marks the correct answer on `quiz` pages.
-- **matchId** – pair identifier for `match` pages.
+- **matchId** – connection-group identifier for `match` pages; every top card and bottom card sharing an ID forms an intended connection.
 - **matchLane** – row placement (`top` or `bottom`) for `match` pages.
 
 When a card spans multiple cells, the covered positions in `cards` should be filled with empty cards (`cardType: 2`) so older app versions degrade safely. Older versions may ignore `width`/`height` and render those cards as regular `1×1` cards.

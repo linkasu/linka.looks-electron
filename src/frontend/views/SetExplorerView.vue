@@ -34,7 +34,7 @@
     />
 
     <match-output-line
-      v-if="isMatch && !isSettingsOpened"
+      v-if="isMatch && isValidMatch && !isSettingsOpened"
       :errors="matchErrors"
       :message="matchMessage"
       :solved-pairs="solvedPairs"
@@ -42,6 +42,7 @@
     />
 
     <set-grid
+      v-if="!isMatch || isValidMatch"
       :config="config"
       :file="filename"
       :page="page"
@@ -69,8 +70,9 @@ import { Telemetry } from "@/frontend/utils/Telemetry";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 import {
   advanceQuizPage,
-  getSolvedMatchPairs,
+  getSolvedMatchPairCount,
   getTotalMatchPairs,
+  isPlayableMatchPage,
   handleMatchCard,
   handleQuizCard,
   shouldAddCardToStandardOutput
@@ -85,9 +87,10 @@ const quizErrors = ref(0);
 const waitingForNext = ref(false);
 const quizFinished = ref(false);
 const matchErrors = ref(0);
-const matchMessage = ref("Соотнесите элементы из верхней и нижней строки");
+const matchMessage = ref("Найдите все связи между верхней и нижней строками");
 const selectedCardId = ref<string | null>(null);
 const matchedCardIds = ref<string[]>([]);
+const solvedMatchPairIds = ref<string[]>([]);
 
 const isSettingsOpened = computed(() => store.state.layoutSettings.isOpened);
 
@@ -125,6 +128,13 @@ const currentPage = computed(() => {
 const interfaceOutputLine = computed(() => store.state.ui.outputLine);
 const isQuiz = computed(() => currentPage.value.mode === "quiz");
 const isMatch = computed(() => currentPage.value.mode === "match");
+const matchTopColumns = computed(() => currentPage.value.topColumns ?? currentPage.value.columns);
+const matchBottomColumns = computed(() => currentPage.value.bottomColumns ?? currentPage.value.columns);
+const isValidMatch = computed(() => !isMatch.value || isPlayableMatchPage(
+  currentPage.value.cards,
+  matchTopColumns.value,
+  matchBottomColumns.value
+));
 const quizAutoNext = computed(() => config.value?.quizAutoNext);
 
 const showStandardOutput = computed(() => {
@@ -136,10 +146,10 @@ const showGridExitButton = computed(() => {
 });
 
 const totalPairs = computed(() => {
-  return getTotalMatchPairs(currentPage.value.cards, currentPage.value.columns);
+  return getTotalMatchPairs(currentPage.value.cards, matchTopColumns.value, matchBottomColumns.value);
 });
 
-const solvedPairs = computed(() => getSolvedMatchPairs(matchedCardIds.value));
+const solvedPairs = computed(() => getSolvedMatchPairCount(solvedMatchPairIds.value));
 
 watch(page, resetInteractivePageState);
 watch(currentPage, resetInteractivePageState);
@@ -157,8 +167,9 @@ function resetInteractivePageState () {
   quizFinished.value = false;
   selectedCardId.value = null;
   matchedCardIds.value = [];
+  solvedMatchPairIds.value = [];
   matchErrors.value = 0;
-  matchMessage.value = "Соотнесите элементы из верхней и нижней строки";
+  matchMessage.value = "Найдите все связи между верхней и нижней строками";
 }
 
 async function loadSet (nextFilename: string) {
@@ -231,11 +242,13 @@ async function onMatchCard (card: Card, index: number) {
   if (!filename.value) return;
   const result = handleMatchCard(card, index, {
     cards: currentPage.value.cards,
-    columns: currentPage.value.columns,
+    columns: matchTopColumns.value,
+    bottomColumns: matchBottomColumns.value,
     matchErrors: matchErrors.value,
     matchedCardIds: matchedCardIds.value,
     page: page.value,
     selectedCardId: selectedCardId.value,
+    solvedPairIds: solvedMatchPairIds.value,
     totalPages: totalPages.value
   });
   if (result.ignored) return;
@@ -245,6 +258,7 @@ async function onMatchCard (card: Card, index: number) {
   }
   selectedCardId.value = result.selectedCardId;
   matchedCardIds.value = result.matchedCardIds;
+  solvedMatchPairIds.value = result.solvedPairIds;
   matchErrors.value = result.matchErrors;
   matchMessage.value = result.matchMessage;
 

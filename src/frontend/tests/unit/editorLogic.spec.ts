@@ -15,6 +15,7 @@ import {
   deleteEditorPage,
   isValidEditorCard,
   mergeSelectedCardFullRow,
+  isValidMatchPage,
   resetSelectedCard,
   resetSelectedCardSpan,
   toggleMatchLink,
@@ -277,6 +278,21 @@ describe("editorLogic", () => {
     expect(linked.pendingMatchCardId).to.equal(null);
     expect(linked.cards[0].matchId).to.equal(linked.cards[2].matchId);
     expect(linked.cards[0].matchId).to.be.a("string");
+  });
+
+  it("merges existing groups through repeated pairwise links", () => {
+    const cards: Card[] = [
+      { id: "top-1", cardType: CardType.AudioCard, title: "top 1", imagePath: "top-1.png", matchId: "group-1" },
+      { id: "top-2", cardType: CardType.AudioCard, title: "top 2", imagePath: "top-2.png", matchId: "group-2" },
+      { id: "bottom-1", cardType: CardType.AudioCard, title: "bottom 1", imagePath: "bottom-1.png", matchId: "group-1" },
+      { id: "bottom-2", cardType: CardType.AudioCard, title: "bottom 2", imagePath: "bottom-2.png", matchId: "group-2" }
+    ];
+
+    const pending = toggleMatchLink(cards, "top-1", null, 2);
+    const result = toggleMatchLink(cards, "bottom-2", pending.pendingMatchCardId, 2);
+
+    expect(new Set(result.cards.map((card) => card.matchId)).size).to.equal(1);
+    expect(isValidMatchPage(result.cards, 2, 2)).to.equal(true);
   });
 
   it("clears match link from all linked cards", () => {
