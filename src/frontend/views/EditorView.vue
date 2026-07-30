@@ -1,6 +1,25 @@
 <template>
   <div fluid class="editor">
     <new-file-dialog :show="newFileDialogShow" :disabled="ui_disabled" @text="newFileName" />
+    <v-dialog v-model="audioOverwriteDialog" max-width="420">
+      <v-card>
+        <v-card-title>Заменить озвучку?</v-card-title>
+        <v-card-text>
+          На выбранной карточке уже есть озвучка. Заменить её скопированной?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="audioOverwriteDialog = false">Отмена</v-btn>
+          <v-btn color="primary" @click="pasteCopiedAudio">Заменить</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-snackbar v-model="audioNotificationVisible" :timeout="3000">
+      {{ audioNotification }}
+      <template #actions>
+        <v-btn variant="text" @click="audioNotificationVisible = false">Закрыть</v-btn>
+      </template>
+    </v-snackbar>
     <div class="editor-body">
       <v-card v-if="filename" xs8 fill-height fluid>
         <v-card-title> Карточки </v-card-title>
@@ -213,6 +232,25 @@
                           Выбрать звук из файла
                         </v-btn>
                       </v-row>
+                      <v-row>
+                        <v-col>
+                          <v-btn block :disabled="ui_disabled || !selected.audioPath" @click="copyAudio">
+                            <v-icon start>mdi-content-copy</v-icon>
+                            Копировать озвучку
+                          </v-btn>
+                        </v-col>
+                        <v-col>
+                          <v-btn block color="primary" :disabled="ui_disabled || !canPasteAudio" @click="requestPasteAudio">
+                            <v-icon start>mdi-content-paste</v-icon>
+                            Вставить озвучку
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+                      <v-row>
+                        <div class="audio-copy-hint">
+                          {{ audioCopyHint }}
+                        </div>
+                      </v-row>
                       <v-row v-if="selected.audioPath">
                         <v-col>
                           <v-btn block :disabled="ui_disabled" @click="playAudio">
@@ -304,8 +342,10 @@ import draggable from "vuedraggable";
 import { Telemetry } from "@/frontend/utils/Telemetry";
 import {
   advanceEditorPage,
+  applyCardAudio,
   clearCardAudio,
   clearMatchLink as clearEditorMatchLink,
+  copyCardAudio,
   copySelectedCard,
   createEditorPage,
   getSelectedCardSpanInfo,
@@ -325,6 +365,10 @@ const route = useRoute();
 const newFileDialogShow = ref(false);
 const selectedCardId = ref<string | null>(null);
 const pendingMatchCardId = ref<string | null>(null);
+const copiedAudio = ref<{ sourceCardId: string, sourceTitle: string, audioPath: string, audioText?: string, audioVoice?: string } | null>(null);
+const audioOverwriteDialog = ref(false);
+const audioNotification = ref("");
+const audioNotificationVisible = ref(false);
 
 onMounted(() => {
   if (route.params.path.toString().endsWith("new")) {
@@ -457,6 +501,15 @@ const selectedIndex = computed(() => current.value.findIndex((card) => card.id =
 const selected = computed<Card | null>(() => {
   if (selectedIndex.value === -1) return null;
   return current.value[selectedIndex.value] ?? null;
+});
+
+const canPasteAudio = computed(() => {
+  return !!copiedAudio.value && copiedAudio.value.sourceCardId !== selected.value?.id;
+});
+
+const audioCopyHint = computed(() => {
+  if (!copiedAudio.value) return "Скопируйте озвучку, затем выберите другую карточку.";
+  return `Скопировано из карточки: ${copiedAudio.value.sourceTitle}`;
 });
 
 const selectedLane = computed(() => {
@@ -664,6 +717,39 @@ function clearAudio () {
   replaceSelected(clearCardAudio(selected.value));
 }
 
+function copyAudio () {
+  if (!selected.value) return;
+  const audio = copyCardAudio(selected.value);
+  if (!audio) return;
+  copiedAudio.value = {
+    ...audio,
+    sourceCardId: selected.value.id,
+    sourceTitle: selected.value.title || "без названия"
+  };
+  showAudioNotification(`Озвучка карточки «${copiedAudio.value.sourceTitle}» скопирована`);
+}
+
+function requestPasteAudio () {
+  if (!canPasteAudio.value || !selected.value) return;
+  if (selected.value.audioPath) {
+    audioOverwriteDialog.value = true;
+    return;
+  }
+  pasteCopiedAudio();
+}
+
+function pasteCopiedAudio () {
+  if (!canPasteAudio.value || !selected.value || !copiedAudio.value) return;
+  replaceSelected(applyCardAudio(selected.value, copiedAudio.value));
+  audioOverwriteDialog.value = false;
+  showAudioNotification("Озвучка вставлена");
+}
+
+function showAudioNotification (message: string) {
+  audioNotification.value = message;
+  audioNotificationVisible.value = true;
+}
+
 function replaceSelected (card: Card) {
   if (selectedIndex.value === -1) return;
   const nextCards = [...current.value];
@@ -772,5 +858,11 @@ function clearMatchLink () {
 
 .mb-2 {
   margin-bottom: 8px;
+}
+
+.audio-copy-hint {
+  font-size: 14px;
+  opacity: 0.75;
+  padding: 0 12px;
 }
 </style>

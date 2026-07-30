@@ -17,6 +17,12 @@ export interface EditorCardsResult {
   selectedCardId: string | null;
 }
 
+export interface CardAudio {
+  audioPath: string;
+  audioText?: string;
+  audioVoice?: string;
+}
+
 export interface EditorPagesResult {
   pages: SetPage[];
   page: number;
@@ -76,6 +82,23 @@ export function clearCardAudio (card: Card): Card {
   delete next.audioPath;
   delete next.audioText;
   delete next.audioVoice;
+  return next;
+}
+
+export function copyCardAudio (card: Card): CardAudio | null {
+  if (!card.audioPath) return null;
+  return {
+    audioPath: card.audioPath,
+    audioText: card.audioText,
+    audioVoice: card.audioVoice
+  };
+}
+
+export function applyCardAudio (card: Card, audio: CardAudio): Card {
+  const next = clearCardAudio(card);
+  next.audioPath = audio.audioPath;
+  if (audio.audioText !== undefined) next.audioText = audio.audioText;
+  if (audio.audioVoice !== undefined) next.audioVoice = audio.audioVoice;
   return next;
 }
 

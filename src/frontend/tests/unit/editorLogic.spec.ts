@@ -2,9 +2,11 @@ import chai from "chai";
 import { Card, CardType, normalizePage } from "@/common/interfaces/ConfigFile";
 import {
   advanceEditorPage,
+  applyCardAudio,
   canMergeSelectedCard,
   clearCardAudio,
   clearMatchLink,
+  copyCardAudio,
   copyEditorPage,
   copySelectedCard,
   createEditorPage,
@@ -64,6 +66,66 @@ describe("editorLogic", () => {
     expect(result.title).to.equal("one");
     expect(result.imagePath).to.equal("one.png");
     expect(card.audioPath).to.equal("voice.mp3");
+  });
+
+  it("copies all available audio data without changing the source card", () => {
+    const source: Card = {
+      id: "source",
+      cardType: CardType.AudioCard,
+      title: "Дом",
+      audioPath: "voice.mp3",
+      audioText: "дом",
+      audioVoice: "alena"
+    };
+
+    const copied = copyCardAudio(source);
+
+    expect(copied).to.deep.equal({
+      audioPath: "voice.mp3",
+      audioText: "дом",
+      audioVoice: "alena"
+    });
+    expect(source).to.deep.equal({
+      id: "source",
+      cardType: CardType.AudioCard,
+      title: "Дом",
+      audioPath: "voice.mp3",
+      audioText: "дом",
+      audioVoice: "alena"
+    });
+  });
+
+  it("does not copy a card without audio", () => {
+    expect(copyCardAudio({ id: "empty", cardType: CardType.AudioCard })).to.equal(null);
+  });
+
+  it("applies copied audio and clears stale text-to-speech data", () => {
+    const target: Card = {
+      id: "target",
+      cardType: CardType.AudioCard,
+      title: "Кошка",
+      imagePath: "cat.png",
+      answer: true,
+      audioPath: "old.mp3",
+      audioText: "кошка",
+      audioVoice: "john"
+    };
+
+    const result = applyCardAudio(target, { audioPath: "copied.wav" });
+
+    expect(result).to.deep.include({
+      id: "target",
+      cardType: CardType.AudioCard,
+      title: "Кошка",
+      imagePath: "cat.png",
+      answer: true,
+      audioPath: "copied.wav"
+    });
+    expect(result.audioText).to.equal(undefined);
+    expect(result.audioVoice).to.equal(undefined);
+    expect(target.audioPath).to.equal("old.mp3");
+    expect(target.audioText).to.equal("кошка");
+    expect(target.audioVoice).to.equal("john");
   });
 
   it("copies selected card after itself and removes last placeholder", () => {
