@@ -1,35 +1,34 @@
 import chai from "chai";
-import { Telemetry, type TelemetryEvent } from "@/frontend/utils/Telemetry";
+import { ipcRenderer } from "electron";
+import { Telemetry } from "@/frontend/utils/Telemetry";
 
 const expect = chai.expect;
+const invoke = ipcRenderer.invoke as unknown as ReturnType<typeof vi.fn>;
 
 describe("Telemetry", () => {
-  const emitted: TelemetryEvent[] = [];
-
   beforeEach(() => {
-    emitted.length = 0;
-    Telemetry.resetTransport();
-    Telemetry.setConsent("unknown");
-    Telemetry.setTransport({ emit: (event) => emitted.push(event) });
+    invoke.mockReset();
   });
 
-  afterEach(() => {
-    Telemetry.resetTransport();
-    Telemetry.setConsent("unknown");
+  it("delegates telemetry preferences to the main process", async () => {
+    invoke.mockResolvedValue("enabled");
+
+    await Telemetry.getPreference();
+    await Telemetry.setPreference("enabled");
+
+    expect(invoke.mock.calls).to.deep.equal([
+      ["telemetry:preference:get"],
+      ["telemetry:preference:set", "enabled"]
+    ]);
   });
 
-  it("does not emit before an explicit opt-in or after opt-out", () => {
-    Telemetry.emit("utterance_completed");
-    Telemetry.setConsent("disabled");
-    Telemetry.emit("set_save_succeeded");
+  it("forwards projected product and outcome events to the main process", () => {
+    Telemetry.product("openSet");
+    Telemetry.outcome({ kind: "set_saved", result: "completed", source: "created", count_bucket: "one" });
 
-    expect(emitted).to.deep.equal([]);
-  });
-
-  it("emits only a closed outcome event after opt-in", () => {
-    Telemetry.setConsent("enabled");
-    Telemetry.emit("gaze_calibration_succeeded");
-
-    expect(emitted).to.deep.equal(["gaze_calibration_succeeded"]);
+    expect(invoke.mock.calls).to.deep.equal([
+      ["telemetry:product", { kind: "openSet" }],
+      ["telemetry:outcome", { kind: "set_saved", result: "completed", source: "created", count_bucket: "one" }]
+    ]);
   });
 });
