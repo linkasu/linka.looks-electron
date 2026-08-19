@@ -419,6 +419,7 @@ async function applyMerge () {
   grid-template-columns: repeat(var(--size), 1fr);
   grid-template-rows: repeat(var(--size), 1fr);
   height: calc(100vh - 64px);
+  overflow-y: auto;
 }
 .context-menu {
   position: fixed;
