@@ -162,7 +162,7 @@ export function getCardGridPlacements(
       column: column + 1,
       width,
       height,
-      covered
+      covered,
     };
   });
 }
@@ -170,7 +170,7 @@ export function getCardGridPlacements(
 export function createPlaceholderCard(cardType = CardType.NewCard): Card {
   return {
     id: uuid(),
-    cardType
+    cardType,
   };
 }
 
@@ -204,7 +204,7 @@ function normalizeCard(
   const normalized = {
     ...card,
     id: card?.id ?? uuid(),
-    cardType: card?.cardType ?? CardType.NewCard
+    cardType: card?.cardType ?? CardType.NewCard,
   };
   if (mode === "standard" || mode === "quiz") {
     const width = Math.min(clampCardSpan(card?.width), columns);
@@ -253,9 +253,9 @@ export function normalizePage(
     mode === "match"
       ? 2
       : clampPageDimension(
-        page.rows,
-        clampPageDimension(fallback?.rows, rowsFallback),
-      );
+          page.rows,
+          clampPageDimension(fallback?.rows, rowsFallback),
+        );
   const topColumns =
     mode === "match" ? getMatchTopColumns(page, fallback) : undefined;
   const bottomColumns =
@@ -293,7 +293,7 @@ export function normalizePage(
     topColumns,
     bottomColumns,
     question:
-      mode === "quiz" ? (page.question ?? fallback?.question ?? "") : undefined
+      mode === "quiz" ? (page.question ?? fallback?.question ?? "") : undefined,
   };
 }
 
@@ -306,8 +306,8 @@ export function normalizeConfigFile(
   const baseRows = clampPageDimension(config.rows, DEFAULT_ROWS);
   const pages = config.pages?.length
     ? config.pages.map((page) =>
-      normalizePage(page, { columns: baseColumns, rows: baseRows }),
-    )
+        normalizePage(page, { columns: baseColumns, rows: baseRows }),
+      )
     : normalizeLegacyPages(config, baseColumns, baseRows);
 
   return {
@@ -317,7 +317,7 @@ export function normalizeConfigFile(
     quizAutoNext: config.quizAutoNext ?? true,
     quizReadQuestion: config.quizReadQuestion ?? false,
     description: config.description,
-    pages
+    pages,
   };
 }
 
@@ -347,7 +347,7 @@ function normalizeLegacyPages(
         columns,
         rows,
         cards: cards.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize),
-        question: mode === "quiz" ? (questions[pageIndex] ?? "") : undefined
+        question: mode === "quiz" ? (questions[pageIndex] ?? "") : undefined,
       }),
     );
   }

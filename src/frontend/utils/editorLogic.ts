@@ -9,7 +9,7 @@ import {
   getMatchLane,
   normalizePage,
   PageMode,
-  SetPage
+  SetPage,
 } from "@/common/interfaces/ConfigFile";
 
 export interface EditorCardsResult {
@@ -104,7 +104,7 @@ export function createEditorPage(
     rows: mode === "match" ? 2 : pageRows,
     topColumns,
     bottomColumns,
-    cards: [createPlaceholderCard()]
+    cards: [createPlaceholderCard()],
   });
 }
 
@@ -121,7 +121,7 @@ export function copyCardAudio(card: Card): CardAudio | null {
   return {
     audioPath: card.audioPath,
     audioText: card.audioText,
-    audioVoice: card.audioVoice
+    audioVoice: card.audioVoice,
   };
 }
 
@@ -156,7 +156,7 @@ export function copySelectedCard(
 
   return {
     cards: nextCards,
-    selectedCardId: copiedCard.id
+    selectedCardId: copiedCard.id,
   };
 }
 
@@ -172,7 +172,7 @@ export function resetSelectedCard(
 
   return {
     cards: nextCards,
-    selectedCardId: nextCards[selectedIndex].id
+    selectedCardId: nextCards[selectedIndex].id,
   };
 }
 
@@ -227,7 +227,7 @@ export function getSelectedCardSpanInfo(
     fillRowWidth: maxWidth,
     maxHeight,
     maxWidth,
-    mergeable: true
+    mergeable: true,
   };
 }
 
@@ -361,11 +361,11 @@ export function advanceEditorPage(
       currentPage.rows,
       currentPage.topColumns,
       currentPage.bottomColumns,
-    )
+    ),
   ];
   return {
     pages: nextPages,
-    page: nextPages.length - 1
+    page: nextPages.length - 1,
   };
 }
 
@@ -381,7 +381,7 @@ export function copyEditorPage(
   nextPages.splice(pageIndex + 1, 0, nextPage);
   return {
     pages: nextPages,
-    page: pageIndex + 1
+    page: pageIndex + 1,
   };
 }
 
@@ -407,14 +407,14 @@ export function deleteEditorPage(
     );
     return {
       pages: nextPages,
-      page: 0
+      page: 0,
     };
   }
 
   nextPages.splice(pageIndex, 1);
   return {
     pages: nextPages,
-    page: Math.max(0, Math.min(pageIndex, nextPages.length - 1))
+    page: Math.max(0, Math.min(pageIndex, nextPages.length - 1)),
   };
 }
 
@@ -455,7 +455,7 @@ export function toggleMatchLink(
     uuid();
   const existingMatchIds = [
     nextCards[selectedIndex].matchId,
-    nextCards[pendingIndex].matchId
+    nextCards[pendingIndex].matchId,
   ].filter((value): value is string => !!value);
 
   for (const card of nextCards) {
@@ -466,7 +466,7 @@ export function toggleMatchLink(
 
   return {
     cards: nextCards,
-    pendingMatchCardId: null
+    pendingMatchCardId: null,
   };
 }
 
@@ -490,7 +490,7 @@ export function clearMatchLink(
 
   return {
     cards: nextCards,
-    pendingMatchCardId: null
+    pendingMatchCardId: null,
   };
 }
 
@@ -518,7 +518,7 @@ function createCardSpanInfo(mergeable: boolean): CardSpanInfo {
     fillRowWidth: 1,
     maxHeight: 1,
     maxWidth: 1,
-    mergeable
+    mergeable,
   };
 }
 

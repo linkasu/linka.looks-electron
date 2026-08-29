@@ -8,18 +8,18 @@ import { Telemetry } from "@/frontend/utils/Telemetry";
 import type {
   ConfigFile,
   PageMode,
-  SetPage
+  SetPage,
 } from "@/common/interfaces/ConfigFile";
 import {
   CURRENT_SET_VERSION,
   clonePage,
   createPlaceholderCard,
   normalizeConfigFile,
-  normalizePage
+  normalizePage,
 } from "@/common/interfaces/ConfigFile";
 import {
   normalizeTelemetryConsent,
-  type TelemetryConsent
+  type TelemetryConsent,
 } from "@/frontend/utils/TelemetryConsent";
 
 const fields = [
@@ -42,7 +42,7 @@ const fields = [
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
   {
     commit: "button_pageTurnMode",
-    default: "mouseAndEyes"
+    default: "mouseAndEyes",
   } as Field<PageTurnMode>,
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
@@ -54,7 +54,7 @@ const fields = [
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
   { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
-  { commit: "first_calibrate", default: false } as Field<boolean>
+  { commit: "first_calibrate", default: false } as Field<boolean>,
 ];
 
 const store = createStore<LINKaStore>({
@@ -67,7 +67,7 @@ const store = createStore<LINKaStore>({
     colors: {
       secondary: "",
       accent: "",
-      primary: "#197377"
+      primary: "#197377",
     },
     voiceRu: "alena",
     voiceEn: "john",
@@ -83,12 +83,12 @@ const store = createStore<LINKaStore>({
       clickSound: true,
       borders: 1,
       animation: true,
-      multiplyScale: false
+      multiplyScale: false,
     },
     ui: {
       disabled: false,
       outputLine: true,
-      exitButton: true
+      exitButton: true,
     },
     selectedKey: undefined,
     keyMapping: {
@@ -96,7 +96,7 @@ const store = createStore<LINKaStore>({
       down: ["ArrowDown"],
       left: ["ArrowLeft"],
       right: ["ArrowRight"],
-      enter: ["Enter"]
+      enter: ["Enter"],
     },
     editor: {
       current: "",
@@ -106,18 +106,18 @@ const store = createStore<LINKaStore>({
       quizAutoNext: true,
       quizReadQuestion: true,
       isDirectSet: false,
-      isWithoutSpace: false
+      isWithoutSpace: false,
     },
     explorer: {
       page: 0,
-      config: undefined
+      config: undefined,
     },
     layoutSettings: {
       isOpened: false,
       hasChanges: false,
       fontSize: 16,
-      fontBold: true
-    }
+      fontBold: true,
+    },
   },
 
   mutations: {
@@ -271,7 +271,7 @@ const store = createStore<LINKaStore>({
     },
     first_calibrate(state, value) {
       state.firstCalibrate = value;
-    }
+    },
   },
 
   actions: {
@@ -392,7 +392,7 @@ const store = createStore<LINKaStore>({
         kind: "set_saved",
         result: "completed",
         source: "edited",
-        count_bucket: countBucket(state.editor.pages)
+        count_bucket: countBucket(state.editor.pages),
       });
     },
 
@@ -409,7 +409,7 @@ const store = createStore<LINKaStore>({
         kind: "set_saved",
         result: "completed",
         source: "created",
-        count_bucket: countBucket(state.editor.pages)
+        count_bucket: countBucket(state.editor.pages),
       });
       return current;
     },
@@ -460,7 +460,7 @@ const store = createStore<LINKaStore>({
       commit("explorer_config", config);
       commit("explorer_page", 0);
       commit("interface_outputLine", !config.directSet);
-    }
+    },
   },
   plugins: [
     (currentStore) => {
@@ -468,8 +468,8 @@ const store = createStore<LINKaStore>({
         if (!fields.find(({ commit }) => mutation.type === commit)) return;
         eStore.set(mutation.type, mutation.payload);
       });
-    }
-  ]
+    },
+  ],
 });
 
 export default store;
@@ -504,7 +504,7 @@ function createEditorPage(
     rows: normalizedRows,
     topColumns,
     bottomColumns,
-    cards: [createPlaceholderCard()]
+    cards: [createPlaceholderCard()],
   });
 }
 
@@ -516,7 +516,7 @@ function buildEditorConfig(state: LINKaStore): ConfigFile {
     quizAutoNext: state.editor.quizAutoNext,
     quizReadQuestion: state.editor.quizReadQuestion,
     description: state.editor.description,
-    version: CURRENT_SET_VERSION
+    version: CURRENT_SET_VERSION,
   };
 }
 
