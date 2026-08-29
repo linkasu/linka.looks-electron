@@ -21,7 +21,7 @@ import {
   resetSelectedCard,
   resetSelectedCardSpan,
   toggleMatchLink,
-  toggleSelectedCardMerge,
+  toggleSelectedCardMerge
 } from "@/frontend/utils/editorLogic";
 
 const expect = chai.expect;
@@ -35,7 +35,7 @@ describe("editorLogic", () => {
       isValidEditorCard({
         id: "2",
         cardType: CardType.AudioCard,
-        imagePath: "image.png",
+        imagePath: "image.png"
       }),
     ).to.equal(false);
     expect(
@@ -43,7 +43,7 @@ describe("editorLogic", () => {
         id: "3",
         cardType: CardType.AudioCard,
         imagePath: "image.png",
-        title: "Hello",
+        title: "Hello"
       }),
     ).to.equal(true);
     expect(
@@ -71,7 +71,7 @@ describe("editorLogic", () => {
       imagePath: "one.png",
       audioPath: "voice.mp3",
       audioText: "hello",
-      audioVoice: "alena",
+      audioVoice: "alena"
     };
 
     const result = clearCardAudio(card);
@@ -92,7 +92,7 @@ describe("editorLogic", () => {
       title: "Дом",
       audioPath: "voice.mp3",
       audioText: "дом",
-      audioVoice: "alena",
+      audioVoice: "alena"
     };
 
     const copied = copyCardAudio(source);
@@ -100,7 +100,7 @@ describe("editorLogic", () => {
     expect(copied).to.deep.equal({
       audioPath: "voice.mp3",
       audioText: "дом",
-      audioVoice: "alena",
+      audioVoice: "alena"
     });
     expect(source).to.deep.equal({
       id: "source",
@@ -108,7 +108,7 @@ describe("editorLogic", () => {
       title: "Дом",
       audioPath: "voice.mp3",
       audioText: "дом",
-      audioVoice: "alena",
+      audioVoice: "alena"
     });
   });
 
@@ -127,7 +127,7 @@ describe("editorLogic", () => {
       answer: true,
       audioPath: "old.mp3",
       audioText: "кошка",
-      audioVoice: "john",
+      audioVoice: "john"
     };
 
     const result = applyCardAudio(target, { audioPath: "copied.wav" });
@@ -138,7 +138,7 @@ describe("editorLogic", () => {
       title: "Кошка",
       imagePath: "cat.png",
       answer: true,
-      audioPath: "copied.wav",
+      audioPath: "copied.wav"
     });
     expect(result.audioText).to.equal(undefined);
     expect(result.audioVoice).to.equal(undefined);
@@ -153,15 +153,15 @@ describe("editorLogic", () => {
         id: "audio-1",
         cardType: CardType.AudioCard,
         title: "one",
-        imagePath: "one.png",
+        imagePath: "one.png"
       },
       {
         id: "audio-2",
         cardType: CardType.AudioCard,
         title: "two",
-        imagePath: "two.png",
+        imagePath: "two.png"
       },
-      { id: "new", cardType: CardType.NewCard },
+      { id: "new", cardType: CardType.NewCard }
     ];
 
     const result = copySelectedCard(cards, "audio-1");
@@ -179,8 +179,8 @@ describe("editorLogic", () => {
         id: "audio-1",
         cardType: CardType.AudioCard,
         title: "one",
-        imagePath: "one.png",
-      },
+        imagePath: "one.png"
+      }
     ];
 
     const result = copySelectedCard(cards, "audio-1");
@@ -195,8 +195,8 @@ describe("editorLogic", () => {
         id: "audio-1",
         cardType: CardType.AudioCard,
         title: "one",
-        imagePath: "one.png",
-      },
+        imagePath: "one.png"
+      }
     ];
 
     const result = resetSelectedCard(cards, "audio-1");
@@ -212,9 +212,9 @@ describe("editorLogic", () => {
         id: "audio-1",
         cardType: CardType.AudioCard,
         title: "one",
-        imagePath: "one.png",
+        imagePath: "one.png"
       },
-      { id: "new", cardType: CardType.NewCard },
+      { id: "new", cardType: CardType.NewCard }
     ];
 
     const merged = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
@@ -241,14 +241,14 @@ describe("editorLogic", () => {
         id: "audio-1",
         cardType: CardType.AudioCard,
         title: "one",
-        imagePath: "one.png",
+        imagePath: "one.png"
       },
       {
         id: "audio-2",
         cardType: CardType.AudioCard,
         title: "two",
-        imagePath: "two.png",
-      },
+        imagePath: "two.png"
+      }
     ];
 
     const result = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
@@ -262,7 +262,7 @@ describe("editorLogic", () => {
   it("merges space cards into a free cell", () => {
     const cards: Card[] = [
       { id: "space", cardType: CardType.SpaceCard, title: " " },
-      { id: "new", cardType: CardType.NewCard },
+      { id: "new", cardType: CardType.NewCard }
     ];
 
     const result = toggleSelectedCardMerge(cards, "space", 2, 1, "standard");
@@ -278,7 +278,7 @@ describe("editorLogic", () => {
       { id: "space", cardType: CardType.SpaceCard, title: " " },
       { id: "new-1", cardType: CardType.NewCard },
       { id: "new-2", cardType: CardType.NewCard },
-      { id: "new-3", cardType: CardType.NewCard },
+      { id: "new-3", cardType: CardType.NewCard }
     ];
 
     const info = getSelectedCardSpanInfo(cards, "space", 4, 1, "standard");
@@ -294,7 +294,7 @@ describe("editorLogic", () => {
       { id: "space", cardType: CardType.SpaceCard, title: " " },
       { id: "new", cardType: CardType.NewCard },
       { id: "audio", cardType: CardType.AudioCard, title: "busy" },
-      { id: "new-2", cardType: CardType.NewCard },
+      { id: "new-2", cardType: CardType.NewCard }
     ];
 
     const info = getSelectedCardSpanInfo(cards, "space", 4, 1, "standard");
@@ -309,7 +309,7 @@ describe("editorLogic", () => {
       { id: "audio", cardType: CardType.AudioCard },
       { id: "new-1", cardType: CardType.NewCard },
       { id: "new-2", cardType: CardType.NewCard },
-      { id: "new-3", cardType: CardType.NewCard },
+      { id: "new-3", cardType: CardType.NewCard }
     ];
 
     const wide = growSelectedCardRight(cards, "audio", 2, 2, "standard");
@@ -325,7 +325,7 @@ describe("editorLogic", () => {
   it("does not merge cards on match pages", () => {
     const cards: Card[] = [
       { id: "audio-1", cardType: CardType.AudioCard },
-      { id: "new", cardType: CardType.NewCard },
+      { id: "new", cardType: CardType.NewCard }
     ];
 
     expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "match")).to.equal(
@@ -336,7 +336,7 @@ describe("editorLogic", () => {
   it("advances within existing pages before creating a new page", () => {
     const pages = [
       createEditorPage("standard", 1, 1),
-      createEditorPage("standard", 1, 1),
+      createEditorPage("standard", 1, 1)
     ];
 
     const existing = advanceEditorPage(pages, 0);
@@ -364,7 +364,7 @@ describe("editorLogic", () => {
       mode: "standard",
       columns: 1,
       rows: 1,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }],
+      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
     });
 
     const result = copyEditorPage([page], 0);
@@ -382,7 +382,7 @@ describe("editorLogic", () => {
       mode: "match",
       columns: 2,
       rows: 2,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }],
+      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
     });
 
     const result = deleteEditorPage([page], 0);
@@ -411,7 +411,7 @@ describe("editorLogic", () => {
     const pages = [
       createEditorPage("standard", 1, 1),
       createEditorPage("standard", 1, 1),
-      createEditorPage("standard", 1, 1),
+      createEditorPage("standard", 1, 1)
     ];
 
     const result = deleteEditorPage(pages, 2);
@@ -425,7 +425,7 @@ describe("editorLogic", () => {
       { id: "top-1", cardType: CardType.AudioCard },
       { id: "top-2", cardType: CardType.AudioCard },
       { id: "bottom-1", cardType: CardType.AudioCard },
-      { id: "bottom-2", cardType: CardType.AudioCard },
+      { id: "bottom-2", cardType: CardType.AudioCard }
     ];
 
     const pending = toggleMatchLink(cards, "top-1", null, 2);
@@ -456,29 +456,29 @@ describe("editorLogic", () => {
         cardType: CardType.AudioCard,
         title: "top 1",
         imagePath: "top-1.png",
-        matchId: "group-1",
+        matchId: "group-1"
       },
       {
         id: "top-2",
         cardType: CardType.AudioCard,
         title: "top 2",
         imagePath: "top-2.png",
-        matchId: "group-2",
+        matchId: "group-2"
       },
       {
         id: "bottom-1",
         cardType: CardType.AudioCard,
         title: "bottom 1",
         imagePath: "bottom-1.png",
-        matchId: "group-1",
+        matchId: "group-1"
       },
       {
         id: "bottom-2",
         cardType: CardType.AudioCard,
         title: "bottom 2",
         imagePath: "bottom-2.png",
-        matchId: "group-2",
-      },
+        matchId: "group-2"
+      }
     ];
 
     const pending = toggleMatchLink(cards, "top-1", null, 2);
@@ -497,7 +497,7 @@ describe("editorLogic", () => {
     const cards: Card[] = [
       { id: "top", cardType: CardType.AudioCard, matchId: "match-1" },
       { id: "bottom", cardType: CardType.AudioCard, matchId: "match-1" },
-      { id: "other", cardType: CardType.AudioCard, matchId: "match-2" },
+      { id: "other", cardType: CardType.AudioCard, matchId: "match-2" }
     ];
 
     const result = clearMatchLink(cards, "top");

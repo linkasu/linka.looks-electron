@@ -8,7 +8,7 @@ import {
   getCardGridPlacements,
   getPageSize,
   normalizeConfigFile,
-  normalizePage,
+  normalizePage
 } from "@/common/interfaces/ConfigFile";
 
 const expect = chai.expect;
@@ -26,8 +26,8 @@ describe("config file normalization", () => {
         { id: "1", cardType: CardType.AudioCard, title: "one" },
         { id: "2", cardType: CardType.AudioCard, title: "two" },
         { id: "3", cardType: CardType.AudioCard, title: "three" },
-        { id: "4", cardType: CardType.AudioCard, title: "four" },
-      ],
+        { id: "4", cardType: CardType.AudioCard, title: "four" }
+      ]
     });
 
     expect(config?.version).to.equal(CURRENT_SET_VERSION);
@@ -46,8 +46,8 @@ describe("config file normalization", () => {
         { id: "1", cardType: CardType.AudioCard },
         { id: "2", cardType: CardType.AudioCard },
         { id: "3", cardType: CardType.AudioCard },
-        { id: "4", cardType: CardType.AudioCard },
-      ],
+        { id: "4", cardType: CardType.AudioCard }
+      ]
     });
 
     expect(page.rows).to.equal(2);
@@ -60,7 +60,7 @@ describe("config file normalization", () => {
       mode: "match",
       columns: 2,
       rows: 2,
-      cards: [],
+      cards: []
     });
     const page = normalizePage({
       mode: "match",
@@ -70,8 +70,8 @@ describe("config file normalization", () => {
       rows: 2,
       cards: Array.from({ length: 6 }, (_, index) => ({
         id: String(index),
-        cardType: CardType.AudioCard,
-      })),
+        cardType: CardType.AudioCard
+      }))
     });
 
     expect(legacy.topColumns).to.equal(2);
@@ -92,8 +92,8 @@ describe("config file normalization", () => {
       rows: 2,
       cards: Array.from({ length: 8 }, (_, index) => ({
         id: String(index),
-        cardType: CardType.AudioCard,
-      })),
+        cardType: CardType.AudioCard
+      }))
     });
 
     expect(getCardGridPlacements(page)).to.have.length(8);
@@ -104,7 +104,7 @@ describe("config file normalization", () => {
       mode: "standard",
       columns: 2,
       rows: 2,
-      cards: [{ id: "1", cardType: CardType.AudioCard, title: "one" }],
+      cards: [{ id: "1", cardType: CardType.AudioCard, title: "one" }]
     });
 
     expect(page.cards).to.have.length(4);
@@ -122,8 +122,8 @@ describe("config file normalization", () => {
       cards: [
         { id: "1", cardType: CardType.AudioCard },
         { id: "2", cardType: CardType.AudioCard },
-        { id: "3", cardType: CardType.AudioCard },
-      ],
+        { id: "3", cardType: CardType.AudioCard }
+      ]
     });
 
     expect(page.cards.map((card) => card.id)).to.deep.equal(["1", "2"]);
@@ -136,8 +136,8 @@ describe("config file normalization", () => {
       rows: 2,
       cards: [
         { id: "1", cardType: CardType.AudioCard, width: 2, title: "wide" },
-        { id: "2", cardType: CardType.NewCard },
-      ],
+        { id: "2", cardType: CardType.NewCard }
+      ]
     });
 
     expect(page.cards[0].width).to.equal(2);
@@ -149,7 +149,7 @@ describe("config file normalization", () => {
       mode: "match",
       columns: 2,
       rows: 2,
-      cards: [{ id: "1", cardType: CardType.AudioCard, width: 2, height: 2 }],
+      cards: [{ id: "1", cardType: CardType.AudioCard, width: 2, height: 2 }]
     });
 
     expect(page.cards[0].width).to.equal(undefined);
@@ -164,8 +164,8 @@ describe("config file normalization", () => {
       cards: [
         { id: "wide", cardType: CardType.AudioCard, width: 2 },
         { id: "covered", cardType: CardType.NewCard },
-        { id: "next", cardType: CardType.AudioCard },
-      ],
+        { id: "next", cardType: CardType.AudioCard }
+      ]
     });
 
     const placements = getCardGridPlacements(page);
@@ -176,7 +176,7 @@ describe("config file normalization", () => {
       row: 1,
       width: 2,
       height: 1,
-      covered: false,
+      covered: false
     });
     expect(placements[1].covered).to.equal(true);
     expect(placements[2]).to.deep.include({
@@ -185,7 +185,7 @@ describe("config file normalization", () => {
       row: 1,
       width: 1,
       height: 1,
-      covered: false,
+      covered: false
     });
   });
 
@@ -195,7 +195,7 @@ describe("config file normalization", () => {
       mode: "broken",
       columns: 0,
       rows: Number.NaN,
-      cards: [],
+      cards: []
     });
 
     expect(page.mode).to.equal("standard");
@@ -215,9 +215,9 @@ describe("config file normalization", () => {
           cardType: CardType.AudioCard,
           answer: true,
           matchId: "m1",
-          matchLane: "top",
-        },
-      ],
+          matchLane: "top"
+        }
+      ]
     });
     const quiz = normalizePage({
       mode: "quiz",
@@ -229,9 +229,9 @@ describe("config file normalization", () => {
           cardType: CardType.AudioCard,
           answer: true,
           matchId: "m2",
-          matchLane: "bottom",
-        },
-      ],
+          matchLane: "bottom"
+        }
+      ]
     });
 
     expect(standard.cards[0].answer).to.equal(undefined);
@@ -251,8 +251,8 @@ describe("config file normalization", () => {
       cards: Array.from({ length: 5 }, (_, index) => ({
         id: String(index + 1),
         cardType: CardType.AudioCard,
-        title: `card ${index + 1}`,
-      })),
+        title: `card ${index + 1}`
+      }))
     });
 
     expect(config?.version).to.equal(CURRENT_SET_VERSION);
@@ -262,7 +262,7 @@ describe("config file normalization", () => {
       "1",
       "2",
       "3",
-      "4",
+      "4"
     ]);
     expect(config?.pages?.[1].cards[0].id).to.equal("5");
     expect(
@@ -289,9 +289,9 @@ describe("config file normalization", () => {
           columns: 1,
           rows: 1,
           question: "Question?",
-          cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }],
-        },
-      ],
+          cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }]
+        }
+      ]
     });
 
     expect(config).to.deep.include({
@@ -300,7 +300,7 @@ describe("config file normalization", () => {
       directSet: true,
       quizAutoNext: false,
       quizReadQuestion: true,
-      description: "hello",
+      description: "hello"
     });
     expect(config?.pages?.[0].question).to.equal("Question?");
     expect(config?.pages?.[0].cards[0].answer).to.equal(true);
@@ -315,7 +315,7 @@ describe("config file normalization", () => {
       mode: "standard",
       columns: 1,
       rows: 1,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }],
+      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
     });
 
     const clone = clonePage(source, true);
