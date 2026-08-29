@@ -20,13 +20,16 @@ Use npm and Node 22.x for the current baseline.
 - `npm run serve` — run the Vue renderer only (useful for UI-only debugging).
 - `npm run test:unit` — run unit tests.
 - `npm run typecheck` — run TypeScript no-emit checks.
-- `npm run lint` / `npm run lint-fix` — check or auto-fix ESLint issues in `src/`.
+- `npm run lint` / `npm run lint-fix` — check or auto-fix ESLint issues repo-wide.
+- `npm run format` / `npm run format:check` — write or verify Prettier formatting.
 
 ## Coding Style & Naming Conventions
 
 - Primary languages: TypeScript + Vue single-file components.
-- ESLint is authoritative (`.eslintrc.js`); follow its rules in existing files.
-- Style expectations from the config: double quotes, semicolons, no trailing commas.
+- Prettier (`prettier.config.cjs`) is authoritative for formatting; ESLint
+  (`.eslintrc.js`) is authoritative for everything else.
+- Style: double quotes, semicolons, no trailing commas, printWidth 100.
+- husky runs lint-staged on commit and format/lint/typecheck on push.
 - Keep module and component names descriptive and aligned with existing patterns (e.g., `TTSServer`, `App.vue`).
 
 ## Testing Guidelines
