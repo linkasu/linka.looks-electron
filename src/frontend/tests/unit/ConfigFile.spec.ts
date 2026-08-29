@@ -68,7 +68,10 @@ describe("config file normalization", () => {
       topColumns: 2,
       bottomColumns: 3,
       rows: 2,
-      cards: Array.from({ length: 6 }, (_, index) => ({ id: String(index), cardType: CardType.AudioCard }))
+      cards: Array.from({ length: 6 }, (_, index) => ({
+        id: String(index),
+        cardType: CardType.AudioCard
+      }))
     });
 
     expect(legacy.topColumns).to.equal(2);
@@ -78,6 +81,22 @@ describe("config file normalization", () => {
     expect(page.cards).to.have.length(6);
     expect(page.cards[1].matchLane).to.equal("top");
     expect(page.cards[2].matchLane).to.equal("bottom");
+  });
+
+  it("creates placements for all match cards beyond the legacy grid size", () => {
+    const page = normalizePage({
+      mode: "match",
+      columns: 3,
+      topColumns: 4,
+      bottomColumns: 4,
+      rows: 2,
+      cards: Array.from({ length: 8 }, (_, index) => ({
+        id: String(index),
+        cardType: CardType.AudioCard
+      }))
+    });
+
+    expect(getCardGridPlacements(page)).to.have.length(8);
   });
 
   it("fills missing cards with placeholders up to page size", () => {
@@ -90,7 +109,9 @@ describe("config file normalization", () => {
 
     expect(page.cards).to.have.length(4);
     expect(page.cards[0].cardType).to.equal(CardType.AudioCard);
-    expect(page.cards.slice(1).every((card) => card.cardType === CardType.NewCard)).to.equal(true);
+    expect(
+      page.cards.slice(1).every((card) => card.cardType === CardType.NewCard),
+    ).to.equal(true);
   });
 
   it("trims extra cards beyond normalized page size", () => {
@@ -149,9 +170,23 @@ describe("config file normalization", () => {
 
     const placements = getCardGridPlacements(page);
 
-    expect(placements[0]).to.deep.include({ index: 0, column: 1, row: 1, width: 2, height: 1, covered: false });
+    expect(placements[0]).to.deep.include({
+      index: 0,
+      column: 1,
+      row: 1,
+      width: 2,
+      height: 1,
+      covered: false
+    });
     expect(placements[1].covered).to.equal(true);
-    expect(placements[2]).to.deep.include({ index: 2, column: 3, row: 1, width: 1, height: 1, covered: false });
+    expect(placements[2]).to.deep.include({
+      index: 2,
+      column: 3,
+      row: 1,
+      width: 1,
+      height: 1,
+      covered: false
+    });
   });
 
   it("sanitizes unsupported dimensions and mode", () => {
@@ -174,13 +209,29 @@ describe("config file normalization", () => {
       mode: "standard",
       columns: 1,
       rows: 1,
-      cards: [{ id: "1", cardType: CardType.AudioCard, answer: true, matchId: "m1", matchLane: "top" }]
+      cards: [
+        {
+          id: "1",
+          cardType: CardType.AudioCard,
+          answer: true,
+          matchId: "m1",
+          matchLane: "top"
+        }
+      ]
     });
     const quiz = normalizePage({
       mode: "quiz",
       columns: 1,
       rows: 1,
-      cards: [{ id: "2", cardType: CardType.AudioCard, answer: true, matchId: "m2", matchLane: "bottom" }]
+      cards: [
+        {
+          id: "2",
+          cardType: CardType.AudioCard,
+          answer: true,
+          matchId: "m2",
+          matchLane: "bottom"
+        }
+      ]
     });
 
     expect(standard.cards[0].answer).to.equal(undefined);
@@ -207,9 +258,18 @@ describe("config file normalization", () => {
     expect(config?.version).to.equal(CURRENT_SET_VERSION);
     expect(config?.withoutSpace).to.equal(true);
     expect(config?.pages).to.have.length(2);
-    expect(config?.pages?.[0].cards.map((card) => card.id)).to.deep.equal(["1", "2", "3", "4"]);
+    expect(config?.pages?.[0].cards.map((card) => card.id)).to.deep.equal([
+      "1",
+      "2",
+      "3",
+      "4"
+    ]);
     expect(config?.pages?.[1].cards[0].id).to.equal("5");
-    expect(config?.pages?.[1].cards.slice(1).every((card) => card.cardType === CardType.NewCard)).to.equal(true);
+    expect(
+      config?.pages?.[1].cards
+        .slice(1)
+        .every((card) => card.cardType === CardType.NewCard),
+    ).to.equal(true);
   });
 
   it("normalizes existing page-based config without legacy fields", () => {
@@ -222,14 +282,16 @@ describe("config file normalization", () => {
       quizAutoNext: false,
       quizReadQuestion: true,
       description: "hello",
-      pages: [{
-        id: "page-1",
-        mode: "quiz",
-        columns: 1,
-        rows: 1,
-        question: "Question?",
-        cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }]
-      }]
+      pages: [
+        {
+          id: "page-1",
+          mode: "quiz",
+          columns: 1,
+          rows: 1,
+          question: "Question?",
+          cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }]
+        }
+      ]
     });
 
     expect(config).to.deep.include({

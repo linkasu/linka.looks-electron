@@ -46,38 +46,69 @@ export interface CardSpanInfo {
   mergeable: boolean;
 }
 
-export function isValidEditorCard (card: Card): boolean {
+export function isValidEditorCard(card: Card): boolean {
   if (card.cardType === CardType.AudioCard) {
     return !!card.imagePath && !!card.title;
   }
   return true;
 }
 
-export function isValidMatchCard (card: Card, cards: Card[], topColumns: number, bottomColumns = topColumns): boolean {
+export function isValidMatchCard(
+  card: Card,
+  cards: Card[],
+  topColumns: number,
+  bottomColumns = topColumns,
+): boolean {
   if (card.cardType !== CardType.AudioCard) return true;
   const index = cards.findIndex((item) => item.id === card.id);
-  if (index === -1 || index >= topColumns + bottomColumns || !card.matchId) return false;
+  if (index === -1 || index >= topColumns + bottomColumns || !card.matchId)
+    return false;
 
-  const matches = cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
-  return matches.some((item) => item.id !== card.id &&
-    getMatchLane(cards.findIndex((cardItem) => cardItem.id === item.id), topColumns) !== getMatchLane(index, topColumns));
+  const matches = cards.filter(
+    (item) =>
+      item.cardType === CardType.AudioCard && item.matchId === card.matchId,
+  );
+  return matches.some(
+    (item) =>
+      item.id !== card.id &&
+      getMatchLane(
+        cards.findIndex((cardItem) => cardItem.id === item.id),
+        topColumns,
+      ) !== getMatchLane(index, topColumns),
+  );
 }
 
-export function isValidMatchPage (cards: Card[], topColumns: number, bottomColumns = topColumns): boolean {
+export function isValidMatchPage(
+  cards: Card[],
+  topColumns: number,
+  bottomColumns = topColumns,
+): boolean {
   if (cards.length > topColumns + bottomColumns) return false;
-  return cards.every((card) => isValidEditorCard(card) && isValidMatchCard(card, cards, topColumns, bottomColumns));
+  return cards.every(
+    (card) =>
+      isValidEditorCard(card) &&
+      isValidMatchCard(card, cards, topColumns, bottomColumns),
+  );
 }
 
-export function createEditorPage (mode: PageMode = "standard", pageColumns = 3, pageRows = 3): SetPage {
+export function createEditorPage(
+  mode: PageMode = "standard",
+  pageColumns = 3,
+  pageRows = 3,
+  topColumns?: number,
+  bottomColumns?: number,
+): SetPage {
   return normalizePage({
     mode,
     columns: pageColumns,
     rows: mode === "match" ? 2 : pageRows,
+    topColumns,
+    bottomColumns,
     cards: [createPlaceholderCard()]
   });
 }
 
-export function clearCardAudio (card: Card): Card {
+export function clearCardAudio(card: Card): Card {
   const next = cloneCard(card);
   delete next.audioPath;
   delete next.audioText;
@@ -85,7 +116,7 @@ export function clearCardAudio (card: Card): Card {
   return next;
 }
 
-export function copyCardAudio (card: Card): CardAudio | null {
+export function copyCardAudio(card: Card): CardAudio | null {
   if (!card.audioPath) return null;
   return {
     audioPath: card.audioPath,
@@ -94,7 +125,7 @@ export function copyCardAudio (card: Card): CardAudio | null {
   };
 }
 
-export function applyCardAudio (card: Card, audio: CardAudio): Card {
+export function applyCardAudio(card: Card, audio: CardAudio): Card {
   const next = clearCardAudio(card);
   next.audioPath = audio.audioPath;
   if (audio.audioText !== undefined) next.audioText = audio.audioText;
@@ -102,11 +133,16 @@ export function applyCardAudio (card: Card, audio: CardAudio): Card {
   return next;
 }
 
-export function copySelectedCard (cards: Card[], selectedCardId: string | null): EditorCardsResult {
+export function copySelectedCard(
+  cards: Card[],
+  selectedCardId: string | null,
+): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
 
-  const placeholderIndex = cards.findIndex((card) => card.cardType === CardType.NewCard);
+  const placeholderIndex = cards.findIndex(
+    (card) => card.cardType === CardType.NewCard,
+  );
   if (placeholderIndex === -1) return { cards, selectedCardId };
 
   const copiedCard = cloneCard(cards[selectedIndex], true);
@@ -124,7 +160,10 @@ export function copySelectedCard (cards: Card[], selectedCardId: string | null):
   };
 }
 
-export function resetSelectedCard (cards: Card[], selectedCardId: string | null): EditorCardsResult {
+export function resetSelectedCard(
+  cards: Card[],
+  selectedCardId: string | null,
+): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
 
@@ -137,11 +176,17 @@ export function resetSelectedCard (cards: Card[], selectedCardId: string | null)
   };
 }
 
-export function isCardMerged (card: Card | null | undefined): boolean {
+export function isCardMerged(card: Card | null | undefined): boolean {
   return !!card && ((card.width ?? 1) > 1 || (card.height ?? 1) > 1);
 }
 
-export function getSelectedCardSpanInfo (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): CardSpanInfo {
+export function getSelectedCardSpanInfo(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): CardSpanInfo {
   const fallback = createCardSpanInfo(false);
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1 || mode === "match") return fallback;
@@ -153,8 +198,24 @@ export function getSelectedCardSpanInfo (cards: Card[], selectedCardId: string |
   const placement = placements[selectedIndex];
   if (!placement || placement.covered) return fallback;
 
-  const maxWidth = getMaxAvailableWidth(cards, placements, selectedIndex, columns, rows, placement.width, placement.height);
-  const maxHeight = getMaxAvailableHeight(cards, placements, selectedIndex, columns, rows, placement.width, placement.height);
+  const maxWidth = getMaxAvailableWidth(
+    cards,
+    placements,
+    selectedIndex,
+    columns,
+    rows,
+    placement.width,
+    placement.height,
+  );
+  const maxHeight = getMaxAvailableHeight(
+    cards,
+    placements,
+    selectedIndex,
+    columns,
+    rows,
+    placement.width,
+    placement.height,
+  );
 
   return {
     canFillRow: maxWidth > placement.width,
@@ -170,54 +231,148 @@ export function getSelectedCardSpanInfo (cards: Card[], selectedCardId: string |
   };
 }
 
-export function canMergeSelectedCard (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): boolean {
-  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+export function canMergeSelectedCard(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): boolean {
+  const info = getSelectedCardSpanInfo(
+    cards,
+    selectedCardId,
+    columns,
+    rows,
+    mode,
+  );
   return info.canReset || info.canGrowRight || info.canGrowDown;
 }
 
-export function toggleSelectedCardMerge (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+export function toggleSelectedCardMerge(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(
+    cards,
+    selectedCardId,
+    columns,
+    rows,
+    mode,
+  );
   if (info.canReset) return resetSelectedCardSpan(cards, selectedCardId);
-  if (info.canGrowRight) return growSelectedCardRight(cards, selectedCardId, columns, rows, mode);
+  if (info.canGrowRight)
+    return growSelectedCardRight(cards, selectedCardId, columns, rows, mode);
   return growSelectedCardDown(cards, selectedCardId, columns, rows, mode);
 }
 
-export function growSelectedCardRight (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+export function growSelectedCardRight(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(
+    cards,
+    selectedCardId,
+    columns,
+    rows,
+    mode,
+  );
   if (!info.canGrowRight) return { cards, selectedCardId };
-  return resizeSelectedCard(cards, selectedCardId, info.currentWidth + 1, info.currentHeight);
+  return resizeSelectedCard(
+    cards,
+    selectedCardId,
+    info.currentWidth + 1,
+    info.currentHeight,
+  );
 }
 
-export function growSelectedCardDown (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+export function growSelectedCardDown(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(
+    cards,
+    selectedCardId,
+    columns,
+    rows,
+    mode,
+  );
   if (!info.canGrowDown) return { cards, selectedCardId };
-  return resizeSelectedCard(cards, selectedCardId, info.currentWidth, info.currentHeight + 1);
+  return resizeSelectedCard(
+    cards,
+    selectedCardId,
+    info.currentWidth,
+    info.currentHeight + 1,
+  );
 }
 
-export function mergeSelectedCardFullRow (cards: Card[], selectedCardId: string | null, columns: number, rows: number, mode: PageMode): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
+export function mergeSelectedCardFullRow(
+  cards: Card[],
+  selectedCardId: string | null,
+  columns: number,
+  rows: number,
+  mode: PageMode,
+): EditorCardsResult {
+  const info = getSelectedCardSpanInfo(
+    cards,
+    selectedCardId,
+    columns,
+    rows,
+    mode,
+  );
   if (!info.canFillRow) return { cards, selectedCardId };
-  return resizeSelectedCard(cards, selectedCardId, info.fillRowWidth, info.currentHeight);
+  return resizeSelectedCard(
+    cards,
+    selectedCardId,
+    info.fillRowWidth,
+    info.currentHeight,
+  );
 }
 
-export function resetSelectedCardSpan (cards: Card[], selectedCardId: string | null): EditorCardsResult {
+export function resetSelectedCardSpan(
+  cards: Card[],
+  selectedCardId: string | null,
+): EditorCardsResult {
   return resizeSelectedCard(cards, selectedCardId, 1, 1);
 }
 
-export function advanceEditorPage (pages: SetPage[], page: number): EditorPagesResult {
+export function advanceEditorPage(
+  pages: SetPage[],
+  page: number,
+): EditorPagesResult {
   if (page < pages.length - 1) {
     return { pages, page: page + 1 };
   }
 
   const currentPage = pages[page] ?? createEditorPage();
-  const nextPages = [...pages, createEditorPage(currentPage.mode, currentPage.columns, currentPage.rows)];
+  const nextPages = [
+    ...pages,
+    createEditorPage(
+      currentPage.mode,
+      currentPage.columns,
+      currentPage.rows,
+      currentPage.topColumns,
+      currentPage.bottomColumns,
+    )
+  ];
   return {
     pages: nextPages,
     page: nextPages.length - 1
   };
 }
 
-export function copyEditorPage (pages: SetPage[], page: number): EditorPagesResult {
+export function copyEditorPage(
+  pages: SetPage[],
+  page: number,
+): EditorPagesResult {
   const pageIndex = clampPageIndex(page, pages.length);
   const currentPage = pages[pageIndex] ?? createEditorPage();
   const nextPage = clonePage(currentPage, true);
@@ -230,13 +385,26 @@ export function copyEditorPage (pages: SetPage[], page: number): EditorPagesResu
   };
 }
 
-export function deleteEditorPage (pages: SetPage[], page: number): EditorPagesResult {
+export function deleteEditorPage(
+  pages: SetPage[],
+  page: number,
+): EditorPagesResult {
   const pageIndex = clampPageIndex(page, pages.length);
   const currentPage = pages[pageIndex] ?? createEditorPage();
   const nextPages = [...pages];
 
   if (nextPages.length <= 1) {
-    nextPages.splice(0, nextPages.length, createEditorPage(currentPage.mode, currentPage.columns, currentPage.rows));
+    nextPages.splice(
+      0,
+      nextPages.length,
+      createEditorPage(
+        currentPage.mode,
+        currentPage.columns,
+        currentPage.rows,
+        currentPage.topColumns,
+        currentPage.bottomColumns,
+      ),
+    );
     return {
       pages: nextPages,
       page: 0
@@ -250,7 +418,12 @@ export function deleteEditorPage (pages: SetPage[], page: number): EditorPagesRe
   };
 }
 
-export function toggleMatchLink (cards: Card[], selectedCardId: string | null, pendingMatchCardId: string | null, columns: number): MatchLinkResult {
+export function toggleMatchLink(
+  cards: Card[],
+  selectedCardId: string | null,
+  pendingMatchCardId: string | null,
+  columns: number,
+): MatchLinkResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1 || !selectedCardId) {
     return { cards, pendingMatchCardId };
@@ -262,7 +435,9 @@ export function toggleMatchLink (cards: Card[], selectedCardId: string | null, p
     return { cards, pendingMatchCardId: selectedCardId };
   }
 
-  const pendingIndex = cards.findIndex((card) => card.id === pendingMatchCardId);
+  const pendingIndex = cards.findIndex(
+    (card) => card.id === pendingMatchCardId,
+  );
   if (pendingIndex === -1) {
     return { cards, pendingMatchCardId: selectedCardId };
   }
@@ -274,9 +449,14 @@ export function toggleMatchLink (cards: Card[], selectedCardId: string | null, p
   }
 
   const nextCards = cards.map((card) => cloneCard(card));
-  const matchId = nextCards[selectedIndex].matchId ?? nextCards[pendingIndex].matchId ?? uuid();
-  const existingMatchIds = [nextCards[selectedIndex].matchId, nextCards[pendingIndex].matchId]
-    .filter((value): value is string => !!value);
+  const matchId =
+    nextCards[selectedIndex].matchId ??
+    nextCards[pendingIndex].matchId ??
+    uuid();
+  const existingMatchIds = [
+    nextCards[selectedIndex].matchId,
+    nextCards[pendingIndex].matchId
+  ].filter((value): value is string => !!value);
 
   for (const card of nextCards) {
     if (existingMatchIds.includes(card.matchId ?? "")) card.matchId = matchId;
@@ -290,7 +470,10 @@ export function toggleMatchLink (cards: Card[], selectedCardId: string | null, p
   };
 }
 
-export function clearMatchLink (cards: Card[], selectedCardId: string | null): MatchLinkResult {
+export function clearMatchLink(
+  cards: Card[],
+  selectedCardId: string | null,
+): MatchLinkResult {
   const selected = cards.find((card) => card.id === selectedCardId);
   if (!selected?.matchId) {
     return { cards, pendingMatchCardId: null };
@@ -311,7 +494,7 @@ export function clearMatchLink (cards: Card[], selectedCardId: string | null): M
   };
 }
 
-function findLastPlaceholder (cards: Card[]): number {
+function findLastPlaceholder(cards: Card[]): number {
   for (let index = cards.length - 1; index >= 0; index--) {
     if (cards[index].cardType === CardType.NewCard) {
       return index;
@@ -320,11 +503,11 @@ function findLastPlaceholder (cards: Card[]): number {
   return -1;
 }
 
-function isMergeableCardType (cardType: CardType): boolean {
+function isMergeableCardType(cardType: CardType): boolean {
   return cardType === CardType.AudioCard || cardType === CardType.SpaceCard;
 }
 
-function createCardSpanInfo (mergeable: boolean): CardSpanInfo {
+function createCardSpanInfo(mergeable: boolean): CardSpanInfo {
   return {
     canFillRow: false,
     canGrowDown: false,
@@ -339,7 +522,12 @@ function createCardSpanInfo (mergeable: boolean): CardSpanInfo {
   };
 }
 
-function resizeSelectedCard (cards: Card[], selectedCardId: string | null, width: number, height: number): EditorCardsResult {
+function resizeSelectedCard(
+  cards: Card[],
+  selectedCardId: string | null,
+  width: number,
+  height: number,
+): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
 
@@ -359,27 +547,79 @@ function resizeSelectedCard (cards: Card[], selectedCardId: string | null, width
   return { cards: nextCards, selectedCardId };
 }
 
-function getMaxAvailableWidth (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, currentWidth: number, currentHeight: number): number {
+function getMaxAvailableWidth(
+  cards: Card[],
+  placements: ReturnType<typeof getCardGridPlacements>,
+  selectedIndex: number,
+  columns: number,
+  rows: number,
+  currentWidth: number,
+  currentHeight: number,
+): number {
   const column = selectedIndex % columns;
   let maxWidth = currentWidth;
   for (let width = currentWidth + 1; width <= columns - column; width++) {
-    if (!isSpanAvailable(cards, placements, selectedIndex, columns, rows, width, currentHeight, currentWidth, currentHeight)) break;
+    if (
+      !isSpanAvailable(
+        cards,
+        placements,
+        selectedIndex,
+        columns,
+        rows,
+        width,
+        currentHeight,
+        currentWidth,
+        currentHeight,
+      )
+    )
+      break;
     maxWidth = width;
   }
   return maxWidth;
 }
 
-function getMaxAvailableHeight (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, currentWidth: number, currentHeight: number): number {
+function getMaxAvailableHeight(
+  cards: Card[],
+  placements: ReturnType<typeof getCardGridPlacements>,
+  selectedIndex: number,
+  columns: number,
+  rows: number,
+  currentWidth: number,
+  currentHeight: number,
+): number {
   const row = Math.floor(selectedIndex / columns);
   let maxHeight = currentHeight;
   for (let height = currentHeight + 1; height <= rows - row; height++) {
-    if (!isSpanAvailable(cards, placements, selectedIndex, columns, rows, currentWidth, height, currentWidth, currentHeight)) break;
+    if (
+      !isSpanAvailable(
+        cards,
+        placements,
+        selectedIndex,
+        columns,
+        rows,
+        currentWidth,
+        height,
+        currentWidth,
+        currentHeight,
+      )
+    )
+      break;
     maxHeight = height;
   }
   return maxHeight;
 }
 
-function isSpanAvailable (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, selectedIndex: number, columns: number, rows: number, width: number, height: number, currentWidth: number, currentHeight: number): boolean {
+function isSpanAvailable(
+  cards: Card[],
+  placements: ReturnType<typeof getCardGridPlacements>,
+  selectedIndex: number,
+  columns: number,
+  rows: number,
+  width: number,
+  height: number,
+  currentWidth: number,
+  currentHeight: number,
+): boolean {
   const startRow = Math.floor(selectedIndex / columns);
   const startColumn = selectedIndex % columns;
   if (startColumn + width > columns || startRow + height > rows) return false;
@@ -387,7 +627,16 @@ function isSpanAvailable (cards: Card[], placements: ReturnType<typeof getCardGr
   for (let y = startRow; y < startRow + height; y++) {
     for (let x = startColumn; x < startColumn + width; x++) {
       const index = y * columns + x;
-      if (isInsideSelectedSpan(selectedIndex, index, columns, currentWidth, currentHeight)) continue;
+      if (
+        isInsideSelectedSpan(
+          selectedIndex,
+          index,
+          columns,
+          currentWidth,
+          currentHeight,
+        )
+      )
+        continue;
       if (!isMergeTargetAvailable(cards, placements, index)) return false;
     }
   }
@@ -395,21 +644,40 @@ function isSpanAvailable (cards: Card[], placements: ReturnType<typeof getCardGr
   return true;
 }
 
-function isInsideSelectedSpan (selectedIndex: number, index: number, columns: number, width: number, height: number): boolean {
+function isInsideSelectedSpan(
+  selectedIndex: number,
+  index: number,
+  columns: number,
+  width: number,
+  height: number,
+): boolean {
   const startRow = Math.floor(selectedIndex / columns);
   const startColumn = selectedIndex % columns;
   const row = Math.floor(index / columns);
   const column = index % columns;
-  return row >= startRow && row < startRow + height && column >= startColumn && column < startColumn + width;
+  return (
+    row >= startRow &&
+    row < startRow + height &&
+    column >= startColumn &&
+    column < startColumn + width
+  );
 }
 
-function isMergeTargetAvailable (cards: Card[], placements: ReturnType<typeof getCardGridPlacements>, index: number): boolean {
+function isMergeTargetAvailable(
+  cards: Card[],
+  placements: ReturnType<typeof getCardGridPlacements>,
+  index: number,
+): boolean {
   const card = cards[index];
   const placement = placements[index];
-  return !!card && !placement?.covered && [CardType.NewCard, CardType.EmptyCard].includes(card.cardType);
+  return (
+    !!card &&
+    !placement?.covered &&
+    [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)
+  );
 }
 
-function clampPageIndex (page: number, length: number): number {
+function clampPageIndex(page: number, length: number): number {
   if (!length) return 0;
   return Math.max(0, Math.min(length - 1, page ?? 0));
 }
