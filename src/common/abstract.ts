@@ -2,7 +2,7 @@ import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
 
 export abstract class ICloudStorage {
-  static getMethods (): Array<keyof ICloudStorage> {
+  static getMethods(): Array<keyof ICloudStorage> {
     return [
       "getFiles",
       "getConfigFile",
@@ -31,7 +31,7 @@ export abstract class ICloudStorage {
     ];
   }
 
-  abstract getFiles(path: string): Promise<(Directory | null)>;
+  abstract getFiles(path: string): Promise<Directory | null>;
   abstract getConfigFile(path: string): ConfigFile | null | Promise<ConfigFile | null>;
   abstract getDefaultImage(path: string): Buffer | null | Promise<Uint8Array | null>;
   abstract getImage(path: string, entry: string): Buffer | null | Promise<Uint8Array | null>;

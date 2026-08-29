@@ -4,20 +4,19 @@
       <v-card-title v-if="!downloading" class="text-h5">
         Вы хотите скачать дополнительные наборы?
       </v-card-title>
-      <v-card-title v-else>
-        Идет загрузка.
-      </v-card-title>
+      <v-card-title v-else> Идет загрузка. </v-card-title>
       <v-card-text v-if="!downloading">
         <p>
           Совсем скоро вы сможете начать пользоваться программой LINKa смотри, однако, сейчас в ней
           только два готовых набора. Клавиатура и цифры.
         </p>
         <p>
-          Но специалист проекта Александра Анурова предоставила пакет бесплатных наборов, которые отлично
-          подходят для старта работы с программой.
+          Но специалист проекта Александра Анурова предоставила пакет бесплатных наборов, которые
+          отлично подходят для старта работы с программой.
         </p>
         <p>
-          Также вы можете записатьна на консультацию по программе по <a @click.prevent="consultation" href=""> ссылке</a>.
+          Также вы можете записатьна на консультацию по программе по
+          <a @click.prevent="consultation" href=""> ссылке</a>.
         </p>
         <p>Хотите их скачать?</p>
       </v-card-text>
@@ -32,12 +31,8 @@
 
       <v-card-actions v-if="!downloading">
         <v-spacer />
-        <v-btn color="error" variant="text" @click="dialog = false">
-          Отказаться
-        </v-btn>
-        <v-btn color="green-darken-1" variant="text" @click="download()">
-          Загрузить
-        </v-btn>
+        <v-btn color="error" variant="text" @click="dialog = false"> Отказаться </v-btn>
+        <v-btn color="green-darken-1" variant="text" @click="download()"> Загрузить </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -72,11 +67,11 @@ onUnmounted((): void => {
   ipcRenderer.off("download_progress", onDownloadProgress);
 });
 
-function onDownloadProgress (_: unknown, prog: string | number) {
+function onDownloadProgress(_: unknown, prog: string | number) {
   progress.value = Number(prog);
 }
 
-async function download () {
+async function download() {
   error.value = "";
   progress.value = 0;
   downloading.value = true;
@@ -91,11 +86,11 @@ async function download () {
     downloading.value = false;
   }
 }
-async function consultation () {
+async function consultation() {
   shell.openExternal("https://forms.gle/raD3VV6aCGEGzoGz7");
 }
 
-function onDialog (v: boolean) {
+function onDialog(v: boolean) {
   if (v) {
     previousButtonEnabled.value = store.state.button.enabled;
     store.commit("button_enabled", false);

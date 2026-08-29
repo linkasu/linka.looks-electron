@@ -3,6 +3,6 @@ import { LINKaStore } from "./store/LINKaStore";
 
 declare module "@vue/runtime-core" {
   interface ComponentCustomProperties {
-    $store: Store<LINKaStore> ;
+    $store: Store<LINKaStore>;
   }
 }

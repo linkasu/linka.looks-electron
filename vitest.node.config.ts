@@ -15,7 +15,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/frontend/tests/unit/CardsStorage.spec.ts", "src/electron/tests/unit/**/*.spec.ts"],
+    include: [
+      "src/frontend/tests/unit/CardsStorage.spec.ts",
+      "src/electron/tests/unit/**/*.spec.ts"
+    ],
     setupFiles: ["src/frontend/tests/unit/setup.ts"],
     coverage: {
       provider: "v8",

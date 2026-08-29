@@ -24,12 +24,7 @@
       :page="quizFinished ? totalPages : page"
       :errors="quizErrors"
       :waiting-for-next="waitingForNext"
-      @restart="
-        page = 0,
-        quizErrors = 0,
-        waitingForNext = false,
-        quizFinished = false
-      "
+      @restart="((page = 0), (quizErrors = 0), (waitingForNext = false), (quizFinished = false))"
       @next="advanceQuiz"
     />
 
@@ -107,34 +102,38 @@ const config = computed(() => {
 const totalPages = computed(() => Math.max(1, config.value?.pages?.length ?? 0));
 
 const page = computed({
-  get (): number {
+  get(): number {
     return Math.max(0, Math.min(totalPages.value - 1, store.state.explorer.page ?? 0));
   },
-  set (value: number) {
+  set(value: number) {
     const next = Math.max(0, Math.min(totalPages.value - 1, value));
     store.commit("explorer_page", next);
   }
 });
 
 const currentPage = computed(() => {
-  return normalizePage(config.value?.pages?.[page.value] ?? {
-    mode: "standard",
-    columns: 3,
-    rows: 3,
-    cards: []
-  });
+  return normalizePage(
+    config.value?.pages?.[page.value] ?? {
+      mode: "standard",
+      columns: 3,
+      rows: 3,
+      cards: []
+    }
+  );
 });
 
 const interfaceOutputLine = computed(() => store.state.ui.outputLine);
 const isQuiz = computed(() => currentPage.value.mode === "quiz");
 const isMatch = computed(() => currentPage.value.mode === "match");
 const matchTopColumns = computed(() => currentPage.value.topColumns ?? currentPage.value.columns);
-const matchBottomColumns = computed(() => currentPage.value.bottomColumns ?? currentPage.value.columns);
-const isValidMatch = computed(() => !isMatch.value || isPlayableMatchPage(
-  currentPage.value.cards,
-  matchTopColumns.value,
-  matchBottomColumns.value
-));
+const matchBottomColumns = computed(
+  () => currentPage.value.bottomColumns ?? currentPage.value.columns
+);
+const isValidMatch = computed(
+  () =>
+    !isMatch.value ||
+    isPlayableMatchPage(currentPage.value.cards, matchTopColumns.value, matchBottomColumns.value)
+);
 const quizAutoNext = computed(() => config.value?.quizAutoNext);
 
 const showStandardOutput = computed(() => {
@@ -146,7 +145,11 @@ const showGridExitButton = computed(() => {
 });
 
 const totalPairs = computed(() => {
-  return getTotalMatchPairs(currentPage.value.cards, matchTopColumns.value, matchBottomColumns.value);
+  return getTotalMatchPairs(
+    currentPage.value.cards,
+    matchTopColumns.value,
+    matchBottomColumns.value
+  );
 });
 
 const solvedPairs = computed(() => getSolvedMatchPairCount(solvedMatchPairIds.value));
@@ -162,7 +165,7 @@ watch(
   { immediate: true }
 );
 
-function resetInteractivePageState () {
+function resetInteractivePageState() {
   waitingForNext.value = false;
   quizFinished.value = false;
   selectedCardId.value = null;
@@ -172,7 +175,7 @@ function resetInteractivePageState () {
   matchMessage.value = "Найдите все связи между верхней и нижней строками";
 }
 
-async function loadSet (nextFilename: string) {
+async function loadSet(nextFilename: string) {
   store.commit("explorer_config", undefined);
   cards.value = [];
   quizErrors.value = 0;
@@ -183,7 +186,7 @@ async function loadSet (nextFilename: string) {
   Telemetry.product("openSet");
 }
 
-function advancePage () {
+function advancePage() {
   const result = advanceQuizPage({
     errors: quizErrors.value,
     page: page.value,
@@ -196,11 +199,11 @@ function advancePage () {
   quizFinished.value = result.quizFinished;
 }
 
-function advanceQuiz () {
+function advanceQuiz() {
   advancePage();
 }
 
-async function addCard (card: Card, index: number) {
+async function addCard(card: Card, index: number) {
   Telemetry.product("cardClick");
   if (isQuiz.value) {
     await onQuizCard(card);
@@ -219,14 +222,18 @@ async function addCard (card: Card, index: number) {
   }
 }
 
-async function onQuizCard (card: Card) {
-  const result = handleQuizCard(card, {
-    errors: quizErrors.value,
-    page: page.value,
-    quizFinished: quizFinished.value,
-    totalPages: totalPages.value,
-    waitingForNext: waitingForNext.value
-  }, quizAutoNext.value);
+async function onQuizCard(card: Card) {
+  const result = handleQuizCard(
+    card,
+    {
+      errors: quizErrors.value,
+      page: page.value,
+      quizFinished: quizFinished.value,
+      totalPages: totalPages.value,
+      waitingForNext: waitingForNext.value
+    },
+    quizAutoNext.value
+  );
   if (result.ignored) return;
 
   if (result.feedbackText) {
@@ -238,7 +245,7 @@ async function onQuizCard (card: Card) {
   quizFinished.value = result.quizFinished;
 }
 
-async function onMatchCard (card: Card, index: number) {
+async function onMatchCard(card: Card, index: number) {
   if (!filename.value) return;
   const result = handleMatchCard(card, index, {
     cards: currentPage.value.cards,

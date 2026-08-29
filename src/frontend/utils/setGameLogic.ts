@@ -38,16 +38,17 @@ export interface MatchResult {
   solvedPairIds: string[];
 }
 
-const DEFAULT_MATCH_MESSAGE = "Соотнесите каждый элемент верхней строки со всеми подходящими элементами нижней строки";
+const DEFAULT_MATCH_MESSAGE =
+  "Соотнесите каждый элемент верхней строки со всеми подходящими элементами нижней строки";
 
-export function shouldAddCardToStandardOutput (card: Card, withoutSpace?: boolean): boolean {
+export function shouldAddCardToStandardOutput(card: Card, withoutSpace?: boolean): boolean {
   return (
     (!!withoutSpace && [CardType.AudioCard, CardType.SpaceCard].includes(card.cardType)) ||
     (!withoutSpace && card.cardType === CardType.AudioCard)
   );
 }
 
-export function advanceQuizPage (state: QuizState): QuizState {
+export function advanceQuizPage(state: QuizState): QuizState {
   if (state.page < state.totalPages - 1) {
     return {
       ...state,
@@ -63,7 +64,7 @@ export function advanceQuizPage (state: QuizState): QuizState {
   };
 }
 
-export function handleQuizCard (card: Card, state: QuizState, quizAutoNext?: boolean): QuizResult {
+export function handleQuizCard(card: Card, state: QuizState, quizAutoNext?: boolean): QuizResult {
   if (state.waitingForNext) {
     return {
       ...state,
@@ -91,8 +92,17 @@ export function handleQuizCard (card: Card, state: QuizState, quizAutoNext?: boo
   };
 }
 
-export function getTotalMatchPairs (cards: Card[], topColumns?: number, bottomColumns = topColumns): number {
-  if (topColumns !== undefined && bottomColumns !== undefined && cards.length > topColumns + bottomColumns) return 0;
+export function getTotalMatchPairs(
+  cards: Card[],
+  topColumns?: number,
+  bottomColumns = topColumns
+): number {
+  if (
+    topColumns !== undefined &&
+    bottomColumns !== undefined &&
+    cards.length > topColumns + bottomColumns
+  )
+    return 0;
   const groups = getMatchGroups(cards);
   return [...groups.values()]
     .filter((group) => isValidMatchGroup(group, cards, topColumns))
@@ -104,22 +114,29 @@ export function getTotalMatchPairs (cards: Card[], topColumns?: number, bottomCo
     }, 0);
 }
 
-export function getSolvedMatchPairs (matchedCardIds: string[]): number {
+export function getSolvedMatchPairs(matchedCardIds: string[]): number {
   return matchedCardIds.length / 2;
 }
 
-export function getSolvedMatchPairCount (solvedPairIds: string[]): number {
+export function getSolvedMatchPairCount(solvedPairIds: string[]): number {
   return solvedPairIds.length;
 }
 
-export function getCompletedMatchCardIds (cards: Card[], topColumns: number, bottomColumns: number, solvedPairIds: string[]): string[] {
+export function getCompletedMatchCardIds(
+  cards: Card[],
+  topColumns: number,
+  bottomColumns: number,
+  solvedPairIds: string[]
+): string[] {
   if (cards.length > topColumns + bottomColumns) return [];
   const solved = new Set(solvedPairIds);
   const completed: string[] = [];
 
   for (const card of cards) {
     if (card.cardType !== CardType.AudioCard || !card.matchId) continue;
-    const group = cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
+    const group = cards.filter(
+      (item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId
+    );
     const row = getRow(card, cards, topColumns);
     const opposite = group.filter((item) => getRow(item, cards, topColumns) !== row);
     if (opposite.length && opposite.every((item) => solved.has(getPairId(card.id, item.id)))) {
@@ -130,21 +147,37 @@ export function getCompletedMatchCardIds (cards: Card[], topColumns: number, bot
   return completed;
 }
 
-export function isPlayableMatchPage (cards: Card[], topColumns: number, bottomColumns: number): boolean {
+export function isPlayableMatchPage(
+  cards: Card[],
+  topColumns: number,
+  bottomColumns: number
+): boolean {
   if (cards.length > topColumns + bottomColumns) return false;
-  return [...getMatchGroups(cards).values()].every((group) => isValidMatchGroup(group, cards, topColumns)) &&
-    cards.every((card) => card.cardType !== CardType.AudioCard || (card.matchId && isValidMatchGroup(
-      cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId),
-      cards,
-      topColumns
-    )));
+  return (
+    [...getMatchGroups(cards).values()].every((group) =>
+      isValidMatchGroup(group, cards, topColumns)
+    ) &&
+    cards.every(
+      (card) =>
+        card.cardType !== CardType.AudioCard ||
+        (card.matchId &&
+          isValidMatchGroup(
+            cards.filter(
+              (item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId
+            ),
+            cards,
+            topColumns
+          ))
+    )
+  );
 }
 
-export function handleMatchCard (card: Card, index: number, state: MatchState): MatchResult {
+export function handleMatchCard(card: Card, index: number, state: MatchState): MatchResult {
   const topColumns = state.topColumns ?? state.columns;
   const bottomColumns = state.bottomColumns ?? state.columns;
   const usingLegacyMatchedIds = state.solvedPairIds === undefined;
-  const solvedPairIds = state.solvedPairIds ?? getLegacySolvedPairIds(state.cards, state.matchedCardIds);
+  const solvedPairIds =
+    state.solvedPairIds ?? getLegacySolvedPairIds(state.cards, state.matchedCardIds);
   const matchedCardIds = usingLegacyMatchedIds
     ? state.matchedCardIds
     : getCompletedMatchCardIds(state.cards, topColumns, bottomColumns, solvedPairIds);
@@ -197,8 +230,15 @@ export function handleMatchCard (card: Card, index: number, state: MatchState): 
     };
   }
 
-  const matchGroup = state.cards.filter((item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId);
-  if (previous.matchId && card.matchId && previous.matchId === card.matchId && isValidMatchGroup(matchGroup, state.cards, topColumns)) {
+  const matchGroup = state.cards.filter(
+    (item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId
+  );
+  if (
+    previous.matchId &&
+    card.matchId &&
+    previous.matchId === card.matchId &&
+    isValidMatchGroup(matchGroup, state.cards, topColumns)
+  ) {
     const pairId = getPairId(previous.id, card.id);
     if (solvedPairIds.includes(pairId)) {
       return {
@@ -245,7 +285,7 @@ export function handleMatchCard (card: Card, index: number, state: MatchState): 
   };
 }
 
-function getMatchGroups (cards: Card[]): Map<string, Card[]> {
+function getMatchGroups(cards: Card[]): Map<string, Card[]> {
   const groups = new Map<string, Card[]>();
   for (const card of cards) {
     if (card.cardType !== CardType.AudioCard || !card.matchId) continue;
@@ -256,29 +296,33 @@ function getMatchGroups (cards: Card[]): Map<string, Card[]> {
   return groups;
 }
 
-function isValidMatchGroup (group: Card[], cards: Card[], topColumns?: number): boolean {
+function isValidMatchGroup(group: Card[], cards: Card[], topColumns?: number): boolean {
   if (topColumns === undefined) return group.length === 2;
   if (!group.length) return false;
   const rows = group.map((card) => getRow(card, cards, topColumns));
   return rows.includes(0) && rows.includes(1);
 }
 
-function getRow (card: Card, cards: Card[], topColumns: number): 0 | 1 {
+function getRow(card: Card, cards: Card[], topColumns: number): 0 | 1 {
   return cards.findIndex((item) => item.id === card.id) < topColumns ? 0 : 1;
 }
 
-function getPairId (firstId: string, secondId: string): string {
+function getPairId(firstId: string, secondId: string): string {
   return [firstId, secondId].sort().join("::");
 }
 
-function getLegacySolvedPairIds (cards: Card[], matchedCardIds: string[]): string[] {
+function getLegacySolvedPairIds(cards: Card[], matchedCardIds: string[]): string[] {
   const matched = new Set(matchedCardIds);
   return [...getMatchGroups(cards).values()]
     .filter((group) => group.length === 2 && group.every((card) => matched.has(card.id)))
     .map((group) => getPairId(group[0].id, group[1].id));
 }
 
-function ignoredMatchResult (state: MatchState, matchedCardIds: string[], solvedPairIds: string[]): MatchResult {
+function ignoredMatchResult(
+  state: MatchState,
+  matchedCardIds: string[],
+  solvedPairIds: string[]
+): MatchResult {
   return {
     advancePageAfterSolved: false,
     ignored: true,

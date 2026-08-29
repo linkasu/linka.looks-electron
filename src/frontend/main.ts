@@ -22,9 +22,4 @@ void pageWatcher;
 
 loadFonts();
 
-createApp(App)
-  .use(router)
-  .use(store)
-  .use(platformPlugin)
-  .use(vuetify)
-  .mount("#app");
+createApp(App).use(router).use(store).use(platformPlugin).use(vuetify).mount("#app");

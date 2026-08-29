@@ -1,48 +1,26 @@
 <template>
   <eye-button :disabled="disabled" :eye-disabled="eyeDisabled" :editor="editor">
-    <div
-      v-if="dot"
-      class="dot"
-    />
-    <v-icon v-if="card.cardType === CardTypes.NewCard">
-      mdi-plus
-    </v-icon>
-    <div
-      v-else
-      class="content"
-    >
-      <div
-        class="cardContainer"
-        align-center
-      >
+    <div v-if="dot" class="dot" />
+    <v-icon v-if="card.cardType === CardTypes.NewCard"> mdi-plus </v-icon>
+    <div v-else class="content">
+      <div class="cardContainer" align-center>
         <canvas
           v-if="card.cardType === CardTypes.AudioCard && cardHasGIF(card)"
           ref="canvasRef"
           :class="animation ? 'canvas img_hidden' : 'canvas'"
         />
-        <div
-          ref="clearfixRef"
-          class="canvasClearfix"
-        />
+        <div ref="clearfixRef" class="canvasClearfix" />
         <div
           v-if="card.cardType === CardTypes.AudioCard"
           :class="animation || !cardHasGIF(card) ? 'img' : 'img img_hidden'"
           :style="{ '--image': image }"
         />
-        <h1
-          v-if="card.cardType === CardTypes.SpaceCard"
-          class="img"
-        >
-          ⎵
-        </h1>
+        <h1 v-if="card.cardType === CardTypes.SpaceCard" class="img">⎵</h1>
       </div>
-      <div
-        v-if="card.cardType === CardTypes.AudioCard"
-        class="text"
-      >
-      <span :style="{fontSize: `${titleFontSize}px`, fontWeight: fontBold? 700 : 400}">
-        {{ card.title?.slice(0, 50) }}
-      </span>
+      <div v-if="card.cardType === CardTypes.AudioCard" class="text">
+        <span :style="{ fontSize: `${titleFontSize}px`, fontWeight: fontBold ? 700 : 400 }">
+          {{ card.title?.slice(0, 50) }}
+        </span>
       </div>
     </div>
   </eye-button>
@@ -59,12 +37,12 @@ import { CardType } from "@/common/interfaces/ConfigFile";
 import { storageService } from "@/frontend/services/card-storage-service";
 
 interface ISetGridButtonProps {
-  card: Card
-  file: string
-  dot?: boolean
-  editor?: boolean
-  disabled?: boolean
-  eyeDisabled?: boolean
+  card: Card;
+  file: string;
+  dot?: boolean;
+  editor?: boolean;
+  disabled?: boolean;
+  eyeDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
@@ -103,7 +81,7 @@ const titleFontSize = computed(() => {
   return Math.round(fontSize.value * Math.min(2, Math.sqrt(width * height)));
 });
 
-async function onCardPropUpdated (card: Card) {
+async function onCardPropUpdated(card: Card) {
   const currentLoadId = ++loadId;
   if (!card || !card.imagePath || card.cardType !== CardType.AudioCard) {
     clearImage();
@@ -121,20 +99,20 @@ async function onCardPropUpdated (card: Card) {
   }
 }
 
-function clearImage () {
+function clearImage() {
   if (objectUrl) URL.revokeObjectURL(objectUrl);
   objectUrl = null;
   image.value = "";
 }
 
-function cardHasGIF (card: Card): boolean {
+function cardHasGIF(card: Card): boolean {
   if (card && card.imagePath) {
     return card.imagePath.includes("gif");
   }
   return false;
 }
 
-function createStaticImage (url: string) {
+function createStaticImage(url: string) {
   const canvas = canvasRef.value as HTMLCanvasElement;
   const clearfixContainer = clearfixRef.value as HTMLCanvasElement;
   const containerWidth = clearfixContainer.offsetWidth;

@@ -10,7 +10,7 @@ import { resolveExtraResource } from "@/electron/utils/resolveExtraResource";
 const BIN = resolveExtraResource("ImageGenerator.exe");
 const IMAGE_SIZE = 512;
 
-export async function createImageFromText (text: string):Promise<Buffer> {
+export async function createImageFromText(text: string): Promise<Buffer> {
   if (process.platform === "darwin") {
     return createMacOSImageFromText(text);
   }
@@ -21,7 +21,7 @@ export async function createImageFromText (text: string):Promise<Buffer> {
   return createWindowsImageFromText(text);
 }
 
-function createWindowsImageFromText (text: string): Promise<Buffer> {
+function createWindowsImageFromText(text: string): Promise<Buffer> {
   if (!existsSync(BIN)) {
     throw new Error("Не найден ImageGenerator.exe");
   }
@@ -37,7 +37,9 @@ function createWindowsImageFromText (text: string): Promise<Buffer> {
 
       try {
         const buffer = await readFile(file);
-        await unlink(file).catch((error) => console.warn("Failed to remove generated image:", error));
+        await unlink(file).catch((error) =>
+          console.warn("Failed to remove generated image:", error)
+        );
         resolve(buffer);
       } catch (error) {
         reject(error);
@@ -46,7 +48,7 @@ function createWindowsImageFromText (text: string): Promise<Buffer> {
   });
 }
 
-async function createMacOSImageFromText (text: string): Promise<Buffer> {
+async function createMacOSImageFromText(text: string): Promise<Buffer> {
   await app.whenReady();
 
   const win = new BrowserWindow({
@@ -63,7 +65,10 @@ async function createMacOSImageFromText (text: string): Promise<Buffer> {
 
   try {
     await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(createCanvasDocument())}`);
-    const dataUrl = await win.webContents.executeJavaScript(createCanvasScript(text), true) as string;
+    const dataUrl = (await win.webContents.executeJavaScript(
+      createCanvasScript(text),
+      true
+    )) as string;
     const match = dataUrl.match(/^data:image\/png;base64,(.+)$/);
     if (!match) {
       throw new Error("Не удалось создать PNG из текста");
@@ -75,7 +80,7 @@ async function createMacOSImageFromText (text: string): Promise<Buffer> {
   }
 }
 
-function createCanvasDocument (): string {
+function createCanvasDocument(): string {
   return `<!doctype html>
 <html>
   <head><meta charset="utf-8"></head>
@@ -85,7 +90,7 @@ function createCanvasDocument (): string {
 </html>`;
 }
 
-function createCanvasScript (text: string): string {
+function createCanvasScript(text: string): string {
   return `(() => {
     const text = ${JSON.stringify(text)}.trim() || " ";
     const canvas = document.getElementById("canvas");

@@ -9,9 +9,7 @@
     <div class="message">
       {{ message }}
     </div>
-    <h1>
-      {{ solvedPairs }} / {{ totalPairs }}
-    </h1>
+    <h1>{{ solvedPairs }} / {{ totalPairs }}</h1>
   </v-layout>
 </template>
 
@@ -25,7 +23,9 @@ const props = defineProps<{
   totalPairs: number;
 }>();
 
-const errorIcon = computed(() => props.errors > 9 ? "mdi-numeric-9-plus-box" : `mdi-numeric-${props.errors}-box`);
+const errorIcon = computed(() =>
+  props.errors > 9 ? "mdi-numeric-9-plus-box" : `mdi-numeric-${props.errors}-box`
+);
 </script>
 
 <style scoped>

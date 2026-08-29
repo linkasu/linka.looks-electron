@@ -16,9 +16,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" @click="closePopup">
-          Закрыть
-        </v-btn>
+        <v-btn color="primary" @click="closePopup"> Закрыть </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -34,13 +32,13 @@ import axios from "axios";
 import { shell } from "electron";
 
 interface PopupData {
-  version: number
-  title: string
-  description: string
-  links: { [url: string]: string }
+  version: number;
+  title: string;
+  description: string;
+  links: { [url: string]: string };
 }
 
-type Nullable<T> = T | null
+type Nullable<T> = T | null;
 
 const store = useStore();
 
@@ -53,7 +51,7 @@ onMounted((): void => {
   fetch();
 });
 
-async function fetch () {
+async function fetch() {
   try {
     const request = await axios.get<PopupData>("https://linka.su/looks.popup.json");
 
@@ -63,11 +61,11 @@ async function fetch () {
   }
 }
 
-function closePopup () {
+function closePopup() {
   store.commit("popupVersion", pData.value?.version ?? 0);
 }
 
-function openLink (url: string) {
+function openLink(url: string) {
   shell.openExternal(url);
 }
 </script>

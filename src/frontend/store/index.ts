@@ -5,11 +5,7 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Telemetry } from "@/frontend/utils/Telemetry";
-import type {
-  ConfigFile,
-  PageMode,
-  SetPage
-} from "@/common/interfaces/ConfigFile";
+import type { ConfigFile, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
 import {
   CURRENT_SET_VERSION,
   clonePage,
@@ -281,25 +277,17 @@ const store = createStore<LINKaStore>({
     disable_ui({ commit }) {
       commit("disable_ui");
     },
-    keymap_push(
-      { state, commit },
-      { side, code }: { side: Side; code: string },
-    ) {
-      if (
-        !Object.values(state.keyMapping).find((sides) => sides.includes(code))
-      ) {
+    keymap_push({ state, commit }, { side, code }: { side: Side; code: string }) {
+      if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
         state.keyMapping[side].push(code);
       }
       commit("keyMapping_" + side, state.keyMapping[side]);
       state.selectedKey = undefined;
     },
-    keymap_remove(
-      { state, commit },
-      { side, code }: { side: Side; code: string },
-    ) {
+    keymap_remove({ state, commit }, { side, code }: { side: Side; code: string }) {
       commit(
         "keyMapping_" + side,
-        state.keyMapping[side].filter((c) => c !== code),
+        state.keyMapping[side].filter((c) => c !== code)
       );
       state.selectedKey = undefined;
     },
@@ -329,10 +317,7 @@ const store = createStore<LINKaStore>({
       commit("telemetryConsent", await Telemetry.getPreference());
     },
 
-    async setTelemetryPreference(
-      { commit },
-      preference: Exclude<TelemetryConsent, "unknown">,
-    ) {
+    async setTelemetryPreference({ commit }, preference: Exclude<TelemetryConsent, "unknown">) {
       commit("telemetryConsent", await Telemetry.setPreference(preference));
     },
 
@@ -386,7 +371,7 @@ const store = createStore<LINKaStore>({
       await storageService.saveSet(
         state.editor.temp,
         state.editor.current,
-        buildEditorConfig(state),
+        buildEditorConfig(state)
       );
       Telemetry.outcome({
         kind: "set_saved",
@@ -400,11 +385,7 @@ const store = createStore<LINKaStore>({
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
-      await storageService.saveSet(
-        state.editor.temp,
-        current,
-        buildEditorConfig(state),
-      );
+      await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
@@ -438,8 +419,8 @@ const store = createStore<LINKaStore>({
             currentPage.columns,
             currentPage.rows,
             currentPage.topColumns,
-            currentPage.bottomColumns,
-          ),
+            currentPage.bottomColumns
+          )
         );
         commit("editor_pages", pages);
         commit("editor_page", 0);
@@ -452,9 +433,7 @@ const store = createStore<LINKaStore>({
     },
 
     async open_file({ commit }, filename) {
-      const config = normalizeConfigFile(
-        await storageService.getConfigFile(filename),
-      );
+      const config = normalizeConfigFile(await storageService.getConfigFile(filename));
       if (!config) return;
 
       commit("explorer_config", config);
@@ -495,7 +474,7 @@ function createEditorPage(
   columns = 3,
   rows = 3,
   topColumns?: number,
-  bottomColumns?: number,
+  bottomColumns?: number
 ): SetPage {
   const normalizedRows = mode === "match" ? 2 : rows;
   return normalizePage({
@@ -526,7 +505,7 @@ function clampPageIndex(page: number, length: number): number {
 }
 
 function countBucket(
-  pages: SetPage[],
+  pages: SetPage[]
 ): "one" | "two_to_five" | "six_to_twenty" | "more_than_twenty" {
   const count = pages.reduce((total, page) => total + page.cards.length, 0);
   if (count <= 1) return "one";

@@ -23,8 +23,20 @@ describe("SetGrid", () => {
   it("renders cards from the selected page", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard, title: "first" }] },
-        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard, title: "second" }] }
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard, title: "first" }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard, title: "second" }]
+        }
       ]),
       page: 1
     });
@@ -36,8 +48,20 @@ describe("SetGrid", () => {
     const store = createVuexStore();
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
-        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard }]
+        }
       ]),
       page: 0,
       store
@@ -53,8 +77,20 @@ describe("SetGrid", () => {
     const store = createVuexStore();
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
-        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard }]
+        }
       ]),
       page: 1,
       store
@@ -69,32 +105,72 @@ describe("SetGrid", () => {
   it("disables gaze for page turn buttons in mouse only mode", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
-        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard }]
+        }
       ]),
       store: createVuexStore("mouseOnly")
     });
 
-    expect(pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))).to.deep.equal(["true", "true"]);
+    expect(
+      pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))
+    ).to.deep.equal(["true", "true"]);
   });
 
   it("allows gaze for page turn buttons in mouse and eyes mode", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
-        { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard }]
+        }
       ]),
       store: createVuexStore("mouseAndEyes")
     });
 
-    expect(pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))).to.deep.equal([undefined, undefined]);
+    expect(
+      pageTurnButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))
+    ).to.deep.equal([undefined, undefined]);
   });
 
   it("hides page turn buttons for quiz pages", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
-        { id: "page-1", mode: "quiz", columns: 1, rows: 1, cards: [{ id: "first", cardType: CardType.AudioCard }] },
-        { id: "page-2", mode: "quiz", columns: 1, rows: 1, cards: [{ id: "second", cardType: CardType.AudioCard }] }
+        {
+          id: "page-1",
+          mode: "quiz",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "first", cardType: CardType.AudioCard }]
+        },
+        {
+          id: "page-2",
+          mode: "quiz",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "second", cardType: CardType.AudioCard }]
+        }
       ])
     });
 
@@ -119,7 +195,11 @@ describe("SetGrid", () => {
       matchedCardIds: ["matched"]
     });
 
-    expect(cardButtons(wrapper).map((button) => button.attributes("disabled"))).to.deep.equal(["", "", ""]);
+    expect(cardButtons(wrapper).map((button) => button.attributes("disabled"))).to.deep.equal([
+      "",
+      "",
+      ""
+    ]);
   });
 
   it("marks selected and matched cards with classes", () => {
@@ -161,12 +241,17 @@ describe("SetGrid", () => {
       ])
     });
 
-    expect(cardButtons(wrapper).map((button) => button.attributes("data-id"))).to.deep.equal(["wide", "next"]);
-    expect(wrapper.find('[data-id="wide"]').attributes("style")).to.contain("grid-column: 1 / span 2");
+    expect(cardButtons(wrapper).map((button) => button.attributes("data-id"))).to.deep.equal([
+      "wide",
+      "next"
+    ]);
+    expect(wrapper.find('[data-id="wide"]').attributes("style")).to.contain(
+      "grid-column: 1 / span 2"
+    );
   });
 });
 
-function mountSetGrid ({
+function mountSetGrid({
   config = createConfig(),
   matchedCardIds = [],
   page = 0,
@@ -192,11 +277,13 @@ function mountSetGrid ({
       stubs: {
         EyeButton: {
           props: ["eyeDisabled", "lock"],
-          template: "<button class=\"eye-button-stub\" :class=\"{ lock }\" :data-eye-disabled=\"eyeDisabled ? 'true' : null\" @click=\"$emit(&quot;click&quot;)\"><slot /></button>"
+          template:
+            '<button class="eye-button-stub" :class="{ lock }" :data-eye-disabled="eyeDisabled ? \'true\' : null" @click="$emit(&quot;click&quot;)"><slot /></button>'
         },
         SetGridButton: {
           props: ["card", "disabled"],
-          template: "<button class=\"card-button\" :data-id=\"card.id\" :disabled=\"disabled\" @click=\"$emit(&quot;click&quot;)\">{{ card.title || card.id }}</button>"
+          template:
+            '<button class="card-button" :data-id="card.id" :disabled="disabled" @click="$emit(&quot;click&quot;)">{{ card.title || card.id }}</button>'
         },
         VIcon: true
       }
@@ -204,7 +291,7 @@ function mountSetGrid ({
   });
 }
 
-function createVuexStore (pageTurnMode = "mouseAndEyes") {
+function createVuexStore(pageTurnMode = "mouseAndEyes") {
   return createStore({
     state: {
       button: {
@@ -219,16 +306,24 @@ function createVuexStore (pageTurnMode = "mouseAndEyes") {
       }
     },
     mutations: {
-      explorer_page (state, value: number) {
+      explorer_page(state, value: number) {
         state.explorer.page = value;
       }
     }
   });
 }
 
-function createConfig (pages: ConfigFile["pages"] = [
-  { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "card" }] }
-]): ConfigFile {
+function createConfig(
+  pages: ConfigFile["pages"] = [
+    {
+      id: "page-1",
+      mode: "standard",
+      columns: 1,
+      rows: 1,
+      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "card" }]
+    }
+  ]
+): ConfigFile {
   return {
     version: "3.0",
     withoutSpace: false,
@@ -236,10 +331,10 @@ function createConfig (pages: ConfigFile["pages"] = [
   };
 }
 
-function cardButtons (wrapper: ReturnType<typeof mount>) {
+function cardButtons(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll(".card-button");
 }
 
-function pageTurnButtons (wrapper: ReturnType<typeof mount>) {
+function pageTurnButtons(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll(".eye-button-stub");
 }

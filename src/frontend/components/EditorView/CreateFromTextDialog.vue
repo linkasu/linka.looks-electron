@@ -20,12 +20,12 @@ const store = useStore();
 
 const props = defineProps<{ file: string }>();
 const emit = defineEmits<{
-  (e: "image", value: string): void
+  (e: "image", value: string): void;
 }>();
 
 const ui_disabled = computed(() => store.state.ui.disabled);
 
-async function create (text: string) {
+async function create(text: string) {
   store.dispatch("disable_ui");
   try {
     const value = await storageService.createImageFromText(props.file, text);

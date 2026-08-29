@@ -1,16 +1,22 @@
 import type { LooksTelemetry } from "./index";
 import type { TelemetryDecision, TelemetryPreference } from "./preference";
 
-type Store = { read: () => Promise<TelemetryPreference>; write: (preference: TelemetryDecision) => Promise<void> };
+type Store = {
+  read: () => Promise<TelemetryPreference>;
+  write: (preference: TelemetryDecision) => Promise<void>;
+};
 
 export class TelemetryController {
   private preference: TelemetryPreference = "unknown";
   private telemetry?: LooksTelemetry;
   private transition = Promise.resolve();
 
-  constructor (private readonly store: Store, private readonly createTelemetry: () => LooksTelemetry) {}
+  constructor(
+    private readonly store: Store,
+    private readonly createTelemetry: () => LooksTelemetry
+  ) {}
 
-  initialize (): Promise<TelemetryPreference> {
+  initialize(): Promise<TelemetryPreference> {
     return this.enqueue(async () => {
       this.preference = await this.store.read();
       if (this.preference === "enabled") this.telemetry = this.createTelemetry();
@@ -18,11 +24,11 @@ export class TelemetryController {
     });
   }
 
-  getPreference (): TelemetryPreference {
+  getPreference(): TelemetryPreference {
     return this.preference;
   }
 
-  setPreference (preference: TelemetryDecision): Promise<TelemetryDecision> {
+  setPreference(preference: TelemetryDecision): Promise<TelemetryDecision> {
     return this.enqueue(async () => {
       if (preference === "disabled") {
         const active = this.telemetry;
@@ -39,13 +45,16 @@ export class TelemetryController {
     });
   }
 
-  record (record: Parameters<LooksTelemetry["record"]>[0]): boolean {
+  record(record: Parameters<LooksTelemetry["record"]>[0]): boolean {
     return this.preference === "enabled" && this.telemetry?.record(record) === true;
   }
 
-  private enqueue<Result> (operation: () => Promise<Result>): Promise<Result> {
+  private enqueue<Result>(operation: () => Promise<Result>): Promise<Result> {
     const result = this.transition.then(operation);
-    this.transition = result.then(() => undefined, () => undefined);
+    this.transition = result.then(
+      () => undefined,
+      () => undefined
+    );
     return result;
   }
 }

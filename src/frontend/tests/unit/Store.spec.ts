@@ -126,14 +126,16 @@ describe("store", () => {
       quizAutoNext: false,
       quizReadQuestion: true,
       description: "description",
-      pages: [{
-        id: "page-1",
-        mode: "quiz",
-        columns: 1,
-        rows: 1,
-        question: "Question?",
-        cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }]
-      }]
+      pages: [
+        {
+          id: "page-1",
+          mode: "quiz",
+          columns: 1,
+          rows: 1,
+          question: "Question?",
+          cards: [{ id: "card-1", cardType: CardType.AudioCard, answer: true }]
+        }
+      ]
     });
 
     await store.dispatch("editor_current", "source.linka");
@@ -156,13 +158,15 @@ describe("store", () => {
     store.commit("editor_isWithoutSpace", true);
     store.commit("editor_quizAutoNext", false);
     store.commit("editor_quizReadQuestion", true);
-    store.commit("editor_pages", [normalizePage({
-      id: "page-1",
-      mode: "standard",
-      columns: 1,
-      rows: 1,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
-    })]);
+    store.commit("editor_pages", [
+      normalizePage({
+        id: "page-1",
+        mode: "standard",
+        columns: 1,
+        rows: 1,
+        cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+      })
+    ]);
 
     await store.dispatch("editor_save");
 
@@ -190,13 +194,15 @@ describe("store", () => {
   });
 
   it("copies current editor page with renewed ids", async () => {
-    store.commit("editor_pages", [normalizePage({
-      id: "page-1",
-      mode: "standard",
-      columns: 1,
-      rows: 1,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
-    })]);
+    store.commit("editor_pages", [
+      normalizePage({
+        id: "page-1",
+        mode: "standard",
+        columns: 1,
+        rows: 1,
+        cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+      })
+    ]);
 
     await store.dispatch("editor_copy_page");
 
@@ -208,13 +214,15 @@ describe("store", () => {
   });
 
   it("resets the only editor page instead of deleting it", async () => {
-    store.commit("editor_pages", [normalizePage({
-      id: "page-1",
-      mode: "match",
-      columns: 2,
-      rows: 2,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
-    })]);
+    store.commit("editor_pages", [
+      normalizePage({
+        id: "page-1",
+        mode: "match",
+        columns: 2,
+        rows: 2,
+        cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+      })
+    ]);
 
     await store.dispatch("editor_delete_page");
 
@@ -223,7 +231,9 @@ describe("store", () => {
     expect(store.state.editor.pages[0].mode).to.equal("match");
     expect(store.state.editor.pages[0].columns).to.equal(2);
     expect(store.state.editor.pages[0].rows).to.equal(2);
-    expect(store.state.editor.pages[0].cards.every((card) => card.cardType === CardType.NewCard)).to.equal(true);
+    expect(
+      store.state.editor.pages[0].cards.every((card) => card.cardType === CardType.NewCard)
+    ).to.equal(true);
   });
 
   it("opens set in explorer and applies directSet output mode", async () => {
@@ -231,13 +241,15 @@ describe("store", () => {
       version: CURRENT_SET_VERSION,
       withoutSpace: false,
       directSet: true,
-      pages: [{
-        id: "page-1",
-        mode: "standard",
-        columns: 1,
-        rows: 1,
-        cards: [{ id: "card-1", cardType: CardType.AudioCard }]
-      }]
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "card-1", cardType: CardType.AudioCard }]
+        }
+      ]
     });
 
     await store.dispatch("open_file", "set.linka");
@@ -249,7 +261,7 @@ describe("store", () => {
   });
 });
 
-function resetStoreState () {
+function resetStoreState() {
   store.commit("telemetryConsent", "unknown");
   store.commit("button_enabled", true);
   store.commit("button_timeout", 1000);
@@ -262,12 +274,14 @@ function resetStoreState () {
   store.commit("editor_quizAutoNext", true);
   store.commit("editor_quizReadQuestion", false);
   store.commit("editor_page", 0);
-  store.commit("editor_pages", [normalizePage({
-    mode: "standard",
-    columns: 3,
-    rows: 3,
-    cards: []
-  })]);
+  store.commit("editor_pages", [
+    normalizePage({
+      mode: "standard",
+      columns: 3,
+      rows: 3,
+      cards: []
+    })
+  ]);
   store.commit("explorer_config", undefined);
   store.commit("explorer_page", 0);
   store.commit("interface_outputLine", true);

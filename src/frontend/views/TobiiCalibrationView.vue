@@ -2,19 +2,18 @@
   <div class="tobii-calibration">
     <v-container v-if="!calibrationActive" class="panel-container">
       <v-card>
-        <v-card-title>
-          Калибровка Tobii Eye Tracker 5
-        </v-card-title>
+        <v-card-title> Калибровка Tobii Eye Tracker 5 </v-card-title>
         <v-card-text>
           <v-alert v-if="firstFlow" class="mb-4" type="info" variant="tonal">
-            Tobii подключён. Перед первым использованием выполните калибровку или примените сохранённую.
+            Tobii подключён. Перед первым использованием выполните калибровку или примените
+            сохранённую.
           </v-alert>
-          Смотрите на любую доступную точку и удерживайте взгляд, пока она не сработает. Если отвести взгляд раньше времени, точка вернётся в исходное состояние. Для отмены нажмите Escape.
+          Смотрите на любую доступную точку и удерживайте взгляд, пока она не сработает. Если
+          отвести взгляд раньше времени, точка вернётся в исходное состояние. Для отмены нажмите
+          Escape.
           <v-alert class="mt-4" :type="tobiiStatusAlertType" variant="tonal">
             <div>{{ tobiiStatusMessage }}</div>
-            <div v-if="tobiiStatus?.lastError">
-              Ошибка: {{ tobiiStatus.lastError }}
-            </div>
+            <div v-if="tobiiStatus?.lastError">Ошибка: {{ tobiiStatus.lastError }}</div>
           </v-alert>
           <v-alert v-if="calibrationMessage" class="mt-4" type="info" variant="tonal">
             {{ calibrationMessage }}
@@ -24,19 +23,20 @@
           </v-alert>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :disabled="!canUseTobii" :loading="calibrationBusy" @click="startTobiiCalibration">
+          <v-btn
+            color="primary"
+            :disabled="!canUseTobii"
+            :loading="calibrationBusy"
+            @click="startTobiiCalibration"
+          >
             Начать калибровку
           </v-btn>
           <v-btn :disabled="!canUseTobii" :loading="calibrationBusy" @click="applySavedCalibration">
             Применить сохранённую
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn v-if="firstFlow" @click="skipFirstTobiiCalibration">
-            Пропустить
-          </v-btn>
-          <v-btn v-else @click="router.back()">
-            Назад
-          </v-btn>
+          <v-btn v-if="firstFlow" @click="skipFirstTobiiCalibration"> Пропустить </v-btn>
+          <v-btn v-else @click="router.back()"> Назад </v-btn>
         </v-card-actions>
       </v-card>
     </v-container>
@@ -64,21 +64,23 @@
       </div>
 
       <v-card v-if="showDebug" class="debug-panel" density="compact">
-        <v-card-title class="text-subtitle-2">
-          Tobii debug
-        </v-card-title>
+        <v-card-title class="text-subtitle-2"> Tobii debug </v-card-title>
         <v-card-text>
-          <div>phase: {{ phase }} group: {{ activeGroupIndex + 1 }} active: {{ activePointIndex ?? '-' }}</div>
-          <div>states: {{ pointStates.join(', ') }}</div>
+          <div>
+            phase: {{ phase }} group: {{ activeGroupIndex + 1 }} active:
+            {{ activePointIndex ?? "-" }}
+          </div>
+          <div>states: {{ pointStates.join(", ") }}</div>
           <div v-if="debugState">
-            raw: {{ formatPoint(debugState.raw) }} normalized: {{ formatPoint(debugState.normalized) }}
+            raw: {{ formatPoint(debugState.raw) }} normalized:
+            {{ formatPoint(debugState.normalized) }}
           </div>
           <div v-if="debugState">
-            screen: {{ formatPoint(debugState.screen) }} viewport: {{ formatPoint(debugViewportPoint) }} hit: {{ debugState.hitIndex }} / {{ debugState.boundsCount }} sw: {{ debugState.softwareCalibration ? 'on' : 'off' }}
+            screen: {{ formatPoint(debugState.screen) }} viewport:
+            {{ formatPoint(debugViewportPoint) }} hit: {{ debugState.hitIndex }} /
+            {{ debugState.boundsCount }} sw: {{ debugState.softwareCalibration ? "on" : "off" }}
           </div>
-          <div v-if="debugTargets.length">
-            targets: {{ debugTargets.join(' | ') }}
-          </div>
+          <div v-if="debugTargets.length">targets: {{ debugTargets.join(" | ") }}</div>
         </v-card-text>
       </v-card>
     </div>
@@ -97,17 +99,17 @@ import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 type CalibrationPhase = "idle" | "start" | "look" | "finish";
 type CalibrationPointState = "idle" | "holding" | "bursting" | "done";
 type CalibrationPoint = {
-  x: number
-  y: number
+  x: number;
+  y: number;
 };
 type TobiiDebugState = {
-  raw: CalibrationPoint
-  normalized: CalibrationPoint
-  screen: CalibrationPoint
-  screenRect: { x: number, y: number, width: number, height: number }
-  boundsCount: number
-  hitIndex: number
-  softwareCalibration: boolean
+  raw: CalibrationPoint;
+  normalized: CalibrationPoint;
+  screen: CalibrationPoint;
+  screenRect: { x: number; y: number; width: number; height: number };
+  boundsCount: number;
+  hitIndex: number;
+  softwareCalibration: boolean;
 };
 
 const router = useRouter();
@@ -160,17 +162,27 @@ const debugMarkerStyle = computed(() => ({
   left: `${debugViewportPoint.value.x}px`,
   top: `${debugViewportPoint.value.y}px`
 }));
-const canUseTobii = computed(() => tobiiStatus.value?.state === "connected" || tobiiStatus.value?.state === "tracking");
+const canUseTobii = computed(
+  () => tobiiStatus.value?.state === "connected" || tobiiStatus.value?.state === "tracking"
+);
 const firstFlow = computed(() => route.query.first === "1");
-const tobiiStatusMessage = computed(() => tobiiStatus.value?.message || "Проверяю состояние Tobii...");
+const tobiiStatusMessage = computed(
+  () => tobiiStatus.value?.message || "Проверяю состояние Tobii..."
+);
 const tobiiStatusAlertType = computed(() => {
   if (!tobiiStatus.value) return "info";
   if (canUseTobii.value) return "success";
-  if (tobiiStatus.value.state === "waiting_device" || tobiiStatus.value.state === "connecting" || tobiiStatus.value.state === "reconnecting" || tobiiStatus.value.state === "service_starting") return "warning";
+  if (
+    tobiiStatus.value.state === "waiting_device" ||
+    tobiiStatus.value.state === "connecting" ||
+    tobiiStatus.value.state === "reconnecting" ||
+    tobiiStatus.value.state === "service_starting"
+  )
+    return "warning";
   return "error";
 });
 
-async function startTobiiCalibration () {
+async function startTobiiCalibration() {
   if (calibrationBusy.value) return;
   trackTobiiTelemetry("tobiiCalibrationStart");
   calibrationBusy.value = true;
@@ -194,7 +206,7 @@ async function startTobiiCalibration () {
   }
 }
 
-function cancelTobiiCalibration () {
+function cancelTobiiCalibration() {
   stopHoldTimer();
   stopSettleTimer();
   cancelled.value = true;
@@ -208,13 +220,15 @@ function cancelTobiiCalibration () {
   Telemetry.outcome({ kind: "gaze_calibration_completed", result: "cancelled" });
 }
 
-async function applySavedCalibration () {
+async function applySavedCalibration() {
   calibrationBusy.value = true;
   calibrationError.value = "";
   trackTobiiTelemetry("tobiiCalibrationApplySaved");
   try {
     const applied = await ipcRenderer.invoke("tobii:calibration:apply-saved");
-    calibrationMessage.value = applied ? "Сохранённая калибровка применена." : "Сохранённая калибровка пока не найдена.";
+    calibrationMessage.value = applied
+      ? "Сохранённая калибровка применена."
+      : "Сохранённая калибровка пока не найдена.";
     trackTobiiTelemetry("tobiiCalibrationApplySavedResult");
     if (applied && firstFlow.value) finishFirstFlow();
   } catch (error) {
@@ -225,7 +239,7 @@ async function applySavedCalibration () {
   }
 }
 
-function targetStyle (point: CalibrationPoint, index: number) {
+function targetStyle(point: CalibrationPoint, index: number) {
   const progress = activePointIndex.value === index ? holdProgress.value : 0;
   return {
     left: `${point.x * 100}%`,
@@ -234,7 +248,7 @@ function targetStyle (point: CalibrationPoint, index: number) {
   };
 }
 
-function targetClasses (index: number) {
+function targetClasses(index: number) {
   const state = pointStates.value[index] || "idle";
   return {
     [`is-${state}`]: true,
@@ -243,7 +257,7 @@ function targetClasses (index: number) {
   };
 }
 
-function isPointEyeDisabled (index: number) {
+function isPointEyeDisabled(index: number) {
   if (phase.value !== "look") return true;
   if (completingPoint.value) return true;
   const state = pointStates.value[index];
@@ -251,7 +265,7 @@ function isPointEyeDisabled (index: number) {
   return activePointIndex.value !== index;
 }
 
-function onPointEnter (index: number) {
+function onPointEnter(index: number) {
   if (activePointIndex.value !== null) return;
   if (isPointEyeDisabled(index)) return;
   if (pointStates.value[index] === "holding") return;
@@ -263,7 +277,7 @@ function onPointEnter (index: number) {
   startHoldTimer(index);
 }
 
-function onPointExit (index: number) {
+function onPointExit(index: number) {
   if (activePointIndex.value !== null) return;
   if (activePointIndex.value !== index) return;
   if (pointStates.value[index] !== "holding") return;
@@ -274,18 +288,23 @@ function onPointExit (index: number) {
   setPointState(index, "idle");
 }
 
-function onPointClick (index: number) {
+function onPointClick(index: number) {
   if (isPointEyeDisabled(index)) return;
   void completePoint(index);
 }
 
-function startHoldTimer (index: number) {
+function startHoldTimer(index: number) {
   stopSettleTimer();
   const startedAt = performance.now();
   const tick = (now: number) => {
-    if (cancelled.value || activePointIndex.value !== index || pointStates.value[index] !== "holding") return;
+    if (
+      cancelled.value ||
+      activePointIndex.value !== index ||
+      pointStates.value[index] !== "holding"
+    )
+      return;
     const elapsed = now - startedAt;
-    holdProgress.value = Math.min(100, elapsed / holdMs * 100);
+    holdProgress.value = Math.min(100, (elapsed / holdMs) * 100);
     if (elapsed >= holdMs) {
       void completePoint(index);
       return;
@@ -295,7 +314,7 @@ function startHoldTimer (index: number) {
   holdFrame = window.requestAnimationFrame(tick);
 }
 
-function startNextPointTimer () {
+function startNextPointTimer() {
   if (cancelled.value || phase.value !== "look" || completingPoint.value) return;
   const index = pointStates.value.findIndex((state) => state === "idle");
   if (index < 0) return;
@@ -310,7 +329,7 @@ function startNextPointTimer () {
   }, settleMs);
 }
 
-async function completePoint (index: number) {
+async function completePoint(index: number) {
   if (completingPoint.value) return;
   completingPoint.value = true;
   stopHoldTimer();
@@ -334,7 +353,7 @@ async function completePoint (index: number) {
   }
 }
 
-async function continueAfterPoint () {
+async function continueAfterPoint() {
   if (!pointStates.value.every((state) => state === "done")) {
     startNextPointTimer();
     return;
@@ -369,32 +388,38 @@ async function continueAfterPoint () {
   }
 }
 
-function resetPointStates () {
+function resetPointStates() {
   pointStates.value = currentGroup.value.map(() => "idle");
 }
 
-function setPointState (index: number, state: CalibrationPointState) {
-  pointStates.value = pointStates.value.map((current, currentIndex) => currentIndex === index ? state : current);
+function setPointState(index: number, state: CalibrationPointState) {
+  pointStates.value = pointStates.value.map((current, currentIndex) =>
+    currentIndex === index ? state : current
+  );
 }
 
-function stopHoldTimer () {
+function stopHoldTimer() {
   if (holdFrame === undefined) return;
   window.cancelAnimationFrame(holdFrame);
   holdFrame = undefined;
 }
 
-function stopSettleTimer () {
+function stopSettleTimer() {
   if (settleTimer === undefined) return;
   window.clearTimeout(settleTimer);
   settleTimer = undefined;
 }
 
-function failCalibration (error: unknown) {
+function failCalibration(error: unknown) {
   stopHoldTimer();
   stopSettleTimer();
   calibrationError.value = error instanceof Error ? error.message : String(error);
   trackTobiiTelemetry("tobiiCalibrationError");
-  Telemetry.outcome({ kind: "gaze_calibration_completed", result: "failed", failure_code: "calibration_failed" });
+  Telemetry.outcome({
+    kind: "gaze_calibration_completed",
+    result: "failed",
+    failure_code: "calibration_failed"
+  });
   calibrationActive.value = false;
   calibrationBusy.value = false;
   completingPoint.value = false;
@@ -402,13 +427,13 @@ function failCalibration (error: unknown) {
   phase.value = "idle";
 }
 
-function skipFirstTobiiCalibration () {
+function skipFirstTobiiCalibration() {
   trackTobiiTelemetry("tobiiCalibrationCancel");
   Telemetry.outcome({ kind: "gaze_calibration_completed", result: "cancelled" });
   finishFirstFlow();
 }
 
-function finishFirstFlow () {
+function finishFirstFlow() {
   store.commit("first_calibrate", true);
   calibrationActive.value = false;
   calibrationBusy.value = false;
@@ -416,17 +441,17 @@ function finishFirstFlow () {
   router.push("/");
 }
 
-function wait (durationMs: number) {
+function wait(durationMs: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, durationMs));
 }
 
-function onKeydown (event: KeyboardEvent) {
+function onKeydown(event: KeyboardEvent) {
   if (!calibrationActive.value || event.key !== "Escape") return;
   event.preventDefault();
   cancelTobiiCalibration();
 }
 
-function onTobiiDebug (event: IpcRendererEvent, state: TobiiDebugState) {
+function onTobiiDebug(event: IpcRendererEvent, state: TobiiDebugState) {
   debugState.value = state;
   debugTargets.value = currentGroup.value.map((point, index) => {
     const el = document.querySelectorAll(".calibration-target")[index];
@@ -437,11 +462,11 @@ function onTobiiDebug (event: IpcRendererEvent, state: TobiiDebugState) {
   });
 }
 
-function onTobiiStatus (event: IpcRendererEvent, status: TobiiStatus) {
+function onTobiiStatus(event: IpcRendererEvent, status: TobiiStatus) {
   tobiiStatus.value = status;
 }
 
-async function loadTobiiStatus () {
+async function loadTobiiStatus() {
   try {
     tobiiStatus.value = await ipcRenderer.invoke("tobii:status:get");
   } catch (error) {
@@ -455,11 +480,21 @@ async function loadTobiiStatus () {
   }
 }
 
-function formatPoint (point: CalibrationPoint) {
+function formatPoint(point: CalibrationPoint) {
   return `${point.x.toFixed(3)}, ${point.y.toFixed(3)}`;
 }
 
-function trackTobiiTelemetry (eventName: "tobiiCalibrationStart" | "tobiiCalibrationPoint" | "tobiiCalibrationFinish" | "tobiiCalibrationCancel" | "tobiiCalibrationError" | "tobiiCalibrationApplySaved" | "tobiiCalibrationApplySavedResult" | "tobiiCalibrationUnavailable") {
+function trackTobiiTelemetry(
+  eventName:
+    | "tobiiCalibrationStart"
+    | "tobiiCalibrationPoint"
+    | "tobiiCalibrationFinish"
+    | "tobiiCalibrationCancel"
+    | "tobiiCalibrationError"
+    | "tobiiCalibrationApplySaved"
+    | "tobiiCalibrationApplySavedResult"
+    | "tobiiCalibrationUnavailable"
+) {
   Telemetry.product(eventName);
 }
 
@@ -503,7 +538,12 @@ onBeforeUnmount(() => {
   z-index: 1000;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 45%, rgba(42, 101, 255, 0.24) 0%, rgba(6, 17, 45, 0.92) 45%, #020817 100%),
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(42, 101, 255, 0.24) 0%,
+      rgba(6, 17, 45, 0.92) 45%,
+      #020817 100%
+    ),
     #020817;
   color: #fff;
   transition: opacity 240ms ease;
@@ -544,7 +584,10 @@ onBeforeUnmount(() => {
   place-items: center;
   border-radius: 50%;
   pointer-events: auto;
-  transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    filter 180ms ease;
 }
 
 .calibration-target.is-disabled:not(.is-holding):not(.is-bursting) {
@@ -564,10 +607,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: conic-gradient(
-    #4dffea var(--hold-progress),
-    rgba(77, 255, 234, 0.26) 0
-  );
+  background: conic-gradient(#4dffea var(--hold-progress), rgba(77, 255, 234, 0.26) 0);
   box-shadow:
     0 0 28px rgba(77, 255, 234, 0.7),
     0 0 76px rgba(54, 116, 255, 0.38);
@@ -635,16 +675,36 @@ onBeforeUnmount(() => {
   animation: spark-burst 280ms ease-out forwards;
 }
 
-.target-spark:nth-child(1) { --spark-angle: 0deg; }
-.target-spark:nth-child(2) { --spark-angle: 36deg; }
-.target-spark:nth-child(3) { --spark-angle: 72deg; }
-.target-spark:nth-child(4) { --spark-angle: 108deg; }
-.target-spark:nth-child(5) { --spark-angle: 144deg; }
-.target-spark:nth-child(6) { --spark-angle: 180deg; }
-.target-spark:nth-child(7) { --spark-angle: 216deg; }
-.target-spark:nth-child(8) { --spark-angle: 252deg; }
-.target-spark:nth-child(9) { --spark-angle: 288deg; }
-.target-spark:nth-child(10) { --spark-angle: 324deg; }
+.target-spark:nth-child(1) {
+  --spark-angle: 0deg;
+}
+.target-spark:nth-child(2) {
+  --spark-angle: 36deg;
+}
+.target-spark:nth-child(3) {
+  --spark-angle: 72deg;
+}
+.target-spark:nth-child(4) {
+  --spark-angle: 108deg;
+}
+.target-spark:nth-child(5) {
+  --spark-angle: 144deg;
+}
+.target-spark:nth-child(6) {
+  --spark-angle: 180deg;
+}
+.target-spark:nth-child(7) {
+  --spark-angle: 216deg;
+}
+.target-spark:nth-child(8) {
+  --spark-angle: 252deg;
+}
+.target-spark:nth-child(9) {
+  --spark-angle: 288deg;
+}
+.target-spark:nth-child(10) {
+  --spark-angle: 324deg;
+}
 
 @keyframes target-spin {
   to {

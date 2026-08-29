@@ -36,7 +36,7 @@ describe("ExplorerGridButton", () => {
   });
 });
 
-function mountExplorerGridButton (props: Record<string, unknown>) {
+function mountExplorerGridButton(props: Record<string, unknown>) {
   return mount(ExplorerGridButton, {
     props,
     global: {

@@ -32,7 +32,7 @@ export default defineConfig(({ command }) => ({
     electron({
       main: {
         entry: "src/electron/main.ts",
-        onstart ({ startup }) {
+        onstart({ startup }) {
           const port = process.env.ELECTRON_REMOTE_DEBUGGING_PORT || "9222";
           void startup([".", "--no-sandbox", `--remote-debugging-port=${port}`]);
         },
@@ -68,11 +68,7 @@ export default defineConfig(({ command }) => ({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/common/**/*.ts", "src/frontend/**/*.{ts,vue}"],
-      exclude: [
-        "src/**/*.d.ts",
-        "src/frontend/tests/**",
-        "src/frontend/main.ts"
-      ],
+      exclude: ["src/**/*.d.ts", "src/frontend/tests/**", "src/frontend/main.ts"],
       thresholds: {
         branches: 18,
         functions: 15,

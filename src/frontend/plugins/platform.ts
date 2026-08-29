@@ -23,13 +23,13 @@ export const platform: PlatformHelper = {
 };
 
 const platformPlugin: Plugin = {
-  install (app: App) {
+  install(app: App) {
     app.config.globalProperties.$platform = platform;
     app.provide("platform", platform);
   }
 };
 
-function detectPlatform () {
+function detectPlatform() {
   const runtimeProcess = (globalThis as typeof globalThis & { process?: RuntimeProcess }).process;
   if (runtimeProcess?.platform) return runtimeProcess.platform;
 

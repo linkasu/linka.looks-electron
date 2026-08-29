@@ -1,9 +1,19 @@
 <template>
-  <button ref="elRef" class="eyebtn" :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
+  <button
+    ref="elRef"
+    class="eyebtn"
+    :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
     :data-eye-disabled="props.eyeDisabled ? '1' : null"
-    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }" :disabled="nativeDisabled" @click="click()">
+    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
+    :disabled="nativeDisabled"
+    @click="click()"
+  >
     <slot />
-    <div v-if="isInside || (!buttonEnabled && !lock)" class="overlay" :class="{ disabled: !buttonEnabled && !lock }">
+    <div
+      v-if="isInside || (!buttonEnabled && !lock)"
+      class="overlay"
+      :class="{ disabled: !buttonEnabled && !lock }"
+    >
       <div v-if="circle" class="progress-bar" :style="{ '--seconds': seconds, '--size': size }">
         <progress min="0" :max="buttonTimeout" style="visibility: hidden; height: 0; width: 0" />
       </div>
@@ -17,12 +27,12 @@ import { ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 
 interface IEyeButtonProps {
-  disabled?: boolean
-  lock?: boolean
-  color?: string
-  path?: boolean
-  editor?: boolean
-  eyeDisabled?: boolean
+  disabled?: boolean;
+  lock?: boolean;
+  color?: string;
+  path?: boolean;
+  editor?: boolean;
+  eyeDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {
@@ -80,12 +90,12 @@ const seconds = computed(() => {
   return buttonTimeout.value / 1000 + "s";
 });
 
-function onExit () {
+function onExit() {
   isInside.value = false;
   circle.value = false;
 }
 
-function onEnter (eye: boolean) {
+function onEnter(eye: boolean) {
   if (eye && props.eyeDisabled) return;
   if (eye && !store.state.button.eyeSelect && !props.lock) return;
   if (!eye && !store.state.button.keyboardActivation) return;
@@ -94,7 +104,7 @@ function onEnter (eye: boolean) {
   circle.value = (store.state.button.eyeActivation || props.lock) && eye;
 }
 
-function click () {
+function click() {
   if (!store.state.button.clickSound) return;
   const el = document.getElementById("button_audio") as HTMLAudioElement;
   el.currentTime = 0;
@@ -135,7 +145,7 @@ canvas {
 }
 
 @property --progress-value {
-  syntax: '<integer>';
+  syntax: "<integer>";
   initial-value: 0;
   inherits: false;
 }
@@ -158,9 +168,12 @@ canvas {
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
-  background: radial-gradient(closest-side, transparent 79%, transparent 80% 100%),
-    conic-gradient(rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
-      transparent 0);
+  background:
+    radial-gradient(closest-side, transparent 79%, transparent 80% 100%),
+    conic-gradient(
+      rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
+      transparent 0
+    );
   animation: progress 1s infinite forwards;
   animation-duration: var(--seconds);
   animation-timing-function: linear;

@@ -10,20 +10,11 @@
       @confirm="create"
     />
 
-    <v-snackbar
-      v-model="error"
-      :timeout="5000"
-    >
+    <v-snackbar v-model="error" :timeout="5000">
       Ошибка создания папки. Проверьте название на наличие спецсимволов.
 
       <template #actions>
-        <v-btn
-          color="blue"
-          variant="text"
-          @click="error = false"
-        >
-          Закрыть
-        </v-btn>
+        <v-btn color="blue" variant="text" @click="error = false"> Закрыть </v-btn>
       </template>
     </v-snackbar>
   </div>
@@ -40,7 +31,7 @@ const route = useRoute();
 
 const error = ref(false);
 
-async function create (name: string) {
+async function create(name: string) {
   const root = route.params.path.toString();
   try {
     await storageService.mkdir(root + "§" + name);

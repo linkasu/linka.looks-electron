@@ -5,9 +5,7 @@
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <div class="page-indicator">
-      {{ page + 1 }} из {{ totalPages }}
-    </div>
+    <div class="page-indicator">{{ page + 1 }} из {{ totalPages }}</div>
     <v-spacer />
     <notes-button edit />
     <set-settings />
@@ -20,13 +18,7 @@
     >
       <v-icon>mdi-content-copy</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      title="Удалить страницу"
-      :disabled="ui_disabled"
-      @click="deletePage"
-    >
+    <v-btn flat icon title="Удалить страницу" :disabled="ui_disabled" @click="deletePage">
       <v-icon>mdi-delete-outline</v-icon>
     </v-btn>
     <save-button
@@ -38,9 +30,7 @@
     <v-snackbar v-model="saveError" :timeout="5000">
       Не удалось сохранить набор
       <template #actions>
-        <v-btn color="blue" variant="text" @click="saveError = false">
-          Закрыть
-        </v-btn>
+        <v-btn color="blue" variant="text" @click="saveError = false"> Закрыть </v-btn>
       </template>
     </v-snackbar>
   </v-app-bar>
@@ -70,7 +60,11 @@ const totalPages = computed(() => {
 
 const emptyPage = computed(() => {
   const currentPage = store.state.editor.pages?.[page.value];
-  return currentPage?.cards?.every((card) => [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)) ?? true;
+  return (
+    currentPage?.cards?.every((card) =>
+      [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)
+    ) ?? true
+  );
 });
 
 const path = computed((): string => {
@@ -82,7 +76,7 @@ const title = computed(() => {
   return arr[arr.length - 1];
 });
 
-async function save () {
+async function save() {
   try {
     await store.dispatch("editor_save");
     router.back();
@@ -92,7 +86,7 @@ async function save () {
   }
 }
 
-async function saveAs (title: string) {
+async function saveAs(title: string) {
   try {
     const newLink = await store.dispatch("editor_save_as", title);
     router.push("/set/" + newLink);
@@ -102,11 +96,11 @@ async function saveAs (title: string) {
   }
 }
 
-function copyPage () {
+function copyPage() {
   store.dispatch("editor_copy_page");
 }
 
-function deletePage () {
+function deletePage() {
   store.dispatch("editor_delete_page");
 }
 </script>

@@ -6,10 +6,7 @@
       <notification-popup v-if="telemetryConsent !== 'unknown'" />
       <router-view name="appbar" />
       <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
-      <v-main
-        class="app-main"
-        :class="`app-main--${interactionMode}`"
-      >
+      <v-main class="app-main" :class="`app-main--${interactionMode}`">
         <router-view />
       </v-main>
       <v-footer class="footer">
@@ -37,16 +34,22 @@ import { Telemetry } from "./utils/Telemetry";
 const pcHash = computed(() => store.state.pcHash);
 const telemetryConsent = computed(() => store.state.telemetryConsent);
 const route = useRoute();
-const interactionMode = computed(() => route.meta.interactionMode === "assistant" ? "assistant" : "gaze");
+const interactionMode = computed(() =>
+  route.meta.interactionMode === "assistant" ? "assistant" : "gaze"
+);
 
 let startupTracked = false;
 void store.dispatch("loadTelemetryPreference");
-watch(telemetryConsent, (consent) => {
-  if (startupTracked || consent !== "enabled") return;
-  startupTracked = true;
-  Telemetry.product("platformDetected");
-  Telemetry.product("start");
-}, { immediate: true });
+watch(
+  telemetryConsent,
+  (consent) => {
+    if (startupTracked || consent !== "enabled") return;
+    startupTracked = true;
+    Telemetry.product("platformDetected");
+    Telemetry.product("start");
+  },
+  { immediate: true }
+);
 
 const primary = computed(() => {
   return hexToRGB(store.state.colors.primary);
@@ -58,14 +61,10 @@ const secondary = computed(() => {
   return hexToRGB(store.state.colors.secondary);
 });
 
-function hexToRGB (input: string) {
+function hexToRGB(input: string) {
   const aRgbHex = input.slice(1).match(/.{1,2}/g);
   if (!aRgbHex) return null;
-  const aRgb = [
-    parseInt(aRgbHex[0], 16),
-    parseInt(aRgbHex[1], 16),
-    parseInt(aRgbHex[2], 16)
-  ];
+  const aRgb = [parseInt(aRgbHex[0], 16), parseInt(aRgbHex[1], 16), parseInt(aRgbHex[2], 16)];
   return aRgb;
 }
 </script>

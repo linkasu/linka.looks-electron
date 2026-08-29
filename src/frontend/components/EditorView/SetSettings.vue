@@ -1,15 +1,7 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    fullscreen
-    width="50%"
-    class="set-settings"
-    right="50%"
-  >
+  <v-dialog v-model="dialog" fullscreen width="50%" class="set-settings" right="50%">
     <template #activator="{ props }">
-      <v-btn flat i v-bind="props">
-        Открыть настройки набора
-      </v-btn>
+      <v-btn flat i v-bind="props"> Открыть настройки набора </v-btn>
     </template>
     <v-card>
       <v-toolbar>
@@ -35,20 +27,10 @@
           </v-row>
           <v-row v-if="mode !== 'match'">
             <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="columns"
-                label="Количество колонок"
-                :min="1"
-                type="number"
-              />
+              <v-text-field v-model="columns" label="Количество колонок" :min="1" type="number" />
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="rows"
-                label="Количество строк"
-                :min="1"
-                type="number"
-              />
+              <v-text-field v-model="rows" label="Количество строк" :min="1" type="number" />
             </v-col>
           </v-row>
           <v-row v-else>
@@ -69,21 +51,14 @@
               />
             </v-col>
           </v-row>
-          <v-text-field
-            v-if="mode === 'quiz'"
-            v-model="question"
-            label="Вопрос текущей страницы"
-          />
+          <v-text-field v-if="mode === 'quiz'" v-model="question" label="Вопрос текущей страницы" />
           <section v-if="mode === 'quiz'">
             <v-card-subtitle> Настройки викторины </v-card-subtitle>
             <v-checkbox
               v-model="editor_quizAutoNext"
               label="Переключать на следующий вопрос при любом ответе"
             />
-            <v-checkbox
-              v-model="editor_quizReadQuestion"
-              label="Зачитывать вопрос"
-            />
+            <v-checkbox v-model="editor_quizReadQuestion" label="Зачитывать вопрос" />
           </section>
 
           <v-card-subtitle> Настройки набора </v-card-subtitle>
@@ -124,24 +99,26 @@ const modeOptions = [
 const pageIndex = computed(() => store.state.editor.page ?? 0);
 
 const pages = computed({
-  get (): SetPage[] {
+  get(): SetPage[] {
     return store.state.editor.pages ?? [];
   },
-  set (value: SetPage[]) {
+  set(value: SetPage[]) {
     store.commit("editor_pages", value);
   }
 });
 
 const currentPage = computed({
-  get (): SetPage {
-    return normalizePage(pages.value[pageIndex.value] ?? {
-      mode: "standard",
-      columns: 3,
-      rows: 3,
-      cards: []
-    });
+  get(): SetPage {
+    return normalizePage(
+      pages.value[pageIndex.value] ?? {
+        mode: "standard",
+        columns: 3,
+        rows: 3,
+        cards: []
+      }
+    );
   },
-  set (value: SetPage) {
+  set(value: SetPage) {
     const nextPages = [...pages.value];
     nextPages[pageIndex.value] = normalizePage(value);
     pages.value = nextPages;
@@ -149,55 +126,55 @@ const currentPage = computed({
 });
 
 const columns = computed({
-  get () {
+  get() {
     return currentPage.value.columns;
   },
-  set (value: number) {
+  set(value: number) {
     currentPage.value = { ...currentPage.value, columns: value };
   }
 });
 
 const rows = computed({
-  get (): number {
+  get(): number {
     return currentPage.value.rows;
   },
-  set (value: number) {
+  set(value: number) {
     currentPage.value = { ...currentPage.value, rows: value };
   }
 });
 
 const topColumns = computed({
-  get (): number {
+  get(): number {
     return currentPage.value.topColumns ?? currentPage.value.columns;
   },
-  set (value: number) {
+  set(value: number) {
     currentPage.value = { ...currentPage.value, topColumns: value };
   }
 });
 
 const bottomColumns = computed({
-  get (): number {
+  get(): number {
     return currentPage.value.bottomColumns ?? currentPage.value.columns;
   },
-  set (value: number) {
+  set(value: number) {
     currentPage.value = { ...currentPage.value, bottomColumns: value };
   }
 });
 
 const question = computed({
-  get (): string {
+  get(): string {
     return currentPage.value.question ?? "";
   },
-  set (value: string) {
+  set(value: string) {
     currentPage.value = { ...currentPage.value, question: value };
   }
 });
 
 const mode = computed({
-  get (): PageMode {
+  get(): PageMode {
     return currentPage.value.mode;
   },
-  set (value: PageMode) {
+  set(value: PageMode) {
     currentPage.value = normalizePage({
       ...currentPage.value,
       mode: value,
@@ -207,37 +184,37 @@ const mode = computed({
 });
 
 const isWithoutSpace = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.isWithoutSpace;
   },
-  set (value: boolean) {
+  set(value: boolean) {
     store.commit("editor_isWithoutSpace", value);
   }
 });
 
 const isDirectSet = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.isDirectSet;
   },
-  set (value: boolean) {
+  set(value: boolean) {
     store.commit("editor_isDirectSet", value);
   }
 });
 
 const editor_quizReadQuestion = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.quizReadQuestion;
   },
-  set (value: boolean) {
+  set(value: boolean) {
     store.commit("editor_quizReadQuestion", value);
   }
 });
 
 const editor_quizAutoNext = computed({
-  get (): boolean {
+  get(): boolean {
     return store.state.editor.quizAutoNext;
   },
-  set (value: boolean) {
+  set(value: boolean) {
     store.commit("editor_quizAutoNext", value);
   }
 });

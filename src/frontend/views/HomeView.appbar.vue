@@ -1,7 +1,7 @@
 <template>
   <v-app-bar>
     <v-app-bar-title>
-      {{ title || 'LINKa. смотри' }}
+      {{ title || "LINKa. смотри" }}
     </v-app-bar-title>
     <v-spacer />
     <share-button />
@@ -22,15 +22,11 @@
         </v-chip>
       </template>
       <div>{{ tobiiStatusMessage }}</div>
-      <div v-if="tobiiStatus?.lastError">
-        Ошибка: {{ tobiiStatus.lastError }}
-      </div>
+      <div v-if="tobiiStatus?.lastError">Ошибка: {{ tobiiStatus.lastError }}</div>
       <div v-if="tobiiStatus?.lastGazeAt">
         Последний взгляд: {{ formatLastGazeAt(tobiiStatus.lastGazeAt) }}
       </div>
-      <div v-if="tobiiStatus?.socketPath">
-        Socket: {{ tobiiStatus.socketPath }}
-      </div>
+      <div v-if="tobiiStatus?.socketPath">Socket: {{ tobiiStatus.socketPath }}</div>
       <div>Нажмите, чтобы перезапустить службу Tobii.</div>
     </v-tooltip>
     <v-btn
@@ -43,18 +39,10 @@
     >
       <v-icon>mdi-eye</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      :to="newHref"
-    >
+    <v-btn flat icon :to="newHref">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      to="/settings"
-    >
+    <v-btn flat icon to="/settings">
       <v-icon>mdi-cog</v-icon>
     </v-btn>
   </v-app-bar>
@@ -88,39 +76,47 @@ const newHref = computed(() => {
 
 const tobiiStatusTitle = computed(() => {
   if (!tobiiStatus.value) return "Tobii";
-  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected") return "Tobii ok";
+  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected")
+    return "Tobii ok";
   if (tobiiStatus.value.state === "waiting_device") return "Tobii нет";
-  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable") return "Tobii ошибка";
+  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable")
+    return "Tobii ошибка";
   return "Tobii...";
 });
 
-const tobiiStatusMessage = computed(() => tobiiStatus.value?.message || "Статус Tobii пока неизвестен");
+const tobiiStatusMessage = computed(
+  () => tobiiStatus.value?.message || "Статус Tobii пока неизвестен"
+);
 
 const tobiiStatusIcon = computed(() => {
   if (!tobiiStatus.value) return "mdi-eye";
-  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected") return "mdi-eye-check";
+  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected")
+    return "mdi-eye-check";
   if (tobiiStatus.value.state === "waiting_device") return "mdi-eye-off";
-  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable") return "mdi-alert-circle";
+  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable")
+    return "mdi-alert-circle";
   return "mdi-sync";
 });
 
 const tobiiStatusColor = computed(() => {
   if (!tobiiStatus.value) return "grey";
-  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected") return "success";
+  if (tobiiStatus.value.state === "tracking" || tobiiStatus.value.state === "connected")
+    return "success";
   if (tobiiStatus.value.state === "waiting_device") return "warning";
-  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable") return "error";
+  if (tobiiStatus.value.state === "error" || tobiiStatus.value.state === "service_unavailable")
+    return "error";
   return "info";
 });
 
-function trackTobiiCalibrationOpen () {
+function trackTobiiCalibrationOpen() {
   Telemetry.product("openTobiiCalibration");
 }
 
-function onTobiiStatus (event: IpcRendererEvent, status: TobiiStatus) {
+function onTobiiStatus(event: IpcRendererEvent, status: TobiiStatus) {
   tobiiStatus.value = status;
 }
 
-async function loadTobiiStatus () {
+async function loadTobiiStatus() {
   try {
     tobiiStatus.value = await ipcRenderer.invoke("tobii:status:get");
   } catch (error) {
@@ -134,7 +130,7 @@ async function loadTobiiStatus () {
   }
 }
 
-async function restartTobiiService () {
+async function restartTobiiService() {
   try {
     await ipcRenderer.invoke("tobii:service:restart");
   } catch (error) {
@@ -154,7 +150,7 @@ async function restartTobiiService () {
   }
 }
 
-function formatLastGazeAt (value: number) {
+function formatLastGazeAt(value: number) {
   return new Date(value).toLocaleTimeString();
 }
 

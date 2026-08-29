@@ -1,48 +1,18 @@
 <template>
-  <v-layout
-    full-height
-    class="output-line"
-    :class="{ 'output-line-back': isExitButton }"
-  >
-    <eye-button
-      v-if="isExitButton"
-      color="accent"
-      @click="$router.back()"
-    >
+  <v-layout full-height class="output-line" :class="{ 'output-line-back': isExitButton }">
+    <eye-button v-if="isExitButton" color="accent" @click="$router.back()">
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
-    <eye-button
-      lock
-      :color="buttonEnabled ? 'accent' : ''"
-      @click="switchButtonEnabled"
-    >
-      <v-icon>{{ buttonEnabled ? 'mdi-eye' : 'mdi-eye-off' }}</v-icon>
+    <eye-button lock :color="buttonEnabled ? 'accent' : ''" @click="switchButtonEnabled">
+      <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </eye-button>
-    <eye-button
-      class="output-block"
-      @click="say"
-    >
-      <v-icon
-        block
-        class="speaker-icon"
-        :color="isPlaying ? 'success' : ''"
-      >
+    <eye-button class="output-block" @click="say">
+      <v-icon block class="speaker-icon" :color="isPlaying ? 'success' : ''">
         mdi-account-voice
       </v-icon>
-      <div
-        ref="outputTextRef"
-        class="output-text"
-      >
-        <div
-          v-if="withoutSpace"
-          class="text"
-        >
-          {{ text }}<span class="cursor">|</span>
-        </div>
-        <div
-          v-else
-          class="cards"
-        >
+      <div ref="outputTextRef" class="output-text">
+        <div v-if="withoutSpace" class="text">{{ text }}<span class="cursor">|</span></div>
+        <div v-else class="cards">
           <set-grid-button
             v-for="(card, i) in clone"
             :key="i"
@@ -54,16 +24,10 @@
         </div>
       </div>
     </eye-button>
-    <eye-button
-      color="accent"
-      @click="backspace"
-    >
+    <eye-button color="accent" @click="backspace">
       <v-icon> mdi-backspace </v-icon>
     </eye-button>
-    <eye-button
-      color="accent"
-      @click="clear"
-    >
+    <eye-button color="accent" @click="clear">
       <v-icon> mdi-delete </v-icon>
     </eye-button>
   </v-layout>
@@ -80,15 +44,15 @@ import { CardType, type Card, type ConfigFile } from "@/common/interfaces/Config
 import { TTS } from "@/frontend/utils/TTS";
 
 interface IOutputLineProps {
-  file: string
-  cards: Card[]
-  config?: ConfigFile
+  file: string;
+  cards: Card[];
+  config?: ConfigFile;
 }
 
 const props = defineProps<IOutputLineProps>();
 const store = useStore();
 const emit = defineEmits<{
-  (e: "value", payload: Card[]): void
+  (e: "value", payload: Card[]): void;
 }>();
 
 const isPlaying = ref(false);
@@ -126,11 +90,11 @@ const text = computed(() => {
     .join("");
 });
 
-function switchButtonEnabled () {
+function switchButtonEnabled() {
   store.dispatch("button_enabled");
 }
 
-function scrollEnd () {
+function scrollEnd() {
   setTimeout(() => {
     const el = outputTextRef.value as HTMLButtonElement;
     if (el && el.firstElementChild) {
@@ -141,15 +105,15 @@ function scrollEnd () {
   }, 50);
 }
 
-function clear () {
+function clear() {
   emit("value", []);
 }
 
-function backspace () {
+function backspace() {
   emit("value", clone.value.slice(0, -1));
 }
 
-async function say () {
+async function say() {
   if (isPlaying.value) return;
   isPlaying.value = true;
   try {

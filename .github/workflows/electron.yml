@@ -2,7 +2,7 @@ name: Electron build
 
 on:
   push:
-    tags: [ "v*" ]
+    tags: ["v*"]
 
 permissions:
   contents: write
@@ -14,122 +14,122 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22.x
-        cache: 'npm'
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
 
-    - name: Cache Electron downloads
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/electron
-          ~/.cache/electron-builder
-          ~\AppData\Local\electron\Cache
-          ~\AppData\Local\electron-builder\Cache
-        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-electron-
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
 
-    - name: Install deps
-      run: npm ci
-    - name: Linter
-      run: npm run lint
-    - name: Unit tests
-      run: npm run test:unit
-    - name: Build unpacked app for packaged resource smoke test
-      run: npm run electron:build -- --dir
-    - name: Packaged resource smoke test
-      run: npm run test:packaged-resources
-    - name: Build and publish
-      run: npm run electron:build -- -p always
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+      - name: Install deps
+        run: npm ci
+      - name: Linter
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Build unpacked app for packaged resource smoke test
+        run: npm run electron:build -- --dir
+      - name: Packaged resource smoke test
+        run: npm run test:packaged-resources
+      - name: Build and publish
+        run: npm run electron:build -- -p always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
   build-macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22.x
-        cache: 'npm'
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
 
-    - name: Cache Electron downloads
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/electron
-          ~/.cache/electron-builder
-          ~\AppData\Local\electron\Cache
-          ~\AppData\Local\electron-builder\Cache
-        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-electron-
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
 
-    - name: Install deps
-      run: npm ci
-    - name: Build unpacked app for packaged resource smoke test
-      run: npm run electron:build -- --mac --x64 --arm64 --dir
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
-    - name: Packaged resource smoke test
-      run: npm run test:packaged-resources
-    - name: Build and publish macOS artifacts
-      run: npm run electron:build -- --mac --x64 --arm64 -p always
-      env:
-        CSC_LINK: ${{ secrets.CSC_LINK }}
-        CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        CSC_NAME: "Иван Бакаидов (29HEQ626X2)"
-        APPLE_ID: ${{ secrets.APPLE_ID }}
-        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+      - name: Install deps
+        run: npm ci
+      - name: Build unpacked app for packaged resource smoke test
+        run: npm run electron:build -- --mac --x64 --arm64 --dir
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Packaged resource smoke test
+        run: npm run test:packaged-resources
+      - name: Build and publish macOS artifacts
+        run: npm run electron:build -- --mac --x64 --arm64 -p always
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: "Иван Бакаидов (29HEQ626X2)"
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
   build-linux-experimental:
     runs-on: ubuntu-latest
     env:
       CXXFLAGS: -std=gnu++17
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22.x
-        cache: 'npm'
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
 
-    - name: Cache Electron downloads
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/electron
-          ~/.cache/electron-builder
-          ~\AppData\Local\electron\Cache
-          ~\AppData\Local\electron-builder\Cache
-        key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-electron-
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
 
-    - name: Install Linux native build dependencies
-      run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
-    - name: Install deps
-      run: npm ci
-    - name: Unit tests
-      run: npm run test:unit
-    - name: Build Linux experimental artifacts
-      run: npm run electron:build:linux
-    - name: Upload Linux experimental artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-experimental-artifacts
-        path: |
-          dist/*.AppImage
-          dist/*.deb
-          dist/*.blockmap
-          dist/latest-linux.yml
+      - name: Install Linux native build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
+      - name: Install deps
+        run: npm ci
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Build Linux experimental artifacts
+        run: npm run electron:build:linux
+      - name: Upload Linux experimental artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-experimental-artifacts
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.blockmap
+            dist/latest-linux.yml

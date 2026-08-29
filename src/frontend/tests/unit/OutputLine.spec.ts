@@ -43,7 +43,11 @@ describe("OutputLine", () => {
 
   it("speaks concatenated text in without-space mode", async () => {
     const wrapper = mountOutputLine({
-      cards: [audioCard("hello"), { id: "space", cardType: CardType.SpaceCard }, audioCard("world")],
+      cards: [
+        audioCard("hello"),
+        { id: "space", cardType: CardType.SpaceCard },
+        audioCard("world")
+      ],
       withoutSpace: true
     });
 
@@ -69,11 +73,13 @@ describe("OutputLine", () => {
 
     await eyeButtons(wrapper)[0].trigger("click");
 
-    expect((store.dispatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).to.equal("button_enabled");
+    expect((store.dispatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).to.equal(
+      "button_enabled"
+    );
   });
 });
 
-function mountOutputLine ({
+function mountOutputLine({
   cards = [],
   store = createVuexStore(),
   withoutSpace = false
@@ -97,11 +103,12 @@ function mountOutputLine ({
       stubs: {
         EyeButton: {
           props: ["color", "lock"],
-          template: "<button class=\"eye-button-stub\" @click=\"$emit(&quot;click&quot;)\"><slot /></button>"
+          template:
+            '<button class="eye-button-stub" @click="$emit(&quot;click&quot;)"><slot /></button>'
         },
         SetGridButton: {
           props: ["card"],
-          template: "<div class=\"card-stub\">{{ card.title }}</div>"
+          template: '<div class="card-stub">{{ card.title }}</div>'
         },
         VIcon: true,
         VLayout: {
@@ -112,7 +119,7 @@ function mountOutputLine ({
   });
 }
 
-function createVuexStore () {
+function createVuexStore() {
   const store = createStore({
     state: {
       button: {
@@ -130,7 +137,7 @@ function createVuexStore () {
   return store;
 }
 
-function audioCard (title: string): Card {
+function audioCard(title: string): Card {
   return {
     id: title,
     cardType: CardType.AudioCard,
@@ -138,6 +145,6 @@ function audioCard (title: string): Card {
   };
 }
 
-function eyeButtons (wrapper: ReturnType<typeof mount>) {
+function eyeButtons(wrapper: ReturnType<typeof mount>) {
   return wrapper.findAll(".eye-button-stub");
 }

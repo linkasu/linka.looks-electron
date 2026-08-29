@@ -1,20 +1,9 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    width="auto"
-    @show="dialog = true"
-  >
-    <template
-      v-if="buttonText || icon"
-      #activator="{ props }"
-    >
-      <v-btn
-        v-bind="props"
-        :block="!!!icon"
-        :icon="icon"
-        :flat="!!icon"
-      >
-        {{ buttonText }} <v-icon v-if="icon">
+  <v-dialog v-model="dialog" width="auto" @show="dialog = true">
+    <template v-if="buttonText || icon" #activator="{ props }">
+      <v-btn v-bind="props" :block="!!!icon" :icon="icon" :flat="!!icon">
+        {{ buttonText }}
+        <v-icon v-if="icon">
           {{ icon }}
         </v-icon>
       </v-btn>
@@ -26,25 +15,14 @@
       </v-card-title>
       <v-card-text>
         <v-form @submit.prevent="submit()">
-          <v-text-field
-            v-model="text"
-            :label="label"
-            :rules="[isValid]"
-          />
+          <v-text-field v-model="text" :label="label" :rules="[isValid]" />
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn
-          color="primary"
-          @click="submit()"
-        >
+        <v-btn color="primary" @click="submit()">
           {{ confirmText }}
         </v-btn>
-        <v-btn
-          v-if="cancelText"
-          color="primary"
-          @click="dialog = false"
-        >
+        <v-btn v-if="cancelText" color="primary" @click="dialog = false">
           {{ cancelText }}
         </v-btn>
       </v-card-actions>
@@ -57,14 +35,14 @@ import { ref, watch } from "vue";
 import { validateStorageName } from "@/common/utils/storageName";
 
 interface IInputDialogProps {
-  title: string
-  label: string
-  confirmText: string
-  show?: boolean
-  checkFilePath?: boolean
-  buttonText?: string
-  icon?: string
-  cancelText?: string
+  title: string;
+  label: string;
+  confirmText: string;
+  show?: boolean;
+  checkFilePath?: boolean;
+  buttonText?: string;
+  icon?: string;
+  cancelText?: string;
 }
 
 const props = withDefaults(defineProps<IInputDialogProps>(), {
@@ -72,9 +50,7 @@ const props = withDefaults(defineProps<IInputDialogProps>(), {
   show: false
 });
 
-const emit = defineEmits<{(e: "confirm", payload: string): void
-  (e: "cancel"): void
-}>();
+const emit = defineEmits<{ (e: "confirm", payload: string): void; (e: "cancel"): void }>();
 
 const dialog = ref(false);
 const noCancel = ref(false);
@@ -86,7 +62,7 @@ watch(
   (newVal) => (dialog.value = newVal)
 );
 
-function onDialog (v: boolean) {
+function onDialog(v: boolean) {
   if (!v) {
     if (!noCancel.value) emit("cancel");
     noCancel.value = false;
@@ -95,7 +71,7 @@ function onDialog (v: boolean) {
   }
 }
 
-async function submit () {
+async function submit() {
   if (isValid(text.value) !== true) {
     return;
   }
@@ -106,7 +82,7 @@ async function submit () {
   dialog.value = false;
 }
 
-function isValid (text: string) {
+function isValid(text: string) {
   if (!props.checkFilePath) return true;
   return validateStorageName(text);
 }

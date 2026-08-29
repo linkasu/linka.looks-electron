@@ -6,7 +6,7 @@ import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 const fsp = fs.promises;
-export async function appendZip (source: string, file: string, biff: Buffer) {
+export async function appendZip(source: string, file: string, biff: Buffer) {
   const tempDir = await fsp.mkdtemp(join(tmpdir(), "linka-zip-"));
   const tempArchive = join(dirname(source), `.${basename(source)}.${uuid()}.tmp`);
   try {

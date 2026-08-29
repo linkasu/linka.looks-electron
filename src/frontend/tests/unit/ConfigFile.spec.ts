@@ -109,9 +109,7 @@ describe("config file normalization", () => {
 
     expect(page.cards).to.have.length(4);
     expect(page.cards[0].cardType).to.equal(CardType.AudioCard);
-    expect(
-      page.cards.slice(1).every((card) => card.cardType === CardType.NewCard),
-    ).to.equal(true);
+    expect(page.cards.slice(1).every((card) => card.cardType === CardType.NewCard)).to.equal(true);
   });
 
   it("trims extra cards beyond normalized page size", () => {
@@ -258,17 +256,10 @@ describe("config file normalization", () => {
     expect(config?.version).to.equal(CURRENT_SET_VERSION);
     expect(config?.withoutSpace).to.equal(true);
     expect(config?.pages).to.have.length(2);
-    expect(config?.pages?.[0].cards.map((card) => card.id)).to.deep.equal([
-      "1",
-      "2",
-      "3",
-      "4"
-    ]);
+    expect(config?.pages?.[0].cards.map((card) => card.id)).to.deep.equal(["1", "2", "3", "4"]);
     expect(config?.pages?.[1].cards[0].id).to.equal("5");
     expect(
-      config?.pages?.[1].cards
-        .slice(1)
-        .every((card) => card.cardType === CardType.NewCard),
+      config?.pages?.[1].cards.slice(1).every((card) => card.cardType === CardType.NewCard)
     ).to.equal(true);
   });
 

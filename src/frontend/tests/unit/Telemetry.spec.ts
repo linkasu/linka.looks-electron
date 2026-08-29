@@ -24,11 +24,19 @@ describe("Telemetry", () => {
 
   it("forwards projected product and outcome events to the main process", () => {
     Telemetry.product("openSet");
-    Telemetry.outcome({ kind: "set_saved", result: "completed", source: "created", count_bucket: "one" });
+    Telemetry.outcome({
+      kind: "set_saved",
+      result: "completed",
+      source: "created",
+      count_bucket: "one"
+    });
 
     expect(invoke.mock.calls).to.deep.equal([
       ["telemetry:product", { kind: "openSet" }],
-      ["telemetry:outcome", { kind: "set_saved", result: "completed", source: "created", count_bucket: "one" }]
+      [
+        "telemetry:outcome",
+        { kind: "set_saved", result: "completed", source: "created", count_bucket: "one" }
+      ]
     ]);
   });
 });

@@ -39,13 +39,13 @@ Tobii integration via `eyelog` package (Windows only). `BackWatch` (`src/electro
 
 ### Routes
 
-| Path | View | Purpose |
-|------|------|---------|
-| `/` | HomeView | Directory browser for .linka files |
-| `/set/:path` | SetExplorerView | Display/interact with a card set |
-| `/edit/:path` | EditorView | Edit cards in a set |
-| `/settings` | SettingsView | App settings |
-| `/calibration` | CalibrationView | Eye tracker calibration |
+| Path           | View            | Purpose                            |
+| -------------- | --------------- | ---------------------------------- |
+| `/`            | HomeView        | Directory browser for .linka files |
+| `/set/:path`   | SetExplorerView | Display/interact with a card set   |
+| `/edit/:path`  | EditorView      | Edit cards in a set                |
+| `/settings`    | SettingsView    | App settings                       |
+| `/calibration` | CalibrationView | Eye tracker calibration            |
 
 ### .linka File Format
 

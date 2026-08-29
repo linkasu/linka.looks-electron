@@ -28,15 +28,13 @@ const expect = chai.expect;
 
 describe("editorLogic", () => {
   it("validates audio cards by image and title", () => {
-    expect(
-      isValidEditorCard({ id: "1", cardType: CardType.AudioCard }),
-    ).to.equal(false);
+    expect(isValidEditorCard({ id: "1", cardType: CardType.AudioCard })).to.equal(false);
     expect(
       isValidEditorCard({
         id: "2",
         cardType: CardType.AudioCard,
         imagePath: "image.png"
-      }),
+      })
     ).to.equal(false);
     expect(
       isValidEditorCard({
@@ -44,11 +42,9 @@ describe("editorLogic", () => {
         cardType: CardType.AudioCard,
         imagePath: "image.png",
         title: "Hello"
-      }),
+      })
     ).to.equal(true);
-    expect(
-      isValidEditorCard({ id: "4", cardType: CardType.SpaceCard }),
-    ).to.equal(true);
+    expect(isValidEditorCard({ id: "4", cardType: CardType.SpaceCard })).to.equal(true);
   });
 
   it("creates normalized editor pages and forces match pages to two rows", () => {
@@ -113,9 +109,7 @@ describe("editorLogic", () => {
   });
 
   it("does not copy a card without audio", () => {
-    expect(
-      copyCardAudio({ id: "empty", cardType: CardType.AudioCard }),
-    ).to.equal(null);
+    expect(copyCardAudio({ id: "empty", cardType: CardType.AudioCard })).to.equal(null);
   });
 
   it("applies copied audio and clears stale text-to-speech data", () => {
@@ -218,17 +212,9 @@ describe("editorLogic", () => {
     ];
 
     const merged = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
-    const split = toggleSelectedCardMerge(
-      merged.cards,
-      "audio-1",
-      2,
-      1,
-      "standard",
-    );
+    const split = toggleSelectedCardMerge(merged.cards, "audio-1", 2, 1, "standard");
 
-    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(
-      true,
-    );
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(true);
     expect(merged.cards[0].width).to.equal(2);
     expect(isCardMerged(merged.cards[0])).to.equal(true);
     expect(split.cards[0].width).to.equal(undefined);
@@ -253,9 +239,7 @@ describe("editorLogic", () => {
 
     const result = toggleSelectedCardMerge(cards, "audio-1", 2, 1, "standard");
 
-    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(
-      false,
-    );
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "standard")).to.equal(false);
     expect(result.cards).to.equal(cards);
   });
 
@@ -267,9 +251,7 @@ describe("editorLogic", () => {
 
     const result = toggleSelectedCardMerge(cards, "space", 2, 1, "standard");
 
-    expect(canMergeSelectedCard(cards, "space", 2, 1, "standard")).to.equal(
-      true,
-    );
+    expect(canMergeSelectedCard(cards, "space", 2, 1, "standard")).to.equal(true);
     expect(result.cards[0].width).to.equal(2);
   });
 
@@ -328,16 +310,11 @@ describe("editorLogic", () => {
       { id: "new", cardType: CardType.NewCard }
     ];
 
-    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "match")).to.equal(
-      false,
-    );
+    expect(canMergeSelectedCard(cards, "audio-1", 2, 1, "match")).to.equal(false);
   });
 
   it("advances within existing pages before creating a new page", () => {
-    const pages = [
-      createEditorPage("standard", 1, 1),
-      createEditorPage("standard", 1, 1)
-    ];
+    const pages = [createEditorPage("standard", 1, 1), createEditorPage("standard", 1, 1)];
 
     const existing = advanceEditorPage(pages, 0);
     const appended = advanceEditorPage(pages, 1);
@@ -392,9 +369,9 @@ describe("editorLogic", () => {
     expect(result.pages[0].mode).to.equal("match");
     expect(result.pages[0].columns).to.equal(2);
     expect(result.pages[0].rows).to.equal(2);
-    expect(
-      result.pages[0].cards.every((card) => card.cardType === CardType.NewCard),
-    ).to.equal(true);
+    expect(result.pages[0].cards.every((card) => card.cardType === CardType.NewCard)).to.equal(
+      true
+    );
   });
 
   it("preserves unequal match row sizes when resetting the only page", () => {
@@ -429,18 +406,8 @@ describe("editorLogic", () => {
     ];
 
     const pending = toggleMatchLink(cards, "top-1", null, 2);
-    const sameLane = toggleMatchLink(
-      cards,
-      "top-2",
-      pending.pendingMatchCardId,
-      2,
-    );
-    const linked = toggleMatchLink(
-      cards,
-      "bottom-1",
-      pending.pendingMatchCardId,
-      2,
-    );
+    const sameLane = toggleMatchLink(cards, "top-2", pending.pendingMatchCardId, 2);
+    const linked = toggleMatchLink(cards, "bottom-1", pending.pendingMatchCardId, 2);
 
     expect(pending.pendingMatchCardId).to.equal("top-1");
     expect(sameLane.pendingMatchCardId).to.equal("top-2");
@@ -482,12 +449,7 @@ describe("editorLogic", () => {
     ];
 
     const pending = toggleMatchLink(cards, "top-1", null, 2);
-    const result = toggleMatchLink(
-      cards,
-      "bottom-2",
-      pending.pendingMatchCardId,
-      2,
-    );
+    const result = toggleMatchLink(cards, "bottom-2", pending.pendingMatchCardId, 2);
 
     expect(new Set(result.cards.map((card) => card.matchId)).size).to.equal(1);
     expect(isValidMatchPage(result.cards, 2, 2)).to.equal(true);
