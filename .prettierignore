@@ -1,0 +1,11 @@
+# Build output
+dist
+dist-electron
+extraResources/bin
+
+# Test artifacts
+test-results
+playwright-report
+
+# Lockfile is owned by npm
+package-lock.json

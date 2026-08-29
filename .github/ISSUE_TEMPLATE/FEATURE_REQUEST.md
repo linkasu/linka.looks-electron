@@ -1,10 +1,9 @@
 ---
 name: Feature request
 about: new possibility in the UI
-title: 'Feature req'
+title: "Feature req"
 labels: enhancement
-assignees: ''
-
+assignees: ""
 ---
 
 <!--
@@ -12,4 +11,5 @@ Note: Please search to see if an issue already exists for the improvement you're
 -->
 
 ### Your suggestions:
+
 <!-- A concise description of what you would like to see improved or added. -->

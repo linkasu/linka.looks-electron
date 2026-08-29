@@ -1,0 +1,6 @@
+dist
+dist-electron
+extraResources/bin
+node_modules
+test-results
+playwright-report

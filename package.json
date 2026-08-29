@@ -15,8 +15,10 @@
   "scripts": {
     "serve": "vite",
     "build": "vite build",
-    "lint-fix": "eslint --fix --ext .js,.vue,.ts src",
-    "lint": "eslint --ext .js,.vue,.ts src",
+    "lint-fix": "eslint --fix --ext .js,.cjs,.mjs,.vue,.ts .",
+    "lint": "eslint --ext .js,.cjs,.mjs,.vue,.ts .",
+    "format": "prettier --write \"**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}\"",
+    "format:check": "prettier --check \"**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}\"",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
     "test:unit:coverage": "vitest run --coverage && vitest run --config vitest.node.config.ts --coverage",
@@ -30,7 +32,8 @@
     "electron:build:linux": "npm run electron:build -- --linux -p never",
     "electron:serve": "vite",
     "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps"
+    "postuninstall": "electron-builder install-app-deps",
+    "prepare": "husky"
   },
   "dependencies": {
     "@linkasu/tobii-electron": "https://github.com/linkasu/linka-tobii-electron/releases/download/v0.2.16/linkasu-tobii-electron-0.2.16.tgz",
@@ -198,14 +201,27 @@
     "electron-builder": "^26.8.1",
     "electron-devtools-installer": "^3.1.0",
     "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^9.33.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.4.0",
+    "lint-staged": "^17.4.1",
     "node-gyp": "^11.5.0",
+    "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.2",
     "vite-plugin-electron": "^0.29.1",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^4.1.5"
   },
-  "packageManager": "npm@10.9.7"
+  "packageManager": "npm@10.9.7",
+  "lint-staged": {
+    "*.{js,cjs,mjs,ts,vue}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,yml,yaml,md}": [
+      "prettier --write"
+    ]
+  }
 }
