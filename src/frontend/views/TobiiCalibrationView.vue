@@ -43,25 +43,25 @@
 
     <div v-else class="calibration-stage" :class="{ 'is-finishing': phase === 'finish' }">
       <div v-if="showDebug && debugState" class="debug-gaze-marker" :style="debugMarkerStyle"></div>
-      <div
-        v-for="(point, index) in currentGroup"
-        v-if="pointStates[index] !== 'done'"
-        :key="`${activeGroupIndex}-${index}`"
-        class="calibration-target eye lock"
-        :class="targetClasses(index)"
-        :data-eye-disabled="isPointEyeDisabled(index) ? '1' : null"
-        :style="targetStyle(point, index)"
-        @eye-enter="onPointEnter(index)"
-        @eye-exit="onPointExit(index)"
-        @click.prevent="onPointClick(index)"
-      >
-        <div class="target-sparks" aria-hidden="true">
-          <span v-for="spark in 10" :key="spark" class="target-spark"></span>
+      <template v-for="(point, index) in currentGroup" :key="`${activeGroupIndex}-${index}`">
+        <div
+          v-if="pointStates[index] !== 'done'"
+          class="calibration-target eye lock"
+          :class="targetClasses(index)"
+          :data-eye-disabled="isPointEyeDisabled(index) ? '1' : null"
+          :style="targetStyle(point, index)"
+          @eye-enter="onPointEnter(index)"
+          @eye-exit="onPointExit(index)"
+          @click.prevent="onPointClick(index)"
+        >
+          <div class="target-sparks" aria-hidden="true">
+            <span v-for="spark in 10" :key="spark" class="target-spark"></span>
+          </div>
+          <div class="target-ring">
+            <div class="target-dot"></div>
+          </div>
         </div>
-        <div class="target-ring">
-          <div class="target-dot"></div>
-        </div>
-      </div>
+      </template>
 
       <v-card v-if="showDebug" class="debug-panel" density="compact">
         <v-card-title class="text-subtitle-2"> Tobii debug </v-card-title>
