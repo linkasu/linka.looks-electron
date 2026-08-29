@@ -5,15 +5,22 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { ipcRenderer } from "electron";
 import { Telemetry } from "@/frontend/utils/Telemetry";
-import type { ConfigFile, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
+import type {
+  ConfigFile,
+  PageMode,
+  SetPage,
+} from "@/common/interfaces/ConfigFile";
 import {
   CURRENT_SET_VERSION,
   clonePage,
   createPlaceholderCard,
   normalizeConfigFile,
-  normalizePage
+  normalizePage,
 } from "@/common/interfaces/ConfigFile";
-import { normalizeTelemetryConsent, type TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
+import {
+  normalizeTelemetryConsent,
+  type TelemetryConsent,
+} from "@/frontend/utils/TelemetryConsent";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
@@ -33,7 +40,10 @@ const fields = [
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
   { commit: "button_keyboardActivation", default: true } as Field<boolean>,
   { commit: "button_mouseActivation", default: true } as Field<boolean>,
-  { commit: "button_pageTurnMode", default: "mouseAndEyes" } as Field<PageTurnMode>,
+  {
+    commit: "button_pageTurnMode",
+    default: "mouseAndEyes",
+  } as Field<PageTurnMode>,
   { commit: "button_borders", default: 1 } as Field<number>,
   { commit: "button_clickSound", default: true } as Field<boolean>,
   { commit: "button_animation", default: true } as Field<boolean>,
@@ -44,7 +54,7 @@ const fields = [
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
   { commit: "keyMapping_right", default: ["ArrowRight"] } as Field<string[]>,
   { commit: "keyMapping_enter", default: ["Enter"] } as Field<string[]>,
-  { commit: "first_calibrate", default: false } as Field<boolean>
+  { commit: "first_calibrate", default: false } as Field<boolean>,
 ];
 
 const store = createStore<LINKaStore>({
@@ -57,7 +67,7 @@ const store = createStore<LINKaStore>({
     colors: {
       secondary: "",
       accent: "",
-      primary: "#197377"
+      primary: "#197377",
     },
     voiceRu: "alena",
     voiceEn: "john",
@@ -73,12 +83,12 @@ const store = createStore<LINKaStore>({
       clickSound: true,
       borders: 1,
       animation: true,
-      multiplyScale: false
+      multiplyScale: false,
     },
     ui: {
       disabled: false,
       outputLine: true,
-      exitButton: true
+      exitButton: true,
     },
     selectedKey: undefined,
     keyMapping: {
@@ -86,7 +96,7 @@ const store = createStore<LINKaStore>({
       down: ["ArrowDown"],
       left: ["ArrowLeft"],
       right: ["ArrowRight"],
-      enter: ["Enter"]
+      enter: ["Enter"],
     },
     editor: {
       current: "",
@@ -96,255 +106,269 @@ const store = createStore<LINKaStore>({
       quizAutoNext: true,
       quizReadQuestion: true,
       isDirectSet: false,
-      isWithoutSpace: false
+      isWithoutSpace: false,
     },
     explorer: {
       page: 0,
-      config: undefined
+      config: undefined,
     },
     layoutSettings: {
       isOpened: false,
       hasChanges: false,
       fontSize: 16,
-      fontBold: true
-    }
+      fontBold: true,
+    },
   },
 
   mutations: {
-    enable_ui (state) {
+    enable_ui(state) {
       state.ui.disabled = false;
     },
-    disable_ui (state) {
+    disable_ui(state) {
       state.ui.disabled = true;
     },
-    popupVersion (state, value) {
+    popupVersion(state, value) {
       state.popupVersion = value;
     },
-    selectedKey (state, value) {
+    selectedKey(state, value) {
       state.selectedKey = value;
     },
-    defaultSetsDownloaded (state, value) {
+    defaultSetsDownloaded(state, value) {
       state.defaultSetsDownloaded = value;
     },
-    ui_exitButton (state, value) {
+    ui_exitButton(state, value) {
       state.ui.exitButton = value;
       Telemetry.product("settingsToggleEyeExit");
     },
-    keyMapping_up ({ keyMapping }, value) {
+    keyMapping_up({ keyMapping }, value) {
       keyMapping.up = value;
     },
-    keyMapping_down ({ keyMapping }, value) {
+    keyMapping_down({ keyMapping }, value) {
       keyMapping.down = value;
     },
-    keyMapping_left ({ keyMapping }, value) {
+    keyMapping_left({ keyMapping }, value) {
       keyMapping.left = value;
     },
-    keyMapping_right ({ keyMapping }, value) {
+    keyMapping_right({ keyMapping }, value) {
       keyMapping.right = value;
     },
-    keyMapping_enter ({ keyMapping }, value) {
+    keyMapping_enter({ keyMapping }, value) {
       keyMapping.enter = value;
     },
-    colors_primary ({ colors }, value) {
+    colors_primary({ colors }, value) {
       colors.primary = value;
     },
-    colors_accent ({ colors }, value) {
+    colors_accent({ colors }, value) {
       colors.accent = value;
     },
-    colors_secondary ({ colors }, value) {
+    colors_secondary({ colors }, value) {
       colors.secondary = value;
     },
-    voiceRu (state, value) {
+    voiceRu(state, value) {
       state.voiceRu = value;
     },
-    voiceEn (state, value) {
+    voiceEn(state, value) {
       state.voiceEn = value;
     },
-    editor_current ({ editor }, value) {
+    editor_current({ editor }, value) {
       editor.current = value;
     },
-    editor_temp ({ editor }, value) {
+    editor_temp({ editor }, value) {
       editor.temp = value;
     },
-    editor_pages ({ editor }, value: SetPage[]) {
+    editor_pages({ editor }, value: SetPage[]) {
       editor.pages = value;
     },
-    editor_isDirectSet ({ editor }, value) {
+    editor_isDirectSet({ editor }, value) {
       editor.isDirectSet = value;
     },
-    editor_isWithoutSpace ({ editor }, value) {
+    editor_isWithoutSpace({ editor }, value) {
       editor.isWithoutSpace = value;
     },
-    editor_quizAutoNext ({ editor }, value) {
+    editor_quizAutoNext({ editor }, value) {
       editor.quizAutoNext = value;
     },
-    editor_quizReadQuestion ({ editor }, value) {
+    editor_quizReadQuestion({ editor }, value) {
       editor.quizReadQuestion = value;
     },
-    editor_description ({ editor }, value) {
+    editor_description({ editor }, value) {
       editor.description = value;
     },
-    editor_page ({ editor }, value) {
+    editor_page({ editor }, value) {
       editor.page = value;
     },
-    explorer_page ({ explorer }, value) {
+    explorer_page({ explorer }, value) {
       explorer.page = value;
     },
-    explorer_config ({ explorer }, value: ConfigFile | undefined) {
+    explorer_config({ explorer }, value: ConfigFile | undefined) {
       explorer.config = value;
     },
-    layoutSettings_fontBold ({ layoutSettings }, value) {
+    layoutSettings_fontBold({ layoutSettings }, value) {
       layoutSettings.fontBold = value;
     },
-    layoutSettings_fontSize ({ layoutSettings }, value) {
+    layoutSettings_fontSize({ layoutSettings }, value) {
       layoutSettings.fontSize = value;
     },
-    button_timeout ({ button }, value) {
+    button_timeout({ button }, value) {
       ipcRenderer.send("button_timeout", value);
       button.timeout = value;
     },
-    button_enabled ({ button }, value) {
+    button_enabled({ button }, value) {
       button.enabled = value;
       Telemetry.product("toggleGazeLock");
     },
-    button_eyeSelect ({ button }, value) {
+    button_eyeSelect({ button }, value) {
       button.eyeSelect = value;
       Telemetry.product("settingsToggleEyeChoose");
     },
-    button_eyeActivation ({ button }, value) {
+    button_eyeActivation({ button }, value) {
       button.eyeActivation = value;
       Telemetry.product("settingsToggleEyeActivation");
     },
-    button_joystickActivation ({ button }, value) {
+    button_joystickActivation({ button }, value) {
       Telemetry.product("settingsToggleJoystickActivation");
       button.joystickActivation = value;
     },
-    button_keyboardActivation ({ button }, value) {
+    button_keyboardActivation({ button }, value) {
       Telemetry.product("settingsToggleKeyboardActivation");
       button.keyboardActivation = value;
     },
-    button_mouseActivation ({ button }, value) {
+    button_mouseActivation({ button }, value) {
       button.mouseActivation = value;
       Telemetry.product("settingsToggleMouseActivation");
     },
-    button_pageTurnMode ({ button }, value: PageTurnMode) {
+    button_pageTurnMode({ button }, value: PageTurnMode) {
       button.pageTurnMode = value;
       Telemetry.product("settingsTogglePageTurnMode");
     },
-    button_borders ({ button }, value) {
+    button_borders({ button }, value) {
       button.borders = value;
     },
-    button_animation ({ button }, value) {
+    button_animation({ button }, value) {
       button.animation = value;
     },
-    button_clickSound ({ button }, value) {
+    button_clickSound({ button }, value) {
       button.clickSound = value;
       Telemetry.product("settingsToggleTypeSound");
     },
-    button_multiply_scale ({ button }, value) {
+    button_multiply_scale({ button }, value) {
       button.multiplyScale = value;
       ipcRenderer.send("button_multiply_scale", value);
       Telemetry.product("settingsToggleEyeScale");
     },
-    layoutSettings_isOpened ({ layoutSettings }, value) {
+    layoutSettings_isOpened({ layoutSettings }, value) {
       layoutSettings.isOpened = value;
     },
-    interface_outputLine ({ ui }, value) {
+    interface_outputLine({ ui }, value) {
       ui.outputLine = value;
       Telemetry.product("toggleOutputLine");
     },
-    pcHash (state, hash) {
+    pcHash(state, hash) {
       state.pcHash = hash;
     },
-    telemetryConsent (state, value: unknown) {
+    telemetryConsent(state, value: unknown) {
       state.telemetryConsent = normalizeTelemetryConsent(value);
     },
-    first_calibrate (state, value) {
+    first_calibrate(state, value) {
       state.firstCalibrate = value;
-    }
+    },
   },
 
   actions: {
-    enable_ui ({ commit }) {
+    enable_ui({ commit }) {
       commit("enable_ui");
     },
-    disable_ui ({ commit }) {
+    disable_ui({ commit }) {
       commit("disable_ui");
     },
-    keymap_push ({ state, commit }, { side, code }: { side: Side, code: string }) {
-      if (!Object.values(state.keyMapping).find((sides) => sides.includes(code))) {
+    keymap_push(
+      { state, commit },
+      { side, code }: { side: Side; code: string },
+    ) {
+      if (
+        !Object.values(state.keyMapping).find((sides) => sides.includes(code))
+      ) {
         state.keyMapping[side].push(code);
       }
       commit("keyMapping_" + side, state.keyMapping[side]);
       state.selectedKey = undefined;
     },
-    keymap_remove ({ state, commit }, { side, code }: { side: Side, code: string }) {
-      commit("keyMapping_" + side, state.keyMapping[side].filter((c) => c !== code));
+    keymap_remove(
+      { state, commit },
+      { side, code }: { side: Side; code: string },
+    ) {
+      commit(
+        "keyMapping_" + side,
+        state.keyMapping[side].filter((c) => c !== code),
+      );
       state.selectedKey = undefined;
     },
-    voiceRu_change ({ commit }, voice: string) {
+    voiceRu_change({ commit }, voice: string) {
       commit("voiceRu", voice);
     },
-    voiceEn_change ({ commit }, voice: string) {
+    voiceEn_change({ commit }, voice: string) {
       commit("voiceEn", voice);
     },
-    voice_change ({ commit }, voice: string) {
+    voice_change({ commit }, voice: string) {
       commit("voiceRu", voice);
     },
 
-    interface_outputLine ({ state, commit }) {
+    interface_outputLine({ state, commit }) {
       commit("interface_outputLine", !state.ui.outputLine);
     },
 
-    button_enabled ({ state, commit }) {
+    button_enabled({ state, commit }) {
       commit("button_enabled", !state.button.enabled);
     },
 
-    button_animation_toggle ({ state, commit }) {
+    button_animation_toggle({ state, commit }) {
       commit("button_animation", !state.button.animation);
     },
 
-    async loadTelemetryPreference ({ commit }) {
+    async loadTelemetryPreference({ commit }) {
       commit("telemetryConsent", await Telemetry.getPreference());
     },
 
-    async setTelemetryPreference ({ commit }, preference: Exclude<TelemetryConsent, "unknown">) {
+    async setTelemetryPreference(
+      { commit },
+      preference: Exclude<TelemetryConsent, "unknown">,
+    ) {
       commit("telemetryConsent", await Telemetry.setPreference(preference));
     },
 
-    fontBold_toggle ({ state, commit }) {
+    fontBold_toggle({ state, commit }) {
       commit("layoutSettings_fontBold", !state.layoutSettings.fontBold);
     },
 
-    fontSize_change ({ commit }, size: number) {
+    fontSize_change({ commit }, size: number) {
       commit("layoutSettings_fontSize", size);
     },
 
-    toggle_settings_opened ({ state, commit }) {
+    toggle_settings_opened({ state, commit }) {
       commit("layoutSettings_isOpened", !state.layoutSettings.isOpened);
     },
 
-    async editor_new_file ({ state, dispatch }, file: string) {
+    async editor_new_file({ state, dispatch }, file: string) {
       file += ".linka";
       state.editor.current = file;
       state.editor.temp = await storageService.defaultToTemp(file);
       await dispatch("editor_load_set");
     },
 
-    async editor_current ({ state, dispatch }, file: string) {
+    async editor_current({ state, dispatch }, file: string) {
       state.editor.current = file;
       state.editor.temp = await storageService.copyToTemp(file);
       await dispatch("editor_load_set");
     },
 
-    editor_current_default ({ commit }) {
+    editor_current_default({ commit }) {
       commit("editor_current", "");
       commit("editor_temp", "");
       commit("editor_pages", [createEditorPage()]);
       commit("editor_page", 0);
     },
 
-    async editor_load_set ({ state, commit }) {
+    async editor_load_set({ state, commit }) {
       const config = await storageService.getConfigFile(state.editor.temp);
       const normalized = normalizeConfigFile(config);
       if (!normalized) return;
@@ -358,21 +382,39 @@ const store = createStore<LINKaStore>({
       commit("editor_page", 0);
     },
 
-    async editor_save ({ state }) {
-      await storageService.saveSet(state.editor.temp, state.editor.current, buildEditorConfig(state));
-      Telemetry.outcome({ kind: "set_saved", result: "completed", source: "edited", count_bucket: countBucket(state.editor.pages) });
+    async editor_save({ state }) {
+      await storageService.saveSet(
+        state.editor.temp,
+        state.editor.current,
+        buildEditorConfig(state),
+      );
+      Telemetry.outcome({
+        kind: "set_saved",
+        result: "completed",
+        source: "edited",
+        count_bucket: countBucket(state.editor.pages),
+      });
     },
 
-    async editor_save_as ({ state }, title) {
+    async editor_save_as({ state }, title) {
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
-      await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
-      Telemetry.outcome({ kind: "set_saved", result: "completed", source: "created", count_bucket: countBucket(state.editor.pages) });
+      await storageService.saveSet(
+        state.editor.temp,
+        current,
+        buildEditorConfig(state),
+      );
+      Telemetry.outcome({
+        kind: "set_saved",
+        result: "completed",
+        source: "created",
+        count_bucket: countBucket(state.editor.pages),
+      });
       return current;
     },
 
-    editor_copy_page ({ state, commit }) {
+    editor_copy_page({ state, commit }) {
       const pages = [...(state.editor.pages ?? [])];
       const pageIndex = clampPageIndex(state.editor.page, pages.length);
       const currentPage = pages[pageIndex] ?? createEditorPage();
@@ -382,13 +424,23 @@ const store = createStore<LINKaStore>({
       commit("editor_page", pageIndex + 1);
     },
 
-    editor_delete_page ({ state, commit }) {
+    editor_delete_page({ state, commit }) {
       const pages = [...(state.editor.pages ?? [])];
       const pageIndex = clampPageIndex(state.editor.page, pages.length);
       const currentPage = pages[pageIndex] ?? createEditorPage();
 
       if (pages.length <= 1) {
-        pages.splice(0, pages.length, createEditorPage(currentPage.mode, currentPage.columns, currentPage.rows));
+        pages.splice(
+          0,
+          pages.length,
+          createEditorPage(
+            currentPage.mode,
+            currentPage.columns,
+            currentPage.rows,
+            currentPage.topColumns,
+            currentPage.bottomColumns,
+          ),
+        );
         commit("editor_pages", pages);
         commit("editor_page", 0);
         return;
@@ -399,14 +451,16 @@ const store = createStore<LINKaStore>({
       commit("editor_page", Math.max(0, Math.min(pageIndex, pages.length - 1)));
     },
 
-    async open_file ({ commit }, filename) {
-      const config = normalizeConfigFile(await storageService.getConfigFile(filename));
+    async open_file({ commit }, filename) {
+      const config = normalizeConfigFile(
+        await storageService.getConfigFile(filename),
+      );
       if (!config) return;
 
       commit("explorer_config", config);
       commit("explorer_page", 0);
       commit("interface_outputLine", !config.directSet);
-    }
+    },
   },
   plugins: [
     (currentStore) => {
@@ -414,8 +468,8 @@ const store = createStore<LINKaStore>({
         if (!fields.find(({ commit }) => mutation.type === commit)) return;
         eStore.set(mutation.type, mutation.payload);
       });
-    }
-  ]
+    },
+  ],
 });
 
 export default store;
@@ -436,17 +490,25 @@ interface Field<T> {
   default: T;
 }
 
-function createEditorPage (mode: PageMode = "standard", columns = 3, rows = 3): SetPage {
+function createEditorPage(
+  mode: PageMode = "standard",
+  columns = 3,
+  rows = 3,
+  topColumns?: number,
+  bottomColumns?: number,
+): SetPage {
   const normalizedRows = mode === "match" ? 2 : rows;
   return normalizePage({
     mode,
     columns,
     rows: normalizedRows,
-    cards: [createPlaceholderCard()]
+    topColumns,
+    bottomColumns,
+    cards: [createPlaceholderCard()],
   });
 }
 
-function buildEditorConfig (state: LINKaStore): ConfigFile {
+function buildEditorConfig(state: LINKaStore): ConfigFile {
   return {
     pages: (state.editor.pages ?? []).map((page) => normalizePage(page)),
     directSet: state.editor.isDirectSet,
@@ -454,16 +516,18 @@ function buildEditorConfig (state: LINKaStore): ConfigFile {
     quizAutoNext: state.editor.quizAutoNext,
     quizReadQuestion: state.editor.quizReadQuestion,
     description: state.editor.description,
-    version: CURRENT_SET_VERSION
+    version: CURRENT_SET_VERSION,
   };
 }
 
-function clampPageIndex (page: number, length: number): number {
+function clampPageIndex(page: number, length: number): number {
   if (!length) return 0;
   return Math.max(0, Math.min(length - 1, page ?? 0));
 }
 
-function countBucket (pages: SetPage[]): "one" | "two_to_five" | "six_to_twenty" | "more_than_twenty" {
+function countBucket(
+  pages: SetPage[],
+): "one" | "two_to_five" | "six_to_twenty" | "more_than_twenty" {
   const count = pages.reduce((total, page) => total + page.cards.length, 0);
   if (count <= 1) return "one";
   if (count <= 5) return "two_to_five";

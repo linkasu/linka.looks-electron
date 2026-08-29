@@ -1,7 +1,6 @@
 <template>
   <v-layout
     full-height
-    :style="{ '--size': size }"
     class="root"
   >
     <explorer-grid-button
@@ -168,7 +167,6 @@ const route = useRoute();
 
 const files: Ref<Directory> = ref([]);
 const mroot = ref("");
-const size = ref(5);
 const contextMenuOpen = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
@@ -224,7 +222,6 @@ function loadSets () {
   storageService.getFiles(mroot.value).then((newFiles: Directory) => {
     if (!newFiles) return;
     files.value = newFiles;
-    size.value = Math.max(Math.ceil(Math.sqrt(newFiles.length + 1)), 4);
   });
 }
 
@@ -414,10 +411,9 @@ async function applyMerge () {
 
 <style scoped>
 .root {
-  --size: 6;
   display: grid;
-  grid-template-columns: repeat(var(--size), 1fr);
-  grid-template-rows: repeat(var(--size), 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-auto-rows: minmax(160px, 1fr);
   height: calc(100vh - 64px);
   overflow-y: auto;
 }
