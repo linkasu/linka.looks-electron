@@ -372,7 +372,10 @@ async function applyMerge() {
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   grid-auto-rows: 160px;
   align-content: start;
-  height: calc(100vh - 64px);
+  /* 64px app bar + 40px fixed footer. Subtracting only the app bar left the
+     last row under the footer, unreachable even scrolled to the bottom.
+     EditorView already uses the same 104px. */
+  height: calc(100vh - 104px);
   overflow-y: auto !important;
 }
 .context-menu {

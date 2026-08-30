@@ -277,6 +277,53 @@ test("set explorer grid fills the viewport above footer", async () => {
   }
 });
 
+test("home grid keeps the last row above the footer", async () => {
+  const context = createE2EContext();
+  for (let index = 0; index < 50; index += 1) {
+    writeLinkaSet(
+      context.homeDir,
+      `home-layout-${String(index).padStart(2, "0")}.linka`,
+      standardConfig([{ id: "card-1", cardType: 3 }])
+    );
+  }
+
+  const electronApp = await launchTestElectron(context);
+  try {
+    const window = await firstTestWindow(electronApp);
+    await window.goto(`${devServerUrl}/#/§`);
+    await expect(window.getByText("home-layout-49")).toBeVisible();
+
+    await window.evaluate(() => {
+      const root = document.querySelector(".root");
+      if (root) root.scrollTop = root.scrollHeight;
+    });
+
+    const metrics = await window.evaluate(() => {
+      const root = document.querySelector(".root")?.getBoundingClientRect();
+      const footer = document.querySelector(".footer")?.getBoundingClientRect();
+      const labels = Array.from(document.querySelectorAll(".root *")).filter(
+        (element) =>
+          /^home-layout-\d\d$/.test(element.textContent?.trim() ?? "") &&
+          element.children.length === 0
+      );
+      const lastLabel = labels[labels.length - 1]?.getBoundingClientRect();
+      return {
+        footerTop: footer?.top ?? 0,
+        rootBottom: root?.bottom ?? 0,
+        lastLabelBottom: lastLabel?.bottom ?? 0
+      };
+    });
+
+    // The scroll container must stop at the footer, otherwise its last row sits
+    // underneath and cannot be reached even scrolled all the way down.
+    expect(metrics.rootBottom).toBeLessThanOrEqual(metrics.footerTop + 1);
+    expect(metrics.lastLabelBottom).toBeLessThanOrEqual(metrics.footerTop);
+  } finally {
+    await electronApp.close();
+    cleanupE2EContext(context);
+  }
+});
+
 test("standard set appends clicked cards to text output", async () => {
   const context = createE2EContext();
   const setName = "standard-flow.linka";
