@@ -370,9 +370,10 @@ async function applyMerge() {
 .root {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  grid-auto-rows: minmax(160px, 1fr);
+  grid-auto-rows: 160px;
+  align-content: start;
   height: calc(100vh - 64px);
-  overflow-y: auto;
+  overflow-y: auto !important;
 }
 .context-menu {
   position: fixed;
