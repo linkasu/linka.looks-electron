@@ -16,7 +16,7 @@
             item-title="text"
           />
 
-          <v-text-field v-model="audioText" label="Текст для озвучки" />
+          <v-text-field v-model="enteredText" label="Текст для озвучки" />
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -48,13 +48,13 @@ const ui_disabled = computed(() => store.state.ui.disabled);
 
 const dialog = ref(false);
 
-const audioText: Ref<string> = ref("");
+const enteredText: Ref<string> = ref("");
 const currentAudioText = computed({
   get() {
-    return audioText.value;
+    return enteredText.value;
   },
   set(v: string) {
-    audioText.value = v;
+    enteredText.value = v;
   }
 });
 
@@ -81,7 +81,7 @@ async function create() {
     );
     if (!audioSrcFile) return;
 
-    emit("audio", { audioSrcFile, audioText: audioText.value, audioVoice: voice.value });
+    emit("audio", { audioSrcFile, audioText: enteredText.value, audioVoice: voice.value });
     dialog.value = false;
   } catch (error) {
     console.error(error);
@@ -98,10 +98,10 @@ function onDialog(v: boolean) {
 }
 
 function playExample() {
-  TTS.instance.playText(audioText.value, voice.value);
+  TTS.instance.playText(enteredText.value, voice.value);
 }
 
 const hasText = computed(() => {
-  return audioText.value.trim() !== "";
+  return enteredText.value.trim() !== "";
 });
 </script>

@@ -26,8 +26,8 @@ Use npm and Node 22.x for the current baseline.
 ## Coding Style & Naming Conventions
 
 - Primary languages: TypeScript + Vue single-file components.
-- Prettier (`prettier.config.cjs`) is authoritative for formatting; ESLint
-  (`.eslintrc.js`) is authoritative for everything else.
+- Prettier (`prettier.config.cjs`) is authoritative for formatting; ESLint 10
+  flat config (`eslint.config.mjs`) is authoritative for everything else.
 - Style: double quotes, semicolons, no trailing commas, printWidth 100.
 - husky runs lint-staged on commit and format/lint/typecheck on push.
 - Keep module and component names descriptive and aligned with existing patterns (e.g., `TTSServer`, `App.vue`).

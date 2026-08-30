@@ -61,8 +61,9 @@ Remote API at `tts.linka.su` via `src/frontend/utils/TTSServer.ts`. Audio playba
 
 - Prettier owns formatting (`prettier.config.cjs`): double quotes, semicolons,
   no trailing commas, printWidth 100. Run `npm run format` before committing.
-- ESLint owns correctness (`@typescript-eslint/recommended` + `plugin:vue/base`);
-  `eslint-config-prettier` switches off the rules Prettier owns
+- ESLint 10 flat config in `eslint.config.mjs` owns correctness:
+  `typescript-eslint` recommended + `eslint-plugin-vue` `flat/essential`
+  plus targeted rules; `eslint-config-prettier` switches off what Prettier owns
 - `camelcase` rule is off
 - Node 22.x (see `.nvmrc`) — installing under a different major rewrites the
   lockfile and can drop electron-builder's Windows signing dependencies

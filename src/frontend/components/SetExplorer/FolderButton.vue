@@ -22,7 +22,7 @@
         </v-toolbar-items>
       </v-toolbar>
       <v-card-text>
-        <v-list density="compact" @click:open="">
+        <v-list density="compact">
           <v-list-item v-for="(item, i) in dirs" :key="i" :value="item" @click="open(item.file)">
             <template #prepend>
               <v-icon>mdi-folder</v-icon>
