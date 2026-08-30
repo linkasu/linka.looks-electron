@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/electron/main.ts",
+    "src/frontend/tests/unit/**/*.spec.ts",
+    "src/electron/tests/unit/**/*.spec.ts",
+    "tests/e2e/**/*.spec.ts",
+    "scripts/ci/*.js",
+    "postinstall.js"
+  ],
+  "project": ["src/**/*.{ts,vue}", "scripts/**/*.js", "tests/**/*.ts"],
+  "ignoreDependencies": ["original-fs", "node-gyp"],
+  "ignoreExportsUsedInFile": true
+}
