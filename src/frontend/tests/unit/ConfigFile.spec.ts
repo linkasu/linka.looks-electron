@@ -99,6 +99,24 @@ describe("config file normalization", () => {
     expect(getCardGridPlacements(page)).to.have.length(8);
   });
 
+  it("drops trailing match placeholders when normalizing a smaller row layout", () => {
+    const page = normalizePage({
+      mode: "match",
+      columns: 3,
+      rows: 2,
+      cards: [
+        { id: "audio", cardType: CardType.AudioCard },
+        ...Array.from({ length: 8 }, (_, index) => ({
+          id: `new-${index}`,
+          cardType: CardType.NewCard
+        }))
+      ]
+    });
+
+    expect(page.cards).to.have.length(6);
+    expect(page.cards[0].id).to.equal("audio");
+  });
+
   it("fills missing cards with placeholders up to page size", () => {
     const page = normalizePage({
       mode: "standard",
