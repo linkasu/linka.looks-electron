@@ -14,15 +14,35 @@ const expect = chai.expect;
 
 describe("setGameLogic", () => {
   it("decides which cards go to standard output", () => {
-    expect(shouldAddCardToStandardOutput({ id: "audio", cardType: CardType.AudioCard }, false)).to.equal(true);
-    expect(shouldAddCardToStandardOutput({ id: "space", cardType: CardType.SpaceCard }, false)).to.equal(false);
-    expect(shouldAddCardToStandardOutput({ id: "space", cardType: CardType.SpaceCard }, true)).to.equal(true);
-    expect(shouldAddCardToStandardOutput({ id: "empty", cardType: CardType.EmptyCard }, true)).to.equal(false);
+    expect(
+      shouldAddCardToStandardOutput({ id: "audio", cardType: CardType.AudioCard }, false)
+    ).to.equal(true);
+    expect(
+      shouldAddCardToStandardOutput({ id: "space", cardType: CardType.SpaceCard }, false)
+    ).to.equal(false);
+    expect(
+      shouldAddCardToStandardOutput({ id: "space", cardType: CardType.SpaceCard }, true)
+    ).to.equal(true);
+    expect(
+      shouldAddCardToStandardOutput({ id: "empty", cardType: CardType.EmptyCard }, true)
+    ).to.equal(false);
   });
 
   it("advances quiz page or finishes quiz", () => {
-    const next = advanceQuizPage({ errors: 0, page: 0, quizFinished: false, totalPages: 2, waitingForNext: true });
-    const finished = advanceQuizPage({ errors: 0, page: 1, quizFinished: false, totalPages: 2, waitingForNext: true });
+    const next = advanceQuizPage({
+      errors: 0,
+      page: 0,
+      quizFinished: false,
+      totalPages: 2,
+      waitingForNext: true
+    });
+    const finished = advanceQuizPage({
+      errors: 0,
+      page: 1,
+      quizFinished: false,
+      totalPages: 2,
+      waitingForNext: true
+    });
 
     expect(next.page).to.equal(1);
     expect(next.waitingForNext).to.equal(false);
@@ -78,11 +98,13 @@ describe("setGameLogic", () => {
 
   it("counts total and solved match pairs", () => {
     expect(getTotalMatchPairs([{ id: "card", cardType: CardType.AudioCard }])).to.equal(0);
-    expect(getTotalMatchPairs([
-      { id: "top-1", cardType: CardType.AudioCard, matchId: "m1" },
-      { id: "bottom-1", cardType: CardType.AudioCard, matchId: "m1" },
-      { id: "top-2", cardType: CardType.AudioCard, matchId: "m2" }
-    ])).to.equal(1);
+    expect(
+      getTotalMatchPairs([
+        { id: "top-1", cardType: CardType.AudioCard, matchId: "m1" },
+        { id: "bottom-1", cardType: CardType.AudioCard, matchId: "m1" },
+        { id: "top-2", cardType: CardType.AudioCard, matchId: "m2" }
+      ])
+    ).to.equal(1);
     expect(getSolvedMatchPairs(["top-1", "bottom-1"])).to.equal(1);
   });
 
@@ -117,18 +139,28 @@ describe("setGameLogic", () => {
   it("handles first match selection and repeated click", () => {
     const cards = createMatchCards();
     const first = handleMatchCard(cards[0], 0, createMatchState(cards));
-    const repeated = handleMatchCard(cards[0], 0, createMatchState(cards, { selectedCardId: "top-1" }));
+    const repeated = handleMatchCard(
+      cards[0],
+      0,
+      createMatchState(cards, { selectedCardId: "top-1" })
+    );
 
     expect(first.shouldPlayCard).to.equal(true);
     expect(first.selectedCardId).to.equal("top-1");
     expect(first.matchMessage).to.equal("Выберите карточку из другой строки");
     expect(repeated.selectedCardId).to.equal(null);
-    expect(repeated.matchMessage).to.equal("Соотнесите каждый элемент верхней строки со всеми подходящими элементами нижней строки");
+    expect(repeated.matchMessage).to.equal(
+      "Соотнесите каждый элемент верхней строки со всеми подходящими элементами нижней строки"
+    );
   });
 
   it("switches selection when the second card is in the same row", () => {
     const cards = createMatchCards();
-    const result = handleMatchCard(cards[1], 1, createMatchState(cards, { selectedCardId: "top-1" }));
+    const result = handleMatchCard(
+      cards[1],
+      1,
+      createMatchState(cards, { selectedCardId: "top-1" })
+    );
 
     expect(result.selectedCardId).to.equal("top-2");
     expect(result.matchErrors).to.equal(0);
@@ -137,10 +169,14 @@ describe("setGameLogic", () => {
 
   it("marks correct match pair and requests page advance when all pairs are solved", () => {
     const cards = createMatchCards();
-    const result = handleMatchCard(cards[2], 2, createMatchState(cards, {
-      matchedCardIds: ["top-2", "bottom-2"],
-      selectedCardId: "top-1"
-    }));
+    const result = handleMatchCard(
+      cards[2],
+      2,
+      createMatchState(cards, {
+        matchedCardIds: ["top-2", "bottom-2"],
+        selectedCardId: "top-1"
+      })
+    );
 
     expect(result.feedbackText).to.equal("Правильно");
     expect(result.matchMessage).to.equal("Все связи найдены");
@@ -151,7 +187,11 @@ describe("setGameLogic", () => {
 
   it("handles wrong match pair", () => {
     const cards = createMatchCards();
-    const result = handleMatchCard(cards[3], 3, createMatchState(cards, { selectedCardId: "top-1" }));
+    const result = handleMatchCard(
+      cards[3],
+      3,
+      createMatchState(cards, { selectedCardId: "top-1" })
+    );
 
     expect(result.feedbackText).to.equal("Неправильно");
     expect(result.matchErrors).to.equal(1);
@@ -161,8 +201,16 @@ describe("setGameLogic", () => {
 
   it("ignores disabled match cards", () => {
     const cards = createMatchCards();
-    const empty = handleMatchCard({ id: "empty", cardType: CardType.EmptyCard }, 0, createMatchState(cards));
-    const matched = handleMatchCard(cards[0], 0, createMatchState(cards, { matchedCardIds: ["top-1"] }));
+    const empty = handleMatchCard(
+      { id: "empty", cardType: CardType.EmptyCard },
+      0,
+      createMatchState(cards)
+    );
+    const matched = handleMatchCard(
+      cards[0],
+      0,
+      createMatchState(cards, { matchedCardIds: ["top-1"] })
+    );
 
     expect(empty.ignored).to.equal(true);
     expect(empty.shouldPlayCard).to.equal(false);
@@ -171,7 +219,7 @@ describe("setGameLogic", () => {
   });
 });
 
-function createMatchCards (): Card[] {
+function createMatchCards(): Card[] {
   return [
     { id: "top-1", cardType: CardType.AudioCard, matchId: "m1" },
     { id: "top-2", cardType: CardType.AudioCard, matchId: "m2" },
@@ -180,7 +228,10 @@ function createMatchCards (): Card[] {
   ];
 }
 
-function createMatchState (cards: Card[], overrides: Partial<Parameters<typeof handleMatchCard>[2]> = {}): Parameters<typeof handleMatchCard>[2] {
+function createMatchState(
+  cards: Card[],
+  overrides: Partial<Parameters<typeof handleMatchCard>[2]> = {}
+): Parameters<typeof handleMatchCard>[2] {
   return {
     cards,
     columns: 2,
@@ -193,7 +244,7 @@ function createMatchState (cards: Card[], overrides: Partial<Parameters<typeof h
   };
 }
 
-function applyMatch (state: Parameters<typeof handleMatchCard>[2], card: Card, index: number) {
+function applyMatch(state: Parameters<typeof handleMatchCard>[2], card: Card, index: number) {
   const result = handleMatchCard(card, index, state);
   return {
     ...state,

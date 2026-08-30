@@ -1,59 +1,29 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    fullscreen
-    :scrim="false"
-    transition="dialog-bottom-transition"
-  >
+  <v-dialog v-model="dialog" fullscreen :scrim="false" transition="dialog-bottom-transition">
     <template #activator="{ props: activator_props }">
-      <v-btn
-        icon
-        v-bind="activator_props"
-        title="Переместить набор"
-      >
+      <v-btn icon v-bind="activator_props" title="Переместить набор">
         <v-icon>mdi-folder-swap</v-icon>
       </v-btn>
     </template>
     <v-card>
       <v-toolbar>
-        <v-btn
-          icon
-          dark
-          @click="dialog = false"
-        >
+        <v-btn icon dark @click="dialog = false">
           <v-icon>mdi-close</v-icon>
         </v-btn>
-        <v-btn
-          icon
-          @click="open('/')"
-        >
+        <v-btn icon @click="open('/')">
           <v-icon>mdi-home</v-icon>
         </v-btn>
-        <v-toolbar-title>{{ toBasename(current === '/' ? 'LINKa' : current) }}</v-toolbar-title>
+        <v-toolbar-title>{{ toBasename(current === "/" ? "LINKa" : current) }}</v-toolbar-title>
         <v-spacer />
         <v-toolbar-items>
-          <v-btn
-            variant="text"
-            @click="
-              emit('move', current),
-              dialog = false
-            "
-          >
+          <v-btn variant="text" @click="(emit('move', current), (dialog = false))">
             Переместить сюда
           </v-btn>
         </v-toolbar-items>
       </v-toolbar>
       <v-card-text>
-        <v-list
-          density="compact"
-          @click:open=""
-        >
-          <v-list-item
-            v-for="(item, i) in dirs"
-            :key="i"
-            :value="item"
-            @click="open(item.file)"
-          >
+        <v-list density="compact" @click:open="">
+          <v-list-item v-for="(item, i) in dirs" :key="i" :value="item" @click="open(item.file)">
             <template #prepend>
               <v-icon>mdi-folder</v-icon>
             </template>
@@ -81,7 +51,7 @@ import { DirectoryFile } from "../../../common/interfaces/Directory";
 
 const store = useStore();
 const props = defineProps<{ file: string }>();
-const emit = defineEmits<{(e: "move", payload: string): void }>();
+const emit = defineEmits<{ (e: "move", payload: string): void }>();
 
 const dialog = ref(false);
 const dirs: Ref<Directory> = ref([]);
@@ -90,7 +60,7 @@ const previousButtonEnabled = ref<boolean | null>(null);
 
 watch(dialog, onDialog);
 
-function onDialog (v: boolean) {
+function onDialog(v: boolean) {
   if (v) {
     previousButtonEnabled.value = store.state.button.enabled;
     store.commit("button_enabled", false);
@@ -102,12 +72,12 @@ function onDialog (v: boolean) {
   }
 }
 
-function open (file: string) {
+function open(file: string) {
   current.value = pathModule.normalize(file);
   loadSet();
 }
 
-async function loadSet () {
+async function loadSet() {
   if (!current.value) return;
   const loadedDirectories = (await storageService.getFiles(current.value))?.filter(
     (f: DirectoryFile) => f.directory
@@ -127,7 +97,7 @@ async function loadSet () {
   dirs.value = loadedDirectories;
 }
 
-function toBasename (s: string) {
+function toBasename(s: string) {
   return pathModule.basename(s);
 }
 </script>

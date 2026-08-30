@@ -13,8 +13,10 @@ npm ci                     # Install dependencies
 npm run electron:serve     # Dev server with hot reload
 npm run electron:build     # Production build + installer
 npm run test:unit          # Run unit tests (Vitest)
-npm run lint               # ESLint check
+npm run lint               # ESLint check (whole repo)
 npm run lint-fix           # ESLint auto-fix
+npm run format             # Prettier write
+npm run format:check       # Prettier check (runs in CI)
 ```
 
 ## Architecture
@@ -39,13 +41,13 @@ Tobii integration via `eyelog` package (Windows only). `BackWatch` (`src/electro
 
 ### Routes
 
-| Path | View | Purpose |
-|------|------|---------|
-| `/` | HomeView | Directory browser for .linka files |
-| `/set/:path` | SetExplorerView | Display/interact with a card set |
-| `/edit/:path` | EditorView | Edit cards in a set |
-| `/settings` | SettingsView | App settings |
-| `/calibration` | CalibrationView | Eye tracker calibration |
+| Path           | View            | Purpose                            |
+| -------------- | --------------- | ---------------------------------- |
+| `/`            | HomeView        | Directory browser for .linka files |
+| `/set/:path`   | SetExplorerView | Display/interact with a card set   |
+| `/edit/:path`  | EditorView      | Edit cards in a set                |
+| `/settings`    | SettingsView    | App settings                       |
+| `/calibration` | CalibrationView | Eye tracker calibration            |
 
 ### .linka File Format
 
@@ -57,10 +59,14 @@ Remote API at `tts.linka.su` via `src/frontend/utils/TTSServer.ts`. Audio playba
 
 ## Code Style
 
-- Double quotes, semicolons required, no trailing commas
-- ESLint with `@typescript-eslint/recommended` + `plugin:vue/base`
+- Prettier owns formatting (`prettier.config.cjs`): double quotes, semicolons,
+  no trailing commas, printWidth 100. Run `npm run format` before committing.
+- ESLint owns correctness (`@typescript-eslint/recommended` + `plugin:vue/base`);
+  `eslint-config-prettier` switches off the rules Prettier owns
 - `camelcase` rule is off
-- Node 22.x (see `.nvmrc`)
+- Node 22.x (see `.nvmrc`) — installing under a different major rewrites the
+  lockfile and can drop electron-builder's Windows signing dependencies
+- husky runs lint-staged on commit and format/lint/typecheck on push
 
 ## Build & Deployment
 

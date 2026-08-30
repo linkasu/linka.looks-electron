@@ -28,7 +28,11 @@
         :card="placement.card"
         :file="file"
         :disabled="isCardDisabled(placement.card)"
-        :style="currentPage.mode === 'match' ? cardPosition(placement.index) : getPlacementStyle(placement)"
+        :style="
+          currentPage.mode === 'match'
+            ? cardPosition(placement.index)
+            : getPlacementStyle(placement)
+        "
         :class="{
           active: selectedCardId === placement.card.id,
           matched: matchedCardIds.includes(placement.card.id)
@@ -87,22 +91,27 @@ const currentPageIndex = computed(() => {
 });
 
 const currentPage = computed<SetPage>(() => {
-  return normalizePage(props.config.pages?.[currentPageIndex.value] ?? {
-    mode: "standard",
-    columns: 3,
-    rows: 3,
-    cards: []
-  });
+  return normalizePage(
+    props.config.pages?.[currentPageIndex.value] ?? {
+      mode: "standard",
+      columns: 3,
+      rows: 3,
+      cards: []
+    }
+  );
 });
 
 const placements = computed(() => getCardGridPlacements(currentPage.value));
 
-const visiblePlacements = computed(() => placements.value.filter((placement) =>
-  !placement.covered &&
-  (currentPage.value.mode !== "match" || placement.card.cardType !== CardType.NewCard)
-));
+const visiblePlacements = computed(() =>
+  placements.value.filter(
+    (placement) =>
+      !placement.covered &&
+      (currentPage.value.mode !== "match" || placement.card.cardType !== CardType.NewCard)
+  )
+);
 
-function getPlacementStyle (placement: CardGridPlacement) {
+function getPlacementStyle(placement: CardGridPlacement) {
   return {
     gridColumn: `${placement.column} / span ${placement.width}`,
     gridRow: `${placement.row} / span ${placement.height}`
@@ -111,12 +120,14 @@ function getPlacementStyle (placement: CardGridPlacement) {
 
 const topColumns = computed(() => currentPage.value.topColumns ?? currentPage.value.columns);
 const bottomColumns = computed(() => currentPage.value.bottomColumns ?? currentPage.value.columns);
-const matchGridColumns = computed(() => Math.max(
-  topColumns.value,
-  bottomColumns.value,
-  currentPage.value.cards.length - topColumns.value,
-  1
-));
+const matchGridColumns = computed(() =>
+  Math.max(
+    topColumns.value,
+    bottomColumns.value,
+    currentPage.value.cards.length - topColumns.value,
+    1
+  )
+);
 
 const showPagination = computed(() => {
   return currentPage.value.mode !== "quiz" && totalPages.value > 1;
@@ -136,17 +147,17 @@ onMounted(() => {
   setTimeout(() => PageWatcher.instance?.watchElementsChange(true), 10);
 });
 
-function changePage (offset: number) {
+function changePage(offset: number) {
   const next = Math.max(0, Math.min(totalPages.value - 1, currentPageIndex.value + offset));
   emit("update:page", next);
   store.commit("explorer_page", next);
 }
 
-function onPageChanged (page: number) {
+function onPageChanged(page: number) {
   store.commit("explorer_page", Math.max(0, Math.min(totalPages.value - 1, page ?? 0)));
 }
 
-function cardPosition (index: number) {
+function cardPosition(index: number) {
   if (currentPage.value.mode !== "match") return undefined;
   const top = index < topColumns.value;
   return {
@@ -155,10 +166,12 @@ function cardPosition (index: number) {
   };
 }
 
-function isCardDisabled (card: Card): boolean {
-  return matchedCardIds.value.includes(card.id) ||
+function isCardDisabled(card: Card): boolean {
+  return (
+    matchedCardIds.value.includes(card.id) ||
     card.cardType === CardType.EmptyCard ||
-    card.cardType === CardType.NewCard;
+    card.cardType === CardType.NewCard
+  );
 }
 </script>
 

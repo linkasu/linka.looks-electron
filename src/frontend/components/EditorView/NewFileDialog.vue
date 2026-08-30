@@ -16,12 +16,15 @@
 import { useRouter } from "vue-router";
 import InputDialog from "@/frontend/components/InputDialog.vue";
 
-const props = withDefaults(defineProps<{ show: boolean, disabled: boolean }>(), { show: false, disabled: false });
-const emit = defineEmits<{(e: "text", payload: string): void }>();
+const props = withDefaults(defineProps<{ show: boolean; disabled: boolean }>(), {
+  show: false,
+  disabled: false
+});
+const emit = defineEmits<{ (e: "text", payload: string): void }>();
 
 const router = useRouter();
 
-function cancel () {
+function cancel() {
   router.back();
 }
 </script>

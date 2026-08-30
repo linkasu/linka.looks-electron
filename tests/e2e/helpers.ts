@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://localhost:5174";
-const testElectronRemoteDebuggingPort = process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "9323";
+const testElectronRemoteDebuggingPort =
+  process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "9323";
 
 export interface E2EContext {
   root: string;
@@ -29,28 +30,36 @@ export interface TestSetConfig {
   }>;
 }
 
-export function createE2EContext (): E2EContext {
+export function createE2EContext(): E2EContext {
   const root = mkdtempSync(join(tmpdir(), "linka-e2e-"));
   const userDataDir = join(root, "userData");
   const homeDir = join(root, "LINKa");
 
   mkdirSync(userDataDir, { recursive: true });
   mkdirSync(homeDir, { recursive: true });
-  writeFileSync(join(userDataDir, "config.json"), JSON.stringify({
-    pcHash: "test",
-    telemetryConsent: "disabled",
-    first_calibrate: true,
-    defaultSetsDownloaded: 1
-  }));
+  writeFileSync(
+    join(userDataDir, "config.json"),
+    JSON.stringify({
+      pcHash: "test",
+      telemetryConsent: "disabled",
+      first_calibrate: true,
+      defaultSetsDownloaded: 1
+    })
+  );
 
   return { root, homeDir, userDataDir };
 }
 
-export function cleanupE2EContext (context: E2EContext) {
+export function cleanupE2EContext(context: E2EContext) {
   rmSync(context.root, { force: true, recursive: true });
 }
 
-export function writeLinkaSet (homeDir: string, setName: string, config: TestSetConfig, entries: Record<string, Buffer> = {}) {
+export function writeLinkaSet(
+  homeDir: string,
+  setName: string,
+  config: TestSetConfig,
+  entries: Record<string, Buffer> = {}
+) {
   const zip = new AdmZip();
   zip.addFile("config.json", Buffer.from(JSON.stringify(config)));
   Object.entries(entries).forEach(([entryName, buffer]) => {
@@ -59,7 +68,7 @@ export function writeLinkaSet (homeDir: string, setName: string, config: TestSet
   zip.writeZip(join(homeDir, setName));
 }
 
-export async function launchTestElectron (context: E2EContext): Promise<ElectronApplication> {
+export async function launchTestElectron(context: E2EContext): Promise<ElectronApplication> {
   return electron.launch({
     args: [`--remote-debugging-port=${testElectronRemoteDebuggingPort}`, "dist-electron/main.js"],
     env: {
@@ -75,13 +84,13 @@ export async function launchTestElectron (context: E2EContext): Promise<Electron
   });
 }
 
-export async function firstTestWindow (electronApp: ElectronApplication): Promise<Page> {
+export async function firstTestWindow(electronApp: ElectronApplication): Promise<Page> {
   const window = await electronApp.firstWindow();
   await mockExternalServices(window);
   return window;
 }
 
-export async function mockExternalServices (page: Page) {
+export async function mockExternalServices(page: Page) {
   await page.route("https://tts.linka.su/**", async (route) => {
     await route.fulfill({
       body: Buffer.from([0]),
@@ -98,20 +107,25 @@ export async function mockExternalServices (page: Page) {
   });
 }
 
-export function standardConfig (cards: Array<Record<string, unknown>>, overrides: Partial<TestSetConfig> = {}): TestSetConfig {
+export function standardConfig(
+  cards: Array<Record<string, unknown>>,
+  overrides: Partial<TestSetConfig> = {}
+): TestSetConfig {
   return {
     version: "3.0",
     withoutSpace: false,
     directSet: false,
     quizAutoNext: true,
     quizReadQuestion: false,
-    pages: [{
-      id: "page-1",
-      mode: "standard",
-      columns: cards.length,
-      rows: 1,
-      cards
-    }],
+    pages: [
+      {
+        id: "page-1",
+        mode: "standard",
+        columns: cards.length,
+        rows: 1,
+        cards
+      }
+    ],
     ...overrides
   };
 }

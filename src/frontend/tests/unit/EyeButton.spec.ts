@@ -5,7 +5,7 @@ import EyeButton from "@/frontend/components/EyeButton.vue";
 
 const expect = chai.expect;
 
-function createVuexStore (options: Partial<ButtonState> = {}) {
+function createVuexStore(options: Partial<ButtonState> = {}) {
   const button: ButtonState = {
     enabled: true,
     borders: 1,
@@ -182,6 +182,10 @@ interface ButtonState {
   eyeActivation: boolean;
 }
 
-function dispatchEyeEvent (wrapper: ReturnType<typeof mount>, type: string, detail: Record<string, unknown> = {}) {
+function dispatchEyeEvent(
+  wrapper: ReturnType<typeof mount>,
+  type: string,
+  detail: Record<string, unknown> = {}
+) {
   wrapper.get("button").element.dispatchEvent(new CustomEvent(type, { detail }));
 }

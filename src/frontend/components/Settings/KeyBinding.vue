@@ -4,22 +4,12 @@
       {{ titles[side] }}
     </v-card-title>
     <v-card-text>
-      <v-chip
-        v-for="key of keys"
-        :key="key"
-        closable
-        @click:close="remove(key)"
-      >
+      <v-chip v-for="key of keys" :key="key" closable @click:close="remove(key)">
         {{ key }}
       </v-chip>
     </v-card-text>
     <v-card-actions>
-      <v-btn
-        color="success"
-        @click="select()"
-      >
-        Назначить
-      </v-btn>
+      <v-btn color="success" @click="select()"> Назначить </v-btn>
     </v-card-actions>
   </v-card>
 </template>
@@ -56,10 +46,10 @@ const keys = computed(() => {
 });
 
 const selected = computed({
-  get () {
+  get() {
     return store.state.selectedKey;
   },
-  set (side: Side | undefined) {
+  set(side: Side | undefined) {
     store.commit("selectedKey", side);
   }
 });
@@ -68,21 +58,21 @@ const isCurrent = computed(() => {
   return selected.value === props.side;
 });
 
-function onKeyDown (ev: KeyboardEvent) {
+function onKeyDown(ev: KeyboardEvent) {
   if (isCurrent.value) {
     store.dispatch("keymap_push", { side: props.side, code: ev.code });
   }
 }
 
-function onJoystickKeyDown () {
+function onJoystickKeyDown() {
   // Listener is intentionally empty: PageWatcher consumes joystick events globally.
 }
 
-function remove (code: string) {
+function remove(code: string) {
   store.dispatch("keymap_remove", { side: props.side, code });
 }
 
-function select () {
+function select() {
   selected.value = props.side;
 }
 </script>

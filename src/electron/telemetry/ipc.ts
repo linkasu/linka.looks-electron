@@ -3,9 +3,17 @@ import type { TelemetryController } from "./controller";
 import { isTelemetryDecision } from "./preference";
 import { projectRendererOutcome, projectRendererTelemetry } from "./projector";
 
-type Registrar = { handle: (channel: string, listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => void };
+type Registrar = {
+  handle: (
+    channel: string,
+    listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown
+  ) => void;
+};
 
-export function registerTelemetryIpc (controller: TelemetryController, registrar: Registrar = ipcMain): void {
+export function registerTelemetryIpc(
+  controller: TelemetryController,
+  registrar: Registrar = ipcMain
+): void {
   registrar.handle("telemetry:preference:get", () => controller.getPreference());
   registrar.handle("telemetry:preference:set", (_event, preference) => {
     if (!isTelemetryDecision(preference)) throw new TypeError("invalid telemetry preference");

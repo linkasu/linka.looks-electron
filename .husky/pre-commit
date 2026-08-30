@@ -1,0 +1,12 @@
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$current_branch" = "main" ]; then
+  echo "🚨 You are about to commit directly to main. Continue? (y/N)"
+  read -r answer < /dev/tty
+  case "$answer" in
+    [Yy]*) ;;
+    *) echo "Commit cancelled."; exit 1 ;;
+  esac
+fi
+
+npx lint-staged

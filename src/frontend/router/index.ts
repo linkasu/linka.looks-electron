@@ -20,7 +20,7 @@ type InteractionMode = "gaze" | "assistant";
 
 declare module "vue-router" {
   interface RouteMeta {
-    interactionMode: InteractionMode
+    interactionMode: InteractionMode;
   }
 }
 
@@ -60,7 +60,8 @@ const routes: Array<RouteRecordRaw> = [
       default: SetExplorerView,
       appbar: SetExplorerViewAppBar
     }
-  }, {
+  },
+  {
     path: "/edit/:path",
     name: "Editor",
     meta: { interactionMode: "assistant" },
@@ -84,7 +85,8 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes
 });
-storageService.getArgv()
+storageService
+  .getArgv()
   .then(async (argv: string[]) => {
     const file = argv.find((arg) => arg.toLowerCase().endsWith(".linka"));
     if (!file) return;
@@ -95,7 +97,7 @@ storageService.getArgv()
     console.error(error);
   });
 
-function toRoutePath (absolutePath: string) {
+function toRoutePath(absolutePath: string) {
   return absolutePath.replace(HOME_DIR, "").replaceAll("/", "§").replaceAll("\\", "§");
 }
 
@@ -103,7 +105,7 @@ setTimeout(() => {
   void redirectFirstCalibration();
 }, 500);
 
-async function redirectFirstCalibration () {
+async function redirectFirstCalibration() {
   if (store.state.firstCalibrate) return;
   const currentPath = router.currentRoute.value.path;
   if (currentPath === "/tobii-calibration") return;
@@ -117,10 +119,10 @@ async function redirectFirstCalibration () {
   router.push("/calibration");
 }
 
-async function shouldStartWithTobiiCalibration () {
+async function shouldStartWithTobiiCalibration() {
   if (!platform.isMacOS) return false;
   try {
-    const status = await ipcRenderer.invoke("tobii:status:get") as TobiiStatus;
+    const status = (await ipcRenderer.invoke("tobii:status:get")) as TobiiStatus;
     if (isTobiiReady(status)) return true;
     if (!isPendingTobiiStatus(status)) return false;
     return await waitForReadyTobiiStatus(5000);
@@ -129,7 +131,7 @@ async function shouldStartWithTobiiCalibration () {
   }
 }
 
-function waitForReadyTobiiStatus (timeoutMs: number) {
+function waitForReadyTobiiStatus(timeoutMs: number) {
   return new Promise<boolean>((resolve) => {
     const timer = window.setTimeout(() => {
       cleanup();
@@ -154,12 +156,16 @@ function waitForReadyTobiiStatus (timeoutMs: number) {
   });
 }
 
-function isTobiiReady (status?: TobiiStatus) {
+function isTobiiReady(status?: TobiiStatus) {
   return status?.state === "connected" || status?.state === "tracking";
 }
 
-function isPendingTobiiStatus (status?: TobiiStatus) {
-  return status?.state === "service_starting" || status?.state === "connecting" || status?.state === "reconnecting";
+function isPendingTobiiStatus(status?: TobiiStatus) {
+  return (
+    status?.state === "service_starting" ||
+    status?.state === "connecting" ||
+    status?.state === "reconnecting"
+  );
 }
 
 export default router;

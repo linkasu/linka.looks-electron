@@ -6,7 +6,10 @@ describe("telemetry consent transitions", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const createTelemetry = vi.fn();
-    const controller = new TelemetryController({ read: async () => "unknown", write: async () => undefined }, createTelemetry);
+    const controller = new TelemetryController(
+      { read: async () => "unknown", write: async () => undefined },
+      createTelemetry
+    );
 
     await expect(controller.initialize()).resolves.toBe("unknown");
     expect(controller.record({ stream: "product", kind: "openSet" })).toBe(false);
@@ -20,7 +23,15 @@ describe("telemetry consent transitions", () => {
   it("creates telemetry only after opt-in and clears it after opt-out", async () => {
     const runtime = { record: vi.fn(() => true), disableAndClear: vi.fn(async () => undefined) };
     const writes: string[] = [];
-    const controller = new TelemetryController({ read: async () => "unknown", write: async (preference) => { writes.push(preference); } }, () => runtime as never);
+    const controller = new TelemetryController(
+      {
+        read: async () => "unknown",
+        write: async (preference) => {
+          writes.push(preference);
+        }
+      },
+      () => runtime as never
+    );
 
     await controller.initialize();
     await expect(controller.setPreference("enabled")).resolves.toBe("enabled");

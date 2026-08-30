@@ -16,7 +16,9 @@ describe("TelemetryConsentNotice", () => {
     const store = createConsentStore();
     const wrapper = mountNotice(store);
 
-    expect(wrapper.text()).to.contain("Содержимое карточек, названия файлов, пути и тексты ошибок не отправляются");
+    expect(wrapper.text()).to.contain(
+      "Содержимое карточек, названия файлов, пути и тексты ошибок не отправляются"
+    );
 
     await wrapper.get("[data-testid='telemetry-disable']").trigger("click");
 
@@ -45,25 +47,25 @@ describe("TelemetryConsentNotice", () => {
   });
 });
 
-function createConsentStore () {
+function createConsentStore() {
   return createStore({
     state: {
       telemetryConsent: "unknown"
     },
     mutations: {
-      telemetryConsent (state, value: "enabled" | "disabled") {
+      telemetryConsent(state, value: "enabled" | "disabled") {
         state.telemetryConsent = value;
       }
     },
     actions: {
-      setTelemetryPreference ({ commit }, value: "enabled" | "disabled") {
+      setTelemetryPreference({ commit }, value: "enabled" | "disabled") {
         commit("telemetryConsent", value);
       }
     }
   });
 }
 
-function mountNotice (store: ReturnType<typeof createConsentStore>) {
+function mountNotice(store: ReturnType<typeof createConsentStore>) {
   return mount(TelemetryConsentNotice, {
     global: {
       plugins: [store],

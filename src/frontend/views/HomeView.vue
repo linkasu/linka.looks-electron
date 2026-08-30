@@ -1,13 +1,6 @@
 <template>
-  <v-layout
-    full-height
-    class="root"
-  >
-    <explorer-grid-button
-      v-if="!isHome"
-      :back="true"
-      @click="back()"
-    />
+  <v-layout full-height class="root">
+    <explorer-grid-button v-if="!isHome" :back="true" @click="back()" />
 
     <explorer-grid-button
       v-for="file in sorted"
@@ -50,25 +43,16 @@
 
     <v-dialog v-model="mergeDialog" width="auto">
       <v-card min-width="340px">
-        <v-card-title primary-title>
-          Объединить наборы
-        </v-card-title>
+        <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
-          <div class="merge-subtitle">
-            Основной: {{ contextTitle }}
-          </div>
+          <div class="merge-subtitle">Основной: {{ contextTitle }}</div>
           <v-text-field
             v-model="mergeName"
             label="Имя нового набора"
             :rules="[isValidMergeName]"
             :placeholder="mergeDefaultName"
           />
-          <v-btn
-            variant="text"
-            @click="mergeName = mergeDefaultName"
-          >
-            По умолчанию
-          </v-btn>
+          <v-btn variant="text" @click="mergeName = mergeDefaultName"> По умолчанию </v-btn>
           <v-select
             v-model="mergeTarget"
             :items="mergeOptions"
@@ -76,75 +60,48 @@
             item-title="title"
             item-value="value"
           />
-          <div class="merge-hint">
-            Новый набор будет создан рядом с основным.
-          </div>
+          <div class="merge-hint">Новый набор будет создан рядом с основным.</div>
           <div v-if="mergeWarning" class="merge-warning">
             {{ mergeWarning }}
           </div>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge">
-            Объединить
-          </v-btn>
-          <v-btn color="primary" @click="mergeDialog = false">
-            Отмена
-          </v-btn>
+          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge"> Объединить </v-btn>
+          <v-btn color="primary" @click="mergeDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <v-dialog v-model="renameDialog" width="auto">
       <v-card min-width="300px">
-        <v-card-title primary-title>
-          Переименовать
-        </v-card-title>
+        <v-card-title primary-title> Переименовать </v-card-title>
         <v-card-text>
           <v-form @submit.prevent="applyRename">
-            <v-text-field
-              v-model="renameValue"
-              label="Название"
-              :rules="[isValidName]"
-            />
+            <v-text-field v-model="renameValue" label="Название" :rules="[isValidName]" />
           </v-form>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" @click="applyRename">
-            Сохранить
-          </v-btn>
-          <v-btn color="primary" @click="renameDialog = false">
-            Отмена
-          </v-btn>
+          <v-btn color="primary" @click="applyRename"> Сохранить </v-btn>
+          <v-btn color="primary" @click="renameDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <v-dialog v-model="deleteDialog" width="auto">
       <v-card min-width="300px">
-        <v-card-title primary-title>
-          Удалить {{ contextTitle }}?
-        </v-card-title>
+        <v-card-title primary-title> Удалить {{ contextTitle }}? </v-card-title>
         <v-card-text> Вы уверены? </v-card-text>
         <v-card-actions>
-          <v-btn color="error" @click="applyDelete">
-            Да
-          </v-btn>
-          <v-btn color="primary" @click="deleteDialog = false">
-            Нет
-          </v-btn>
+          <v-btn color="error" @click="applyDelete"> Да </v-btn>
+          <v-btn color="primary" @click="deleteDialog = false"> Нет </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <v-snackbar
-      v-model="error"
-      :timeout="5000"
-    >
+    <v-snackbar v-model="error" :timeout="5000">
       {{ errorText }}
       <template #actions>
-        <v-btn color="blue" variant="text" @click="error = false">
-          Закрыть
-        </v-btn>
+        <v-btn color="blue" variant="text" @click="error = false"> Закрыть </v-btn>
       </template>
     </v-snackbar>
   </v-layout>
@@ -187,7 +144,10 @@ onMounted(() => {
 const sorted: ComputedRef<Directory> = computed(() => {
   return [...files.value].sort((a: DirectoryFile, b: DirectoryFile) => {
     if (a.directory !== b.directory) return a.directory ? -1 : 1;
-    return toDisplayName(a).localeCompare(toDisplayName(b), "ru", { numeric: true, sensitivity: "base" });
+    return toDisplayName(a).localeCompare(toDisplayName(b), "ru", {
+      numeric: true,
+      sensitivity: "base"
+    });
   });
 });
 
@@ -206,26 +166,23 @@ const isHome = computed(() => {
 //   }
 // });
 
-watch(
-  mroot,
-  () => {
-    router.push(mroot.value);
-    loadSets();
-  }
-);
+watch(mroot, () => {
+  router.push(mroot.value);
+  loadSets();
+});
 
-function back () {
+function back() {
   mroot.value = mroot.value.split("§").slice(0, -1).join("§");
 }
 
-function loadSets () {
+function loadSets() {
   storageService.getFiles(mroot.value).then((newFiles: Directory) => {
     if (!newFiles) return;
     files.value = newFiles;
   });
 }
 
-function select (item: DirectoryFile) {
+function select(item: DirectoryFile) {
   if (item.directory) {
     mroot.value += "§" + pathModule.basename(item.file);
     Telemetry.product("openFolder");
@@ -239,11 +196,11 @@ const contextTitle = computed(() => {
   return toBasename(contextItem.value.file);
 });
 
-function toBasename (path: string) {
+function toBasename(path: string) {
   return pathModule.basename(path);
 }
 
-function toDisplayName (item: DirectoryFile) {
+function toDisplayName(item: DirectoryFile) {
   const name = toBasename(item.file);
   if (!item.directory && name.toLowerCase().endsWith(".linka")) {
     return name.slice(0, -".linka".length);
@@ -251,14 +208,14 @@ function toDisplayName (item: DirectoryFile) {
   return name;
 }
 
-function buildMergeName (basePath: string, otherPath: string) {
+function buildMergeName(basePath: string, otherPath: string) {
   const ext = ".linka";
   const baseName = pathModule.basename(basePath, ext);
   const otherName = pathModule.basename(otherPath, ext);
   return `${baseName} + ${otherName}`;
 }
 
-function openContextMenu (event: MouseEvent, item: DirectoryFile) {
+function openContextMenu(event: MouseEvent, item: DirectoryFile) {
   contextItem.value = item;
   const menuWidth = 220;
   const menuHeight = 220;
@@ -270,17 +227,17 @@ function openContextMenu (event: MouseEvent, item: DirectoryFile) {
   window.addEventListener("click", closeContextMenu, { once: true });
 }
 
-function closeContextMenu () {
+function closeContextMenu() {
   contextMenuOpen.value = false;
 }
 
-function openSelected () {
+function openSelected() {
   if (!contextItem.value) return;
   closeContextMenu();
   select(contextItem.value);
 }
 
-async function duplicateSelected () {
+async function duplicateSelected() {
   if (!contextItem.value) return;
   closeContextMenu();
   try {
@@ -292,23 +249,23 @@ async function duplicateSelected () {
   }
 }
 
-function startRename () {
+function startRename() {
   if (!contextItem.value) return;
   closeContextMenu();
   renameValue.value = toDisplayName(contextItem.value);
   renameDialog.value = true;
 }
 
-function isValidName (text: string) {
+function isValidName(text: string) {
   return validateStorageName(text);
 }
 
-function isValidMergeName (text: string) {
+function isValidMergeName(text: string) {
   if (!text || !text.trim()) return true;
   return validateStorageName(text);
 }
 
-async function applyRename () {
+async function applyRename() {
   if (!contextItem.value) return;
   if (isValidName(renameValue.value) !== true) return;
   let name = renameValue.value.trim();
@@ -326,13 +283,13 @@ async function applyRename () {
   }
 }
 
-function confirmDelete () {
+function confirmDelete() {
   if (!contextItem.value) return;
   closeContextMenu();
   deleteDialog.value = true;
 }
 
-async function applyDelete () {
+async function applyDelete() {
   if (!contextItem.value) return;
   try {
     await storageService.moveToTrash(contextItem.value.file);
@@ -345,7 +302,7 @@ async function applyDelete () {
   }
 }
 
-async function showInFolder () {
+async function showInFolder() {
   if (!contextItem.value) return;
   closeContextMenu();
   try {
@@ -366,7 +323,7 @@ const mergeOptions = computed(() => {
     }));
 });
 
-function startMerge () {
+function startMerge() {
   if (!contextItem.value || contextItem.value.directory) return;
   closeContextMenu();
   if (!mergeOptions.value.length) {
@@ -393,7 +350,7 @@ const mergeWarning = computed(() => {
   return `Страницы будут добавлены после "${toDisplayName(contextItem.value)}".`;
 });
 
-async function applyMerge () {
+async function applyMerge() {
   if (!contextItem.value || !mergeTarget.value) return;
   if (isValidMergeName(mergeName.value) !== true) return;
   const targetName = mergeName.value.trim() || mergeDefaultName.value;

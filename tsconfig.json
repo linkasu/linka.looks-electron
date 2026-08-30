@@ -13,27 +13,20 @@
     "useDefineForClassFields": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "types": [
-      "vite/client",
-      "vitest/globals",
-      "chai"
-    ],
+    "types": ["vite/client", "vitest/globals", "chai"],
     "paths": {
       "@frontend": ["./src/frontend"],
       "@electron": ["./src/electron"],
       "@common": ["./src/common"],
-      "@linkasu/tobii-electron/main": ["./node_modules/@linkasu/tobii-electron/dist/main/index.d.ts"],
-      "@linkasu/tobii-electron/renderer": ["./node_modules/@linkasu/tobii-electron/dist/renderer/index.d.ts"],
-      "@/*": [
-        "src/*"
-      ]
+      "@linkasu/tobii-electron/main": [
+        "./node_modules/@linkasu/tobii-electron/dist/main/index.d.ts"
+      ],
+      "@linkasu/tobii-electron/renderer": [
+        "./node_modules/@linkasu/tobii-electron/dist/renderer/index.d.ts"
+      ],
+      "@/*": ["src/*"]
     },
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable",
-      "scripthost"
-    ]
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
   },
   "include": [
     "src/**/*.ts",
@@ -42,7 +35,5 @@
     "src/frontend/tests/**/*.ts",
     "src/frontend/tests/**/*.tsx"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

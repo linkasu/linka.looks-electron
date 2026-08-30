@@ -14,22 +14,27 @@ export class LooksTelemetry {
   private readonly appSessionId = randomUUID();
   private enabled = true;
 
-  constructor (private readonly options: { userDataPath: string; request?: IdentityRequest }) {
-    this.identity = new LooksIdentityClient({ directory: join(options.userDataPath, "telemetry-v3"), endpoint: process.env.LINKA_IDENTITY_URL ?? identityEndpoint, platform: currentPlatform(), policyVersion });
+  constructor(private readonly options: { userDataPath: string; request?: IdentityRequest }) {
+    this.identity = new LooksIdentityClient({
+      directory: join(options.userDataPath, "telemetry-v3"),
+      endpoint: process.env.LINKA_IDENTITY_URL ?? identityEndpoint,
+      platform: currentPlatform(),
+      policyVersion
+    });
   }
 
-  record (projected: ProjectedTelemetry): boolean {
+  record(projected: ProjectedTelemetry): boolean {
     if (!this.enabled) return false;
     void this.send(projected).catch(() => undefined);
     return true;
   }
 
-  async disableAndClear (): Promise<void> {
+  async disableAndClear(): Promise<void> {
     this.enabled = false;
     await this.identity.deny(this.request.bind(this)).catch(() => false);
   }
 
-  private async send (projected: ProjectedTelemetry): Promise<void> {
+  private async send(projected: ProjectedTelemetry): Promise<void> {
     if (!this.enabled) return;
     const identity = await this.identity.getAccess(this.request.bind(this));
     if (!this.enabled) return;
@@ -39,25 +44,34 @@ export class LooksTelemetry {
       scope: { product: "linka-looks", subject_key: identity.installationKey },
       stream: projected.stream,
       sent_at: new Date().toISOString(),
-      records: [{
-        record_id: randomUUID(),
-        occurred_at: new Date().toISOString(),
-        kind: projected.kind,
-        app_session_id: this.appSessionId,
-        app: appMetadata(),
-        ...(projected.fields ?? {})
-      }]
+      records: [
+        {
+          record_id: randomUUID(),
+          occurred_at: new Date().toISOString(),
+          kind: projected.kind,
+          app_session_id: this.appSessionId,
+          app: appMetadata(),
+          ...(projected.fields ?? {})
+        }
+      ]
     };
-    const response = await fetch(endpoint(process.env.LINKA_METRICS_URL ?? metricsEndpoint, "/v2/batches"), {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${identity.accessToken!.token}`, "idempotency-key": body.batch_id },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15_000)
-    });
+    const response = await fetch(
+      endpoint(process.env.LINKA_METRICS_URL ?? metricsEndpoint, "/v2/batches"),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${identity.accessToken!.token}`,
+          "idempotency-key": body.batch_id
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000)
+      }
+    );
     if (response.status === 403) this.enabled = false;
   }
 
-  private async request (input: string, init: RequestInit) {
+  private async request(input: string, init: RequestInit) {
     if (this.options.request) return this.options.request(input, init);
     const response = await fetch(input, { ...init, signal: AbortSignal.timeout(15_000) });
     const text = await response.text();
@@ -71,31 +85,47 @@ export class LooksTelemetry {
   }
 }
 
-export function createLooksTelemetry () {
+export function createLooksTelemetry() {
   return new LooksTelemetry({ userDataPath: app.getPath("userData") });
 }
 
-function appMetadata () {
+function appMetadata() {
   const version = safeValue(app.getVersion());
-  return { version, build: version, platform: currentPlatform(), os_version: safeValue(release()), locale: normalizeLocale(app.getLocale()) };
+  return {
+    version,
+    build: version,
+    platform: currentPlatform(),
+    os_version: safeValue(release()),
+    locale: normalizeLocale(app.getLocale())
+  };
 }
 
-function currentPlatform (): "windows" | "macos" | "linux" {
-  return process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux";
+function currentPlatform(): "windows" | "macos" | "linux" {
+  return process.platform === "win32"
+    ? "windows"
+    : process.platform === "darwin"
+      ? "macos"
+      : "linux";
 }
 
-function normalizeLocale (locale: string) {
-  return locale === "ru" || locale === "ru-RU" || locale === "en" || locale === "en-US" ? locale : "other";
+function normalizeLocale(locale: string) {
+  return locale === "ru" || locale === "ru-RU" || locale === "en" || locale === "en-US"
+    ? locale
+    : "other";
 }
 
-function safeValue (value: string) {
-  const normalized = value.replace(/[^A-Za-z0-9._:+-]+/g, "-").replace(/^[^A-Za-z0-9]+/, "").slice(0, 96);
+function safeValue(value: string) {
+  const normalized = value
+    .replace(/[^A-Za-z0-9._:+-]+/g, "-")
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .slice(0, 96);
   return normalized || "unknown";
 }
 
-function endpoint (base: string, path: string): string {
+function endpoint(base: string, path: string): string {
   const url = new URL(base);
-  if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) throw new Error("invalid metrics endpoint");
+  if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password)
+    throw new Error("invalid metrics endpoint");
   url.pathname = `${url.pathname.replace(/\/$/, "")}${path}`;
   url.search = "";
   url.hash = "";

@@ -1,27 +1,15 @@
 <template>
   <v-app-bar class="set-explorer-appbar">
-    <v-btn
-      flat
-      icon
-      @click="back"
-    >
+    <v-btn flat icon @click="back">
       <v-icon>mdi-arrow-left</v-icon>
     </v-btn>
     <v-app-bar-title>
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <div
-      v-if="config"
-      class="page-indicator"
-    >
-      {{ page + 1 }} из {{ totalPages }}
-    </div>
+    <div v-if="config" class="page-indicator">{{ page + 1 }} из {{ totalPages }}</div>
     <v-spacer />
-    <notes-button
-      v-if="config?.description"
-      :config="config"
-    />
+    <notes-button v-if="config?.description" :config="config" />
     <v-btn
       flat
       icon
@@ -35,65 +23,32 @@
       flat
       icon
       :color="buttonEnabled ? 'primary' : ''"
-      :title="
-        (buttonEnabled ? 'Выключить' : 'Включить') + ' управление глазами'
-      "
+      :title="(buttonEnabled ? 'Выключить' : 'Включить') + ' управление глазами'"
       @click="switchButtonEnabled"
     >
-      <v-icon>{{ buttonEnabled ? 'mdi-eye' : 'mdi-eye-off' }}</v-icon>
+      <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </v-btn>
     <v-spacer />
-    <v-btn
-      flat
-      icon
-      title="Настройки отображения"
-      @click="toggleSettingsOpen"
-    >
-      <v-icon>
-        mdi-view-dashboard-edit-outline
-      </v-icon>
+    <v-btn flat icon title="Настройки отображения" @click="toggleSettingsOpen">
+      <v-icon> mdi-view-dashboard-edit-outline </v-icon>
     </v-btn>
     <share-button />
-    <v-btn
-      flat
-      icon
-      title="Копировать набор"
-      @click="duplicateSet"
-    >
+    <v-btn flat icon title="Копировать набор" @click="duplicateSet">
       <v-icon>mdi-content-copy</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      title="Объединить наборы"
-      @click="startMerge"
-    >
+    <v-btn flat icon title="Объединить наборы" @click="startMerge">
       <v-icon>mdi-merge</v-icon>
     </v-btn>
-    <v-btn
-      flat
-      icon
-      :to="editLink"
-    >
+    <v-btn flat icon :to="editLink">
       <v-icon>mdi-pencil</v-icon>
     </v-btn>
-    <folder-button
-      :file="file"
-      @move="move"
-    />
-    <delete-button
-      :file="title"
-      @delete="del"
-    />
+    <folder-button :file="file" @move="move" />
+    <delete-button :file="title" @delete="del" />
     <v-dialog v-model="mergeDialog" width="auto">
       <v-card min-width="340px">
-        <v-card-title primary-title>
-          Объединить наборы
-        </v-card-title>
+        <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
-          <div class="merge-subtitle">
-            Основной: {{ title }}
-          </div>
+          <div class="merge-subtitle">Основной: {{ title }}</div>
           <v-text-field
             v-model="mergeName"
             label="Имя нового набора"
@@ -108,12 +63,8 @@
           />
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge">
-            Объединить
-          </v-btn>
-          <v-btn color="primary" @click="mergeDialog = false">
-            Отмена
-          </v-btn>
+          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge"> Объединить </v-btn>
+          <v-btn color="primary" @click="mergeDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -142,7 +93,7 @@ const store = useStore();
 const mergeDialog = ref(false);
 const mergeTarget = ref("");
 const mergeName = ref("");
-const mergeOptions = ref<{ title: string, value: string }[]>([]);
+const mergeOptions = ref<{ title: string; value: string }[]>([]);
 
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
@@ -170,15 +121,15 @@ const buttonEnabled = computed(() => {
   return store.state.button.enabled;
 });
 
-function switchButtonEnabled () {
+function switchButtonEnabled() {
   store.dispatch("button_enabled");
 }
 
-function switchInterfaceOutputLine () {
+function switchInterfaceOutputLine() {
   store.dispatch("interface_outputLine");
 }
 
-function back () {
+function back() {
   if (file.value.includes(":")) {
     router.push("/");
     return;
@@ -190,37 +141,37 @@ const isSettingsOpened = computed(() => {
   return store.state.layoutSettings.isOpened;
 });
 
-async function toggleSettingsOpen () {
+async function toggleSettingsOpen() {
   if (isSettingsOpened.value) {
     await save();
   }
   store.dispatch("toggle_settings_opened");
 }
 
-async function save () {
+async function save() {
   await store.dispatch("editor_save");
 }
 
-async function del () {
+async function del() {
   await storageService.moveToTrash(file.value);
   back();
   Telemetry.product("trash");
 }
 
-async function move (location: string) {
+async function move(location: string) {
   const target = await storageService.moveSet(file.value, location);
   router.push("/set/" + toRoutePath(target));
   Telemetry.product("move");
 }
 
-async function duplicateSet () {
+async function duplicateSet() {
   const target = await storageService.duplicateItem(file.value);
   router.push("/set/" + toRoutePath(target));
 }
 
-async function startMerge () {
+async function startMerge() {
   const parentPath = file.value.split("§").slice(0, -1).join("§");
-  const files = await storageService.getFiles(parentPath) as Directory;
+  const files = (await storageService.getFiles(parentPath)) as Directory;
   mergeOptions.value = (files ?? [])
     .filter((item) => !item.directory && pathModule.basename(item.file) !== title.value)
     .map((item) => ({
@@ -237,13 +188,17 @@ const mergeDefaultName = computed(() => {
   return `${title.value.replace(/\.linka$/i, "")} + ${pathModule.basename(mergeTarget.value, ".linka")}`;
 });
 
-async function applyMerge () {
-  const target = await storageService.mergeSets(file.value, mergeTarget.value, mergeName.value.trim() || mergeDefaultName.value);
+async function applyMerge() {
+  const target = await storageService.mergeSets(
+    file.value,
+    mergeTarget.value,
+    mergeName.value.trim() || mergeDefaultName.value
+  );
   mergeDialog.value = false;
   router.push("/set/" + toRoutePath(target));
 }
 
-function toRoutePath (absolutePath: string) {
+function toRoutePath(absolutePath: string) {
   return absolutePath.replace(HOME_DIR, "").replaceAll("/", "§").replaceAll("\\", "§");
 }
 

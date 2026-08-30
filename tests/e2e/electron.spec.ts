@@ -14,11 +14,14 @@ import {
 
 test("existing activation still requires an explicit telemetry choice", async () => {
   const context = createE2EContext();
-  writeFileSync(join(context.userDataDir, "config.json"), JSON.stringify({
-    pcHash: "00000000-0000-4000-8000-000000000000",
-    first_calibrate: true,
-    defaultSetsDownloaded: 1
-  }));
+  writeFileSync(
+    join(context.userDataDir, "config.json"),
+    JSON.stringify({
+      pcHash: "00000000-0000-4000-8000-000000000000",
+      first_calibrate: true,
+      defaultSetsDownloaded: 1
+    })
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -27,7 +30,9 @@ test("existing activation still requires an explicit telemetry choice", async ()
     await window.getByRole("button", { name: "Не отправлять" }).click();
     await expect(window.getByText("Техническая статистика", { exact: true })).toBeHidden();
 
-    const config = JSON.parse(readFileSync(join(context.userDataDir, "config.json"), "utf8")) as { telemetryConsent?: string };
+    const config = JSON.parse(readFileSync(join(context.userDataDir, "config.json"), "utf8")) as {
+      telemetryConsent?: string;
+    };
     expect(config.telemetryConsent).toBe("disabled");
   } finally {
     await electronApp.close();
@@ -38,9 +43,21 @@ test("existing activation still requires an explicit telemetry choice", async ()
 test("editor settings expose row and column controls", async () => {
   const context = createE2EContext();
   const setName = "agent-e2e.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 3 }], {
-    pages: [{ id: "page-1", mode: "standard", columns: 3, rows: 3, cards: [{ id: "card-1", cardType: 3 }] }]
-  }));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig([{ id: "card-1", cardType: 3 }], {
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 3,
+          rows: 3,
+          cards: [{ id: "card-1", cardType: 3 }]
+        }
+      ]
+    })
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -62,25 +79,34 @@ test("editor settings expose row and column controls", async () => {
 test("editor side panel scrolls to audio controls", async () => {
   const context = createE2EContext();
   const setName = "editor-audio-scroll.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" }], {
-    pages: [{
-      id: "page-1",
-      mode: "standard",
-      columns: 3,
-      rows: 3,
-      cards: [
-        { id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" },
-        { id: "new-1", cardType: 3 },
-        { id: "new-2", cardType: 3 },
-        { id: "new-3", cardType: 3 },
-        { id: "new-4", cardType: 3 },
-        { id: "new-5", cardType: 3 },
-        { id: "new-6", cardType: 3 },
-        { id: "new-7", cardType: 3 },
-        { id: "new-8", cardType: 3 }
-      ]
-    }]
-  }));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig(
+      [{ id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" }],
+      {
+        pages: [
+          {
+            id: "page-1",
+            mode: "standard",
+            columns: 3,
+            rows: 3,
+            cards: [
+              { id: "audio-card", cardType: 0, title: "Карточка", imagePath: "missing.png" },
+              { id: "new-1", cardType: 3 },
+              { id: "new-2", cardType: 3 },
+              { id: "new-3", cardType: 3 },
+              { id: "new-4", cardType: 3 },
+              { id: "new-5", cardType: 3 },
+              { id: "new-6", cardType: 3 },
+              { id: "new-7", cardType: 3 },
+              { id: "new-8", cardType: 3 }
+            ]
+          }
+        ]
+      }
+    )
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -127,7 +153,11 @@ test("assistant settings page scrolls within the main content area", async () =>
   }
 });
 
-async function expectEditorAudioControlsReachable (window: Page, setName: string, viewport: { width: number, height: number }) {
+async function expectEditorAudioControlsReachable(
+  window: Page,
+  setName: string,
+  viewport: { width: number; height: number }
+) {
   await window.setViewportSize(viewport);
   await window.goto(`${devServerUrl}/#/edit/§${setName}`);
   await window.getByRole("button", { name: "Карточка", exact: true }).click();
@@ -140,8 +170,9 @@ async function expectEditorAudioControlsReachable (window: Page, setName: string
 
   const metrics = await panel.evaluate((el) => {
     const panelRect = el.getBoundingClientRect();
-    const button = Array.from(el.querySelectorAll("button"))
-      .find((candidate) => candidate.textContent?.includes("оздать из текста"));
+    const button = Array.from(el.querySelectorAll("button")).find((candidate) =>
+      candidate.textContent?.includes("оздать из текста")
+    );
     const buttonRect = button?.getBoundingClientRect();
 
     return {
@@ -168,7 +199,11 @@ async function expectEditorAudioControlsReachable (window: Page, setName: string
 test("gaze set explorer keeps page scrolling disabled", async () => {
   const context = createE2EContext();
   const setName = "gaze-scroll-lock.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 0, title: "Карточка" }]));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig([{ id: "card-1", cardType: 0, title: "Карточка" }])
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -176,7 +211,9 @@ test("gaze set explorer keeps page scrolling disabled", async () => {
     await window.goto(`${devServerUrl}/#/set/§${setName}`);
     await expect(window.getByRole("button", { name: "Карточка" })).toBeVisible();
 
-    const overflowY = await window.locator(".app-main").evaluate((el) => getComputedStyle(el).overflowY);
+    const overflowY = await window
+      .locator(".app-main")
+      .evaluate((el) => getComputedStyle(el).overflowY);
     expect(overflowY).toBe("hidden");
   } finally {
     await electronApp.close();
@@ -243,10 +280,17 @@ test("set explorer grid fills the viewport above footer", async () => {
 test("standard set appends clicked cards to text output", async () => {
   const context = createE2EContext();
   const setName = "standard-flow.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([
-    { id: "hello", cardType: 0, title: "Hello" },
-    { id: "world", cardType: 0, title: "World" }
-  ], { withoutSpace: true }));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig(
+      [
+        { id: "hello", cardType: 0, title: "Hello" },
+        { id: "world", cardType: 0, title: "World" }
+      ],
+      { withoutSpace: true }
+    )
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -266,14 +310,36 @@ test("standard set appends clicked cards to text output", async () => {
 test("standard set preserves typed output while turning pages", async () => {
   const context = createE2EContext();
   const setName = "keyboard-page-turn-flow.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([], {
-    withoutSpace: true,
-    pages: [
-      { id: "page-1", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-a", cardType: 0, title: "А" }] },
-      { id: "page-2", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-b", cardType: 0, title: "Б" }] },
-      { id: "page-3", mode: "standard", columns: 1, rows: 1, cards: [{ id: "letter-v", cardType: 0, title: "В" }] }
-    ]
-  }));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig([], {
+      withoutSpace: true,
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "letter-a", cardType: 0, title: "А" }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "letter-b", cardType: 0, title: "Б" }]
+        },
+        {
+          id: "page-3",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "letter-v", cardType: 0, title: "В" }]
+        }
+      ]
+    })
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -304,17 +370,19 @@ test("quiz set handles wrong and correct answers", async () => {
     directSet: false,
     quizAutoNext: false,
     quizReadQuestion: false,
-    pages: [{
-      id: "quiz-page",
-      mode: "quiz",
-      columns: 2,
-      rows: 1,
-      question: "Choose right",
-      cards: [
-        { id: "wrong", cardType: 0, title: "Wrong" },
-        { id: "right", cardType: 0, title: "Right", answer: true }
-      ]
-    }]
+    pages: [
+      {
+        id: "quiz-page",
+        mode: "quiz",
+        columns: 2,
+        rows: 1,
+        question: "Choose right",
+        cards: [
+          { id: "wrong", cardType: 0, title: "Wrong" },
+          { id: "right", cardType: 0, title: "Right", answer: true }
+        ]
+      }
+    ]
   });
 
   const electronApp = await launchTestElectron(context);
@@ -324,9 +392,11 @@ test("quiz set handles wrong and correct answers", async () => {
     await window.getByRole("button", { name: "Начать" }).click();
 
     await window.getByRole("button", { name: "Wrong" }).click();
-    await expect.poll(async () => {
-      return window.evaluate(() => !!document.querySelector(".mdi-numeric-1-box"));
-    }).toBe(true);
+    await expect
+      .poll(async () => {
+        return window.evaluate(() => !!document.querySelector(".mdi-numeric-1-box"));
+      })
+      .toBe(true);
     await window.getByRole("button", { name: "Right" }).click();
 
     await expect(window.getByRole("button", { name: /Далее/ })).toBeVisible();
@@ -345,18 +415,26 @@ test("match set handles wrong and correct pairs", async () => {
     directSet: false,
     quizAutoNext: true,
     quizReadQuestion: false,
-    pages: [{
-      id: "match-page",
-      mode: "match",
-      columns: 2,
-      rows: 2,
-      cards: [
-        { id: "top-apple", cardType: 0, title: "Apple", matchId: "apple", matchLane: "top" },
-        { id: "top-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "top" },
-        { id: "bottom-apple", cardType: 0, title: "Apple", matchId: "apple", matchLane: "bottom" },
-        { id: "bottom-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "bottom" }
-      ]
-    }]
+    pages: [
+      {
+        id: "match-page",
+        mode: "match",
+        columns: 2,
+        rows: 2,
+        cards: [
+          { id: "top-apple", cardType: 0, title: "Apple", matchId: "apple", matchLane: "top" },
+          { id: "top-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "top" },
+          {
+            id: "bottom-apple",
+            cardType: 0,
+            title: "Apple",
+            matchId: "apple",
+            matchLane: "bottom"
+          },
+          { id: "bottom-cat", cardType: 0, title: "Cat", matchId: "cat", matchLane: "bottom" }
+        ]
+      }
+    ]
   });
 
   const electronApp = await launchTestElectron(context);
@@ -381,9 +459,21 @@ test("editor saves changed page settings to set archive", async () => {
   test.setTimeout(60000);
   const context = createE2EContext();
   const setName = "editor-save-flow.linka";
-  writeLinkaSet(context.homeDir, setName, standardConfig([{ id: "card-1", cardType: 3 }], {
-    pages: [{ id: "page-1", mode: "standard", columns: 3, rows: 3, cards: [{ id: "card-1", cardType: 3 }] }]
-  }));
+  writeLinkaSet(
+    context.homeDir,
+    setName,
+    standardConfig([{ id: "card-1", cardType: 3 }], {
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 3,
+          rows: 3,
+          cards: [{ id: "card-1", cardType: 3 }]
+        }
+      ]
+    })
+  );
 
   const electronApp = await launchTestElectron(context);
   try {
@@ -396,7 +486,9 @@ test("editor saves changed page settings to set archive", async () => {
     await expect(window.getByLabel("Количество строк")).toBeHidden();
     await window.locator(".v-app-bar button").last().click({ timeout: 5000 });
     await expect(window.getByText(`Сохранить ${setName}?`)).toBeVisible();
-    await window.getByRole("button", { name: /^Сохранить$/ }).evaluate((button) => (button as HTMLButtonElement).click());
+    await window
+      .getByRole("button", { name: /^Сохранить$/ })
+      .evaluate((button) => (button as HTMLButtonElement).click());
 
     await expect.poll(() => readSetRows(context.homeDir, setName)).toBe(2);
   } finally {
@@ -405,7 +497,7 @@ test("editor saves changed page settings to set archive", async () => {
   }
 });
 
-function readSetRows (homeDir: string, setName: string): number | undefined {
+function readSetRows(homeDir: string, setName: string): number | undefined {
   const zip = new AdmZip(join(homeDir, setName));
   const config = JSON.parse(zip.readAsText("config.json")) as { pages?: Array<{ rows?: number }> };
   return config.pages?.[0].rows;

@@ -1,10 +1,5 @@
 <template>
-  <v-btn
-    flat
-    icon
-    title="Поделиться"
-    @click="share"
-  >
+  <v-btn flat icon title="Поделиться" @click="share">
     <v-icon>mdi-share-variant</v-icon>
   </v-btn>
 </template>
@@ -16,7 +11,7 @@ import { Telemetry } from "@/frontend/utils/Telemetry";
 
 const route = useRoute();
 
-function share () {
+function share() {
   storageService.showItemInFolder(route.params.path.toString());
   Telemetry.product("share");
 }

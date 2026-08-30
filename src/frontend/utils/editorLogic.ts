@@ -57,37 +57,33 @@ export function isValidMatchCard(
   card: Card,
   cards: Card[],
   topColumns: number,
-  bottomColumns = topColumns,
+  bottomColumns = topColumns
 ): boolean {
   if (card.cardType !== CardType.AudioCard) return true;
   const index = cards.findIndex((item) => item.id === card.id);
-  if (index === -1 || index >= topColumns + bottomColumns || !card.matchId)
-    return false;
+  if (index === -1 || index >= topColumns + bottomColumns || !card.matchId) return false;
 
   const matches = cards.filter(
-    (item) =>
-      item.cardType === CardType.AudioCard && item.matchId === card.matchId,
+    (item) => item.cardType === CardType.AudioCard && item.matchId === card.matchId
   );
   return matches.some(
     (item) =>
       item.id !== card.id &&
       getMatchLane(
         cards.findIndex((cardItem) => cardItem.id === item.id),
-        topColumns,
-      ) !== getMatchLane(index, topColumns),
+        topColumns
+      ) !== getMatchLane(index, topColumns)
   );
 }
 
 export function isValidMatchPage(
   cards: Card[],
   topColumns: number,
-  bottomColumns = topColumns,
+  bottomColumns = topColumns
 ): boolean {
   if (cards.length > topColumns + bottomColumns) return false;
   return cards.every(
-    (card) =>
-      isValidEditorCard(card) &&
-      isValidMatchCard(card, cards, topColumns, bottomColumns),
+    (card) => isValidEditorCard(card) && isValidMatchCard(card, cards, topColumns, bottomColumns)
   );
 }
 
@@ -96,7 +92,7 @@ export function createEditorPage(
   pageColumns = 3,
   pageRows = 3,
   topColumns?: number,
-  bottomColumns?: number,
+  bottomColumns?: number
 ): SetPage {
   return normalizePage({
     mode,
@@ -133,16 +129,11 @@ export function applyCardAudio(card: Card, audio: CardAudio): Card {
   return next;
 }
 
-export function copySelectedCard(
-  cards: Card[],
-  selectedCardId: string | null,
-): EditorCardsResult {
+export function copySelectedCard(cards: Card[], selectedCardId: string | null): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
 
-  const placeholderIndex = cards.findIndex(
-    (card) => card.cardType === CardType.NewCard,
-  );
+  const placeholderIndex = cards.findIndex((card) => card.cardType === CardType.NewCard);
   if (placeholderIndex === -1) return { cards, selectedCardId };
 
   const copiedCard = cloneCard(cards[selectedIndex], true);
@@ -160,10 +151,7 @@ export function copySelectedCard(
   };
 }
 
-export function resetSelectedCard(
-  cards: Card[],
-  selectedCardId: string | null,
-): EditorCardsResult {
+export function resetSelectedCard(cards: Card[], selectedCardId: string | null): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
 
@@ -185,7 +173,7 @@ export function getSelectedCardSpanInfo(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): CardSpanInfo {
   const fallback = createCardSpanInfo(false);
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
@@ -205,7 +193,7 @@ export function getSelectedCardSpanInfo(
     columns,
     rows,
     placement.width,
-    placement.height,
+    placement.height
   );
   const maxHeight = getMaxAvailableHeight(
     cards,
@@ -214,7 +202,7 @@ export function getSelectedCardSpanInfo(
     columns,
     rows,
     placement.width,
-    placement.height,
+    placement.height
   );
 
   return {
@@ -236,15 +224,9 @@ export function canMergeSelectedCard(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): boolean {
-  const info = getSelectedCardSpanInfo(
-    cards,
-    selectedCardId,
-    columns,
-    rows,
-    mode,
-  );
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
   return info.canReset || info.canGrowRight || info.canGrowDown;
 }
 
@@ -253,18 +235,11 @@ export function toggleSelectedCardMerge(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(
-    cards,
-    selectedCardId,
-    columns,
-    rows,
-    mode,
-  );
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
   if (info.canReset) return resetSelectedCardSpan(cards, selectedCardId);
-  if (info.canGrowRight)
-    return growSelectedCardRight(cards, selectedCardId, columns, rows, mode);
+  if (info.canGrowRight) return growSelectedCardRight(cards, selectedCardId, columns, rows, mode);
   return growSelectedCardDown(cards, selectedCardId, columns, rows, mode);
 }
 
@@ -273,22 +248,11 @@ export function growSelectedCardRight(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(
-    cards,
-    selectedCardId,
-    columns,
-    rows,
-    mode,
-  );
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
   if (!info.canGrowRight) return { cards, selectedCardId };
-  return resizeSelectedCard(
-    cards,
-    selectedCardId,
-    info.currentWidth + 1,
-    info.currentHeight,
-  );
+  return resizeSelectedCard(cards, selectedCardId, info.currentWidth + 1, info.currentHeight);
 }
 
 export function growSelectedCardDown(
@@ -296,22 +260,11 @@ export function growSelectedCardDown(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(
-    cards,
-    selectedCardId,
-    columns,
-    rows,
-    mode,
-  );
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
   if (!info.canGrowDown) return { cards, selectedCardId };
-  return resizeSelectedCard(
-    cards,
-    selectedCardId,
-    info.currentWidth,
-    info.currentHeight + 1,
-  );
+  return resizeSelectedCard(cards, selectedCardId, info.currentWidth, info.currentHeight + 1);
 }
 
 export function mergeSelectedCardFullRow(
@@ -319,35 +272,21 @@ export function mergeSelectedCardFullRow(
   selectedCardId: string | null,
   columns: number,
   rows: number,
-  mode: PageMode,
+  mode: PageMode
 ): EditorCardsResult {
-  const info = getSelectedCardSpanInfo(
-    cards,
-    selectedCardId,
-    columns,
-    rows,
-    mode,
-  );
+  const info = getSelectedCardSpanInfo(cards, selectedCardId, columns, rows, mode);
   if (!info.canFillRow) return { cards, selectedCardId };
-  return resizeSelectedCard(
-    cards,
-    selectedCardId,
-    info.fillRowWidth,
-    info.currentHeight,
-  );
+  return resizeSelectedCard(cards, selectedCardId, info.fillRowWidth, info.currentHeight);
 }
 
 export function resetSelectedCardSpan(
   cards: Card[],
-  selectedCardId: string | null,
+  selectedCardId: string | null
 ): EditorCardsResult {
   return resizeSelectedCard(cards, selectedCardId, 1, 1);
 }
 
-export function advanceEditorPage(
-  pages: SetPage[],
-  page: number,
-): EditorPagesResult {
+export function advanceEditorPage(pages: SetPage[], page: number): EditorPagesResult {
   if (page < pages.length - 1) {
     return { pages, page: page + 1 };
   }
@@ -360,7 +299,7 @@ export function advanceEditorPage(
       currentPage.columns,
       currentPage.rows,
       currentPage.topColumns,
-      currentPage.bottomColumns,
+      currentPage.bottomColumns
     )
   ];
   return {
@@ -369,10 +308,7 @@ export function advanceEditorPage(
   };
 }
 
-export function copyEditorPage(
-  pages: SetPage[],
-  page: number,
-): EditorPagesResult {
+export function copyEditorPage(pages: SetPage[], page: number): EditorPagesResult {
   const pageIndex = clampPageIndex(page, pages.length);
   const currentPage = pages[pageIndex] ?? createEditorPage();
   const nextPage = clonePage(currentPage, true);
@@ -385,10 +321,7 @@ export function copyEditorPage(
   };
 }
 
-export function deleteEditorPage(
-  pages: SetPage[],
-  page: number,
-): EditorPagesResult {
+export function deleteEditorPage(pages: SetPage[], page: number): EditorPagesResult {
   const pageIndex = clampPageIndex(page, pages.length);
   const currentPage = pages[pageIndex] ?? createEditorPage();
   const nextPages = [...pages];
@@ -402,8 +335,8 @@ export function deleteEditorPage(
         currentPage.columns,
         currentPage.rows,
         currentPage.topColumns,
-        currentPage.bottomColumns,
-      ),
+        currentPage.bottomColumns
+      )
     );
     return {
       pages: nextPages,
@@ -422,7 +355,7 @@ export function toggleMatchLink(
   cards: Card[],
   selectedCardId: string | null,
   pendingMatchCardId: string | null,
-  columns: number,
+  columns: number
 ): MatchLinkResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1 || !selectedCardId) {
@@ -435,9 +368,7 @@ export function toggleMatchLink(
     return { cards, pendingMatchCardId: selectedCardId };
   }
 
-  const pendingIndex = cards.findIndex(
-    (card) => card.id === pendingMatchCardId,
-  );
+  const pendingIndex = cards.findIndex((card) => card.id === pendingMatchCardId);
   if (pendingIndex === -1) {
     return { cards, pendingMatchCardId: selectedCardId };
   }
@@ -449,10 +380,7 @@ export function toggleMatchLink(
   }
 
   const nextCards = cards.map((card) => cloneCard(card));
-  const matchId =
-    nextCards[selectedIndex].matchId ??
-    nextCards[pendingIndex].matchId ??
-    uuid();
+  const matchId = nextCards[selectedIndex].matchId ?? nextCards[pendingIndex].matchId ?? uuid();
   const existingMatchIds = [
     nextCards[selectedIndex].matchId,
     nextCards[pendingIndex].matchId
@@ -470,10 +398,7 @@ export function toggleMatchLink(
   };
 }
 
-export function clearMatchLink(
-  cards: Card[],
-  selectedCardId: string | null,
-): MatchLinkResult {
+export function clearMatchLink(cards: Card[], selectedCardId: string | null): MatchLinkResult {
   const selected = cards.find((card) => card.id === selectedCardId);
   if (!selected?.matchId) {
     return { cards, pendingMatchCardId: null };
@@ -526,7 +451,7 @@ function resizeSelectedCard(
   cards: Card[],
   selectedCardId: string | null,
   width: number,
-  height: number,
+  height: number
 ): EditorCardsResult {
   const selectedIndex = cards.findIndex((card) => card.id === selectedCardId);
   if (selectedIndex === -1) return { cards, selectedCardId };
@@ -554,7 +479,7 @@ function getMaxAvailableWidth(
   columns: number,
   rows: number,
   currentWidth: number,
-  currentHeight: number,
+  currentHeight: number
 ): number {
   const column = selectedIndex % columns;
   let maxWidth = currentWidth;
@@ -569,7 +494,7 @@ function getMaxAvailableWidth(
         width,
         currentHeight,
         currentWidth,
-        currentHeight,
+        currentHeight
       )
     )
       break;
@@ -585,7 +510,7 @@ function getMaxAvailableHeight(
   columns: number,
   rows: number,
   currentWidth: number,
-  currentHeight: number,
+  currentHeight: number
 ): number {
   const row = Math.floor(selectedIndex / columns);
   let maxHeight = currentHeight;
@@ -600,7 +525,7 @@ function getMaxAvailableHeight(
         currentWidth,
         height,
         currentWidth,
-        currentHeight,
+        currentHeight
       )
     )
       break;
@@ -618,7 +543,7 @@ function isSpanAvailable(
   width: number,
   height: number,
   currentWidth: number,
-  currentHeight: number,
+  currentHeight: number
 ): boolean {
   const startRow = Math.floor(selectedIndex / columns);
   const startColumn = selectedIndex % columns;
@@ -627,15 +552,7 @@ function isSpanAvailable(
   for (let y = startRow; y < startRow + height; y++) {
     for (let x = startColumn; x < startColumn + width; x++) {
       const index = y * columns + x;
-      if (
-        isInsideSelectedSpan(
-          selectedIndex,
-          index,
-          columns,
-          currentWidth,
-          currentHeight,
-        )
-      )
+      if (isInsideSelectedSpan(selectedIndex, index, columns, currentWidth, currentHeight))
         continue;
       if (!isMergeTargetAvailable(cards, placements, index)) return false;
     }
@@ -649,7 +566,7 @@ function isInsideSelectedSpan(
   index: number,
   columns: number,
   width: number,
-  height: number,
+  height: number
 ): boolean {
   const startRow = Math.floor(selectedIndex / columns);
   const startColumn = selectedIndex % columns;
@@ -666,14 +583,12 @@ function isInsideSelectedSpan(
 function isMergeTargetAvailable(
   cards: Card[],
   placements: ReturnType<typeof getCardGridPlacements>,
-  index: number,
+  index: number
 ): boolean {
   const card = cards[index];
   const placement = placements[index];
   return (
-    !!card &&
-    !placement?.covered &&
-    [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)
+    !!card && !placement?.covered && [CardType.NewCard, CardType.EmptyCard].includes(card.cardType)
   );
 }
 

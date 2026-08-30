@@ -105,16 +105,18 @@ describe("CardsStorage", () => {
     await storage.saveSet(source, target, {
       version: CURRENT_SET_VERSION,
       withoutSpace: false,
-      pages: [{
-        id: "page-1",
-        mode: "standard",
-        columns: 2,
-        rows: 1,
-        cards: [
-          { id: "audio", cardType: CardType.AudioCard, imagePath: "image.png", title: "one" },
-          { id: "new", cardType: CardType.NewCard }
-        ]
-      }]
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 2,
+          rows: 1,
+          cards: [
+            { id: "audio", cardType: CardType.AudioCard, imagePath: "image.png", title: "one" },
+            { id: "new", cardType: CardType.NewCard }
+          ]
+        }
+      ]
     });
 
     const zip = new AdmZip(target);
@@ -151,38 +153,67 @@ describe("CardsStorage", () => {
     const storage = await createStorage(homeDir);
     const base = join(homeDir, "base.linka");
     const other = join(homeDir, "other.linka");
-    writeLinka(base, {
-      version: CURRENT_SET_VERSION,
-      withoutSpace: false,
-      pages: [{
-        id: "base-page",
-        mode: "standard",
-        columns: 1,
-        rows: 1,
-        cards: [{ id: "base-card", cardType: CardType.AudioCard, imagePath: "shared.png", title: "base" }]
-      }]
-    }, {
-      "shared.png": Buffer.from("base-image")
-    });
-    writeLinka(other, {
-      version: CURRENT_SET_VERSION,
-      withoutSpace: false,
-      pages: [{
-        id: "other-page",
-        mode: "standard",
-        columns: 1,
-        rows: 1,
-        cards: [{ id: "other-card", cardType: CardType.AudioCard, imagePath: "shared.png", audioPath: "voice.mp3", title: "other" }]
-      }]
-    }, {
-      "shared.png": Buffer.from("other-image"),
-      "voice.mp3": Buffer.from("other-audio")
-    });
+    writeLinka(
+      base,
+      {
+        version: CURRENT_SET_VERSION,
+        withoutSpace: false,
+        pages: [
+          {
+            id: "base-page",
+            mode: "standard",
+            columns: 1,
+            rows: 1,
+            cards: [
+              {
+                id: "base-card",
+                cardType: CardType.AudioCard,
+                imagePath: "shared.png",
+                title: "base"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shared.png": Buffer.from("base-image")
+      }
+    );
+    writeLinka(
+      other,
+      {
+        version: CURRENT_SET_VERSION,
+        withoutSpace: false,
+        pages: [
+          {
+            id: "other-page",
+            mode: "standard",
+            columns: 1,
+            rows: 1,
+            cards: [
+              {
+                id: "other-card",
+                cardType: CardType.AudioCard,
+                imagePath: "shared.png",
+                audioPath: "voice.mp3",
+                title: "other"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shared.png": Buffer.from("other-image"),
+        "voice.mp3": Buffer.from("other-audio")
+      }
+    );
 
     const target = await storage.mergeSets(base, other, "merged.linka");
     const zip = new AdmZip(target);
     const config = readConfig(target);
-    const otherCard = config.pages?.flatMap((page) => page.cards).find((card) => card.title === "other");
+    const otherCard = config.pages
+      ?.flatMap((page) => page.cards)
+      .find((card) => card.title === "other");
 
     expect(basename(target)).to.equal("merged.linka");
     expect(config.pages).to.have.length(2);
@@ -197,14 +228,14 @@ describe("CardsStorage", () => {
   });
 });
 
-async function createStorage (homeDir: string) {
+async function createStorage(homeDir: string) {
   process.env.LINKA_HOME_DIR = homeDir;
   vi.resetModules();
   const { CardsStorage } = await import("@/electron/services/card-storage-service");
   return new CardsStorage();
 }
 
-function createHomeDir (): string {
+function createHomeDir(): string {
   const root = mkdtempSync(join(tmpdir(), "linka-storage-test-"));
   roots.push(root);
   const homeDir = join(root, "LINKa");
@@ -212,7 +243,7 @@ function createHomeDir (): string {
   return homeDir;
 }
 
-function writeLinka (file: string, config: ConfigFile, entries: Record<string, Buffer> = {}) {
+function writeLinka(file: string, config: ConfigFile, entries: Record<string, Buffer> = {}) {
   const zip = new AdmZip();
   zip.addFile("config.json", Buffer.from(JSON.stringify(config)));
   Object.entries(entries).forEach(([entryName, buffer]) => {
@@ -221,21 +252,23 @@ function writeLinka (file: string, config: ConfigFile, entries: Record<string, B
   zip.writeZip(file);
 }
 
-function readConfig (file: string): ConfigFile {
+function readConfig(file: string): ConfigFile {
   const zip = new AdmZip(file);
   return JSON.parse(zip.readAsText("config.json")) as ConfigFile;
 }
 
-function baseConfig (): ConfigFile {
+function baseConfig(): ConfigFile {
   return {
     version: CURRENT_SET_VERSION,
     withoutSpace: false,
-    pages: [{
-      id: "page-1",
-      mode: "standard",
-      columns: 1,
-      rows: 1,
-      cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
-    }]
+    pages: [
+      {
+        id: "page-1",
+        mode: "standard",
+        columns: 1,
+        rows: 1,
+        cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+      }
+    ]
   };
 }

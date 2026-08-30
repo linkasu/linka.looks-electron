@@ -6,7 +6,7 @@ const { tmpdir } = require("os");
 const projectRoot = join(__dirname, "..", "..");
 const distDir = join(projectRoot, "dist");
 
-function assertFile (file) {
+function assertFile(file) {
   if (!existsSync(file)) {
     throw new Error(`Required packaged resource is missing: ${file}`);
   }
@@ -15,7 +15,7 @@ function assertFile (file) {
   }
 }
 
-function assertDirectory (directory) {
+function assertDirectory(directory) {
   if (!existsSync(directory)) {
     throw new Error(`Required packaged directory is missing: ${directory}`);
   }
@@ -24,7 +24,7 @@ function assertDirectory (directory) {
   }
 }
 
-function smokeImageGenerator () {
+function smokeImageGenerator() {
   const extraResourcesDir = getWindowsExtraResourcesDir();
   const imageGenerator = join(extraResourcesDir, "ImageGenerator.exe");
   assertFile(imageGenerator);
@@ -40,13 +40,17 @@ function smokeImageGenerator () {
   try {
     if (result.error) {
       if (result.error.code === "ETIMEDOUT" && hasNonEmptyFile(outputFile)) {
-        console.warn("ImageGenerator.exe produced a PNG but did not exit before timeout; treating packaged resource smoke as success.");
+        console.warn(
+          "ImageGenerator.exe produced a PNG but did not exit before timeout; treating packaged resource smoke as success."
+        );
         return;
       }
       throw result.error;
     }
     if (result.status !== 0) {
-      throw new Error(`ImageGenerator.exe exited with ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
+      throw new Error(
+        `ImageGenerator.exe exited with ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
+      );
     }
     if (!hasNonEmptyFile(outputFile)) {
       throw new Error("ImageGenerator.exe did not produce a non-empty PNG file");
@@ -56,11 +60,11 @@ function smokeImageGenerator () {
   }
 }
 
-function hasNonEmptyFile (file) {
+function hasNonEmptyFile(file) {
   return existsSync(file) && statSync(file).size > 0;
 }
 
-function smokeEyeLog () {
+function smokeEyeLog() {
   const extraResourcesDir = getWindowsExtraResourcesDir();
   const eyeLog = join(extraResourcesDir, "bin", "EyeLog.exe");
   assertFile(eyeLog);
@@ -74,8 +78,12 @@ function smokeEyeLog () {
     let stderr = "";
     let settled = false;
 
-    child.stdout.on("data", (data) => { stdout += data.toString(); });
-    child.stderr.on("data", (data) => { stderr += data.toString(); });
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
     child.once("error", (error) => {
       settled = true;
       reject(error);
@@ -97,7 +105,9 @@ function smokeEyeLog () {
         return;
       }
       if (isExpectedEyeLogCiFailure(stderr)) {
-        console.warn("EyeLog.exe started, but Tobii runtime is unavailable on the CI runner; treating this as a launch smoke success.");
+        console.warn(
+          "EyeLog.exe started, but Tobii runtime is unavailable on the CI runner; treating this as a launch smoke success."
+        );
         console.warn(stderr);
         resolve();
         return;
@@ -107,23 +117,23 @@ function smokeEyeLog () {
   });
 }
 
-function isExpectedEyeLogCiFailure (stderr) {
-  return stderr.includes("Tobii.Interaction") &&
-    (
-      stderr.includes("BadImageFormatException") ||
+function isExpectedEyeLogCiFailure(stderr) {
+  return (
+    stderr.includes("Tobii.Interaction") &&
+    (stderr.includes("BadImageFormatException") ||
       stderr.includes("EyeX") ||
-      stderr.includes("Host..ctor")
-    );
+      stderr.includes("Host..ctor"))
+  );
 }
 
-function getWindowsExtraResourcesDir () {
+function getWindowsExtraResourcesDir() {
   return join(distDir, "win-unpacked", "resources", "extraResources");
 }
 
-function findMacAppBundle () {
+function findMacAppBundle() {
   const appBundles = [];
 
-  function scan (directory, depth) {
+  function scan(directory, depth) {
     if (!existsSync(directory) || depth > 3) return;
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
@@ -140,7 +150,7 @@ function findMacAppBundle () {
   return appBundles.sort()[0];
 }
 
-function assertMacIcon (resourcesDir) {
+function assertMacIcon(resourcesDir) {
   const icons = readdirSync(resourcesDir).filter((name) => name.endsWith(".icns"));
   if (icons.length === 0) {
     throw new Error(`No macOS .icns icon found in ${resourcesDir}`);
@@ -148,10 +158,27 @@ function assertMacIcon (resourcesDir) {
   assertFile(join(resourcesDir, icons[0]));
 }
 
-function smokeMacNativeAddon (resourcesDir) {
+function smokeMacNativeAddon(resourcesDir) {
   const candidates = [
-    join(resourcesDir, "app.asar.unpacked", "node_modules", "@linkasu", "tobii-electron", "native", "tobiifree-native"),
-    join(resourcesDir, "app.asar.unpacked", "node_modules", "@linkasu", "tobii-electron", "node_modules", "@linka", "tobiifree-native"),
+    join(
+      resourcesDir,
+      "app.asar.unpacked",
+      "node_modules",
+      "@linkasu",
+      "tobii-electron",
+      "native",
+      "tobiifree-native"
+    ),
+    join(
+      resourcesDir,
+      "app.asar.unpacked",
+      "node_modules",
+      "@linkasu",
+      "tobii-electron",
+      "node_modules",
+      "@linka",
+      "tobiifree-native"
+    ),
     join(resourcesDir, "app.asar.unpacked", "node_modules", "@linka", "tobiifree-native")
   ];
   const unpackedDir = candidates.find((candidate) => existsSync(candidate));
@@ -164,7 +191,7 @@ function smokeMacNativeAddon (resourcesDir) {
   assertFile(join(unpackedDir, "index.js"));
 }
 
-function smokeMacPackage () {
+function smokeMacPackage() {
   const appBundle = findMacAppBundle();
   if (!appBundle) {
     throw new Error(`No packaged .app bundle found in ${distDir}`);
@@ -193,7 +220,10 @@ function smokeMacPackage () {
   } else if (process.platform === "darwin") {
     smokeMacPackage();
   } else {
-    console.log("Packaged resource smoke test is supported on Windows and macOS; skipping on", process.platform);
+    console.log(
+      "Packaged resource smoke test is supported on Windows and macOS; skipping on",
+      process.platform
+    );
     return;
   }
   console.log("Packaged resource smoke test passed.");

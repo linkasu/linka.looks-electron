@@ -20,7 +20,7 @@ interface MockedAudio {
   src: string;
 }
 
-function mockedAudio (player: TTS): MockedAudio {
+function mockedAudio(player: TTS): MockedAudio {
   return player.audio as unknown as MockedAudio;
 }
 
@@ -107,7 +107,9 @@ describe("TTS", () => {
     const audio = mockedAudio(player);
     player.isPlaying = true;
 
-    await player.playCards("set.linka", [{ id: "audio", cardType: CardType.AudioCard, audioPath: "audio.mp3" }]);
+    await player.playCards("set.linka", [
+      { id: "audio", cardType: CardType.AudioCard, audioPath: "audio.mp3" }
+    ]);
 
     expect(audio.pause.mock.calls).to.have.length(1);
     expect(getAudio.mock.calls).to.have.length(0);

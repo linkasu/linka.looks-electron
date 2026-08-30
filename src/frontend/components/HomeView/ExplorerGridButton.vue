@@ -2,25 +2,11 @@
   <eye-button>
     <div class="content">
       <div align-center>
-        <v-icon
-          v-if="back"
-          class="icon"
-          color="primary"
-        >
-          mdi-arrow-up
-        </v-icon>
-        <v-icon
-          v-else-if="file && file.directory"
-          class="icon"
-          color="primary"
-        >
+        <v-icon v-if="back" class="icon" color="primary"> mdi-arrow-up </v-icon>
+        <v-icon v-else-if="file && file.directory" class="icon" color="primary">
           mdi-folder
         </v-icon>
-        <div
-          v-else
-          class="img"
-          :style="{ '--image': image }"
-        />
+        <div v-else class="img" :style="{ '--image': image }" />
       </div>
       <div class="label" :title="displayName">
         <span>{{ displayName }}</span>
@@ -37,7 +23,9 @@ import EyeButton from "@/frontend/components/EyeButton.vue";
 import { DirectoryFile } from "@/common/interfaces/Directory";
 import { storageService } from "@/frontend/services/card-storage-service";
 
-const props = withDefaults(defineProps<{ file?: DirectoryFile; back?: boolean }>(), { back: false });
+const props = withDefaults(defineProps<{ file?: DirectoryFile; back?: boolean }>(), {
+  back: false
+});
 
 const image: Ref<string | null> = ref("");
 
@@ -66,7 +54,7 @@ onMounted(() => {
   }
 });
 
-function toBasename (path: string) {
+function toBasename(path: string) {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 </script>

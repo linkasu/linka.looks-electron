@@ -47,7 +47,7 @@ ipcMain.handle("app_version", () => ({
 }));
 ipcMain.handle("updater:getState", () => updateState);
 
-function logUpdate (message: string, payload?: unknown): void {
+function logUpdate(message: string, payload?: unknown): void {
   if (!updateLogPath) {
     return;
   }
@@ -59,31 +59,33 @@ function logUpdate (message: string, payload?: unknown): void {
     console.warn("Failed to write update log:", error);
   }
 }
-function sendToRenderer (channel: string, payload?: unknown): void {
+function sendToRenderer(channel: string, payload?: unknown): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
   mainWindow.webContents.send(channel, payload);
 }
 
-function recordUpdateInstallAttempt (version: string | null): void {
+function recordUpdateInstallAttempt(version: string | null): void {
   updateStore.set("lastAttemptAt", Date.now());
   if (version) {
     updateStore.set("lastAttemptVersion", version);
   }
 }
 
-function clearUpdateAttemptIfSucceeded (): void {
+function clearUpdateAttemptIfSucceeded(): void {
   const lastAttemptVersion = updateStore.get("lastAttemptVersion");
-  if (typeof lastAttemptVersion === "string" &&
+  if (
+    typeof lastAttemptVersion === "string" &&
     lastAttemptVersion &&
-    lastAttemptVersion === app.getVersion()) {
+    lastAttemptVersion === app.getVersion()
+  ) {
     updateStore.delete("lastAttemptAt");
     updateStore.delete("lastAttemptVersion");
   }
 }
 
-function shouldSkipUpdateCheck (): boolean {
+function shouldSkipUpdateCheck(): boolean {
   if (isUpdateTestMode) {
     return false;
   }
@@ -95,7 +97,7 @@ function shouldSkipUpdateCheck (): boolean {
   return elapsed < UPDATE_RESTART_COOLDOWN_MS;
 }
 
-function setupAutoUpdater (): void {
+function setupAutoUpdater(): void {
   if (autoUpdaterInitialized || !app.isPackaged) {
     return;
   }
@@ -199,13 +201,12 @@ protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { secure: true, standard: true } }
 ]);
 
-async function createWindow () {
+async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-
       nodeIntegration: true,
       contextIsolation: false
     }
@@ -259,7 +260,10 @@ app.on("ready", async () => {
       console.error("Vue Devtools failed to install:", (e as Error).toString());
     }
   }
-  const telemetryController = new TelemetryController(new TelemetryPreferenceStore(app.getPath("userData")), createLooksTelemetry);
+  const telemetryController = new TelemetryController(
+    new TelemetryPreferenceStore(app.getPath("userData")),
+    createLooksTelemetry
+  );
   await telemetryController.initialize();
   registerTelemetryIpc(telemetryController);
   await createWindow();

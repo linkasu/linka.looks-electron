@@ -1,46 +1,19 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    width="auto"
-  >
+  <v-dialog v-model="dialog" width="auto">
     <template #activator="{ props }">
-      <v-btn
-        flat
-        icon=""
-        v-bind="props"
-      >
+      <v-btn flat icon="" v-bind="props">
         <v-icon>mdi-folder-remove</v-icon>
       </v-btn>
     </template>
 
     <v-card min-width="300px">
-      <v-card-title primary-title>
-        Какую папку вы хотите удалить?
-      </v-card-title>
+      <v-card-title primary-title> Какую папку вы хотите удалить? </v-card-title>
       <v-card-text>
-        <v-select
-          v-if="directories"
-          v-model="directory"
-          :items="titles"
-          label="Папка"
-        />
+        <v-select v-if="directories" v-model="directory" :items="titles" label="Папка" />
       </v-card-text>
       <v-card-actions>
-        <v-btn
-          color="primary"
-          @click="
-            remove(),
-            dialog = false
-          "
-        >
-          Удалить
-        </v-btn>
-        <v-btn
-          color="primary"
-          @click="dialog = false"
-        >
-          Отмена
-        </v-btn>
+        <v-btn color="primary" @click="(remove(), (dialog = false))"> Удалить </v-btn>
+        <v-btn color="primary" @click="dialog = false"> Отмена </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -72,20 +45,20 @@ const root = computed(() => {
 
 watch(dialog, onDialog);
 
-function onDialog (value: boolean) {
+function onDialog(value: boolean) {
   if (value) {
     load();
   }
 }
 
-async function load () {
+async function load() {
   directories.value = (await storageService.getFiles(root.value))?.filter(
     ({ directory }: DirectoryFile) => directory
   );
   if (titles.value) directory.value = titles.value[0];
 }
 
-async function remove () {
+async function remove() {
   await storageService.rmdir(root.value + "§" + directory.value);
   setTimeout(() => {
     window.location.reload();

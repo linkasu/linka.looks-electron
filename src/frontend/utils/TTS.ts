@@ -11,40 +11,44 @@ export class TTS {
   audio = new Audio();
   private _playId = 0;
   private static _instance?: TTS;
-  static get instance (): TTS {
+  static get instance(): TTS {
     if (TTS._instance === undefined) {
       TTS._instance = new TTS();
     }
     return TTS._instance;
   }
 
-  static voices:Voice[] = reactive([]);
+  static voices: Voice[] = reactive([]);
 
-  private static audioBlob (buffer: Uint8Array): Blob {
+  private static audioBlob(buffer: Uint8Array): Blob {
     const arrayBuffer = new ArrayBuffer(buffer.byteLength);
     new Uint8Array(arrayBuffer).set(buffer);
     return new Blob([arrayBuffer], { type: "audio/mp3" });
   }
 
-  constructor () {
+  constructor() {
     this.getVoices();
   }
 
-  private async getVoices () {
+  private async getVoices() {
     if (TTS.voices.length > 0) return;
     try {
-      const { data } = await axios.get<{id: string, lang_code:string, name: string}[]>("https://tts.linka.su/voices");
-      TTS.voices.push(...data.map(v => ({
-        value: v.id,
-        text: v.name + " (" + v.lang_code + ")",
-        langCode: v.lang_code
-      })));
+      const { data } = await axios.get<{ id: string; lang_code: string; name: string }[]>(
+        "https://tts.linka.su/voices"
+      );
+      TTS.voices.push(
+        ...data.map((v) => ({
+          value: v.id,
+          text: v.name + " (" + v.lang_code + ")",
+          langCode: v.lang_code
+        }))
+      );
     } catch (error) {
       console.warn("Failed to load TTS voices", error);
     }
   }
 
-  public async playCards (file: string, cards: Card[], force = false) {
+  public async playCards(file: string, cards: Card[], force = false) {
     if (this.isPlaying) {
       this.isPlaying = false;
       this.audio.pause();
@@ -70,8 +74,11 @@ export class TTS {
     }
   }
 
-  public async playText (text: string, voice?: string): Promise<void> {
-    if (this.isPlaying) { this.stop(); return; }
+  public async playText(text: string, voice?: string): Promise<void> {
+    if (this.isPlaying) {
+      this.stop();
+      return;
+    }
     this.isPlaying = true;
     let url: string | null = null;
     try {
@@ -84,13 +91,13 @@ export class TTS {
     }
   }
 
-  public stop (): void {
+  public stop(): void {
     this.audio.pause();
     this.audio.currentTime = 0;
     this.isPlaying = false;
   }
 
-  public async forcePlayText (text: string, voice?: string): Promise<void> {
+  public async forcePlayText(text: string, voice?: string): Promise<void> {
     this.stop();
     const myId = ++this._playId;
     this.isPlaying = true;
@@ -108,7 +115,7 @@ export class TTS {
     }
   }
 
-  private playUrl (url: string) {
+  private playUrl(url: string) {
     return new Promise<void>((resolve) => {
       this.audio.src = url;
       this.audio.oncanplay = async () => {
@@ -124,7 +131,7 @@ export class TTS {
     });
   }
 
-  public resolveVoice (text: string): string {
+  public resolveVoice(text: string): string {
     const hasCyrillic = /[\u0400-\u04FF]/.test(text);
     const hasLatin = /[A-Za-z]/.test(text);
     if (hasLatin && !hasCyrillic) {
