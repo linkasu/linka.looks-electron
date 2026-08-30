@@ -265,9 +265,15 @@ export function normalizePage(
       ? (topColumns ?? DEFAULT_COLUMNS) + (bottomColumns ?? DEFAULT_COLUMNS)
       : Math.max(1, rows * columns);
   const sourceCards = (page.cards ?? []).filter(Boolean);
-  const cards = (
-    mode === "match" ? sourceCards : sourceCards.slice(0, size)
-  ).map((card, index) =>
+  const normalizedCards =
+    mode === "match" ? [...sourceCards] : sourceCards.slice(0, size);
+  while (
+    normalizedCards.length > size &&
+    normalizedCards[normalizedCards.length - 1].cardType === CardType.NewCard
+  ) {
+    normalizedCards.pop();
+  }
+  const cards = normalizedCards.map((card, index) =>
     normalizeCard(card, mode, columns, rows, topColumns ?? columns, index),
   );
 

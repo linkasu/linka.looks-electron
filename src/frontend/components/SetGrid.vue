@@ -97,7 +97,10 @@ const currentPage = computed<SetPage>(() => {
 
 const placements = computed(() => getCardGridPlacements(currentPage.value));
 
-const visiblePlacements = computed(() => placements.value.filter((placement) => !placement.covered));
+const visiblePlacements = computed(() => placements.value.filter((placement) =>
+  !placement.covered &&
+  (currentPage.value.mode !== "match" || placement.card.cardType !== CardType.NewCard)
+));
 
 function getPlacementStyle (placement: CardGridPlacement) {
   return {
