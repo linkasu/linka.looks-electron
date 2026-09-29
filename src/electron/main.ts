@@ -12,6 +12,7 @@ import { TelemetryController } from "./telemetry/controller";
 import { createLooksTelemetry } from "./telemetry";
 import { registerTelemetryIpc } from "./telemetry/ipc";
 import { TelemetryPreferenceStore } from "./telemetry/preference";
+import { registerTtsIpc } from "./tts";
 
 if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
   app.setPath("userData", process.env.TEST_USER_DATA_DIR);
@@ -266,6 +267,7 @@ app.on("ready", async () => {
   );
   await telemetryController.initialize();
   registerTelemetryIpc(telemetryController);
+  if (process.env.TTS_INSTALLATION_TOKENS_ENABLED === "true") registerTtsIpc();
   await createWindow();
 });
 

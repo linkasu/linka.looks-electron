@@ -23,7 +23,13 @@ const alias = {
   "@": resolve(__dirname, "src")
 };
 
+const installationTokensEnabled =
+  process.env.TTS_INSTALLATION_TOKENS_ENABLED === "true" ? "true" : "false";
+
 export default defineConfig(({ command }) => ({
+  define: {
+    "process.env.TTS_INSTALLATION_TOKENS_ENABLED": JSON.stringify(installationTokensEnabled)
+  },
   resolve: {
     alias
   },
