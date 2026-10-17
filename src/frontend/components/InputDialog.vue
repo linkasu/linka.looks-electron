@@ -1,7 +1,14 @@
 <template>
-  <v-dialog v-model="dialog" width="auto" @show="dialog = true">
+  <v-dialog v-model="dialog" max-width="480" @show="dialog = true">
     <template v-if="buttonText || icon" #activator="{ props }">
-      <v-btn v-bind="props" :block="!!!icon" :icon="icon" :flat="!!icon">
+      <v-btn
+        v-bind="props"
+        :block="!!!icon"
+        :icon="icon"
+        :flat="!!icon"
+        :title="title"
+        :aria-label="buttonText || title"
+      >
         {{ buttonText }}
         <v-icon v-if="icon">
           {{ icon }}
@@ -9,7 +16,7 @@
       </v-btn>
     </template>
 
-    <v-card min-width="300px">
+    <v-card>
       <v-card-title primary-title>
         {{ title }}
       </v-card-title>
@@ -19,10 +26,10 @@
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="submit()">
+        <v-btn color="primary" variant="flat" @click="submit()">
           {{ confirmText }}
         </v-btn>
-        <v-btn v-if="cancelText" color="primary" @click="dialog = false">
+        <v-btn v-if="cancelText" @click="dialog = false">
           {{ cancelText }}
         </v-btn>
       </v-card-actions>

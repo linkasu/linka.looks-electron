@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AdmZip from "adm-zip";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanupE2EContext,
@@ -14,6 +14,7 @@ import {
 
 test("existing activation still requires an explicit telemetry choice", async () => {
   const context = createE2EContext();
+  rmSync(join(context.userDataDir, "telemetry-preference-v3.json"));
   writeFileSync(
     join(context.userDataDir, "config.json"),
     JSON.stringify({
@@ -30,10 +31,14 @@ test("existing activation still requires an explicit telemetry choice", async ()
     await window.getByRole("button", { name: "Не отправлять" }).click();
     await expect(window.getByText("Техническая статистика", { exact: true })).toBeHidden();
 
-    const config = JSON.parse(readFileSync(join(context.userDataDir, "config.json"), "utf8")) as {
-      telemetryConsent?: string;
+    const config = JSON.parse(
+      readFileSync(join(context.userDataDir, "telemetry-preference-v3.json"), "utf8")
+    ) as {
+      schemaVersion: number;
+      preference: string;
     };
-    expect(config.telemetryConsent).toBe("disabled");
+    expect(config.schemaVersion).toBe(3);
+    expect(config.preference).toBe("disabled");
   } finally {
     await electronApp.close();
     cleanupE2EContext(context);
@@ -132,7 +137,7 @@ test("assistant settings page scrolls within the main content area", async () =>
     const window = await firstTestWindow(electronApp);
     await window.setViewportSize({ width: 800, height: 600 });
     await window.goto(`${devServerUrl}/#/settings`);
-    await expect(window.getByText("Главные настройки")).toBeVisible();
+    await expect(window.getByText("Управление коммуникатором")).toBeVisible();
 
     const main = window.locator(".app-main");
     const metrics = await main.evaluate((el) => ({
@@ -146,7 +151,8 @@ test("assistant settings page scrolls within the main content area", async () =>
     await main.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    await expect(window.getByText("Настройки кнопок")).toBeVisible();
+    await window.locator("summary").filter({ hasText: "Назначить клавиши" }).click();
+    await expect(window.getByText("Клавиатура и джойстик")).toBeVisible();
   } finally {
     await electronApp.close();
     cleanupE2EContext(context);
@@ -167,11 +173,14 @@ async function expectEditorAudioControlsReachable(
   await panel.evaluate((el) => {
     el.scrollTop = el.scrollHeight;
   });
+  await panel
+    .getByRole("button", { name: "Создать озвучку из текста", exact: true })
+    .scrollIntoViewIfNeeded();
 
   const metrics = await panel.evaluate((el) => {
     const panelRect = el.getBoundingClientRect();
     const button = Array.from(el.querySelectorAll("button")).find((candidate) =>
-      candidate.textContent?.includes("оздать из текста")
+      candidate.textContent?.includes("Создать озвучку из текста")
     );
     const buttonRect = button?.getBoundingClientRect();
 
@@ -294,7 +303,7 @@ test("home grid keeps the last row above the footer", async () => {
     await expect(window.getByText("home-layout-49")).toBeVisible();
 
     await window.evaluate(() => {
-      const root = document.querySelector(".root");
+      const root = document.querySelector(".folder-grid");
       if (root) root.scrollTop = root.scrollHeight;
     });
 
@@ -439,11 +448,10 @@ test("quiz set handles wrong and correct answers", async () => {
     await window.getByRole("button", { name: "Начать" }).click();
 
     await window.getByRole("button", { name: "Wrong" }).click();
-    await expect
-      .poll(async () => {
-        return window.evaluate(() => !!document.querySelector(".mdi-numeric-1-box"));
-      })
-      .toBe(true);
+    await expect(window.locator(".attempts").filter({ hasText: "Ошибок" })).toHaveAttribute(
+      "aria-label",
+      "Ошибок: 1"
+    );
     await window.getByRole("button", { name: "Right" }).click();
 
     await expect(window.getByRole("button", { name: /Далее/ })).toBeVisible();
@@ -493,7 +501,6 @@ test("match set handles wrong and correct pairs", async () => {
     await window.getByRole("button", { name: "Cat" }).nth(1).click();
     await expect(window.getByText("Неверная пара")).toBeVisible();
 
-    await window.getByRole("button", { name: "Apple" }).nth(0).click();
     await window.getByRole("button", { name: "Apple" }).nth(1).click();
     await expect(window.getByText("Верно")).toBeVisible();
   } finally {
@@ -531,13 +538,20 @@ test("editor saves changed page settings to set archive", async () => {
     await window.getByLabel("Количество строк").fill("2");
     await window.keyboard.press("Escape");
     await expect(window.getByLabel("Количество строк")).toBeHidden();
-    await window.locator(".v-app-bar button").last().click({ timeout: 5000 });
-    await expect(window.getByText(`Сохранить ${setName}?`)).toBeVisible();
-    await window
-      .getByRole("button", { name: /^Сохранить$/ })
-      .evaluate((button) => (button as HTMLButtonElement).click());
-
+    await window.getByRole("button", { name: "Сохранить", exact: true }).click();
     await expect.poll(() => readSetRows(context.homeDir, setName)).toBe(2);
+    await expect(window).toHaveURL(/#\/edit\//);
+    await expect(window.getByText("Набор сохранён", { exact: true })).toBeVisible();
+    await expect(
+      window.getByRole("button", { name: "Следующая страница", exact: true })
+    ).toBeDisabled();
+    await window.getByRole("button", { name: "+ Страница", exact: true }).click();
+    await expect(window.locator(".page-indicator")).toHaveText("Страница 2 из 2");
+    await window.getByRole("button", { name: "Другие действия сохранения", exact: true }).click();
+    await window.getByRole("menuitem", { name: "Сохранить и выйти", exact: true }).click();
+    await expect(window).not.toHaveURL(/#\/edit\//);
+    const saved = new AdmZip(join(context.homeDir, setName));
+    expect(JSON.parse(saved.readAsText("config.json")).pages).toHaveLength(2);
   } finally {
     await electronApp.close();
     cleanupE2EContext(context);

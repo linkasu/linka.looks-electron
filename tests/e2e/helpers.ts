@@ -46,6 +46,10 @@ export function createE2EContext(): E2EContext {
       defaultSetsDownloaded: 1
     })
   );
+  writeFileSync(
+    join(userDataDir, "telemetry-preference-v3.json"),
+    JSON.stringify({ schemaVersion: 3, preference: "disabled" })
+  );
 
   return { root, homeDir, userDataDir };
 }

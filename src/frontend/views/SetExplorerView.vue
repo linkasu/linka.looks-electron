@@ -4,11 +4,17 @@
     full-height
     class="root"
     :class="{
-      root_hide: !showStandardOutput && !isQuiz && !isMatch && !isSettingsOpened,
       root_settings: isSettingsOpened
     }"
   >
     <layout-settings-panel />
+    <div
+      v-if="!showStandardOutput && !isQuiz && !isMatch && !isSettingsOpened"
+      class="compact-controls"
+    >
+      <gaze-pause-button />
+      <span>Выберите карточку, чтобы произнести</span>
+    </div>
 
     <output-line
       v-if="showStandardOutput"
@@ -24,8 +30,10 @@
       :page="quizFinished ? totalPages : page"
       :errors="quizErrors"
       :waiting-for-next="waitingForNext"
-      @restart="((page = 0), (quizErrors = 0), (waitingForNext = false), (quizFinished = false))"
+      :feedback="quizFeedback"
+      @restart="restartQuiz"
       @next="advanceQuiz"
+      @dialog="quizDialogOpen = $event"
     />
 
     <match-output-line
@@ -44,15 +52,46 @@
       :show-exit-button="showGridExitButton"
       :matched-card-ids="matchedCardIds"
       :selected-card-id="selectedCardId"
+      :interaction-blocked="
+        interactionBusy || (isQuiz && (quizDialogOpen || waitingForNext || quizFinished))
+      "
+      :answer-card-id="answerCardId"
+      :answer-correct="answerCorrect"
       @update:page="page = $event"
       @card="addCard"
     />
+    <div v-else class="set-state" role="alert">
+      <v-icon size="48" color="warning">mdi-link-off</v-icon>
+      <h2>В этом задании пока нет доступных пар</h2>
+      <p>Помощник может проверить связи между карточками в редакторе.</p>
+      <eye-button color="accent" class="state-action" @click="$router.back()">
+        К наборам
+      </eye-button>
+    </div>
   </v-layout>
+  <div v-else class="set-state" :role="loadError ? 'alert' : 'status'">
+    <template v-if="loadError">
+      <v-icon size="48" color="warning">mdi-file-alert-outline</v-icon>
+      <h2>Не удалось открыть набор</h2>
+      <p>Проверьте, доступен ли файл, и попробуйте снова.</p>
+      <eye-button
+        color="accent"
+        class="state-action"
+        @click="loadSet(route.params.path.toString())"
+      >
+        Попробовать снова
+      </eye-button>
+    </template>
+    <template v-else>
+      <v-progress-circular indeterminate color="primary" aria-label="Загрузка набора" />
+      <p>Открываем набор…</p>
+    </template>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onUnmounted } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import OutputLine from "@/frontend/components/OutputLine.vue";
@@ -61,6 +100,8 @@ import MatchOutputLine from "@/frontend/components/MatchOutputLine.vue";
 import SetGrid from "@/frontend/components/SetGrid.vue";
 import { normalizePage, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
+import EyeButton from "@/frontend/components/EyeButton.vue";
+import GazePauseButton from "@/frontend/components/GazePauseButton.vue";
 import { Telemetry } from "@/frontend/utils/Telemetry";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 import {
@@ -81,6 +122,14 @@ const cards: Ref<Card[]> = ref([]);
 const quizErrors = ref(0);
 const waitingForNext = ref(false);
 const quizFinished = ref(false);
+const quizDialogOpen = ref(false);
+const quizFeedback = ref("");
+const answerCardId = ref<string | null>(null);
+const answerCorrect = ref(false);
+const interactionBusy = ref(false);
+let interactionRevision = 0;
+let advanceTimer: ReturnType<typeof setTimeout> | undefined;
+const loadError = ref(false);
 const matchErrors = ref(0);
 const matchMessage = ref("Найдите все связи между верхней и нижней строками");
 const selectedCardId = ref<string | null>(null);
@@ -166,6 +215,11 @@ watch(
 );
 
 function resetInteractivePageState() {
+  interactionRevision++;
+  clearTimeout(advanceTimer);
+  interactionBusy.value = false;
+  quizFeedback.value = "";
+  answerCardId.value = null;
   waitingForNext.value = false;
   quizFinished.value = false;
   selectedCardId.value = null;
@@ -175,15 +229,36 @@ function resetInteractivePageState() {
   matchMessage.value = "Найдите все связи между верхней и нижней строками";
 }
 
+onUnmounted(() => {
+  interactionRevision++;
+  clearTimeout(advanceTimer);
+});
+
+function restartQuiz() {
+  resetInteractivePageState();
+  page.value = 0;
+  quizErrors.value = 0;
+}
+
 async function loadSet(nextFilename: string) {
+  loadError.value = false;
   store.commit("explorer_config", undefined);
   cards.value = [];
   quizErrors.value = 0;
   resetInteractivePageState();
-  await store.dispatch("open_file", nextFilename);
-  await store.dispatch("editor_current", nextFilename);
-  filename.value = nextFilename;
-  Telemetry.product("openSet");
+  try {
+    await store.dispatch("open_file", nextFilename);
+    if (!store.state.explorer.config) {
+      loadError.value = true;
+      return;
+    }
+    await store.dispatch("editor_current", nextFilename);
+    filename.value = nextFilename;
+    Telemetry.product("openSet");
+  } catch {
+    store.commit("explorer_config", undefined);
+    loadError.value = true;
+  }
 }
 
 function advancePage() {
@@ -204,6 +279,8 @@ function advanceQuiz() {
 }
 
 async function addCard(card: Card, index: number) {
+  if (interactionBusy.value || (isQuiz.value && (quizDialogOpen.value || quizFinished.value)))
+    return;
   Telemetry.product("cardClick");
   if (isQuiz.value) {
     await onQuizCard(card);
@@ -235,14 +312,28 @@ async function onQuizCard(card: Card) {
     quizAutoNext.value
   );
   if (result.ignored) return;
-
-  if (result.feedbackText) {
-    await TTS.instance.forcePlayText(result.feedbackText);
-  }
-  page.value = result.page;
+  const revision = interactionRevision;
+  interactionBusy.value = true;
+  answerCardId.value = card.id;
+  answerCorrect.value = !!card.answer;
+  quizFeedback.value = card.answer
+    ? "Верно. Можно продолжить"
+    : quizAutoNext.value
+      ? "Неверный ответ. Переходим дальше"
+      : "Попробуйте ещё раз";
   quizErrors.value = result.errors;
   waitingForNext.value = result.waitingForNext;
-  quizFinished.value = result.quizFinished;
+  try {
+    if (result.feedbackText) await TTS.instance.forcePlayText(result.feedbackText);
+  } catch {
+    if (revision === interactionRevision) quizFeedback.value += ". Озвучка недоступна";
+  } finally {
+    if (revision === interactionRevision) {
+      page.value = result.page;
+      quizFinished.value = result.quizFinished;
+      interactionBusy.value = false;
+    }
+  }
 }
 
 async function onMatchCard(card: Card, index: number) {
@@ -259,28 +350,43 @@ async function onMatchCard(card: Card, index: number) {
     totalPages: totalPages.value
   });
   if (result.ignored) return;
-
-  if (result.shouldPlayCard) {
-    await TTS.instance.playCards(filename.value, [card], true);
-  }
+  const revision = interactionRevision;
+  interactionBusy.value = true;
   selectedCardId.value = result.selectedCardId;
   matchedCardIds.value = result.matchedCardIds;
   solvedMatchPairIds.value = result.solvedPairIds;
   matchErrors.value = result.matchErrors;
   matchMessage.value = result.matchMessage;
 
-  if (result.feedbackText) {
-    await TTS.instance.forcePlayText(result.feedbackText);
-  }
-
-  if (result.advancePageAfterSolved) {
-    setTimeout(() => {
-      page.value++;
-    }, 700);
+  try {
+    if (result.shouldPlayCard) await TTS.instance.playCards(filename.value, [card], true);
+    if (revision !== interactionRevision) return;
+    if (result.feedbackText) await TTS.instance.forcePlayText(result.feedbackText);
+  } catch {
+    if (revision === interactionRevision) matchMessage.value += ". Озвучка недоступна";
+  } finally {
+    if (revision === interactionRevision) {
+      interactionBusy.value = false;
+      if (result.advancePageAfterSolved) {
+        advanceTimer = setTimeout(() => {
+          if (revision === interactionRevision) page.value++;
+        }, 700);
+      }
+    }
   }
 }
 </script>
 <style scoped>
+.compact-controls {
+  display: grid;
+  grid-template-columns: 1fr 9fr;
+  height: 150px;
+}
+.compact-controls > span {
+  align-self: center;
+  padding: 16px;
+  font-size: 22px;
+}
 .root {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -295,5 +401,22 @@ async function onMatchCard(card: Card, index: number) {
 }
 .root > div {
   width: 100%;
+}
+.set-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 0;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--linka-text);
+}
+.state-action {
+  width: min(100%, 320px);
+  height: 96px;
+  font-size: 20px;
 }
 </style>

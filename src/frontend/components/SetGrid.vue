@@ -1,13 +1,28 @@
 <template>
-  <div class="grid">
+  <div
+    class="grid"
+    :class="{
+      'grid--no-pagination': !showPagination,
+      'grid--no-controls': !showPagination && !showExitButton
+    }"
+  >
     <div class="left-grid">
-      <eye-button v-if="showExitButton" color="accent" @click="$router.back()">
-        <v-icon>mdi-exit-run</v-icon>
+      <eye-button
+        v-if="showExitButton"
+        color="accent"
+        :disabled="interactionBlocked"
+        aria-label="Вернуться к наборам"
+        @click="$router.back()"
+      >
+        <v-icon>mdi-folder-outline</v-icon>
+        <span class="control-label">К наборам</span>
       </eye-button>
       <eye-button
         v-if="showPagination"
-        color="primary"
+        color="accent"
         lock
+        :disabled="interactionBlocked || !store.state.button.enabled"
+        aria-label="Предыдущая страница"
         :eye-disabled="isPageTurnEyeDisabled"
         @click="changePage(-1)"
       >
@@ -27,7 +42,15 @@
         :key="placement.card.id"
         :card="placement.card"
         :file="file"
-        :disabled="isCardDisabled(placement.card)"
+        :disabled="interactionBlocked || isCardDisabled(placement.card)"
+        :aria-pressed="selectedCardId === placement.card.id"
+        :aria-description="
+          answerCardId === placement.card.id
+            ? answerCorrect
+              ? 'Верный ответ'
+              : 'Неверный ответ'
+            : undefined
+        "
         :style="
           currentPage.mode === 'match'
             ? cardPosition(placement.index)
@@ -35,7 +58,9 @@
         "
         :class="{
           active: selectedCardId === placement.card.id,
-          matched: matchedCardIds.includes(placement.card.id)
+          matched: matchedCardIds.includes(placement.card.id),
+          'answer-correct': answerCardId === placement.card.id && answerCorrect,
+          'answer-wrong': answerCardId === placement.card.id && !answerCorrect
         }"
         @click="emit('card', placement.card, placement.index)"
       />
@@ -43,8 +68,10 @@
 
     <eye-button
       v-if="showPagination"
-      color="primary"
+      color="accent"
       lock
+      :disabled="interactionBlocked || !store.state.button.enabled"
+      aria-label="Следующая страница"
       :eye-disabled="isPageTurnEyeDisabled"
       @click="changePage(1)"
     >
@@ -69,6 +96,9 @@ interface ISetGridProps {
   showExitButton?: boolean;
   matchedCardIds?: string[];
   selectedCardId?: string | null;
+  interactionBlocked?: boolean;
+  answerCardId?: string | null;
+  answerCorrect?: boolean;
 }
 
 const store = useStore();
@@ -177,16 +207,30 @@ function isCardDisabled(card: Card): boolean {
 
 <style scoped>
 .grid {
-  border-top: 1px solid black;
+  border-top: 1px solid var(--linka-border);
   display: grid;
   grid-template-columns: 1fr 8fr 1fr;
   height: 100%;
   min-height: 0;
 }
+.grid--no-pagination {
+  grid-template-columns: 1fr 9fr;
+}
+.grid--no-controls {
+  grid-template-columns: minmax(0, 1fr);
+}
+.grid--no-controls .left-grid {
+  display: none;
+}
+.control-label {
+  display: block;
+  margin-top: 8px;
+  font-size: clamp(12px, 1.2vw, 18px);
+}
 .cards {
   display: grid;
-  grid-template-columns: repeat(var(--columns), 1fr);
-  grid-template-rows: repeat(var(--rows), calc(100% / var(--rows)));
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
   height: 100%;
   min-height: 0;
 }
@@ -206,9 +250,48 @@ function isCardDisabled(card: Card): boolean {
   min-height: 0;
 }
 .active {
-  border: 3px solid rgb(var(--v-theme-secondary));
+  background: rgb(var(--v-theme-accent));
+  outline: 4px solid rgb(var(--v-theme-primary));
+  outline-offset: -6px;
+}
+.active::after,
+.answer-correct::after,
+.answer-wrong::after {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: clamp(12px, 1.5vw, 20px);
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+}
+.active::after {
+  content: "Выбрано";
+}
+.answer-correct::after {
+  content: "✓ Верно";
+}
+.answer-wrong::after {
+  content: "× Неверный ответ";
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-error));
+  border: 2px solid currentColor;
 }
 .matched {
-  opacity: 0.6;
+  background: rgb(var(--v-theme-accent));
+}
+.matched::after {
+  content: "✓";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-size: 20px;
+  line-height: 28px;
 }
 </style>

@@ -41,6 +41,7 @@ export interface LINKaStore {
     multiplyScale: boolean;
   };
   ui: {
+    gazeSuspended: boolean;
     disabled: boolean;
     outputLine: boolean;
     exitButton: boolean;

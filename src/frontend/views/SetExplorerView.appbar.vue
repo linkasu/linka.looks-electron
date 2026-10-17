@@ -1,20 +1,24 @@
 <template>
   <v-app-bar class="set-explorer-appbar">
-    <v-btn flat icon @click="back">
+    <v-btn flat icon title="Назад к наборам" aria-label="Назад к наборам" @click="back">
       <v-icon>mdi-arrow-left</v-icon>
     </v-btn>
     <v-app-bar-title>
       {{ title }}
     </v-app-bar-title>
     <v-spacer />
-    <div v-if="config" class="page-indicator">{{ page + 1 }} из {{ totalPages }}</div>
+    <div v-if="config" class="page-indicator">
+      {{ pageMode === "quiz" ? "Вопрос" : "Страница" }} {{ page + 1 }} из {{ totalPages }}
+    </div>
     <v-spacer />
     <notes-button v-if="config?.description" :config="config" />
     <v-btn
+      v-if="pageMode === 'standard'"
       flat
       icon
       :color="interfaceOutputLine ? 'primary' : ''"
       :title="(interfaceOutputLine ? 'Скрыть' : 'Показать') + ' строку вывода'"
+      :aria-label="(interfaceOutputLine ? 'Скрыть' : 'Показать') + ' строку вывода'"
       @click="switchInterfaceOutputLine"
     >
       <v-icon>mdi-form-textbox</v-icon>
@@ -24,28 +28,53 @@
       icon
       :color="buttonEnabled ? 'primary' : ''"
       :title="(buttonEnabled ? 'Выключить' : 'Включить') + ' управление глазами'"
+      :aria-label="(buttonEnabled ? 'Выключить' : 'Включить') + ' управление глазами'"
+      :aria-pressed="buttonEnabled"
       @click="switchButtonEnabled"
     >
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </v-btn>
+    <span v-if="!buttonEnabled" class="gaze-status" role="status">На паузе</span>
     <v-spacer />
-    <v-btn flat icon title="Настройки отображения" @click="toggleSettingsOpen">
+    <v-btn
+      flat
+      icon
+      title="Настройки отображения"
+      aria-label="Настройки отображения"
+      @click="toggleSettingsOpen"
+    >
       <v-icon> mdi-view-dashboard-edit-outline </v-icon>
     </v-btn>
-    <share-button />
-    <v-btn flat icon title="Копировать набор" @click="duplicateSet">
-      <v-icon>mdi-content-copy</v-icon>
-    </v-btn>
-    <v-btn flat icon title="Объединить наборы" @click="startMerge">
-      <v-icon>mdi-merge</v-icon>
-    </v-btn>
-    <v-btn flat icon :to="editLink">
-      <v-icon>mdi-pencil</v-icon>
-    </v-btn>
-    <folder-button :file="file" @move="move" />
-    <delete-button :file="title" @delete="del" />
-    <v-dialog v-model="mergeDialog" width="auto">
-      <v-card min-width="340px">
+    <v-dialog v-model="toolsDialog" max-width="520">
+      <template #activator="{ props }">
+        <v-btn
+          v-bind="props"
+          class="assistant-tools"
+          prepend-icon="mdi-tools"
+          title="Инструменты помощника"
+          aria-label="Инструменты помощника"
+        >
+          <span class="assistant-label">Помощнику</span>
+        </v-btn>
+      </template>
+      <template #default="{ isActive }">
+        <v-card title="Инструменты помощника">
+          <v-card-text class="assistant-actions">
+            <share-button text="Показать файл для отправки" />
+            <v-btn prepend-icon="mdi-content-copy" @click="duplicateSet">Копировать набор</v-btn>
+            <v-btn prepend-icon="mdi-merge" @click="startMerge">Объединить наборы</v-btn>
+            <v-btn prepend-icon="mdi-pencil" :to="editLink">Редактировать набор</v-btn>
+            <folder-button :file="file" text="Переместить набор" @move="move" />
+            <delete-button :file="title" text="Удалить набор" @delete="del" />
+          </v-card-text>
+          <v-card-actions
+            ><v-btn @click="isActive.value = false">Закрыть инструменты</v-btn></v-card-actions
+          >
+        </v-card>
+      </template>
+    </v-dialog>
+    <v-dialog v-model="mergeDialog" max-width="560">
+      <v-card>
         <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
           <div class="merge-subtitle">Основной: {{ title }}</div>
@@ -61,10 +90,13 @@
             item-title="title"
             item-value="value"
           />
+          <p v-if="!mergeOptions.length">В этой папке нет других наборов для объединения.</p>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge"> Объединить </v-btn>
-          <v-btn color="primary" @click="mergeDialog = false"> Отмена </v-btn>
+          <v-btn color="primary" variant="flat" :disabled="!mergeTarget" @click="applyMerge">
+            Создать объединённый набор
+          </v-btn>
+          <v-btn @click="mergeDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -72,7 +104,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
@@ -90,14 +122,35 @@ import { HOME_DIR } from "@/common/constants";
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
+const toolsDialog = ref(false);
+let previousToolsEnabled: boolean | null = null;
+watch(toolsDialog, (open) => {
+  store.commit("ui_gazeSuspended", open);
+  if (open) {
+    previousToolsEnabled = store.state.button.enabled;
+    store.commit("button_enabled", false);
+  } else if (previousToolsEnabled !== null) {
+    store.commit("button_enabled", previousToolsEnabled);
+    previousToolsEnabled = null;
+  }
+});
 const mergeDialog = ref(false);
 const mergeTarget = ref("");
 const mergeName = ref("");
 const mergeOptions = ref<{ title: string; value: string }[]>([]);
 
+watch(
+  () => route.fullPath,
+  () => {
+    toolsDialog.value = false;
+    mergeDialog.value = false;
+  }
+);
+
 const file = computed(() => route.params.path.toString());
 const config = computed(() => store.state.explorer.config);
 const page = computed(() => store.state.explorer.page ?? 0);
+const pageMode = computed(() => config.value?.pages?.[page.value]?.mode ?? "standard");
 
 const totalPages = computed(() => {
   if (!config.value) return 1;
@@ -203,6 +256,8 @@ function toRoutePath(absolutePath: string) {
 }
 
 onUnmounted(async () => {
+  store.commit("ui_gazeSuspended", false);
+  if (previousToolsEnabled !== null) store.commit("button_enabled", previousToolsEnabled);
   if (isSettingsOpened.value) {
     await toggleSettingsOpen();
   }
@@ -212,13 +267,41 @@ onUnmounted(async () => {
 <style scoped>
 .page-indicator {
   padding: 2px 10px;
-  border: 1px solid black;
+  border: 1px solid var(--linka-border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--linka-surface);
+  color: var(--linka-text);
   font-weight: 600;
   white-space: nowrap;
 }
 .merge-subtitle {
   margin-bottom: 8px;
+}
+.assistant-actions {
+  display: grid;
+  gap: 12px;
+}
+.gaze-status {
+  color: var(--linka-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  .set-explorer-appbar :deep(.v-toolbar-title) {
+    min-width: 0;
+    margin-inline-start: 4px;
+    font-size: 1rem;
+  }
+  .page-indicator {
+    padding-inline: 4px;
+    font-size: 0.8rem;
+  }
+  .assistant-tools {
+    min-width: 44px;
+    padding-inline: 8px;
+  }
+  .assistant-label {
+    display: none;
+  }
 }
 </style>

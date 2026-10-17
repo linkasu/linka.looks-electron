@@ -1,6 +1,20 @@
 <template>
   <div fluid class="editor">
     <new-file-dialog :show="newFileDialogShow" :disabled="ui_disabled" @text="newFileName" />
+    <v-dialog v-model="deleteConfirmation" max-width="440" :persistent="ui_disabled">
+      <v-card>
+        <v-card-title>{{
+          deleteTarget === "page" ? "Удалить страницу?" : "Сбросить карточку?"
+        }}</v-card-title>
+        <v-card-text>Содержимое будет удалено. Отменить это действие нельзя.</v-card-text>
+        <v-card-actions>
+          <v-btn @click="deleteConfirmation = false">Оставить без изменений</v-btn>
+          <v-btn color="error" :disabled="ui_disabled" @click="confirmDelete">{{
+            deleteTarget === "page" ? "Удалить страницу" : "Сбросить карточку"
+          }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <v-dialog v-model="audioOverwriteDialog" max-width="420">
       <v-card>
         <v-card-title>Заменить озвучку?</v-card-title>
@@ -21,9 +35,9 @@
       </template>
     </v-snackbar>
     <div class="editor-body">
-      <v-card v-if="filename" xs8 fill-height fluid>
+      <v-card v-if="filename" class="editor-canvas">
         <v-card-title> Карточки </v-card-title>
-        <v-card-text>
+        <v-card-text v-if="pageMode === 'quiz' || pageMode === 'match'" class="page-instructions">
           <v-text-field
             v-if="pageMode === 'quiz'"
             v-model="question"
@@ -62,52 +76,64 @@
                 }"
                 :style="getCardStyle(index)"
                 :dot="pageMode === 'quiz' && !!element.answer"
+                :aria-pressed="selected?.id === element.id"
+                :aria-invalid="!isValid(element)"
                 @click="select(index)"
               />
             </template>
           </draggable>
         </v-card-text>
         <v-card-text class="buttons">
-          <v-layout>
-            <v-row>
-              <v-col xs="2">
-                <v-btn block color="orange" :disabled="ui_disabled || page === 0" @click="page--">
-                  <v-icon>mdi-arrow-left</v-icon>
-                </v-btn>
-              </v-col>
-              <v-col xs="2">
-                <v-btn block color="blue" :disabled="ui_disabled">
-                  {{ page + 1 }} из {{ totalPages }}
-                </v-btn>
-              </v-col>
-              <v-col xs="2">
-                <v-btn block color="primary" :disabled="emptyPage || ui_disabled" @click="copyPage">
-                  <v-icon>mdi-content-copy</v-icon>
-                </v-btn>
-              </v-col>
-              <v-col xs="2">
-                <v-btn block color="error" :disabled="ui_disabled" @click="deletePage">
-                  <v-icon>mdi-delete-outline</v-icon>
-                </v-btn>
-              </v-col>
-              <v-col xs="2">
-                <v-btn block color="orange" :disabled="emptyPage || ui_disabled" @click="nextPage">
-                  <v-icon>mdi-arrow-right</v-icon>
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-layout>
+          <nav class="page-controls" aria-label="Страницы набора">
+            <v-btn
+              variant="tonal"
+              aria-label="Предыдущая страница"
+              :disabled="ui_disabled || page === 0"
+              @click="page--"
+            >
+              <v-icon>mdi-arrow-left</v-icon>
+            </v-btn>
+            <span class="page-indicator" aria-live="polite"
+              >Страница {{ page + 1 }} из {{ totalPages }}</span
+            >
+            <v-btn
+              variant="text"
+              aria-label="Копировать страницу"
+              :disabled="emptyPage || ui_disabled"
+              @click="copyPage"
+            >
+              <v-icon>mdi-content-copy</v-icon>
+            </v-btn>
+            <v-btn
+              variant="text"
+              color="error"
+              aria-label="Удалить страницу"
+              :disabled="ui_disabled"
+              @click="requestDelete('page')"
+            >
+              <v-icon>mdi-delete-outline</v-icon>
+            </v-btn>
+            <v-btn
+              variant="tonal"
+              aria-label="Следующая страница"
+              :disabled="ui_disabled || page + 1 === totalPages"
+              @click="page++"
+            >
+              <v-icon>mdi-arrow-right</v-icon>
+            </v-btn>
+            <v-btn variant="tonal" :disabled="ui_disabled" @click="addPage">+ Страница</v-btn>
+          </nav>
         </v-card-text>
       </v-card>
-      <v-card v-if="selected" class="editor-side-panel editor-side-panel--selected mt-7">
-        <v-card-title primary-title>
+      <v-card v-if="selected" class="editor-side-panel editor-side-panel--selected">
+        <v-card-title class="inspector-title">
           Редактирование
           <v-spacer />
           <v-btn
             v-if="selected.cardType !== CardTypes.NewCard"
             title="Копировать карточку"
+            aria-label="Копировать карточку"
             icon
-            absolute
             depressed
             color="primary"
             class="copy"
@@ -119,13 +145,13 @@
           <v-btn
             v-if="selected.cardType !== CardTypes.NewCard"
             title="Сбросить карточку"
+            aria-label="Сбросить карточку"
             icon
-            absolute
             depressed
             color="error"
             class="delete"
             :disabled="ui_disabled"
-            @click="resetSelected"
+            @click="requestDelete('card')"
           >
             <v-icon>mdi-delete</v-icon>
           </v-btn>
@@ -144,65 +170,6 @@
                 />
               </v-col>
             </v-row>
-            <v-row v-if="showMergeControls">
-              <v-col>
-                <v-card width="100%" elevation="0" class="span-settings">
-                  <v-card-title primary-title> Размер карточки </v-card-title>
-                  <v-card-subtitle> Сейчас: {{ cardSpanLabel }} </v-card-subtitle>
-                  <v-card-text>
-                    <v-container>
-                      <v-row>
-                        <v-col>
-                          <v-btn
-                            block
-                            color="primary"
-                            :disabled="ui_disabled || !cardSpanInfo.canFillRow"
-                            @click="mergeFullRow"
-                          >
-                            {{ cardSpanInfo.canFillRow ? "Объединить строку" : "Строка занята" }}
-                          </v-btn>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col>
-                          <v-btn
-                            block
-                            variant="tonal"
-                            :disabled="ui_disabled || !cardSpanInfo.canGrowRight"
-                            @click="growRight"
-                          >
-                            {{ cardSpanInfo.canGrowRight ? "+ вправо" : "Справа занято" }}
-                          </v-btn>
-                        </v-col>
-                        <v-col>
-                          <v-btn
-                            block
-                            variant="tonal"
-                            :disabled="ui_disabled || !cardSpanInfo.canGrowDown"
-                            @click="growDown"
-                          >
-                            {{ cardSpanInfo.canGrowDown ? "+ вниз" : "Снизу занято" }}
-                          </v-btn>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col>
-                          <v-btn
-                            block
-                            color="error"
-                            variant="tonal"
-                            :disabled="ui_disabled || !cardSpanInfo.canReset"
-                            @click="resetSpan"
-                          >
-                            Сбросить до 1×1
-                          </v-btn>
-                        </v-col>
-                      </v-row>
-                    </v-container>
-                  </v-card-text>
-                </v-card>
-              </v-col>
-            </v-row>
             <section v-if="selected.cardType === CardTypes.AudioCard">
               <v-row>
                 <v-col>
@@ -215,6 +182,8 @@
                   />
                 </v-col>
               </v-row>
+            </section>
+            <section v-if="selected.cardType === CardTypes.AudioCard">
               <v-row>
                 <v-card width="100%" elevation="0">
                   <v-card-title primary-title> Работа с изображением </v-card-title>
@@ -345,15 +314,72 @@
                 </v-card>
               </v-row>
             </section>
+            <details v-if="showMergeControls" class="advanced-card-settings">
+              <summary>Размер карточки · {{ cardSpanLabel }}</summary>
+              <v-card width="100%" elevation="0" class="span-settings">
+                <v-card-subtitle> Сейчас: {{ cardSpanLabel }} </v-card-subtitle>
+                <v-card-text>
+                  <v-container>
+                    <v-row>
+                      <v-col>
+                        <v-btn
+                          block
+                          color="primary"
+                          :disabled="ui_disabled || !cardSpanInfo.canFillRow"
+                          @click="mergeFullRow"
+                        >
+                          {{ cardSpanInfo.canFillRow ? "Объединить строку" : "Строка занята" }}
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <v-btn
+                          block
+                          variant="tonal"
+                          :disabled="ui_disabled || !cardSpanInfo.canGrowRight"
+                          @click="growRight"
+                        >
+                          {{ cardSpanInfo.canGrowRight ? "+ вправо" : "Справа занято" }}
+                        </v-btn>
+                      </v-col>
+                      <v-col>
+                        <v-btn
+                          block
+                          variant="tonal"
+                          :disabled="ui_disabled || !cardSpanInfo.canGrowDown"
+                          @click="growDown"
+                        >
+                          {{ cardSpanInfo.canGrowDown ? "+ вниз" : "Снизу занято" }}
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <v-btn
+                          block
+                          color="error"
+                          variant="tonal"
+                          :disabled="ui_disabled || !cardSpanInfo.canReset"
+                          @click="resetSpan"
+                        >
+                          Сбросить до 1×1
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                  </v-container>
+                </v-card-text>
+              </v-card>
+            </details>
           </v-form>
         </v-card-text>
       </v-card>
       <v-card v-else class="editor-side-panel">
-        <v-card-title primary-title> Выберите картинку для начала работы </v-card-title>
+        <v-card-title primary-title> Выберите карточку </v-card-title>
         <v-card-text>
           <h3>Советы в редакторе наборов:</h3>
           <ul>
-            <li>Для добавления новой карточки выберете любую с "+"</li>
+            <li>Чтобы добавить карточку, выберите ячейку с «+»</li>
             <li>Вы можете менять карточки местами, перетаскивая их</li>
           </ul>
         </v-card-text>
@@ -419,6 +445,20 @@ const copiedAudio = ref<{
 const audioOverwriteDialog = ref(false);
 const audioNotification = ref("");
 const audioNotificationVisible = ref(false);
+const deleteConfirmation = ref(false);
+const deleteTarget = ref<"page" | "card">("page");
+
+function requestDelete(target: "page" | "card") {
+  deleteTarget.value = target;
+  deleteConfirmation.value = true;
+}
+
+function confirmDelete() {
+  if (ui_disabled.value) return;
+  if (deleteTarget.value === "page") deletePage();
+  else resetSelected();
+  deleteConfirmation.value = false;
+}
 
 onMounted(() => {
   if (route.params.path.toString().endsWith("new")) {
@@ -697,8 +737,8 @@ function deletePage() {
   selectedCardId.value = null;
 }
 
-function nextPage() {
-  const result = advanceEditorPage(pages.value, page.value);
+function addPage() {
+  const result = advanceEditorPage(pages.value, pages.value.length - 1);
   pages.value = result.pages;
   page.value = result.page;
 }
@@ -887,14 +927,31 @@ function clearMatchLink() {
 <style scoped>
 .editor {
   height: calc(100vh - 104px);
-  padding: 10px;
+  padding: 16px;
+  color: var(--linka-text);
 }
 
 .editor-body {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 8fr 4fr;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 16px;
+}
+
+.editor-canvas {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.inspector-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
 }
 
 .editor-side-panel {
@@ -904,33 +961,64 @@ function clearMatchLink() {
 }
 
 .editor-side-panel--selected {
-  height: calc(100% - 28px);
-}
-
-.cards {
-  height: 60%;
-  display: grid;
-  grid-template-rows: repeat(var(--rows), 1fr);
-  grid-template-columns: repeat(var(--columns), 1fr);
-}
-
-.cards-wrapper {
   height: 100%;
 }
 
+.cards {
+  min-height: 280px;
+  height: 100%;
+  display: grid;
+  grid-template-rows: repeat(var(--rows), 1fr);
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cards-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.page-instructions {
+  flex: 0 0 auto;
+}
+
 .buttons {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
+  flex: 0 0 auto;
+  border-top: 1px solid var(--linka-border);
+}
+
+.page-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.page-indicator {
+  color: var(--linka-muted);
 }
 
 .selected {
-  background: yellow !important;
-  border: 1px solid yellow;
+  background: color-mix(in srgb, rgb(var(--v-theme-primary)) 12%, var(--linka-surface)) !important;
+  outline: 4px double rgb(var(--v-theme-primary));
+  outline-offset: -5px;
+}
+
+.advanced-card-settings {
+  margin-top: 24px;
+}
+
+.advanced-card-settings summary {
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+  font-weight: 600;
 }
 
 .nonValid {
-  border: 3px solid red;
+  border: 2px solid rgb(var(--v-theme-error));
 }
 
 .pendingMatch {
@@ -946,16 +1034,43 @@ function clearMatchLink() {
   box-shadow: inset 0 0 0 4px rgb(var(--v-theme-primary));
 }
 
-.delete {
-  position: absolute;
-  right: 0;
-  top: 0;
+.editor-side-panel :deep(.v-card-title) {
+  white-space: normal;
+  font-size: 1.05rem;
 }
 
-.copy {
-  position: absolute;
-  right: 40px;
-  top: 0;
+.editor-side-panel section > .v-row + .v-row {
+  margin-top: 16px;
+}
+
+.editor-side-panel :deep(.v-btn__content) {
+  white-space: normal;
+}
+
+.editor-side-panel :deep(.v-btn) {
+  min-height: 44px;
+  height: auto;
+}
+
+@media (max-width: 700px) {
+  .editor {
+    height: auto;
+  }
+
+  .editor-body {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-side-panel,
+  .editor-side-panel--selected {
+    height: auto;
+    max-height: 70vh;
+  }
+
+  .cards-wrapper {
+    flex-basis: auto;
+  }
 }
 
 .match-hint {

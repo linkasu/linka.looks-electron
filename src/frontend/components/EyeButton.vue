@@ -1,29 +1,41 @@
 <template>
-  <button
+  <component
+    :is="preview ? 'div' : 'button'"
     ref="elRef"
     class="eyebtn"
-    :class="{ eye: buttonEnabled && !props.editor, isInside, lock }"
+    :class="{
+      eye: (buttonEnabled || (lock && !disabled)) && !editor && !preview,
+      isInside,
+      lock,
+      preview
+    }"
+    :type="preview ? undefined : 'button'"
     :data-eye-disabled="props.eyeDisabled ? '1' : null"
-    :style="{ background: `rgb(var(--v-theme-${color}))`, borderWidth }"
-    :disabled="nativeDisabled"
+    :style="{
+      background: color ? `rgb(var(--v-theme-${color}))` : undefined,
+      color: color ? `rgb(var(--v-theme-on-${color}))` : undefined,
+      borderWidth
+    }"
+    :disabled="preview ? undefined : nativeDisabled"
     @click="click()"
   >
     <slot />
     <div
-      v-if="isInside || (!buttonEnabled && !lock)"
+      v-if="!preview && (isInside || (!buttonEnabled && !lock))"
       class="overlay"
       :class="{ disabled: !buttonEnabled && !lock }"
+      aria-hidden="true"
     >
       <div v-if="circle" class="progress-bar" :style="{ '--seconds': seconds, '--size': size }">
-        <progress min="0" :max="buttonTimeout" style="visibility: hidden; height: 0; width: 0" />
+        <span class="sr-only">Выбор взглядом</span>
       </div>
     </div>
-  </button>
+  </component>
 </template>
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useStore } from "vuex";
 
 interface IEyeButtonProps {
@@ -33,6 +45,7 @@ interface IEyeButtonProps {
   path?: boolean;
   editor?: boolean;
   eyeDisabled?: boolean;
+  preview?: boolean;
 }
 
 const props = withDefaults(defineProps<IEyeButtonProps>(), {
@@ -60,8 +73,8 @@ onMounted(() => {
   el?.addEventListener("eye-enter", (event) => {
     const e = event as CustomEvent;
     const eye = !!e.detail.eye;
-    if (props.editor) return;
-    if (buttonEnabled.value || props.lock) onEnter(eye);
+    if (props.editor || props.preview) return;
+    if (!nativeDisabled.value) onEnter(eye);
   });
   el?.addEventListener("eye-exit", () => {
     onExit();
@@ -80,10 +93,14 @@ const nativeDisabled = computed(() => {
   return !buttonEnabled.value;
 });
 
+watch(nativeDisabled, (disabled) => {
+  if (disabled) onExit();
+});
+
 const size = computed(() => {
   if (!elRef.value) return 0 + "px";
   const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect();
-  return Math.min(rect.width, rect.height) * 0.8 + "px";
+  return Math.min(44, Math.min(rect.width, rect.height) * 0.3) + "px";
 });
 
 const seconds = computed(() => {
@@ -105,7 +122,8 @@ function onEnter(eye: boolean) {
 }
 
 function click() {
-  if (!store.state.button.clickSound) return;
+  onExit();
+  if (props.preview || !store.state.button.clickSound) return;
   const el = document.getElementById("button_audio") as HTMLAudioElement;
   el.currentTime = 0;
   el.play();
@@ -119,11 +137,12 @@ function click() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  border-radius: inherit;
 }
 
 .disabled {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(83, 103, 97, 0.08);
 }
 
 .eyebtn {
@@ -132,10 +151,28 @@ function click() {
   overflow: hidden;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border-radius: 12px;
+  container-type: size;
 }
 
 .isInside {
-  background-color: rgb(var(--v-theme-secondary)) !important;
+  box-shadow: inset 0 0 0 3px rgb(var(--v-theme-primary));
+}
+
+.eyebtn:disabled {
+  cursor: default;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 canvas {
@@ -159,22 +196,20 @@ canvas {
 .progress-bar {
   display: flex;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 6px;
+  right: 6px;
   justify-content: center;
   align-items: center;
 
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
-  background:
-    radial-gradient(closest-side, transparent 79%, transparent 80% 100%),
-    conic-gradient(
-      rgba(var(--v-theme-primary), 0.5) calc(var(--progress-value) * 1%),
-      transparent 0
-    );
-  animation: progress 1s infinite forwards;
+  background: conic-gradient(
+    rgb(var(--v-theme-primary)) calc(var(--progress-value) * 1%),
+    rgb(var(--v-theme-secondary)) 0
+  );
+  mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: progress 1s forwards;
   animation-duration: var(--seconds);
   animation-timing-function: linear;
 }

@@ -295,6 +295,7 @@ function createVuexStore(pageTurnMode = "mouseAndEyes") {
   return createStore({
     state: {
       button: {
+        enabled: true,
         pageTurnMode
       },
       explorer: {

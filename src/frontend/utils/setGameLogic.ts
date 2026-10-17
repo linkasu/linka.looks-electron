@@ -279,7 +279,7 @@ export function handleMatchCard(card: Card, index: number, state: MatchState): M
     matchErrors: state.matchErrors + 1,
     matchMessage: "Неверная пара",
     matchedCardIds,
-    selectedCardId: null,
+    selectedCardId: state.selectedCardId,
     shouldPlayCard: true,
     solvedPairIds
   };

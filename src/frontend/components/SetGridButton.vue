@@ -1,6 +1,13 @@
 <template>
-  <eye-button :disabled="disabled" :eye-disabled="eyeDisabled" :editor="editor">
-    <div v-if="dot" class="dot" />
+  <eye-button
+    :disabled="disabled"
+    :eye-disabled="eyeDisabled"
+    :editor="editor"
+    :preview="preview"
+    :aria-label="cardLabel"
+    :title="cardLabel"
+  >
+    <div v-if="dot" class="dot" aria-label="Есть связь" />
     <v-icon v-if="card.cardType === CardTypes.NewCard"> mdi-plus </v-icon>
     <div v-else class="content">
       <div class="cardContainer" align-center>
@@ -19,7 +26,7 @@
       </div>
       <div v-if="card.cardType === CardTypes.AudioCard" class="text">
         <span :style="{ fontSize: `${titleFontSize}px`, fontWeight: fontBold ? 700 : 400 }">
-          {{ card.title?.slice(0, 50) }}
+          {{ card.title }}
         </span>
       </div>
     </div>
@@ -43,6 +50,7 @@ interface ISetGridButtonProps {
   editor?: boolean;
   disabled?: boolean;
   eyeDisabled?: boolean;
+  preview?: boolean;
 }
 
 const props = withDefaults(defineProps<ISetGridButtonProps>(), {
@@ -53,6 +61,12 @@ const props = withDefaults(defineProps<ISetGridButtonProps>(), {
 });
 
 const CardTypes = CardType;
+const cardLabel = computed(() => {
+  if (props.card.cardType === CardType.NewCard) return "Добавить карточку";
+  if (props.card.cardType === CardType.SpaceCard) return "Пробел";
+  if (props.card.cardType === CardType.EmptyCard) return "Пустая карточка";
+  return props.card.title || "Карточка без названия";
+});
 const store = useStore();
 const image: Ref<string | null> = ref("");
 let objectUrl: string | null = null;
@@ -143,9 +157,10 @@ function createStaticImage(url: string) {
 .content {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 2.5em;
-  gap: 10px;
-  padding: 8px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: clamp(4px, 4cqw, 12px);
+  min-height: 0;
 }
 .icon {
   height: 100%;
@@ -153,6 +168,7 @@ function createStaticImage(url: string) {
 }
 .cardContainer {
   position: relative;
+  min-height: 0;
 }
 .img {
   background-image: var(--image);
@@ -180,10 +196,12 @@ function createStaticImage(url: string) {
   transform: translate(-50%, -50%);
 }
 .text {
-  height: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
   max-width: 100%;
   font-size: 1em;
   font-weight: normal;
@@ -195,8 +213,8 @@ function createStaticImage(url: string) {
   border-radius: calc(var(--size) / 2);
   background-color: rgb(var(--v-theme-secondary));
   position: absolute;
-  top: calc(var(--size) / -2);
-  right: calc(var(--size) / -2);
-  z-index: 10000;
+  top: 6px;
+  right: 6px;
+  border: 3px solid rgb(var(--v-theme-surface));
 }
 </style>

@@ -41,6 +41,19 @@ describe("OutputLine", () => {
     expect(wrapper.emitted("value")?.[0]).to.deep.equal([[cards[0]]]);
   });
 
+  it("can restore a cleared message but never carries undo into another set", async () => {
+    const cards = [audioCard("one"), audioCard("two")];
+    const wrapper = mountOutputLine({ cards });
+    await wrapper.get('[aria-label="Очистить сообщение"]').trigger("click");
+    await wrapper.setProps({ cards: [] });
+    await wrapper.get('[aria-label="Вернуть сообщение"]').trigger("click");
+    expect(wrapper.emitted("value")?.[1]).to.deep.equal([cards]);
+    await wrapper.setProps({ cards });
+    await wrapper.get('[aria-label="Очистить сообщение"]').trigger("click");
+    await wrapper.setProps({ cards: [], file: "another.linka" });
+    expect(wrapper.find('[aria-label="Вернуть сообщение"]').exists()).to.equal(false);
+  });
+
   it("speaks concatenated text in without-space mode", async () => {
     const wrapper = mountOutputLine({
       cards: [
@@ -102,6 +115,7 @@ function mountOutputLine({
       plugins: [store],
       stubs: {
         EyeButton: {
+          emits: ["click"],
           props: ["color", "lock"],
           template:
             '<button class="eye-button-stub" @click="$emit(&quot;click&quot;)"><slot /></button>'

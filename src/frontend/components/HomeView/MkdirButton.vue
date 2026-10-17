@@ -1,7 +1,8 @@
 <template>
   <div>
     <input-dialog
-      icon="mdi-folder-plus"
+      :icon="text ? undefined : 'mdi-folder-plus'"
+      :button-text="text"
       title="Введите название папки"
       label="Название папки"
       confirm-text="Создать"
@@ -14,7 +15,7 @@
       Ошибка создания папки. Проверьте название на наличие спецсимволов.
 
       <template #actions>
-        <v-btn color="blue" variant="text" @click="error = false"> Закрыть </v-btn>
+        <v-btn color="primary" variant="text" @click="error = false"> Закрыть </v-btn>
       </template>
     </v-snackbar>
   </div>
@@ -28,6 +29,7 @@ import InputDialog from "@/frontend/components/InputDialog.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 
 const route = useRoute();
+defineProps<{ text?: string }>();
 
 const error = ref(false);
 

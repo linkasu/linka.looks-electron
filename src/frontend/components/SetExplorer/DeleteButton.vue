@@ -1,17 +1,28 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
+  <v-dialog v-model="dialog" max-width="480">
     <template #activator="{ props }">
-      <v-btn color="error" flat icon="" v-bind="props">
-        <v-icon>mdi-delete-forever</v-icon>
+      <v-btn
+        color="error"
+        flat
+        :icon="!text"
+        :prepend-icon="text ? 'mdi-delete-outline' : undefined"
+        v-bind="props"
+        title="Удалить набор"
+        aria-label="Удалить набор"
+      >
+        <v-icon v-if="!text">mdi-delete-outline</v-icon>
+        {{ text }}
       </v-btn>
     </template>
 
-    <v-card min-width="300px">
+    <v-card>
       <v-card-title primary-title> Удалить {{ file }}? </v-card-title>
-      <v-card-text> Вы уверены? </v-card-text>
+      <v-card-text> Набор будет перемещён в корзину. </v-card-text>
       <v-card-actions>
-        <v-btn color="error" @click="(emit('delete'), (dialog = false))"> Да </v-btn>
-        <v-btn color="primary" @click="dialog = false"> Нет </v-btn>
+        <v-btn color="error" variant="flat" @click="(emit('delete'), (dialog = false))">
+          Удалить набор
+        </v-btn>
+        <v-btn @click="dialog = false"> Отмена </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -20,7 +31,7 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 
-defineProps<{ file: string }>();
+defineProps<{ file: string; text?: string }>();
 const emit = defineEmits<{ (e: "delete"): void }>();
 
 const dialog = ref(false);

@@ -4,9 +4,25 @@
       {{ title || "LINKa. смотри" }}
     </v-app-bar-title>
     <v-spacer />
-    <share-button />
-    <rmdir-button />
-    <mkdir-button />
+    <v-dialog v-model="toolsDialog" max-width="520">
+      <template #activator="{ props }">
+        <v-btn v-bind="props" prepend-icon="mdi-tools" aria-label="Инструменты помощника"
+          >Помощнику</v-btn
+        >
+      </template>
+      <template #default="{ isActive }">
+        <v-card title="Инструменты помощника">
+          <v-card-text class="assistant-actions">
+            <share-button text="Показать папку в проводнике" />
+            <mkdir-button text="Создать папку" />
+            <rmdir-button text="Удалить папку" />
+          </v-card-text>
+          <v-card-actions
+            ><v-btn @click="isActive.value = false">Закрыть инструменты</v-btn></v-card-actions
+          >
+        </v-card>
+      </template>
+    </v-dialog>
     <v-tooltip v-if="$platform.isMacOS" location="bottom">
       <template #activator="{ props }">
         <v-chip
@@ -39,17 +55,18 @@
     >
       <v-icon>mdi-eye</v-icon>
     </v-btn>
-    <v-btn flat icon :to="newHref">
+    <v-btn flat icon :to="newHref" title="Создать набор" aria-label="Создать набор">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
-    <v-btn flat icon to="/settings">
+    <v-btn flat icon to="/settings" title="Настройки приложения" aria-label="Настройки приложения">
       <v-icon>mdi-cog</v-icon>
     </v-btn>
   </v-app-bar>
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import { ipcRenderer, type IpcRendererEvent } from "electron";
 
@@ -60,6 +77,18 @@ import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { TobiiStatus } from "@linkasu/tobii-electron/main";
 
 const route = useRoute();
+const store = useStore();
+const toolsDialog = ref(false);
+let previousToolsEnabled: boolean | null = null;
+watch(toolsDialog, (open) => {
+  if (open) {
+    previousToolsEnabled = store.state.button.enabled;
+    store.commit("button_enabled", false);
+  } else if (previousToolsEnabled !== null) {
+    store.commit("button_enabled", previousToolsEnabled);
+    previousToolsEnabled = null;
+  }
+});
 const tobiiStatus = ref<TobiiStatus>();
 
 const root = computed(() => {
@@ -160,6 +189,14 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (previousToolsEnabled !== null) store.commit("button_enabled", previousToolsEnabled);
   ipcRenderer.off("tobii:status", onTobiiStatus);
 });
 </script>
+
+<style scoped>
+.assistant-actions {
+  display: grid;
+  gap: 12px;
+}
+</style>
