@@ -43,6 +43,17 @@ describe("store", () => {
     expect(send.mock.calls[0]).to.deep.equal(["button_timeout", 2500]);
   });
 
+  it("persists the chosen dwell indicator without changing activation timing", () => {
+    expect(store.state.button.dwellIndicator).to.equal("inward");
+    store.commit("button_dwellIndicator", "circle");
+    expect(store.state.button.dwellIndicator).to.equal("circle");
+    expect(eStore.get("button_dwellIndicator")).to.equal("circle");
+    expect(store.state.button.timeout).to.equal(1000);
+    expect(send.mock.calls).to.have.length(0);
+    store.commit("button_dwellIndicator", "unsupported");
+    expect(store.state.button.dwellIndicator).to.equal("inward");
+  });
+
   it("keeps legacy local consent unknown until the main-process V3 preference is confirmed", async () => {
     setTelemetryPreference.mockClear();
 
@@ -262,6 +273,7 @@ describe("store", () => {
 });
 
 function resetStoreState() {
+  store.commit("button_dwellIndicator", "inward");
   store.commit("telemetryConsent", "unknown");
   store.commit("button_enabled", true);
   store.commit("button_timeout", 1000);

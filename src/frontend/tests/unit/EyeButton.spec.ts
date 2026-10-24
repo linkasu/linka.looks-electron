@@ -83,6 +83,23 @@ describe("eye button", () => {
     expect(wrapper.find(".progress-bar").exists()).to.equal(true);
   });
 
+  it("offers the legacy central circle and applies changes on the next dwell", async () => {
+    const store = createVuexStore({ dwellIndicator: "circle" });
+    const wrapper = mount(EyeButton, { global: { plugins: [store] } });
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(true);
+    store.state.button.dwellIndicator = "inward";
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(true);
+    dispatchEyeEvent(wrapper, "eye-exit");
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-fill").exists()).to.equal(true);
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(false);
+    expect(wrapper.get(".progress-bar").attributes("style")).to.contain("--seconds: 1s");
+  });
+
   it("removes gaze overlay on eye exit", async () => {
     const wrapper = mount(EyeButton, {
       global: {
@@ -225,6 +242,7 @@ describe("eye button", () => {
 });
 
 interface ButtonState {
+  dwellIndicator?: "inward" | "circle";
   enabled: boolean;
   borders: number;
   timeout: number;

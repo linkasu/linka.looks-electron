@@ -134,6 +134,15 @@
             </template>
 
             <v-divider class="my-2" />
+            <v-select
+              v-model="dwellIndicator"
+              :items="dwellIndicatorOptions"
+              label="Индикатор ожидания взгляда"
+              hint="Меняет только анимацию. Время удержания остаётся прежним."
+              persistent-hint
+              class="mb-4"
+              data-testid="dwell-indicator-select"
+            />
             <h2 id="settings-trial" class="text-subtitle-1 mb-2">Проверить без последствий</h2>
             <p class="settings-explanation mb-3">
               Выберите и активируйте пробную карточку привычным способом. Она только подтвердит
@@ -199,11 +208,19 @@ import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import { Telemetry } from "@/frontend/utils/Telemetry";
-import type { PageTurnMode } from "@/frontend/store/LINKaStore";
+import type { PageTurnMode, DwellIndicatorMode } from "@/frontend/store/LINKaStore";
 import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
 const store = useStore();
 const trialCount = ref(0);
+const dwellIndicatorOptions = [
+  { title: "От краёв к центру", value: "inward" },
+  { title: "Круг по центру", value: "circle" }
+];
+const dwellIndicator = computed({
+  get: (): DwellIndicatorMode => store.state.button.dwellIndicator ?? "inward",
+  set: (value: DwellIndicatorMode) => store.commit("button_dwellIndicator", value)
+});
 
 const pageTurnModeOptions: { text: string; value: PageTurnMode }[] = [
   { text: "Только мышь", value: "mouseOnly" },

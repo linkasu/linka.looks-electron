@@ -10,6 +10,7 @@ interface KeyMap {
 }
 export type Side = keyof KeyMap;
 export type PageTurnMode = "mouseOnly" | "mouseAndEyes";
+export type DwellIndicatorMode = "inward" | "circle";
 export interface LINKaStore {
   pcHash: string;
   telemetryConsent: TelemetryConsent;
@@ -28,6 +29,7 @@ export interface LINKaStore {
   selectedKey?: Side;
   button: {
     timeout: number;
+    dwellIndicator: DwellIndicatorMode;
     eyeSelect: boolean;
     eyeActivation: boolean;
     joystickActivation: boolean;

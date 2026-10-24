@@ -1,6 +1,6 @@
 import { createStore } from "vuex";
 
-import { LINKaStore, PageTurnMode, Side } from "./LINKaStore";
+import { LINKaStore, PageTurnMode, Side, type DwellIndicatorMode } from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { DEFAULT_COLORS } from "@/frontend/plugins/visualDefaults";
@@ -32,6 +32,7 @@ const fields = [
   { commit: "layoutSettings_fontBold", default: true } as Field<boolean>,
   { commit: "layoutSettings_isOpened", default: false } as Field<boolean>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
+  { commit: "button_dwellIndicator", default: "inward" } as Field<DwellIndicatorMode>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
@@ -66,6 +67,7 @@ const store = createStore<LINKaStore>({
     voiceEn: "john",
     button: {
       timeout: 1000,
+      dwellIndicator: "inward",
       enabled: true,
       eyeSelect: true,
       eyeActivation: true,
@@ -243,6 +245,9 @@ const store = createStore<LINKaStore>({
     },
     button_animation({ button }, value) {
       button.animation = value;
+    },
+    button_dwellIndicator({ button }, value: unknown) {
+      button.dwellIndicator = value === "circle" ? "circle" : "inward";
     },
     button_clickSound({ button }, value) {
       button.clickSound = value;

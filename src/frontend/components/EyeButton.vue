@@ -26,7 +26,9 @@
       :class="{ disabled: !buttonEnabled && !lock }"
       aria-hidden="true"
     >
-      <div v-if="circle" class="progress-bar" :style="{ '--seconds': seconds, '--size': size }">
+      <div v-if="showProgress" class="progress-bar" :style="{ '--seconds': seconds }">
+        <div v-if="activeIndicator === 'circle'" class="dwell-circle" />
+        <div v-else class="dwell-fill" />
         <span class="sr-only">Выбор взглядом</span>
       </div>
     </div>
@@ -37,6 +39,7 @@
 import type { Ref } from "vue";
 import { ref, onMounted, computed, watch } from "vue";
 import { useStore } from "vuex";
+import type { DwellIndicatorMode } from "@/frontend/store/LINKaStore";
 
 interface IEyeButtonProps {
   disabled?: boolean;
@@ -59,7 +62,8 @@ const store = useStore();
 
 const elRef: Ref<Element | null> = ref(null);
 const isInside = ref(false);
-const circle = ref(false);
+const showProgress = ref(false);
+const activeIndicator = ref<DwellIndicatorMode>("inward");
 const borderWidth = computed(() => {
   return store.state.button.borders + "px";
 });
@@ -97,19 +101,13 @@ watch(nativeDisabled, (disabled) => {
   if (disabled) onExit();
 });
 
-const size = computed(() => {
-  if (!elRef.value) return 0 + "px";
-  const rect = (elRef.value as HTMLButtonElement).getBoundingClientRect();
-  return Math.min(44, Math.min(rect.width, rect.height) * 0.3) + "px";
-});
-
 const seconds = computed(() => {
   return buttonTimeout.value / 1000 + "s";
 });
 
 function onExit() {
   isInside.value = false;
-  circle.value = false;
+  showProgress.value = false;
 }
 
 function onEnter(eye: boolean) {
@@ -117,8 +115,11 @@ function onEnter(eye: boolean) {
   if (eye && !store.state.button.eyeSelect && !props.lock) return;
   if (!eye && !store.state.button.keyboardActivation) return;
   if (!eye && !store.state.button.joystickActivation) return;
+  if (!isInside.value) {
+    activeIndicator.value = store.state.button.dwellIndicator === "circle" ? "circle" : "inward";
+  }
   isInside.value = true;
-  circle.value = (store.state.button.eyeActivation || props.lock) && eye;
+  showProgress.value = (store.state.button.eyeActivation || props.lock) && eye;
 }
 
 function click() {
@@ -155,7 +156,7 @@ function click() {
   min-height: 0;
   background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface));
-  border-radius: 12px;
+  border-radius: 3px;
   container-type: size;
 }
 
@@ -181,36 +182,59 @@ canvas {
   top: 0;
 }
 
-@property --progress-value {
-  syntax: "<integer>";
-  initial-value: 0;
-  inherits: false;
-}
-
 @keyframes progress {
+  from {
+    inset: 0;
+    border-radius: 0;
+  }
+  50% {
+    inset: calc(50% - 25cqmin);
+    border-radius: 50%;
+  }
   to {
-    --progress-value: 100;
+    inset: 50%;
+    border-radius: 50%;
   }
 }
 
 .progress-bar {
-  display: flex;
   position: absolute;
-  top: 6px;
-  right: 6px;
-  justify-content: center;
-  align-items: center;
+  inset: 0;
+  border-radius: inherit;
+}
 
-  width: var(--size);
-  height: var(--size);
-  border-radius: 50%;
-  background: conic-gradient(
-    rgb(var(--v-theme-primary)) calc(var(--progress-value) * 1%),
-    rgb(var(--v-theme-secondary)) 0
-  );
-  mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+.dwell-fill {
+  position: absolute;
+  box-shadow: 0 0 0 100vmax rgba(var(--v-theme-primary), 0.4);
   animation: progress 1s forwards;
   animation-duration: var(--seconds);
   animation-timing-function: linear;
+}
+
+@property --circle-progress {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: false;
+}
+
+@keyframes circle-progress {
+  to {
+    --circle-progress: 100;
+  }
+}
+
+.dwell-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80cqmin;
+  height: 80cqmin;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: conic-gradient(
+    rgba(var(--v-theme-primary), 0.5) calc(var(--circle-progress) * 1%),
+    transparent 0
+  );
+  animation: circle-progress var(--seconds) linear forwards;
 }
 </style>

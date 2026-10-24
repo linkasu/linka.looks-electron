@@ -160,6 +160,20 @@ test("calm visual refresh preserves both roles and captures the real screens", a
     );
     await expect(card).toHaveClass(/isInside/);
     await expect(card.locator(".progress-bar")).toBeVisible();
+    const dwell = await card.locator(".progress-bar").evaluate((element) => {
+      const animation = element.getAnimations({ subtree: true })[0];
+      animation.pause();
+      animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+      const bounds = element.getBoundingClientRect();
+      const target = element.closest("button")!.getBoundingClientRect();
+      return {
+        widthDifference: target.width - bounds.width,
+        heightDifference: target.height - bounds.height
+      };
+    });
+    expect(dwell.widthDifference).toBeLessThanOrEqual(4);
+    expect(dwell.heightDifference).toBeLessThanOrEqual(4);
+    await page.screenshot({ path: join(screenshotDir, "gaze-dwell-full-card.png") });
     await card.evaluate((element) => element.dispatchEvent(new CustomEvent("eye-exit")));
     await page.getByRole("button", { name: "Приостановить управление", exact: true }).click();
     await expect(
@@ -216,6 +230,25 @@ test("calm visual refresh preserves both roles and captures the real screens", a
     await page.getByTestId("settings-trial-button").click();
     await expect(page.getByTestId("settings-trial-status")).toHaveText("Сработало: 1");
     await capture(page, "settings-trial");
+    await page.getByTestId("dwell-indicator-select").click();
+    await page.getByRole("option", { name: "Круг по центру", exact: true }).click();
+    await expect(page.locator(".v-menu .v-overlay__content")).toBeHidden();
+    const trial = page.getByTestId("settings-trial-button");
+    await trial.evaluate((element) =>
+      element.dispatchEvent(new CustomEvent("eye-enter", { detail: { eye: true } }))
+    );
+    await expect(trial.locator(".dwell-circle")).toBeVisible();
+    await trial.locator(".dwell-circle").evaluate((element) => {
+      const animation = element.getAnimations()[0];
+      animation.pause();
+      animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+    });
+    await page.screenshot({ path: join(screenshotDir, "gaze-dwell-central-circle.png") });
+    await page.reload();
+    await expect(page.getByTestId("dwell-indicator-select")).toContainText("Круг по центру");
+    await page.getByTestId("dwell-indicator-select").click();
+    await page.getByRole("option", { name: "От краёв к центру", exact: true }).click();
+    await page.locator("summary").filter({ hasText: "Оформление карточек" }).click();
 
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].webContents.setZoomFactor(2)
