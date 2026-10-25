@@ -26,9 +26,11 @@ const emit = defineEmits<{
 const ui_disabled = computed(() => store.state.ui.disabled);
 
 async function create(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
   store.dispatch("disable_ui");
   try {
-    const value = await storageService.createImageFromText(props.file, text);
+    const value = await storageService.createImageFromText(props.file, trimmed);
     if (value) emit("image", value);
   } catch (error) {
     console.error(error);
