@@ -1,6 +1,6 @@
 <template>
   <v-app-bar>
-    <exit-button @exit="$router.back()" />
+    <exit-button :confirm="hasChanges" @exit="$router.back()" />
     <v-app-bar-title>
       {{ title }}
     </v-app-bar-title>
@@ -52,6 +52,7 @@ const store = useStore();
 const saveError = ref(false);
 
 const ui_disabled = computed(() => store.state.ui.disabled);
+const hasChanges = computed<boolean>(() => store.getters.editor_hasChanges);
 const page = computed(() => store.state.editor.page ?? 0);
 
 const totalPages = computed(() => {
