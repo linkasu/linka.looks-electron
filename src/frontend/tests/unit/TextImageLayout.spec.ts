@@ -42,6 +42,12 @@ describe("text image layout", () => {
     expect(layoutTextImage("Да\n\nНет", 512, 512, measure).lines).toEqual(["Да", "", "Нет"]);
   });
 
+  it("does not split ordinary words or detach their punctuation", () => {
+    const text = "Пожалуйста, помогите";
+    const layout = layoutTextImage(text, 1024, 1024, measure);
+    expect(layout.lines.flatMap((line) => line.split(" "))).toEqual(text.split(" "));
+  });
+
   it("rejects text that cannot fit rather than clipping it", () => {
     expect(() => layoutTextImage("Текст", 1, 1, measure)).toThrow("не помещается");
   });

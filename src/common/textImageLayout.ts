@@ -39,9 +39,21 @@ export function layoutTextImage(
     });
   }
 
-  const widestWord = Math.max(...text.split(/\s+/).map((word) => measure(word, 1)));
-  // Prefer whole words; very long words may wrap instead of shrinking the entire phrase.
-  let high = Math.floor(Math.min(maxHeight / 1.2, Math.max(maxHeight / 4, maxWidth / widestWord)));
+  const words = text.split(/\s+/).filter(Boolean);
+  let wordLow = 1;
+  let wordHigh = Math.floor(maxHeight / 1.2);
+  let wholeWordFont = 0;
+  while (wordLow <= wordHigh) {
+    const size = Math.floor((wordLow + wordHigh) / 2);
+    if (words.every((word) => measure(word, size) <= maxWidth)) {
+      wholeWordFont = size;
+      wordLow = size + 1;
+    } else {
+      wordHigh = size - 1;
+    }
+  }
+  // Prefer whole words; allow very long words to wrap rather than cap all text at a tiny size.
+  let high = Math.max(wholeWordFont, Math.floor(maxHeight / 8));
   let low = 1;
   let result: { fontSize: number; lines: string[]; lineHeight: number; padding: number } | null =
     null;

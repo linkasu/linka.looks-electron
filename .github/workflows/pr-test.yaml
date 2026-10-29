@@ -47,11 +47,9 @@ jobs:
         run: npm run electron:build -- --dir
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
-      - name: Text image generation smoke test
+      - name: Production text image generation smoke test
         timeout-minutes: 5
-        run: npx playwright test tests/e2e/text-images.spec.ts
-        env:
-          DEBUG: pw:browser
+        run: node scripts/ci/run-text-image-smoke.mjs
       - name: Upload text image screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,8 +88,10 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
-      - name: Text image generation smoke test
+      - name: Text image editor smoke test
         run: npx playwright test tests/e2e/text-images.spec.ts
+      - name: Production text image generation smoke test
+        run: node scripts/ci/run-text-image-smoke.mjs
       - name: Upload text image screenshots
         if: always()
         uses: actions/upload-artifact@v4
