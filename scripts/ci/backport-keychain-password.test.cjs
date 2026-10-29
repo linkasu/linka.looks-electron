@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const vm = require("node:vm");
-const crypto = require("node:crypto");
+const nodeCrypto = require("node:crypto");
 const path = require("node:path");
 const { patchSource, PREIMAGE, sha256 } = require("./backport-keychain-password.cjs");
 // CI obtains this exact npm package using package-lock integrity. No actual security
@@ -14,7 +14,7 @@ async function exercise(source, installer) {
   const context = {
     process: { env: { TRAVIS: "true" } },
     path,
-    crypto_1: crypto,
+    crypto_1: nodeCrypto,
     os_1: { tmpdir: () => "/synthetic" },
     removeKeychain: async () => {},
     listUserKeychains: async () => [],
