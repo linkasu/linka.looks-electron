@@ -68,6 +68,26 @@ describe("store", () => {
     expect(store.state.button.pageTurnMode).to.equal("mouseOnly");
   });
 
+  for (const mode of ["hidden", "mouseOnly", "mouseAndEyes"] as const) {
+    it(`persists and restores page turn mode ${mode}`, async () => {
+      store.commit("button_pageTurnMode", mode);
+      expect(eStore.get("button_pageTurnMode")).to.equal(mode);
+
+      vi.resetModules();
+      const { default: restartedStore } = await import("@/frontend/store");
+
+      expect(restartedStore.state.button.pageTurnMode).to.equal(mode);
+    });
+  }
+
+  it("restores the default page turn mode when the setting is absent", async () => {
+    eStore.delete("button_pageTurnMode");
+    vi.resetModules();
+    const { default: restartedStore } = await import("@/frontend/store");
+
+    expect(restartedStore.state.button.pageTurnMode).to.equal("mouseAndEyes");
+  });
+
   it("toggles output line and gaze lock through actions", async () => {
     await store.dispatch("interface_outputLine");
     await store.dispatch("button_enabled");
