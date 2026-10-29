@@ -1,5 +1,6 @@
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { Directory } from "@/common/interfaces/Directory";
+import type { TextImageSize } from "@/common/textImageLayout";
 
 export abstract class ICloudStorage {
   static getMethods(): Array<keyof ICloudStorage> {
@@ -40,7 +41,11 @@ export abstract class ICloudStorage {
   abstract copyToTemp(path: string): Promise<string>;
   abstract selectImage(path: string): Promise<string | null>;
   abstract selectAudio(path: string): Promise<string | null>;
-  abstract createImageFromText(path: string, text: string): Promise<string | null>;
+  abstract createImageFromText(
+    path: string,
+    text: string,
+    size?: TextImageSize
+  ): Promise<string | null>;
   abstract createAudioFromText(path: string, text: string, voice: string): Promise<string | null>;
   abstract defaultToTemp(file: string): string | Promise<string>;
   abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>;

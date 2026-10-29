@@ -7,9 +7,10 @@ process.env.no_proxy = [process.env.no_proxy, "localhost", "127.0.0.1", "::1"]
   .filter(Boolean)
   .join(",");
 
-const e2eDevServerUrl = process.env.E2E_DEV_SERVER_URL || "http://localhost:5174";
+const e2eDevServerUrl = process.env.E2E_DEV_SERVER_URL || "http://127.0.0.1:5174";
 const e2eRemoteDebuggingPort = process.env.E2E_REMOTE_DEBUGGING_PORT || "9322";
 const e2eDevServerPort = new URL(e2eDevServerUrl).port || "5174";
+const e2eDevServerHost = new URL(e2eDevServerUrl).hostname;
 
 process.env.E2E_DEV_SERVER_URL = e2eDevServerUrl;
 process.env.E2E_REMOTE_DEBUGGING_PORT = e2eRemoteDebuggingPort;
@@ -20,7 +21,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   webServer: {
-    command: `npm run serve -- --host localhost --port ${e2eDevServerPort} --strictPort`,
+    command: `npm run serve -- --host ${e2eDevServerHost} --port ${e2eDevServerPort} --strictPort`,
     env: {
       ELECTRON_REMOTE_DEBUGGING_PORT: e2eRemoteDebuggingPort
     },
