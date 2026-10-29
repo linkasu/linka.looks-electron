@@ -19,15 +19,38 @@ DENIED_CONTENT = re.compile(
     rb"\b[A-Z0-9_]{0,64}(?:API_KEY|ACCESS_TOKEN|PRIVATE_KEY|CLIENT_SECRET|PASSWORD))"
     rb"[\s\x00\"']*[:=][\s\x00\"']*[^\s\x00\"']{4,}", re.I)
 PRIVATE_PATH = re.compile(rb"/(?:Users|home)/[^/\s\x00]+|[A-Z]:\\Users\\", re.I)
+# Exact runtime paths observed in the saved app; unknown children remain denied.
+RUNTIME_NAMES = frozenset((
+    "node_modules/@vue/devtools-api/lib/cjs/env.js",
+    "node_modules/@vue/devtools-api/lib/esm/env.js",
+    "node_modules/axios/lib/env",
+    "node_modules/axios/lib/env/README.md",
+    "node_modules/axios/lib/env/classes",
+    "node_modules/axios/lib/env/classes/FormData.js",
+    "node_modules/axios/lib/env/data.js",
+    "node_modules/debug",
+    "node_modules/debug/LICENSE",
+    "node_modules/debug/package.json",
+    "node_modules/debug/src",
+    "node_modules/debug/src/browser.js",
+    "node_modules/debug/src/common.js",
+    "node_modules/debug/src/index.js",
+    "node_modules/debug/src/node.js",
+    "node_modules/follow-redirects/debug.js",
+    "node_modules/nopt/lib/debug.js",
+    "node_modules/semver/internal/debug.js"
+))
 
 
 def scan(path, data):
     evidence.safe_path(path)
     evidence.require(not any(c in path for c in "!*?[]{}"))
-    evidence.require(not DENIED_NAME.search(path))
+    evidence.require(path in RUNTIME_NAMES or not DENIED_NAME.search(path))
     # shortcut: known plaintext/UTF-16 markers only, add independent review before disclosure.
     # Also recognize UTF-16 ASCII markers; do not print a match or its location.
-    evidence.require(not DENIED_CONTENT.search(data.replace(b"\x00", b"")))
+    # Axios reads a variable here, not a password literal; keep every other match denied.
+    evidence.require(all(match.group() == b"password = configAuth.password"
+                         for match in DENIED_CONTENT.finditer(data.replace(b"\x00", b""))))
     evidence.require(not PRIVATE_PATH.search(data.replace(b"\x00", b"")))
 
 

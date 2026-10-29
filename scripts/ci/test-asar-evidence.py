@@ -140,6 +140,51 @@ class EvidenceTests(unittest.TestCase):
                 self.assertEqual(result.stderr, b"Evidence disclosure preflight rejected\n")
                 self.bundle = old
 
+    def test_known_package_runtime_names_still_scan_content(self):
+        paths = (
+            "node_modules/@vue/devtools-api/lib/cjs/env.js",
+            "node_modules/@vue/devtools-api/lib/esm/env.js",
+            "node_modules/axios/lib/env",
+            "node_modules/axios/lib/env/README.md",
+            "node_modules/axios/lib/env/classes",
+            "node_modules/axios/lib/env/classes/FormData.js",
+            "node_modules/axios/lib/env/data.js",
+            "node_modules/debug",
+            "node_modules/debug/LICENSE",
+            "node_modules/debug/package.json",
+            "node_modules/debug/src",
+            "node_modules/debug/src/browser.js",
+            "node_modules/debug/src/common.js",
+            "node_modules/debug/src/index.js",
+            "node_modules/debug/src/node.js",
+            "node_modules/follow-redirects/debug.js",
+            "node_modules/nopt/lib/debug.js",
+            "node_modules/semver/internal/debug.js"
+        )
+        for path in paths:
+            with self.subTest(case="known-runtime-name"):
+                check.scan(path, b"module.exports = {};")
+                for data in (b"PASSWORD='synthetic-secret'", b"/Users/synthetic/private",
+                             b"-----BEGIN PRIVATE KEY-----"):
+                    with self.assertRaises(ValueError):
+                        check.scan(path, data)
+        for path in ("node_modules/debug/.env", "node_modules/debug/src/builder-debug.js",
+                     "node_modules/debug/credentials.json", "node_modules/other/debug.js",
+                     "node_modules/debug/src/unknown.js"):
+            with self.assertRaises(ValueError):
+                check.scan(path, b"")
+
+    def test_observed_password_reference_is_not_a_literal_secret(self):
+        check.scan("index.js", b"const password = configAuth.password || '';")
+        for data in (b"password = 'configAuth.password'", b"password = configAuth.passwordSECRET",
+                     b"password = synthetic-secret", b"password = configAuth.password;",
+                     b"password = configAuth.password\nPASSWORD='synthetic-secret'",
+                     b"password = configAuth.password\nGITHUB_TOKEN='synthetic-token'",
+                     b"password = configAuth.password\n-----BEGIN PRIVATE KEY-----",
+                     b"password = configAuth.password\n/Users/synthetic/private"):
+            with self.assertRaises(ValueError):
+                check.scan("index.js", data)
+
     def test_deny_names_extras_symlinks_and_tampered_manifest(self):
         self.bundle_fixture()
         for name in (".env", "env.txt", "cert.p12", "cert.pem", "login.keychain-db", "builder-debug.yml", "debug.txt"):
