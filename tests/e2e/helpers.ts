@@ -99,7 +99,9 @@ export async function launchTestElectron(context: E2EContext): Promise<ElectronA
 export async function firstTestWindow(electronApp: ElectronApplication): Promise<Page> {
   const window = await electronApp.firstWindow();
   await mockExternalServices(window);
-  await window.waitForLoadState("domcontentloaded", { timeout: 20000 });
+  // HomeView's mounted watcher can still redirect after DOMContentLoaded.
+  await window.locator(".root").waitFor({ state: "visible", timeout: 20000 });
+  await window.waitForURL(/#\/(?:%C2%A7|§)$/, { timeout: 20000 });
   return window;
 }
 

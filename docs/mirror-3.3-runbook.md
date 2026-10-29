@@ -21,6 +21,10 @@
 `./wordpress:/var/www/html:ro`. В прочитанных nginx configs нет
 `disable_symlinks`/`open_file_cache`; обычная static-раздача с `try_files`.
 HTTP-проверка будущих aliases на реальном nginx ещё НЕ проведена.
+Повторное read-only чтение подтвердило Node **v24.5.0**, filesystem type из
+`stat -f -c %T` — **ext2/ext3**; SHA source и `version.json` остались значениями
+аудита. Существующий Node поддерживает используемые native API; реальный
+production fsync/symlink switch не запускался ради этой проверки.
 
 ## Инварианты и атомарность
 
@@ -104,6 +108,9 @@ node update.cjs update "$ROOT" 3.3.0 "$REVIEWED_330_SHA256" --dry-run
 Read-only download 3.2.13 через существующий `gh` уже подтвердил исходные
 134378829 bytes и SHA256 выше. Локальный dry-run через gh transport прошёл;
 первый unauthenticated API-вариант получил HTTP403 и ничего не переключил.
+Затем прошёл и **тот же CLI через stdin с обычным native binary fetch**:
+metadata получена через существующий gh и передана в `MIRROR_RELEASE_B64`;
+токен не передавался. `dryRun=true`, size/hash проверены, current не изменён.
 
 ## Только после допуска выпуска: update и rollback
 

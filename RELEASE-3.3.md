@@ -71,11 +71,21 @@ Candidate Windows **20/20 PASS**, macOS **20/20 PASS**, plain startup/packaged I
 **10 PASS / 2 известных старых failures**, packaged startup/storage PASS.
 Общий run FAILED: PR121 lane дал **19/20**, cold first-window consent assertion
 исчерпал 5s до DOMContentLoaded; unit193+1skip и packaged probes PR121 прошли.
-`firstTestWindow` теперь ждёт реальный DOMContentLoaded (20s bound), без sleep,
-retry или изменения product consent. Не объявляется прошедшим старый красный run.
-Следующий baseline gate проверяет JSON: ровно 10 PASS, ровно 2 известных failure
+Первая попытка исправления `firstTestWindow` ждала DOMContentLoaded (20s bound),
+без sleep/retry или изменения product consent. Старый красный run не объявлен PASS.
+Новый baseline gate проверяет JSON: ровно 10 PASS, ровно 2 известных failure
 names, без skipped/flaky/global errors — произвольный сбой больше не допускается
 через continue-on-error.
+Следующий run <https://github.com/linkasu/linka.looks-electron/actions/runs/40898017825>
+на `69965044223c7900c25d0941be1317c6030d9997` тоже **FAILED**: baseline
+2 passed/10 failed, candidate macOS/Windows и PR121 по 4 passed/16 failed.
+Это подтверждённая ошибка нового harness: DOMContentLoaded ещё не означает
+завершение mounted watcher `HomeView.vue:169–171`. Trace показывает переход в
+editor, затем startup redirect обратно `/§`; product source между runs не менялся.
+Packaged probes и unit PR121 продолжили проходить. Этот run не списан и не скрыт.
+Локальный focused `editor settings expose` воспроизвёл RED с этим helper.
+Readiness исправлен на видимый HomeView `.root` и завершённый домашний URL;
+тот же focused тест GREEN. Никаких sleep/retry/skip или изменения router/product UX.
 Этот run также отдельно checkout-проверяет точный PR121 head и baseline
 `ae1392aa5c17b465a39ab61b12bab20858d8db8a`, без изменения их product source.
 
