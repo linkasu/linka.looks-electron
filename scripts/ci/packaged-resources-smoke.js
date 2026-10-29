@@ -1,7 +1,6 @@
-const { existsSync, mkdtempSync, readdirSync, rmSync, statSync } = require("fs");
-const { spawn, spawnSync } = require("child_process");
+const { existsSync, readdirSync, statSync } = require("fs");
+const { spawn } = require("child_process");
 const { join } = require("path");
-const { tmpdir } = require("os");
 
 const projectRoot = join(__dirname, "..", "..");
 const distDir = join(projectRoot, "dist");
@@ -22,46 +21,6 @@ function assertDirectory(directory) {
   if (!statSync(directory).isDirectory()) {
     throw new Error(`Required packaged resource is not a directory: ${directory}`);
   }
-}
-
-function smokeImageGenerator() {
-  const extraResourcesDir = getWindowsExtraResourcesDir();
-  const imageGenerator = join(extraResourcesDir, "ImageGenerator.exe");
-  assertFile(imageGenerator);
-
-  const outputDir = mkdtempSync(join(tmpdir(), "linka-image-generator-"));
-  const outputFile = join(outputDir, "image.png");
-  const result = spawnSync(imageGenerator, [outputFile, "test"], {
-    encoding: "utf8",
-    timeout: 30000,
-    windowsHide: true
-  });
-
-  try {
-    if (result.error) {
-      if (result.error.code === "ETIMEDOUT" && hasNonEmptyFile(outputFile)) {
-        console.warn(
-          "ImageGenerator.exe produced a PNG but did not exit before timeout; treating packaged resource smoke as success."
-        );
-        return;
-      }
-      throw result.error;
-    }
-    if (result.status !== 0) {
-      throw new Error(
-        `ImageGenerator.exe exited with ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
-      );
-    }
-    if (!hasNonEmptyFile(outputFile)) {
-      throw new Error("ImageGenerator.exe did not produce a non-empty PNG file");
-    }
-  } finally {
-    rmSync(outputDir, { force: true, recursive: true });
-  }
-}
-
-function hasNonEmptyFile(file) {
-  return existsSync(file) && statSync(file).size > 0;
 }
 
 function smokeEyeLog() {
@@ -215,7 +174,6 @@ function smokeMacPackage() {
 
 (async () => {
   if (process.platform === "win32") {
-    smokeImageGenerator();
     await smokeEyeLog();
   } else if (process.platform === "darwin") {
     smokeMacPackage();

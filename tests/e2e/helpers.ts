@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://localhost:5174";
+export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://127.0.0.1:5174";
 const testElectronRemoteDebuggingPort =
   process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "9323";
 

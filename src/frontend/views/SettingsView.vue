@@ -169,8 +169,9 @@ import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 const store = useStore();
 
 const pageTurnModeOptions: { text: string; value: PageTurnMode }[] = [
-  { text: "Только мышь", value: "mouseOnly" },
-  { text: "Мышь и глаза", value: "mouseAndEyes" }
+  { text: "Стрелки скрыты", value: "hidden" },
+  { text: "Только клик специалиста", value: "mouseOnly" },
+  { text: "Мышь и взгляд", value: "mouseAndEyes" }
 ];
 
 onMounted(() => {

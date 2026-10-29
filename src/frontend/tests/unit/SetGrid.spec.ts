@@ -202,6 +202,63 @@ describe("SetGrid", () => {
     ]);
   });
 
+  for (const mode of ["hidden", "mouseOnly", "mouseAndEyes"]) {
+    it(`hides arrows for a one-page set in ${mode} mode`, () => {
+      const wrapper = mountSetGrid({ store: createVuexStore(mode) });
+      expect(pageTurnButtons(wrapper)).to.have.length(0);
+    });
+
+    it(`hides arrows for quiz pages in ${mode} mode`, () => {
+      const pages = [0, 1].map((index) => ({
+        ...createConfig().pages[0],
+        id: `quiz-${index}`,
+        mode: "quiz" as const
+      }));
+      const wrapper = mountSetGrid({
+        config: createConfig(pages),
+        store: createVuexStore(mode)
+      });
+      expect(pageTurnButtons(wrapper)).to.have.length(0);
+    });
+  }
+
+  it("removes arrows when hidden and restores the selected input mode without changing page", async () => {
+    const store = createVuexStore("mouseOnly");
+    const wrapper = mountSetGrid({
+      config: createConfig([createConfig().pages[0], createConfig().pages[0]]),
+      page: 1,
+      store
+    });
+
+    store.state.button.pageTurnMode = "hidden";
+    await wrapper.vm.$nextTick();
+    expect(pageTurnButtons(wrapper)).to.have.length(0);
+    expect(wrapper.emitted("update:page")).to.equal(undefined);
+    expect(store.state.explorer.page).to.equal(1);
+    expect(cardButtons(wrapper)).to.have.length(1);
+
+    store.state.button.pageTurnMode = "mouseAndEyes";
+    await wrapper.vm.$nextTick();
+    expect(pageTurnButtons(wrapper)).to.have.length(2);
+    expect(pageTurnButtons(wrapper)[0].attributes("data-eye-disabled")).to.equal(undefined);
+  });
+
+  for (const mode of ["mouseOnly", "mouseAndEyes"]) {
+    for (const page of [0, 1]) {
+      it(`clamps navigation at page ${page} in ${mode} mode`, async () => {
+        const store = createVuexStore(mode);
+        const wrapper = mountSetGrid({
+          config: createConfig([createConfig().pages[0], createConfig().pages[0]]),
+          page,
+          store
+        });
+        await pageTurnButtons(wrapper)[page].trigger("click");
+        expect(wrapper.emitted("update:page")?.[0]).to.deep.equal([page]);
+        expect(store.state.explorer.page).to.equal(page);
+      });
+    }
+  }
+
   it("marks selected and matched cards with classes", () => {
     const wrapper = mountSetGrid({
       config: createConfig([
@@ -314,7 +371,7 @@ function createVuexStore(pageTurnMode = "mouseAndEyes") {
 }
 
 function createConfig(
-  pages: ConfigFile["pages"] = [
+  pages: NonNullable<ConfigFile["pages"]> = [
     {
       id: "page-1",
       mode: "standard",
@@ -323,7 +380,7 @@ function createConfig(
       cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "card" }]
     }
   ]
-): ConfigFile {
+): ConfigFile & { pages: NonNullable<ConfigFile["pages"]> } {
   return {
     version: "3.0",
     withoutSpace: false,
