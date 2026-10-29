@@ -23,6 +23,7 @@ export default defineConfig({
   webServer: {
     command: `npm run serve -- --host ${e2eDevServerHost} --port ${e2eDevServerPort} --strictPort`,
     env: {
+      IS_TEST: "1",
       ELECTRON_REMOTE_DEBUGGING_PORT: e2eRemoteDebuggingPort
     },
     url: e2eDevServerUrl,
