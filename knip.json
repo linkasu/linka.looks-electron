@@ -5,7 +5,8 @@
     "src/frontend/tests/unit/**/*.spec.ts",
     "src/electron/tests/unit/**/*.spec.ts",
     "tests/e2e/**/*.spec.ts",
-    "scripts/ci/*.{js,mjs,ts}",
+    "tests/packaged/**/*.spec.ts",
+    "scripts/ci/*.{js,cjs,mjs,ts}",
     "postinstall.js"
   ],
   "project": ["src/**/*.{ts,vue}", "scripts/**/*.{js,mjs,ts}", "tests/**/*.ts"],

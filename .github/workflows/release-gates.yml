@@ -1,0 +1,96 @@
+name: Release acceptance (test only)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  software-acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            revision: candidate
+          - os: windows-latest
+            revision: baseline
+          - os: macos-latest
+            revision: candidate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      DEBUG: pw:browser,pw:api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || github.event.pull_request.head.sha }}
+          path: app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Record exact sources and install common test harness
+        shell: bash
+        run: |
+          git -C app rev-parse HEAD
+          git -C harness rev-parse HEAD
+          cp harness/tests/e2e/helpers.ts app/tests/e2e/helpers.ts
+          cp harness/playwright.config.ts app/playwright.config.ts
+          cp harness/playwright.packaged.config.ts app/playwright.packaged.config.ts
+          mkdir -p app/tests/packaged app/scripts/ci
+          cp harness/tests/packaged/app.spec.ts app/tests/packaged/app.spec.ts
+          cp harness/scripts/ci/startup-diagnostics.cjs app/scripts/ci/startup-diagnostics.cjs
+      - name: Install dependencies (native startup stays enabled)
+        working-directory: app
+        run: npm ci
+      - name: Build unpacked production app (never publish)
+        working-directory: app
+        run: npm run electron:build -- --dir -p never
+      - name: Packaged resources
+        working-directory: app
+        run: npm run test:packaged-resources
+      - name: Full candidate E2E
+        if: matrix.revision == 'candidate'
+        timeout-minutes: 8
+        working-directory: app
+        run: npx playwright test --trace retain-on-failure
+      - name: Original baseline full suite (known stale expectations retained)
+        if: matrix.revision == 'baseline'
+        continue-on-error: true
+        timeout-minutes: 6
+        working-directory: app
+        run: npx playwright test --trace retain-on-failure
+      - name: Packaged startup and storage IPC (identical baseline and candidate)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 4
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged startup"
+      - name: Packaged generation user path (feature added after baseline)
+        if: ${{ !cancelled() && matrix.revision == 'candidate' }}
+        timeout-minutes: 5
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
+      - name: Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-${{ matrix.os }}-${{ matrix.revision }}
+          path: |
+            app/test-results/
+            app/packaged-results/
+            app/packaged-report/

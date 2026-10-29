@@ -2,7 +2,7 @@ import { _electron as electron, ElectronApplication, Page } from "@playwright/te
 import AdmZip from "adm-zip";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://127.0.0.1:5174";
 const testElectronRemoteDebuggingPort =
@@ -30,7 +30,7 @@ export interface TestSetConfig {
   }>;
 }
 
-export function createE2EContext(): E2EContext {
+export function createE2EContext(explicitTelemetryChoice = true): E2EContext {
   const root = mkdtempSync(join(tmpdir(), "linka-e2e-"));
   const userDataDir = join(root, "userData");
   const homeDir = join(root, "LINKa");
@@ -46,6 +46,12 @@ export function createE2EContext(): E2EContext {
       defaultSetsDownloaded: 1
     })
   );
+  if (explicitTelemetryChoice) {
+    writeFileSync(
+      join(userDataDir, "telemetry-preference-v3.json"),
+      JSON.stringify({ schemaVersion: 3, preference: "disabled" })
+    );
+  }
 
   return { root, homeDir, userDataDir };
 }
@@ -70,7 +76,13 @@ export function writeLinkaSet(
 
 export async function launchTestElectron(context: E2EContext): Promise<ElectronApplication> {
   return electron.launch({
-    args: [`--remote-debugging-port=${testElectronRemoteDebuggingPort}`, "dist-electron/main.js"],
+    timeout: 20000,
+    args: [
+      "-r",
+      resolve("scripts/ci/startup-diagnostics.cjs"),
+      `--remote-debugging-port=${testElectronRemoteDebuggingPort}`,
+      "dist-electron/main.js"
+    ],
     env: {
       ...process.env,
       ELECTRON_REMOTE_DEBUGGING_PORT: testElectronRemoteDebuggingPort,

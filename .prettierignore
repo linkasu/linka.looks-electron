@@ -6,6 +6,8 @@ extraResources/bin
 # Test artifacts
 test-results
 playwright-report
+packaged-results
+packaged-report
 
 # Lockfile is owned by npm
 package-lock.json

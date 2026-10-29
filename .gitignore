@@ -33,4 +33,6 @@ pnpm-debug.log*
 # Playwright output
 /test-results
 /playwright-report
+/packaged-results
+/packaged-report
 /.playwright-mcp
