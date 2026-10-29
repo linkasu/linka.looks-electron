@@ -113,7 +113,10 @@ for (const span of [1, 3]) {
             png: canvas.toDataURL("image/png").split(",")[1]
           };
         });
-        expect(metrics.width / metrics.height).toBeCloseTo(metrics.areaRatio, 1);
+        expect(metrics.width).toBe(Math.max(1, Math.round(1024 * Math.min(1, metrics.areaRatio))));
+        expect(metrics.height).toBe(
+          Math.max(1, Math.round(1024 * Math.min(1, 1 / metrics.areaRatio)))
+        );
         expect(metrics.right).toBeGreaterThan(metrics.left);
         expect(metrics.bottom).toBeGreaterThan(metrics.top);
         expect(metrics.left).toBeGreaterThan(1);
