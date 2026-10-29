@@ -9,12 +9,40 @@ on:
         description: "Release version to publish, with or without v prefix"
         required: true
 
+permissions:
+  contents: read
+
+concurrency:
+  group: linka-looks-public-mirror
+  cancel-in-progress: false
+
 jobs:
   publish-updater:
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Resolve exact published installer digest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh api "repos/linkasu/linka.looks-electron/releases/tags/v$version" > "$RUNNER_TEMP/mirror-release.json"
+          VERSION="$version" node <<'NODE'
+          const fs = require('node:fs');
+          const release = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/mirror-release.json`));
+          const version = process.env.VERSION;
+          const assets = release.assets.filter(a => a.name === `linka.looks-${version}-win-x64.exe`);
+          if (release.tag_name !== `v${version}` || release.draft || release.prerelease || assets.length !== 1 ||
+              !/^sha256:[a-f0-9]{64}$/.test(assets[0].digest)) throw new Error('Published installer digest missing/mismatched; stop for review');
+          fs.appendFileSync(process.env.GITHUB_ENV, `MIRROR_VERSION=${version}\nMIRROR_SHA256=${assets[0].digest.slice(7)}\n`);
+          const metadata = { tag_name: release.tag_name, draft: release.draft, prerelease: release.prerelease, assets };
+          fs.appendFileSync(process.env.GITHUB_ENV, `MIRROR_RELEASE_B64=${Buffer.from(JSON.stringify(metadata)).toString('base64')}\n`);
+          NODE
       - name: Configure SSH
         shell: bash
         run: |
@@ -28,24 +56,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          expected_version="${RELEASE_TAG#v}"
-
           ssh -i ~/.ssh/linka_su \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "${{ secrets.LINKA_SU_USER }}@${{ secrets.LINKA_SU_HOST }}" \
-            "EXPECTED_VERSION='$expected_version' bash -s" <<'REMOTE'
-          set -euo pipefail
-          cd /home/aacidov/linka-docker/wordpress/dist/linka.looks
-
-          node update.js
-
-          actual_version="$(node -p "require('./version.json').version")"
-          if [ "$actual_version" != "$EXPECTED_VERSION" ]; then
-            echo "Expected version $EXPECTED_VERSION, got $actual_version" >&2
-            exit 1
-          fi
-
-          test -s linka.looks.setup.exe
-          ls -lh linka.looks.setup.exe version.json
-          REMOTE
+            "MIRROR_RELEASE_B64='$MIRROR_RELEASE_B64' node - update /home/aacidov/linka-docker/wordpress/dist/linka.looks '$MIRROR_VERSION' '$MIRROR_SHA256'" \
+            < scripts/mirror/update.cjs

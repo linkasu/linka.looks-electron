@@ -52,3 +52,7 @@ jobs:
         run: npm run knip
       - name: Unit tests
         run: npm run test:unit
+      - name: Mirror atomic update and rollback tests (no production access)
+        run: node --test scripts/mirror/update.test.cjs
+      - name: Baseline result validator self-test
+        run: node scripts/ci/check-baseline-result.mjs --self-test

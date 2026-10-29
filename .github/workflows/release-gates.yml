@@ -1,0 +1,128 @@
+name: Release acceptance (test only)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "agents/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  software-acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            revision: candidate
+          - os: windows-latest
+            revision: baseline
+          - os: macos-latest
+            revision: candidate
+          - os: windows-latest
+            revision: pr121
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      DEBUG: pw:browser,pw:api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || matrix.revision == 'pr121' && '9980f4fc2a09a9c480d96748f4ccbb0c2ef08160' || github.event.pull_request.head.sha }}
+          path: app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Record exact sources and install common test harness
+        shell: bash
+        run: |
+          git -C app rev-parse HEAD
+          git -C harness rev-parse HEAD
+          cp harness/tests/e2e/helpers.ts app/tests/e2e/helpers.ts
+          cp harness/playwright.config.ts app/playwright.config.ts
+          cp harness/vite.config.ts app/vite.config.ts
+          cp harness/playwright.packaged.config.ts app/playwright.packaged.config.ts
+          mkdir -p app/tests/packaged app/scripts/ci
+          cp harness/tests/packaged/app.spec.ts app/tests/packaged/app.spec.ts
+          cp harness/scripts/ci/startup-diagnostics.cjs app/scripts/ci/startup-diagnostics.cjs
+          cp harness/scripts/ci/plain-app-startup.mjs app/scripts/ci/plain-app-startup.mjs
+          cp harness/scripts/ci/check-baseline-result.mjs app/scripts/ci/check-baseline-result.mjs
+          if [ "${{ matrix.revision }}" != baseline ]; then
+            cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
+          fi
+      - name: Install dependencies (native startup stays enabled)
+        working-directory: app
+        run: npm ci
+      - name: Provision real EyeLog binaries for the legacy development layout
+        if: runner.os == 'Windows'
+        working-directory: app
+        run: node -e "const fs=require('node:fs'); fs.cpSync('node_modules/@linkasu/tobii-electron/extraResources/bin','extraResources/bin',{recursive:true}); if(!fs.existsSync('extraResources/bin/EyeLog.exe')) throw new Error('Real EyeLog missing');"
+      - name: Build unpacked production app (never publish)
+        working-directory: app
+        run: npm run electron:build -- --dir -p never
+      - name: Packaged resources
+        working-directory: app
+        run: npm run test:packaged-resources
+      - name: Plain executable startup (no Electron automation loader)
+        timeout-minutes: 2
+        working-directory: app
+        run: node scripts/ci/plain-app-startup.mjs
+      - name: PR121 exact-head unit regressions
+        if: matrix.revision == 'pr121'
+        working-directory: app
+        run: npm run test:unit
+      - name: Full candidate E2E
+        if: matrix.revision != 'baseline'
+        timeout-minutes: 8
+        working-directory: app
+        run: npx playwright test --trace retain-on-failure
+      - name: Baseline differential gate (raw suite must be 10 pass / 2 known failures)
+        if: matrix.revision == 'baseline'
+        timeout-minutes: 6
+        working-directory: app
+        shell: bash
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: baseline-report.json
+        run: |
+          status=0
+          npx playwright test --trace retain-on-failure --reporter=list,json || status=$?
+          test "$status" -eq 1
+          node scripts/ci/check-baseline-result.mjs baseline-report.json
+      - name: Packaged startup and storage IPC (identical baseline and candidate)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 4
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged startup"
+      - name: Packaged generation user path (feature added after baseline)
+        if: ${{ !cancelled() && matrix.revision != 'baseline' }}
+        timeout-minutes: 5
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
+      - name: Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-${{ matrix.os }}-${{ matrix.revision }}
+          path: |
+            app/test-results/
+            app/packaged-results/
+            app/packaged-report/
+            app/plain-startup*.png
+            app/baseline-report.json

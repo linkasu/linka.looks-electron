@@ -11,7 +11,9 @@ export default tseslint.config(
       "dist-electron/**",
       "extraResources/bin/**",
       "test-results/**",
-      "playwright-report/**"
+      "playwright-report/**",
+      "packaged-results/**",
+      "packaged-report/**"
     ]
   },
 
