@@ -24,6 +24,8 @@ jobs:
             revision: baseline
           - os: macos-latest
             revision: candidate
+          - os: windows-latest
+            revision: pr121
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     env:
@@ -37,7 +39,7 @@ jobs:
           path: harness
       - uses: actions/checkout@v4
         with:
-          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || github.event.pull_request.head.sha }}
+          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || matrix.revision == 'pr121' && '9980f4fc2a09a9c480d96748f4ccbb0c2ef08160' || github.event.pull_request.head.sha }}
           path: app
       - uses: actions/setup-node@v4
         with:
@@ -51,21 +53,38 @@ jobs:
           git -C harness rev-parse HEAD
           cp harness/tests/e2e/helpers.ts app/tests/e2e/helpers.ts
           cp harness/playwright.config.ts app/playwright.config.ts
+          cp harness/vite.config.ts app/vite.config.ts
           cp harness/playwright.packaged.config.ts app/playwright.packaged.config.ts
           mkdir -p app/tests/packaged app/scripts/ci
           cp harness/tests/packaged/app.spec.ts app/tests/packaged/app.spec.ts
           cp harness/scripts/ci/startup-diagnostics.cjs app/scripts/ci/startup-diagnostics.cjs
+          cp harness/scripts/ci/plain-app-startup.mjs app/scripts/ci/plain-app-startup.mjs
+          if [ "${{ matrix.revision }}" != baseline ]; then
+            cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
+          fi
       - name: Install dependencies (native startup stays enabled)
         working-directory: app
         run: npm ci
+      - name: Provision real EyeLog binaries for the legacy development layout
+        if: runner.os == 'Windows'
+        working-directory: app
+        run: node -e "const fs=require('node:fs'); fs.cpSync('node_modules/@linkasu/tobii-electron/extraResources/bin','extraResources/bin',{recursive:true}); if(!fs.existsSync('extraResources/bin/EyeLog.exe')) throw new Error('Real EyeLog missing');"
       - name: Build unpacked production app (never publish)
         working-directory: app
         run: npm run electron:build -- --dir -p never
       - name: Packaged resources
         working-directory: app
         run: npm run test:packaged-resources
+      - name: Plain executable startup (no Electron automation loader)
+        timeout-minutes: 2
+        working-directory: app
+        run: node scripts/ci/plain-app-startup.mjs
+      - name: PR121 exact-head unit regressions
+        if: matrix.revision == 'pr121'
+        working-directory: app
+        run: npm run test:unit
       - name: Full candidate E2E
-        if: matrix.revision == 'candidate'
+        if: matrix.revision != 'baseline'
         timeout-minutes: 8
         working-directory: app
         run: npx playwright test --trace retain-on-failure
@@ -81,7 +100,7 @@ jobs:
         working-directory: app
         run: npx playwright test --config playwright.packaged.config.ts --grep "packaged startup"
       - name: Packaged generation user path (feature added after baseline)
-        if: ${{ !cancelled() && matrix.revision == 'candidate' }}
+        if: ${{ !cancelled() && matrix.revision != 'baseline' }}
         timeout-minutes: 5
         working-directory: app
         run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
@@ -94,3 +113,4 @@ jobs:
             app/test-results/
             app/packaged-results/
             app/packaged-report/
+            app/plain-startup*.png

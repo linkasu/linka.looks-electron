@@ -7,9 +7,10 @@
     "tests/e2e/**/*.spec.ts",
     "tests/packaged/**/*.spec.ts",
     "scripts/ci/*.{js,cjs,mjs,ts}",
+    "scripts/mirror/*.cjs",
     "postinstall.js"
   ],
-  "project": ["src/**/*.{ts,vue}", "scripts/**/*.{js,mjs,ts}", "tests/**/*.ts"],
+  "project": ["src/**/*.{ts,vue}", "scripts/**/*.{js,cjs,mjs,ts}", "tests/**/*.ts"],
   "ignoreDependencies": ["original-fs", "node-gyp"],
   "ignoreExportsUsedInFile": true
 }

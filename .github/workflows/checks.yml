@@ -52,3 +52,5 @@ jobs:
         run: npm run knip
       - name: Unit tests
         run: npm run test:unit
+      - name: Mirror atomic update and rollback tests (no production access)
+        run: node --test scripts/mirror/update.test.cjs
