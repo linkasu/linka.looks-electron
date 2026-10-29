@@ -1,6 +1,12 @@
 name: Release acceptance (test only)
 
 on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Exact 40-hex commit SHA in this repository's main history"
+        required: true
+        type: string
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [main]
@@ -13,11 +19,54 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-acceptance-${{ github.ref }}
+  group: release-acceptance-${{ github.ref }}-${{ inputs.sha || github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 jobs:
+  acceptance-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Reject dispatch outside this repository's main before checkout
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REPOSITORY" = linkasu/linka.looks-electron
+            test "$GITHUB_REF" = refs/heads/main
+          fi
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Test dispatch trust boundaries (no dependencies or target execution)
+        run: node --test scripts/ci/validate-acceptance-target.test.mjs
+      - name: Resolve exact acceptance target
+        id: target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACCEPTANCE_SHA: ${{ inputs.sha }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            sha=$(node scripts/ci/validate-acceptance-target.mjs)
+            echo "Validated main ancestry at $(git rev-parse refs/remotes/origin/main)"
+          else
+            sha="$PR_SHA"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Acceptance target: $sha" >> "$GITHUB_STEP_SUMMARY"
+
   software-acceptance:
+    needs: acceptance-target
     strategy:
       fail-fast: false
       matrix:
@@ -39,12 +88,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: linkasu/linka.looks-electron
+          ref: ${{ needs.acceptance-target.outputs.sha }}
           path: harness
+          persist-credentials: false
       - uses: actions/checkout@v4
         with:
-          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || matrix.revision == 'pr121' && '9980f4fc2a09a9c480d96748f4ccbb0c2ef08160' || github.event.pull_request.head.sha }}
+          repository: linkasu/linka.looks-electron
+          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || matrix.revision == 'pr121' && '9980f4fc2a09a9c480d96748f4ccbb0c2ef08160' || needs.acceptance-target.outputs.sha }}
           path: app
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
