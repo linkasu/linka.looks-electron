@@ -69,6 +69,8 @@ class ReportTests(unittest.TestCase):
                 self.assertEqual(len(result["sliceComparisons"]), 2)
                 self.assertTrue(all(s["codeHashEqual"] for s in result["sliceComparisons"]))
                 self.assertTrue(all(s["sectionsHashEqual"] for s in result["sliceComparisons"]))
+                result.update(beforeBytes=12288, afterBytes=12288)
+                report.validate_native(result)
 
     def test_fat_malformed_and_architecture_controls(self):
         cases = []
@@ -130,6 +132,88 @@ class ReportTests(unittest.TestCase):
         self.assertNotIn("private", json.dumps(result))
         struct.pack_into("<I", other, 288, 1000)
         self.assertEqual(report.native_diff(data, other)["unsupportedReason"], "malformed_layout")
+
+    def test_unknown_file_backed_section_is_hashed_without_reclassifying_coverage(self):
+        before = bytearray(native())
+        struct.pack_into("<I", before, 168, 0)
+        after = bytearray(before)
+        after[260] ^= 1
+        result = report.native_diff(before, after)
+        self.assertTrue(result["supported"])
+        self.assertEqual(result["coverage"]["unknown"], 1)
+        self.assertTrue(result["sliceComparisons"][0]["codeHashEqual"])
+        self.assertFalse(result["sliceComparisons"][0]["sectionsHashEqual"])
+
+    def test_native_schema_rejects_contradictory_supported_layouts(self):
+        for left, right in ((native(), native()), (native(), arm_native())):
+            original = report.native_diff(left, right)
+            original.update(beforeBytes=len(left), afterBytes=len(right))
+            report.validate_native(original)
+            for side in ("before", "after"):
+                for field, value in (("magicKind", "unknown"), ("magicKind", "missing"),
+                                     ("magicKind", "thin64be"), ("magicKind", "fat32be"),
+                                     ("unsupportedReason", "unsupported_cpu")):
+                    result = copy.deepcopy(original)
+                    result[side][field] = value
+                    with self.subTest(side=side, field=field, value=value):
+                        with self.assertRaises(ValueError):
+                            report.validate_native(result)
+                for field, value in (("magicKind", "thin32le"), ("cpuType", 7),
+                                     ("offset", 1), ("size", 511), ("size", 12)):
+                    result = copy.deepcopy(original)
+                    result[side]["slices"][0][field] = value
+                    with self.subTest(side=side, field=field, value=value):
+                        with self.assertRaises(ValueError):
+                            report.validate_native(result)
+            result = copy.deepcopy(original)
+            for side in ("before", "after"):
+                result[side].update(magicKind="unknown", slices=[], sliceCount=0)
+            result["sliceComparisons"] = []
+            with self.assertRaises(ValueError):
+                report.validate_native(result)
+
+        original = report.native_diff(native(), native())
+        original.update(beforeBytes=512, afterBytes=512)
+        for magic, cpu in (("thin64le", 7), ("thin32le", 0x1000007)):
+            result = copy.deepcopy(original)
+            for side in ("before", "after"):
+                result[side]["magicKind"] = magic
+                result[side]["slices"][0].update(magicKind=magic, cpuType=cpu)
+            result["sliceComparisons"][0]["cpuType"] = cpu
+            with self.subTest(magic=magic, cpu=cpu):
+                with self.assertRaises(ValueError):
+                    report.validate_native(result)
+
+        original = report.native_diff(fat([native(), arm_native()]), fat([native(), arm_native()]))
+        original.update(beforeBytes=12288, afterBytes=12288)
+        for kind, offset in (("thin64le", 4096), ("fat32be", 8), ("fat64le", 40)):
+            result = copy.deepcopy(original)
+            result["before"]["magicKind"] = kind
+            result["before"]["slices"][0]["offset"] = offset
+            with self.subTest(kind=kind, offset=offset):
+                with self.assertRaises(ValueError):
+                    report.validate_native(result)
+
+    def test_native_schema_preserves_generated_unsupported_layouts(self):
+        unsupported_cpu = bytearray(native())
+        struct.pack_into("<I", unsupported_cpu, 4, 7)
+        unsupported_magic = bytearray(native())
+        unsupported_magic[:4] = b"\xce\xfa\xed\xfe"
+        unknown_command = bytearray(native())
+        struct.pack_into("<I", unknown_command, 208, 0x7777)
+        for data in (b"", b"invalid", native()[:8], fat([native()])[:100],
+                     unsupported_cpu, unsupported_magic, unknown_command):
+            for left, right in ((data, native()), (native(), data)):
+                result = report.native_diff(left, right)
+                result.update(beforeBytes=len(left), afterBytes=len(right))
+                report.validate_native(result)
+        for data in (b"", b"invalid"):
+            original = report.native_diff(data, native())
+            original.update(beforeBytes=len(data), afterBytes=len(native()))
+            result = copy.deepcopy(original)
+            result["before"]["unsupportedReason"] = "none"
+            with self.assertRaises(ValueError):
+                report.validate_native(result)
 
     def test_native_schema_rejects_nested_disclosure_and_invalid_geometry(self):
         original = report.native_diff(fat([native(), arm_native()]), fat([arm_native(), native()]))
@@ -229,6 +313,8 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(report.changed(a, b), expected)
             result = report.native_diff(a, b)
             self.assertEqual(sum(result["coverage"].values()), expected)
+            result.update(beforeBytes=len(a), afterBytes=len(b))
+            report.validate_native(result)
         a = b"x" * (1024 * 1024 + 10)
         self.assertEqual(report.changed(a, a[:-20]), 20)
 

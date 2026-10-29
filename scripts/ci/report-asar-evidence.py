@@ -227,11 +227,22 @@ def native_layout(data):
 def slice_metadata(data, ranges):
     """Hash comparisons stay local, including N_OSO strings and values."""
     oso = []
+    sections = hashlib.sha256()
     position = 32
     ncmds = struct.unpack_from("<I", data, 16)[0]
     for _ in range(ncmds):
         command, size = struct.unpack_from("<II", data, position)
-        if command == 2:
+        if command == 0x19:
+            # All file-backed sections count, independently of coverage classification.
+            count = struct.unpack_from("<I", data, position + 64)[0]
+            for index in range(count):
+                section = position + 72 + 80 * index
+                length, offset = struct.unpack_from("<QI", data, section + 40)
+                flags = struct.unpack_from("<I", data, section + 64)[0]
+                if flags & 0xff not in (1, 0xc, 0x12):
+                    sections.update(struct.pack("<Q", length))
+                    sections.update(data[offset:offset + length])
+        elif command == 2:
             symoff, count, stroff, strsize = struct.unpack_from("<4I", data, position + 8)
             for index in range(count):
                 record = data[symoff + index * 16:symoff + (index + 1) * 16]
@@ -253,7 +264,7 @@ def slice_metadata(data, ranges):
         return h.digest()
 
     return {"code": digest(("section_code",)),
-            "sections": digest(tuple(c for c in CATEGORIES if c.startswith("section_"))),
+            "sections": sections.digest(),
             "signature": digest(("signature", "signing_command")),
             "loadCommands": digest(("load_command",)), "oso": tuple(oso)}
 
@@ -382,15 +393,33 @@ def keys(value, expected):
 
 def validate_native(item):
     require(item["unsupportedReason"] in REASONS)
+    require(type(item["supported"]) is bool)
     require(item["supported"] == (item["unsupportedReason"] == "none"))
     identities = []
+    reasons = []
     for name, byte_count in (("before", item["beforeBytes"]), ("after", item["afterBytes"])):
         side = item[name]
         keys(side, "magicKind sliceCount slices unsupportedReason")
         require(side["magicKind"] in (*MAGICS.values(), "unknown", "missing"))
         require(side["unsupportedReason"] in REASONS)
+        kind, reason = side["magicKind"], side["unsupportedReason"]
+        require(reason != "architecture_mismatch")
+        reasons.append(reason)
+        integer(byte_count, MAX_FILE)
         integer(side["sliceCount"], 32)
         require(type(side["slices"]) is list and len(side["slices"]) == side["sliceCount"])
+        if kind in ("unknown", "missing"):
+            require(not side["slices"])
+            require(reason == ("missing" if kind == "missing" else "unknown_magic"))
+            require((byte_count == 0) == (kind == "missing"))
+        else:
+            require(byte_count > 0 and reason not in ("missing", "unknown_magic"))
+            if reason != "malformed_layout":
+                require(side["sliceCount"] > 0)
+        if kind.startswith("thin"):
+            require(side["sliceCount"] <= 1)
+        if reason == "none":
+            require(kind == "thin64le" or kind.startswith("fat"))
         seen = set()
         spans = []
         for entry in side["slices"]:
@@ -401,13 +430,33 @@ def validate_native(item):
             for field in ("offset", "size"):
                 integer(entry[field], MAX_FILE)
             require(entry["size"] > 0 and entry["offset"] + entry["size"] <= byte_count)
+            require(entry["size"] >= 12)
+            if kind.startswith("thin"):
+                require(entry["magicKind"] == kind and entry["offset"] == 0
+                        and entry["size"] == byte_count)
+            elif kind.startswith("fat"):
+                width = 32 if kind.startswith("fat64") else 20
+                require(entry["offset"] >= 8 + width * side["sliceCount"])
+            if reason == "none":
+                require(entry["magicKind"] == "thin64le" and entry["size"] >= 32)
+                require(entry["cpuType"] in (0x1000007, 0x100000c))
             identity = (entry["cpuType"], entry["cpuSubtype"])
             require(identity not in seen)
             seen.add(identity)
             spans.append((entry["offset"], entry["offset"] + entry["size"]))
         spans.sort()
         require(all(a[1] <= b[0] for a, b in zip(spans, spans[1:])))
+        if reason == "unsupported_magic":
+            require(any(s["magicKind"] != "thin64le" for s in side["slices"]))
+        if reason == "unsupported_cpu":
+            require(any(s["magicKind"] == "thin64le" and s["cpuType"] not in (0x1000007, 0x100000c)
+                        for s in side["slices"]))
         identities.append(seen)
+    first_reason = next((reason for reason in reasons if reason != "none"), "none")
+    if first_reason != "none":
+        require(item["unsupportedReason"] == first_reason)
+    else:
+        require(item["unsupportedReason"] in ("none", "architecture_mismatch", "malformed_layout"))
     values = item["sliceComparisons"]
     require(type(values) is list and len(values) <= 32)
     if not item["supported"] and item["unsupportedReason"] != "architecture_mismatch":
