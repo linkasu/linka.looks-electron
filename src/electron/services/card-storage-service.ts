@@ -28,6 +28,7 @@ import { tts } from "@/frontend/utils/TTSServer";
 import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/electron/utils/ImageFromText";
+import type { TextImageSize } from "@/common/textImageLayout";
 import { HOME_DIR } from "../../common/constants";
 import { renameSync } from "original-fs";
 import axios from "axios";
@@ -231,8 +232,12 @@ export class CardsStorage extends ICloudStorage {
     return this.addBuffer(path, buff, "mp3");
   }
 
-  async createImageFromText(path: string, text: string): Promise<string | null> {
-    const buffer = await createImageFromText(text);
+  async createImageFromText(
+    path: string,
+    text: string,
+    size?: TextImageSize
+  ): Promise<string | null> {
+    const buffer = await createImageFromText(text, size);
 
     return this.addBuffer(path, buffer, "png");
   }
