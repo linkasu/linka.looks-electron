@@ -4,6 +4,7 @@ on:
     paths:
       - ".github/workflows/macos-330-signing-recovery.yml"
       - "scripts/ci/backport-keychain-password*"
+      - "scripts/ci/*asar-evidence*"
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,6 +33,8 @@ jobs:
           tar -xzf "$RUNNER_TEMP/signing-fixture/package.tgz" -C "$RUNNER_TEMP/signing-fixture"
       - name: Synthetic regression and negative controls (no real keychain)
         run: SIGNING_FIXTURE="$RUNNER_TEMP/signing-fixture/package/out/codeSign/macCodeSign.js" node --test scripts/ci/backport-keychain-password.test.cjs
+      - name: Synthetic ASAR preservation and disclosure negative controls
+        run: python3 scripts/ci/test-asar-evidence.py
   signed-build:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'linkasu/linka.looks-electron'
     needs: synthetic
@@ -87,6 +90,12 @@ jobs:
         run: |
           set -euo pipefail
           shasum -a 256 'app/dist/mac/LINKa. смотри.app/Contents/Resources/app.asar' 'app/dist/mac-arm64/LINKa. смотри.app/Contents/Resources/app.asar' > evidence/app-asar-before.sha256
+      - name: Preserve unsigned ASAR and unpacked outside dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tooling/scripts/ci/asar-evidence.py capture app evidence/payload unsigned-before
+          node -e 'require("fs").writeFileSync("evidence/payload/provenance.json", JSON.stringify({app:process.argv[1],tooling:process.argv[2]})+"\n")' "$APP_SHA" "$GITHUB_SHA"
       - name: Build signed and notarized Mac artifacts (never publish)
         working-directory: app
         run: npm run electron:build -- --mac --x64 --arm64 -p never
@@ -97,6 +106,13 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Preserve signed counterparts and full diff before strict raw-hash gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tooling/scripts/ci/asar-evidence.py capture app evidence/payload signed-rebuild
+          python3 tooling/scripts/ci/asar-evidence.py diff evidence/payload
+          python3 tooling/scripts/ci/check-asar-evidence.py evidence/payload
       - name: Verify signatures, notarization, payload equivalence and resources
         shell: bash
         run: |
@@ -124,14 +140,32 @@ jobs:
           done
           test -s app/dist/latest-mac.yml
           shasum -a 256 app/dist/*.dmg app/dist/*.zip app/dist/latest-mac.yml > evidence/artifacts.sha256
-      - name: Upload verified installers and provenance for separate review
+      - name: Fail-closed evidence disclosure and exact upload allowlist
+        id: disclosure
+        if: always() && github.repository == 'linkasu/linka.looks-electron'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tooling/scripts/ci/check-asar-evidence.py evidence/payload "$GITHUB_SHA" "$GITHUB_OUTPUT"
+      - name: Upload validated evidence only (not a release)
+        if: always() && steps.disclosure.outcome == 'success' && github.repository == 'linkasu/linka.looks-electron'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-330-evidence-${{ github.sha }}-${{ github.run_id }}
+          retention-days: 3
+          if-no-files-found: error
+          include-hidden-files: true
+          path: ${{ steps.disclosure.outputs.paths }}
+      - name: Upload verified installers only after all gates succeed
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: macos-330-signed-${{ github.run_id }}
+          retention-days: 3
           if-no-files-found: error
           path: |
-            app/dist/*.dmg
-            app/dist/*.zip
-            app/dist/*.blockmap
+            app/dist/linka.looks-3.3.0-mac-x64.dmg
+            app/dist/linka.looks-3.3.0-mac-arm64.dmg
+            app/dist/linka.looks-3.3.0-mac-x64.zip
+            app/dist/linka.looks-3.3.0-mac-arm64.zip
             app/dist/latest-mac.yml
-            evidence/
