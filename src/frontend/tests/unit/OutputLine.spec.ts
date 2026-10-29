@@ -77,6 +77,54 @@ describe("OutputLine", () => {
       "button_enabled"
     );
   });
+
+  it("disables eye activation only on the gaze lock toggle button", () => {
+    const wrapper = mountOutputLine();
+
+    expect(
+      eyeButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))
+    ).to.deep.equal(["1", undefined, undefined, undefined]);
+  });
+
+  it("ignores gaze enter on the gaze lock button while keeping mouse click active", async () => {
+    const store = createVuexStore(false);
+    const wrapper = mount(OutputLine, {
+      props: {
+        cards: [],
+        config: {
+          version: "3.0",
+          withoutSpace: false,
+          pages: []
+        },
+        file: "set.linka"
+      },
+      global: {
+        plugins: [store],
+        stubs: {
+          SetGridButton: true,
+          VIcon: true,
+          VLayout: {
+            template: "<div><slot /></div>"
+          }
+        }
+      }
+    });
+
+    const lockButton = wrapper.findAll("button.eyebtn")[0];
+    expect(lockButton.attributes("data-eye-disabled")).to.equal("1");
+    expect((lockButton.element as HTMLButtonElement).disabled).to.equal(false);
+
+    lockButton.element.dispatchEvent(new CustomEvent("eye-enter", { detail: { eye: true } }));
+    await wrapper.vm.$nextTick();
+
+    expect(lockButton.find(".overlay").exists()).to.equal(false);
+    expect(lockButton.find(".progress-bar").exists()).to.equal(false);
+
+    await lockButton.trigger("click");
+    expect((store.dispatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).to.equal(
+      "button_enabled"
+    );
+  });
 });
 
 function mountOutputLine({
@@ -102,9 +150,13 @@ function mountOutputLine({
       plugins: [store],
       stubs: {
         EyeButton: {
-          props: ["color", "lock"],
+          props: {
+            color: String,
+            eyeDisabled: Boolean,
+            lock: Boolean
+          },
           template:
-            '<button class="eye-button-stub" @click="$emit(&quot;click&quot;)"><slot /></button>'
+            '<button class="eye-button-stub" :class="{ lock }" :data-eye-disabled="eyeDisabled ? \'1\' : null" @click="$emit(&quot;click&quot;)"><slot /></button>'
         },
         SetGridButton: {
           props: ["card"],
@@ -119,11 +171,18 @@ function mountOutputLine({
   });
 }
 
-function createVuexStore() {
+function createVuexStore(enabled = true) {
   const store = createStore({
     state: {
       button: {
-        enabled: true
+        borders: 1,
+        clickSound: false,
+        enabled,
+        eyeActivation: true,
+        eyeSelect: true,
+        joystickActivation: true,
+        keyboardActivation: true,
+        timeout: 1000
       },
       ui: {
         exitButton: false
