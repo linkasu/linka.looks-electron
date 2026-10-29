@@ -34,7 +34,9 @@ jobs:
       - name: Synthetic regression and negative controls (no real keychain)
         run: SIGNING_FIXTURE="$RUNNER_TEMP/signing-fixture/package/out/codeSign/macCodeSign.js" node --test scripts/ci/backport-keychain-password.test.cjs
       - name: Synthetic ASAR preservation and disclosure negative controls
-        run: python3 scripts/ci/test-asar-evidence.py
+        run: |
+          python3 scripts/ci/test-asar-evidence.py
+          python3 scripts/ci/test-report-asar-evidence.py
   signed-build:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'linkasu/linka.looks-electron'
     needs: synthetic
@@ -112,7 +114,6 @@ jobs:
           set -euo pipefail
           python3 tooling/scripts/ci/asar-evidence.py capture app evidence/payload signed-rebuild
           python3 tooling/scripts/ci/asar-evidence.py diff evidence/payload
-          python3 tooling/scripts/ci/check-asar-evidence.py evidence/payload
       - name: Verify signatures, notarization, payload equivalence and resources
         shell: bash
         run: |
@@ -140,21 +141,29 @@ jobs:
           done
           test -s app/dist/latest-mac.yml
           shasum -a 256 app/dist/*.dmg app/dist/*.zip app/dist/latest-mac.yml > evidence/artifacts.sha256
-      - name: Fail-closed evidence disclosure and exact upload allowlist
-        id: disclosure
+      - name: Generate path-free diagnostic report from runner-only evidence
+        id: report
         if: always() && github.repository == 'linkasu/linka.looks-electron'
+        timeout-minutes: 5
         shell: bash
         run: |
           set -euo pipefail
-          python3 tooling/scripts/ci/check-asar-evidence.py evidence/payload "$GITHUB_SHA" "$GITHUB_OUTPUT"
-      - name: Upload validated evidence only (not a release)
+          python3 tooling/scripts/ci/report-asar-evidence.py generate evidence/payload "$GITHUB_SHA" evidence/report/diagnostic.json
+      - name: Fail-closed report schema, privacy and exact upload allowlist
+        id: disclosure
+        if: always() && steps.report.outcome == 'success' && github.repository == 'linkasu/linka.looks-electron'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tooling/scripts/ci/report-asar-evidence.py validate evidence/report/diagnostic.json "$GITHUB_SHA" "$GITHUB_OUTPUT"
+      - name: Upload sanitized report only (not equivalence approval)
         if: always() && steps.disclosure.outcome == 'success' && github.repository == 'linkasu/linka.looks-electron'
         uses: actions/upload-artifact@v4
         with:
           name: macos-330-evidence-${{ github.sha }}-${{ github.run_id }}
           retention-days: 3
           if-no-files-found: error
-          include-hidden-files: true
+          include-hidden-files: false
           path: ${{ steps.disclosure.outputs.paths }}
       - name: Upload verified installers only after all gates succeed
         if: success()

@@ -269,12 +269,13 @@ class EvidenceTests(unittest.TestCase):
         self.assertNotIn("continue-on-error", workflow)
         self.assertEqual(workflow.count("uses: actions/upload-artifact@v4"), 2)
         self.assertIn("if: always() && steps.disclosure.outcome == 'success'", workflow)
-        self.assertIn('check-asar-evidence.py evidence/payload "$GITHUB_SHA" "$GITHUB_OUTPUT"', workflow)
+        self.assertNotIn('check-asar-evidence.py evidence/payload', workflow)
+        self.assertIn('report-asar-evidence.py validate evidence/report/diagnostic.json "$GITHUB_SHA" "$GITHUB_OUTPUT"', workflow)
         self.assertIn("path: ${{ steps.disclosure.outputs.paths }}", workflow)
         self.assertEqual(workflow.count("retention-days: 3"), 2)
         self.assertIn("if: success()", workflow)
         self.assertNotIn("            evidence/", workflow)
-        upload = workflow[workflow.index("      - name: Fail-closed evidence disclosure"):]
+        upload = workflow[workflow.index("      - name: Fail-closed report schema"):]
         self.assertNotIn("app/dist/*", upload)
         self.assertIn("APP_SHA: 25a967bbefce93ff2e5dd17623cd10568b9dea76", workflow)
 
