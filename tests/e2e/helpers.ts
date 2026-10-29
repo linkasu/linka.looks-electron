@@ -99,6 +99,7 @@ export async function launchTestElectron(context: E2EContext): Promise<ElectronA
 export async function firstTestWindow(electronApp: ElectronApplication): Promise<Page> {
   const window = await electronApp.firstWindow();
   await mockExternalServices(window);
+  await window.waitForLoadState("domcontentloaded", { timeout: 20000 });
   return window;
 }
 
