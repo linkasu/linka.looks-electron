@@ -130,7 +130,11 @@ const matchGridColumns = computed(() =>
 );
 
 const showPagination = computed(() => {
-  return currentPage.value.mode !== "quiz" && totalPages.value > 1;
+  return (
+    store.state.button.pageTurnMode !== "hidden" &&
+    currentPage.value.mode !== "quiz" &&
+    totalPages.value > 1
+  );
 });
 
 const matchedCardIds = computed(() => props.matchedCardIds ?? []);
