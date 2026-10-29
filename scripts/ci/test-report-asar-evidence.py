@@ -36,9 +36,139 @@ def native():
     return bytes(data)
 
 
+def fat(parts, wide=False, endian=">"):
+    width = 32 if wide else 20
+    result = bytearray(4096 * (len(parts) + 1))
+    struct.pack_into(endian + "II", result, 0, 0xcafebabf if wide else 0xcafebabe, len(parts))
+    for index, part in enumerate(parts):
+        cpu, subtype = struct.unpack_from("<II", part, 4)
+        offset = 4096 * (index + 1)
+        values = (cpu, subtype, offset, len(part), 12)
+        struct.pack_into(endian + ("IIQQII" if wide else "IIIII"), result,
+                         8 + index * width, *(values + (0,) if wide else values))
+        result[offset:offset + len(part)] = part
+    return bytes(result)
+
+
+def arm_native():
+    result = bytearray(native())
+    struct.pack_into("<II", result, 4, 0x100000c, 0)
+    return bytes(result)
+
+
 class ReportTests(unittest.TestCase):
     setUp = fixtures.EvidenceTests.setUp
     bundle_fixture = fixtures.EvidenceTests.bundle_fixture
+    def test_fat_slices_match_by_architecture_not_container_order(self):
+        for wide in (False, True):
+            for endian in ("<", ">"):
+                result = report.native_diff(fat([native(), arm_native()], wide, endian),
+                                            fat([arm_native(), native()], wide, endian))
+                self.assertTrue(result["supported"])
+                self.assertEqual(result["before"]["sliceCount"], 2)
+                self.assertEqual(len(result["sliceComparisons"]), 2)
+                self.assertTrue(all(s["codeHashEqual"] for s in result["sliceComparisons"]))
+                self.assertTrue(all(s["sectionsHashEqual"] for s in result["sliceComparisons"]))
+
+    def test_fat_malformed_and_architecture_controls(self):
+        cases = []
+        for offset, value in ((4, 1000), (16, 0), (20, 0xffffffff), (8, 0x100000c),
+                              (36, 4096), (24, 32)):
+            data = bytearray(fat([native(), arm_native()]))
+            struct.pack_into(">I", data, offset, value)
+            cases.append(bytes(data))
+        cases += [fat([native(), native()]), fat([native()])[:100], b"\xca\xfe\xba\xbe"]
+        for data in cases:
+            result = report.native_diff(data, native())
+            self.assertFalse(result["supported"])
+            self.assertEqual(result["before"]["unsupportedReason"], "malformed_layout")
+        result = report.native_diff(native(), arm_native())
+        self.assertFalse(result["supported"])
+        self.assertEqual(result["unsupportedReason"], "architecture_mismatch")
+        changed_subtype = bytearray(native())
+        struct.pack_into("<I", changed_subtype, 8, 4)
+        self.assertEqual(report.native_diff(native(), changed_subtype)["unsupportedReason"],
+                         "architecture_mismatch")
+
+    def test_unsupported_command_keeps_safe_slice_identity(self):
+        data = bytearray(native())
+        struct.pack_into("<I", data, 208, 0x7777)
+        result = report.native_diff(data, native())
+        self.assertEqual(result["before"]["unsupportedReason"], "unsupported_load_command")
+        self.assertEqual(result["before"]["slices"][0]["cpuType"], 0x1000007)
+
+    def test_fat_changed_code_signature_and_missing_arch_are_not_ignored(self):
+        modified = bytearray(arm_native())
+        modified[260] ^= 1
+        modified[400] ^= 1
+        result = report.native_diff(fat([native(), arm_native()]), fat([native(), modified]))
+        self.assertTrue(result["sliceComparisons"][0]["codeHashEqual"])
+        self.assertFalse(result["sliceComparisons"][1]["codeHashEqual"])
+        self.assertFalse(result["sliceComparisons"][1]["sectionsHashEqual"])
+        self.assertFalse(result["sliceComparisons"][1]["signatureHashEqual"])
+        result = report.native_diff(fat([native(), arm_native()]), native())
+        self.assertFalse(result["supported"])
+        self.assertEqual(result["unsupportedReason"], "architecture_mismatch")
+        self.assertEqual(len(result["sliceComparisons"]), 1)
+        self.assertEqual(result["coverage"]["unknown"], result["changedBytes"])
+
+    def test_n_oso_metadata_is_separate_and_never_emitted(self):
+        data = bytearray(native())
+        struct.pack_into("<I", data, 16, 4)
+        struct.pack_into("<I", data, 20, 216)
+        struct.pack_into("<6I", data, 224, 2, 24, 288, 1, 304, 48)
+        struct.pack_into("<IBBHQ", data, 288, 0, 0x66, 0, 0, 1)
+        data[304:352] = b"/Users/private/source.o\0".ljust(48, b"\0")
+        other = bytearray(data)
+        other[311] ^= 1
+        result = report.native_diff(bytes(data), bytes(other))
+        self.assertTrue(result["supported"])
+        value = result["sliceComparisons"][0]
+        self.assertFalse(value["nOsoHashEqual"])
+        self.assertEqual(value["nOsoBeforeCount"], 1)
+        self.assertTrue(value["codeHashEqual"])
+        self.assertNotIn("private", json.dumps(result))
+        struct.pack_into("<I", other, 288, 1000)
+        self.assertEqual(report.native_diff(data, other)["unsupportedReason"], "malformed_layout")
+
+    def test_native_schema_rejects_nested_disclosure_and_invalid_geometry(self):
+        original = report.native_diff(fat([native(), arm_native()]), fat([arm_native(), native()]))
+        original.update(beforeBytes=12288, afterBytes=12288)
+        report.validate_native(original)
+        changes = [("before", "magicKind", "/Users/private"),
+                   ("before", "unsupportedReason", "private failure"),
+                   ("before", "sliceCount", True)]
+        for side, field, value in changes:
+            result = copy.deepcopy(original)
+            result[side][field] = value
+            with self.assertRaises(ValueError):
+                report.validate_native(result)
+        for field, value in (("offset", 12288), ("size", -1), ("cpuType", True),
+                             ("path", "/Users/private")):
+            result = copy.deepcopy(original)
+            result["before"]["slices"][0][field] = value
+            with self.assertRaises(ValueError):
+                report.validate_native(result)
+        result = copy.deepcopy(original)
+        result["sliceComparisons"][0]["codeHashEqual"] = "private"
+        with self.assertRaises(ValueError):
+            report.validate_native(result)
+
+    def test_fat_report_roundtrip_remains_blocking(self):
+        source = self.app / "dist/mac/LINKa. смотри.app/Contents/Resources/app.asar.unpacked/native.node"
+        source.write_bytes(fat([native(), arm_native()]))
+        report.evidence.capture(self.app, self.bundle, "unsigned-before")
+        source.write_bytes(fat([arm_native(), native()]))
+        report.evidence.capture(self.app, self.bundle, "signed-rebuild")
+        report.evidence.write_json(self.bundle / "provenance.json", {"app": report.APP, "tooling": SHA})
+        result = report.generate(self.bundle, SHA, "local-unsigned-pair")
+        encoded = report.validate(result, SHA)
+        self.assertEqual(json.loads(encoded)["schemaVersion"], 2)
+        arch = result["architectures"]["x64"]
+        self.assertTrue(arch["diagnosisBlocking"])
+        self.assertFalse(arch["strictPayloadEqual"])
+        self.assertTrue(arch["unpackedDifferences"][0]["supported"])
+        self.assertGreater(arch["unpackedDifferences"][0]["coverage"]["unknown"], 0)
     def test_report_has_no_names_content_or_private_hashes(self):
         private = "private-owner-secret.js"
         token = b"ghp_" + b"FAKENEVERREAL" * 4

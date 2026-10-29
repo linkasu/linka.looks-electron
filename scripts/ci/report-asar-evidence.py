@@ -1,5 +1,6 @@
 """Runner-only byte comparison; publish only a closed, path-free numeric schema."""
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -18,7 +19,17 @@ MAX_COUNT = 100000
 MAX_REPORT = 16 * 1024 ** 2
 CATEGORIES = ("signature", "signing_command", "uuid", "load_command", "mach_header",
               "section_code", "section_data", "section_const", "section_debug",
-              "symbol_table", "linkedit", "unknown")
+               "symbol_table", "linkedit", "unknown")
+REASONS = ("none", "missing", "unknown_magic", "unsupported_magic", "unsupported_cpu", "malformed_layout",
+           "unsupported_load_command", "architecture_mismatch")
+MAGICS = {b"\xcf\xfa\xed\xfe": "thin64le", b"\xfe\xed\xfa\xcf": "thin64be",
+          b"\xce\xfa\xed\xfe": "thin32le", b"\xfe\xed\xfa\xce": "thin32be",
+          b"\xca\xfe\xba\xbe": "fat32be", b"\xbe\xba\xfe\xca": "fat32le",
+          b"\xca\xfe\xba\xbf": "fat64be", b"\xbf\xba\xfe\xca": "fat64le"}
+
+
+class UnsupportedCommand(ValueError):
+    pass
 
 
 def bounded_tree(root):
@@ -115,6 +126,7 @@ def macho_ranges(data):
         elif command == 2:  # Includes N_OSO values; never output strings.
             require(size == 24)
             symoff, nsyms, stroff, strsize = struct.unpack_from("<4I", data, position + 8)
+            require(nsyms <= MAX_COUNT)
             add(symoff, nsyms * 16, "symbol_table")
             add(stroff, strsize, "symbol_table")
         elif command in (0x22, 0x80000022):
@@ -143,7 +155,7 @@ def macho_ranges(data):
             require(minimum <= string_offset < size)
             require(b"\0" in data[position + string_offset:position + size])
         else:
-            raise ValueError("unsupported native layout")
+            raise UnsupportedCommand("unsupported native layout")
         add(position, size, category)
         position += size
     require(position == 32 + cmdbytes)
@@ -152,14 +164,140 @@ def macho_ranges(data):
     return ranges
 
 
+def native_layout(data):
+    """Only numeric identity escapes; untrusted strings are never decoded."""
+    kind = MAGICS.get(bytes(data[:4]), "unknown" if data else "missing")
+    result = {"magicKind": kind, "sliceCount": 0, "slices": [], "unsupportedReason": "none"}
+    layouts = []
+    reason = "malformed_layout"
+    try:
+        require(len(data) <= MAX_FILE)
+        if kind in ("unknown", "missing"):
+            reason = "unknown_magic" if data else "missing"
+            raise ValueError()
+        entries = []
+        if kind.startswith("fat"):
+            endian = ">" if kind.endswith("be") else "<"
+            wide = kind.startswith("fat64")
+            width = 32 if wide else 20
+            require(len(data) >= 8)
+            count = struct.unpack_from(endian + "I", data, 4)[0]
+            require(1 <= count <= 32 and 8 + count * width <= len(data))
+            for index in range(count):
+                values = struct.unpack_from(endian + ("IIQQII" if wide else "IIIII"),
+                                            data, 8 + index * width)
+                cpu, subtype, offset, size, align = values[:5]
+                require(not wide or values[5] == 0)
+                require(align <= 31 and offset % (1 << align) == 0)
+                require(8 + count * width <= offset < offset + size <= len(data))
+                entries.append((cpu, subtype, offset, size))
+            ordered = sorted(entries, key=lambda item: item[2])
+            require(all(a[2] + a[3] <= b[2] for a, b in zip(ordered, ordered[1:])))
+            require(len({(e[0], e[1]) for e in entries}) == count)
+        else:
+            require(len(data) >= 12)
+            endian = "<" if kind.endswith("le") else ">"
+            cpu, subtype = struct.unpack_from(endian + "II", data, 4)
+            entries = [(cpu, subtype, 0, len(data))]
+        for cpu, subtype, offset, size in entries:
+            part = data[offset:offset + size]
+            slice_kind = MAGICS.get(bytes(part[:4]), "unknown")
+            require(slice_kind.startswith("thin") and len(part) >= 12)
+            endian = "<" if slice_kind.endswith("le") else ">"
+            require(struct.unpack_from(endian + "II", part, 4) == (cpu, subtype))
+            result["slices"].append({"magicKind": slice_kind, "cpuType": cpu,
+                                     "cpuSubtype": subtype, "offset": offset, "size": size})
+        result["sliceCount"] = len(entries)
+        for entry, identity in zip(entries, result["slices"]):
+            cpu, _, offset, size = entry
+            if identity["magicKind"] != "thin64le" or cpu not in (0x1000007, 0x100000c):
+                reason = "unsupported_magic" if identity["magicKind"] != "thin64le" else "unsupported_cpu"
+                raise ValueError()
+            layouts.append(macho_ranges(data[offset:offset + size]))
+    except UnsupportedCommand:
+        result["unsupportedReason"] = "unsupported_load_command"
+        layouts = []
+    except (ValueError, struct.error):
+        result["sliceCount"] = len(result["slices"])
+        result["unsupportedReason"] = reason
+        layouts = []
+    return result, layouts
+
+
+def slice_metadata(data, ranges):
+    """Hash comparisons stay local, including N_OSO strings and values."""
+    oso = []
+    position = 32
+    ncmds = struct.unpack_from("<I", data, 16)[0]
+    for _ in range(ncmds):
+        command, size = struct.unpack_from("<II", data, position)
+        if command == 2:
+            symoff, count, stroff, strsize = struct.unpack_from("<4I", data, position + 8)
+            for index in range(count):
+                record = data[symoff + index * 16:symoff + (index + 1) * 16]
+                if record[4] == 0x66:  # N_OSO, not the whole symbol/string table
+                    string_index = struct.unpack_from("<I", record)[0]
+                    require(string_index < strsize)
+                    end = data.find(b"\0", stroff + string_index, stroff + strsize)
+                    require(end >= 0)
+                    oso.append(record + data[stroff + string_index:end])
+        position += size
+
+    def digest(categories):
+        h = hashlib.sha256()
+        for start, end, category in ranges:
+            if category in categories:
+                h.update(category.encode())
+                h.update(struct.pack("<Q", end - start))
+                h.update(data[start:end])
+        return h.digest()
+
+    return {"code": digest(("section_code",)),
+            "sections": digest(tuple(c for c in CATEGORIES if c.startswith("section_"))),
+            "signature": digest(("signature", "signing_command")),
+            "loadCommands": digest(("load_command",)), "oso": tuple(oso)}
+
+
 def native_diff(left, right):
     counts = dict.fromkeys(CATEGORIES, 0)
     total = changed(left, right)
-    try:
-        layouts = [macho_ranges(data) if data else [] for data in (left, right)]
-    except (ValueError, struct.error):
+    before, left_layouts = native_layout(left)
+    after, right_layouts = native_layout(right)
+    reason = next((s["unsupportedReason"] for s in (before, after)
+                   if s["unsupportedReason"] != "none"), "none")
+    identities = [{(s["cpuType"], s["cpuSubtype"]) for s in side["slices"]}
+                  for side in (before, after)]
+    if reason == "none" and identities[0] != identities[1]:
+        reason = "architecture_mismatch"
+    comparisons = []
+    if reason in ("none", "architecture_mismatch"):
+        try:
+            mapped = []
+            for data, side, layouts in ((left, before, left_layouts), (right, after, right_layouts)):
+                mapped.append({(s["cpuType"], s["cpuSubtype"]): slice_metadata(
+                    data[s["offset"]:s["offset"] + s["size"]], layout)
+                    for s, layout in zip(side["slices"], layouts)})
+            for cpu, subtype in sorted(identities[0] & identities[1]):
+                a, b = (side[(cpu, subtype)] for side in mapped)
+                comparisons.append({"cpuType": cpu, "cpuSubtype": subtype,
+                                    "codeHashEqual": a["code"] == b["code"],
+                                    "sectionsHashEqual": a["sections"] == b["sections"],
+                                    "signatureHashEqual": a["signature"] == b["signature"],
+                                    "loadCommandsHashEqual": a["loadCommands"] == b["loadCommands"],
+                                    "nOsoBeforeCount": len(a["oso"]), "nOsoAfterCount": len(b["oso"]),
+                                    "nOsoHashEqual": a["oso"] == b["oso"]})
+        except (ValueError, struct.error):
+            reason = "malformed_layout"
+            comparisons = []
+    details = {"before": before, "after": after, "unsupportedReason": reason,
+               "sliceComparisons": comparisons}
+    if reason != "none":
         counts["unknown"] = total
-        return {"supported": False, "changedBytes": total, "coverage": counts}
+        return {"supported": False, "changedBytes": total, "coverage": counts, **details}
+    layouts = [sorted((s["offset"] + start, s["offset"] + end, category)
+                      for s, ranges in zip(side["slices"], ranges_list)
+                      for start, end, category in ranges)
+               for side, ranges_list in ((before, left_layouts), (after, right_layouts))]
     boundaries = sorted({0, len(left), len(right)} | {
         edge for layout in layouts for start, end, _ in layout for edge in (start, end)})
     indices = [0, 0]
@@ -174,7 +312,7 @@ def native_diff(left, right):
         category = labels[0] if labels and len(set(labels)) == 1 else "unknown"
         counts[category] += changed(left[start:end], right[start:end])
     require(sum(counts.values()) == total)
-    return {"supported": True, "changedBytes": total, "coverage": counts}
+    return {"supported": True, "changedBytes": total, "coverage": counts, **details}
 
 
 def file_bytes(directory, manifest, name, archive, header):
@@ -209,9 +347,7 @@ def pair(left_directory, right_directory):
             continue
         native = name.endswith((".node", ".dylib", ".so")) or any(
             value[:4] in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\x7fELF") for value in data)
-        result = native_diff(*data) if native else {
-            "supported": False, "changedBytes": changed(*data),
-            "coverage": {key: changed(*data) if key == "unknown" else 0 for key in CATEGORIES}}
+        result = native_diff(*data)
         differences.append({"ordinal": ordinal, "native": native,
                             "beforeBytes": len(data[0]), "afterBytes": len(data[1]), **result})
     # Extras outside the ASAR header are compared too; never use the header as an allowlist.
@@ -244,10 +380,66 @@ def keys(value, expected):
     require(type(value) is dict and set(value) == set(expected.split()))
 
 
+def validate_native(item):
+    require(item["unsupportedReason"] in REASONS)
+    require(item["supported"] == (item["unsupportedReason"] == "none"))
+    identities = []
+    for name, byte_count in (("before", item["beforeBytes"]), ("after", item["afterBytes"])):
+        side = item[name]
+        keys(side, "magicKind sliceCount slices unsupportedReason")
+        require(side["magicKind"] in (*MAGICS.values(), "unknown", "missing"))
+        require(side["unsupportedReason"] in REASONS)
+        integer(side["sliceCount"], 32)
+        require(type(side["slices"]) is list and len(side["slices"]) == side["sliceCount"])
+        seen = set()
+        spans = []
+        for entry in side["slices"]:
+            keys(entry, "magicKind cpuType cpuSubtype offset size")
+            require(entry["magicKind"] in ("thin64le", "thin64be", "thin32le", "thin32be"))
+            for field in ("cpuType", "cpuSubtype"):
+                integer(entry[field], 0xffffffff)
+            for field in ("offset", "size"):
+                integer(entry[field], MAX_FILE)
+            require(entry["size"] > 0 and entry["offset"] + entry["size"] <= byte_count)
+            identity = (entry["cpuType"], entry["cpuSubtype"])
+            require(identity not in seen)
+            seen.add(identity)
+            spans.append((entry["offset"], entry["offset"] + entry["size"]))
+        spans.sort()
+        require(all(a[1] <= b[0] for a, b in zip(spans, spans[1:])))
+        identities.append(seen)
+    values = item["sliceComparisons"]
+    require(type(values) is list and len(values) <= 32)
+    if not item["supported"] and item["unsupportedReason"] != "architecture_mismatch":
+        require(not values)
+        return
+    if item["supported"]:
+        require(identities[0] == identities[1])
+    else:
+        require(identities[0] != identities[1])
+    require(len(values) == len(identities[0] & identities[1]))
+    require(all(item[name]["unsupportedReason"] == "none" for name in ("before", "after")))
+    previous = (-1, -1)
+    for value in values:
+        keys(value, "cpuType cpuSubtype codeHashEqual sectionsHashEqual signatureHashEqual loadCommandsHashEqual nOsoBeforeCount nOsoAfterCount nOsoHashEqual")
+        identity = (value["cpuType"], value["cpuSubtype"])
+        require(identity in identities[0] & identities[1] and identity > previous)
+        previous = identity
+        for field in ("cpuType", "cpuSubtype"):
+            integer(value[field], 0xffffffff)
+        for field in ("codeHashEqual", "sectionsHashEqual", "signatureHashEqual",
+                      "loadCommandsHashEqual", "nOsoHashEqual"):
+            require(type(value[field]) is bool)
+        for field in ("nOsoBeforeCount", "nOsoAfterCount"):
+            integer(value[field], MAX_FILE // 16)
+        if value["nOsoHashEqual"]:
+            require(value["nOsoBeforeCount"] == value["nOsoAfterCount"])
+
+
 def validate(report, tooling):
     """No arbitrary strings, paths, private-content hashes, or extra fields accepted."""
     keys(report, "schemaVersion app tooling provenance strictGate architectures phaseMilliseconds")
-    require(type(report["schemaVersion"]) is int and report["schemaVersion"] == 1)
+    require(type(report["schemaVersion"]) is int and report["schemaVersion"] == 2)
     require(report["app"] == APP and report["tooling"] == tooling)
     require(type(tooling) is str and re.fullmatch(r"[a-f0-9]{40}", tooling))
     require(report["provenance"] in ("ci-unsigned-signed", "local-unsigned-pair"))
@@ -278,7 +470,7 @@ def validate(report, tooling):
             require(type(values) is list and len(values) <= MAX_COUNT)
             previous = -1
             for item in values:
-                keys(item, "ordinal beforeBytes afterBytes supported changedBytes coverage" +
+                keys(item, "ordinal beforeBytes afterBytes supported changedBytes coverage before after unsupportedReason sliceComparisons" +
                      (" native" if name == "entryDifferences" else ""))
                 if name == "entryDifferences":
                     require(type(item["native"]) is bool)
@@ -288,6 +480,7 @@ def validate(report, tooling):
                 require(type(item["supported"]) is bool)
                 for key in ("beforeBytes", "afterBytes", "changedBytes"):
                     integer(item[key])
+                validate_native(item)
                 keys(item["coverage"], " ".join(CATEGORIES))
                 for value in item["coverage"].values():
                     integer(value)
@@ -306,7 +499,7 @@ def generate(root, tooling, provenance):
     bounded = time.monotonic()
     source = evidence.load((root / "provenance.json").read_bytes())
     require(source == {"app": APP, "tooling": tooling})
-    report = {"schemaVersion": 1, "app": APP, "tooling": tooling,
+    report = {"schemaVersion": 2, "app": APP, "tooling": tooling,
               "provenance": provenance, "strictGate": "blocking-independent",
               "architectures": {arch: pair(root / "unsigned-before" / arch,
                                             root / "signed-rebuild" / arch)
