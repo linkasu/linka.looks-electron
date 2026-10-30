@@ -47,7 +47,7 @@ function getWindowsExtraResourcesDir() {
   return join(distDir, "win-unpacked", "resources", "extraResources");
 }
 
-function findMacAppBundle() {
+function findMacAppBundles() {
   const appBundles = [];
 
   function scan(directory, depth) {
@@ -64,7 +64,7 @@ function findMacAppBundle() {
   }
 
   scan(distDir, 0);
-  return appBundles.sort()[0];
+  return appBundles.sort();
 }
 
 function assertMacIcon(resourcesDir) {
@@ -108,12 +108,7 @@ function smokeMacNativeAddon(resourcesDir) {
   assertFile(join(unpackedDir, "index.js"));
 }
 
-function smokeMacPackage() {
-  const appBundle = findMacAppBundle();
-  if (!appBundle) {
-    throw new Error(`No packaged .app bundle found in ${distDir}`);
-  }
-
+function smokeMacPackage(appBundle) {
   const contentsDir = join(appBundle, "Contents");
   const resourcesDir = join(contentsDir, "Resources");
   const extraResourcesDir = join(resourcesDir, "extraResources");
@@ -140,7 +135,12 @@ function smokeMacPackage() {
       );
     }
   } else if (process.platform === "darwin") {
-    smokeMacPackage();
+    const bundles = findMacAppBundles();
+    assert(bundles.length > 0, "No packaged .app bundle found");
+    for (const bundle of bundles) {
+      smokeMacPackage(bundle);
+      console.log(`Packaged resource smoke test passed: ${bundle}`);
+    }
   } else {
     console.log(
       "Packaged resource smoke test is supported on Windows and macOS; skipping on",

@@ -76,6 +76,8 @@
       "!dist/builder-debug.yml",
       "dist-electron/**/*",
       "node_modules/@linkasu/tobii-electron/**/*",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
       "package.json"
     ],
     "fileAssociations": [

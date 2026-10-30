@@ -9,7 +9,7 @@ const builderRequire = createRequire(require.resolve("electron-builder"));
 const asar = builderRequire("@electron/asar");
 const { inspect } = require("./release-inventory.cjs");
 
-test("3.3.1 workflow is build-only, main-gated signing, no binary disclosure", () => {
+test("3.3.1 builds once, main-gates accepted artifact retention and never publishes", () => {
   const source = fs.readFileSync(".github/workflows/release-331-preflight.yml", "utf8");
   const workflow = yaml.parse(source);
   assert.deepEqual(workflow.permissions, { contents: "read" });
@@ -25,8 +25,16 @@ test("3.3.1 workflow is build-only, main-gated signing, no binary disclosure", (
     for (const step of job.steps) {
       if (step.uses === "actions/checkout@v4")
         assert.equal(step.with["persist-credentials"], false);
-      if (step.uses === "actions/upload-artifact@v4")
-        assert.match(step.with.path, /^(app\/)?release-evidence\/inventory\.json$/);
+      if (step.uses === "actions/upload-artifact@v4") {
+        if (jobName === "unsigned") assert.equal(step.with.path, "release-evidence/inventory.json");
+        else {
+          assert.match(
+            job.if,
+            /workflow_dispatch.*refs\/heads\/main.*linkasu\/linka\.looks-electron/
+          );
+          assert.equal(step.with.path, "app/release-ready/");
+        }
+      }
       if (JSON.stringify(step).includes("secrets.")) {
         assert.equal(jobName, "signed-macos");
         assert.match(step.run, /-p never/);
@@ -45,7 +53,11 @@ test("3.3.1 workflow is build-only, main-gated signing, no binary disclosure", (
     "codesign --verify --deep --strict",
     "xcrun stapler validate",
     "spctl --assess",
-    "hdiutil attach -quiet -readonly"
+    "hdiutil attach -quiet -readonly",
+    "verify-macos-payload.py bundle-equal",
+    "release-artifacts.cjs stage macos",
+    "release-artifacts.cjs stage windows",
+    "release-source-bundle.cjs"
   ]) {
     assert(source.includes(gate), `missing strict gate: ${gate}`);
   }
@@ -57,6 +69,26 @@ test("3.3.1 workflow is build-only, main-gated signing, no binary disclosure", (
     integration.run,
     /node node_modules\/electron\/install\.js[\s\S]+MACOS_BUILDER_INTEGRATION=/
   );
+  assert.equal(workflow.jobs["release-windows"]["runs-on"], "windows-2022");
+  assert.match(source, /test "\$GITHUB_SHA" = "\$EXPECTED_TOOLING_SHA"/);
+  const promotion = yaml.parse(fs.readFileSync(".github/workflows/electron.yml", "utf8"));
+  assert.deepEqual(Object.keys(promotion.on), ["workflow_dispatch"]);
+  const promotionSource = JSON.stringify(promotion);
+  assert.doesNotMatch(
+    promotionSource,
+    /-p always|electron:build|secrets\.|--admin|--force|--clobber/
+  );
+  for (const gate of [
+    "release-artifacts.cjs verify",
+    "signed-macos",
+    "release-windows",
+    "--draft",
+    "Release collision"
+  ])
+    assert(promotionSource.includes(gate));
+  const pkg = JSON.parse(fs.readFileSync("package.json"));
+  for (const notice of ["LICENSE", "THIRD_PARTY_NOTICES.md"])
+    assert(pkg.build.files.includes(notice));
 });
 
 test("inventory uses actual ASAR metadata/notices and extra resources; missing app fails closed", async (t) => {

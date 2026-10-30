@@ -1,4 +1,57 @@
-# 3.3.1 build-only release preflight
+# 3.3.1 candidate retention and controlled promotion
+
+## Current release contract (30 October 2026)
+
+The owner explicitly authorized normal merge, CI signing/notarization and publication
+of 3.3.1 after technical gates, accepting the disclosed SDK licensing/hardware limits.
+The earlier approval blockers below are a historical record, not current gates.
+PR127 was normally merged as `e000532772b7db2787a1244ba6c38b7cd628d377`.
+
+| Entry                                        | Allowed behavior                                                                                   | Publication / resume                                                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| PR140 exact head                             | Unsigned Windows 2022 + both macOS builds; tests; inventories only                                 | No signing or release; latest exact-head gates must succeed                                                     |
+| Main candidate dispatch                      | Explicit exact app/tooling SHAs; main ancestry; Windows 2022 once and macOS once per architecture  | Sign/notarize macOS with existing CI config; retain accepted bytes, sources/notices and hashes only after gates |
+| Main promotion dispatch                      | Explicit successful candidate run + exact app/tooling SHAs; validate run/jobs and exact-head gates | Download only accepted bytes; recheck complete metadata/hashes; collision-refusing draft, never rebuild         |
+| Authorized operator publishes verified draft | Recheck tag/app SHA, asset digests and provenance                                                  | `release.published` runs the existing production updater mirror; observe and verify it                          |
+| Failed / partial / skipped required job      | Not accepted; keep failure evidence                                                                | No promotion, no automatic retry, overwrite or resume of an uncertain external action                           |
+
+There is no v-tag build/publish trigger. v3.3.0 recovery remains untouched. Promotion
+never approves a PR, enables automerge, bypasses protection or requests new credentials.
+Concurrency does not cancel in-flight candidate/promotion work. Draft creation and
+publication are separate observable operations; uncertain outcomes must be inspected,
+not replayed. No persisted application data/state format changes in this stage.
+
+Mandatory installers, blockmaps and updater metadata are validated before retention
+and again before promotion: version 3.3.1, exact nonempty asset set, filenames,
+SHA512 and sizes against actual bytes. Provenance binds app/tooling SHA and run ID
+to SHA256/size of all files including source/notices bundles. Full signed-bundle
+manifests (file hashes, modes and symlink targets) compare the accepted app to ZIP
+and read-only DMG; expected architecture and team `29HEQ626X2` are checked. Strict
+raw-ASAR and native normalization assertions are not weakened. Packaged-resource
+assertions now run for every found Mac bundle, not just the first.
+
+The source kit contains exact app/tooling git archives, exact node-eyelog/EyeLog
+archives (including the EyeLog GPL documentation clarification), observed archive
+hashes and preserved package/bundle notices. LICENSE and THIRD_PARTY_NOTICES.md
+are included in actual packaging. This is not a complete proprietary Tobii source
+offer or a claim of full license compatibility. Windows signature, physical Tobii,
+full SDK runtime and actual installer-update remain NOT VERIFIED as disclosed.
+
+### Retained E2E diagnosis and checks
+
+Run `41059741668` at `4c45789` failed the 1-cell text-image style assertion on arm64.
+The old trace contains no renderer/IPC settlement evidence: the underlying delay
+is unconfirmed. Source proves that InputDialog closes immediately after emit while
+CreateFromTextDialog awaits storage IPC; click completion is not generation completion.
+The test-only observer now distinguishes pending/success/reject/null before the
+unchanged 5-second style assertion, inside the unchanged 90-second overall budget.
+Renderer snapshots/screenshots and scoped errors/timings are retained before closing.
+Deferred/rejected/null controls pass; local text-image E2E passed both spans.
+The first local observer attempt failed because Playwright TestInfo has no startTime;
+it was corrected to a local budget start (Date.now elapsed), not a timeout
+increase. This evidence does not retroactively prove a cause of the old CI delay.
+
+## Historical build-only stage (superseded scope)
 
 This stage continues draft PR140, not a second release/tooling PR. The starting
 application SHA is `50ded57808f80abd4ca13021fa20fa75c2059581`; the package and lock

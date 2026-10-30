@@ -147,6 +147,33 @@ class PayloadTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             gate.resources(self.left, self.right)
 
+    def test_signed_bundle_comparison_covers_executable_plist_modes_and_symlinks(self):
+        for path in (self.left, self.right):
+            (path / "Contents/Resources").mkdir(parents=True)
+            (path / "Contents/Resources/app.asar").write_bytes(b"identical resources")
+            (path / "Contents/MacOS").mkdir()
+            (path / "Contents/MacOS/app").write_bytes(b"accepted signed executable")
+            (path / "Contents/Info.plist").write_bytes(b"accepted plist")
+            (path / "Contents/current").symlink_to("Resources")
+        gate.bundle_equal(self.left, self.right)
+        for relative in ("Contents/MacOS/app", "Contents/Info.plist"):
+            target = self.right / relative
+            original = target.read_bytes()
+            target.write_bytes(b"mutation")
+            gate.resources(self.left, self.right)
+            with self.assertRaises(ValueError):
+                gate.bundle_equal(self.left, self.right)
+            target.write_bytes(original)
+            target.chmod(0o700)
+            with self.assertRaises(ValueError):
+                gate.bundle_equal(self.left, self.right)
+            target.chmod(0o644)
+        link = self.right / "Contents/current"
+        link.unlink()
+        link.symlink_to("MacOS")
+        with self.assertRaises(ValueError):
+            gate.bundle_equal(self.left, self.right)
+
     @unittest.skipUnless(sys.platform == "darwin" and shutil.which("clang"), "macOS clang required")
     def test_local_thin_and_universal_signature_removal_preserves_every_other_byte(self):
         source = self.root / "fixture.c"

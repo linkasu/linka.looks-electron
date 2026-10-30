@@ -58,7 +58,7 @@ jobs:
       - name: Candidate builder password separation and hook fixtures (no signing)
         env:
           CANDIDATE_BUILDER: "1"
-        run: node --test scripts/ci/candidate-keychain-password.test.cjs scripts/ci/candidate-mac-sign.test.cjs scripts/ci/macos-single-build.test.cjs scripts/ci/provision-eyelog.test.cjs scripts/ci/candidate-eyelog-api.test.cjs scripts/ci/packaged-eyelog.test.cjs
+        run: node --test scripts/ci/candidate-keychain-password.test.cjs scripts/ci/candidate-mac-sign.test.cjs scripts/ci/macos-single-build.test.cjs scripts/ci/provision-eyelog.test.cjs scripts/ci/candidate-eyelog-api.test.cjs scripts/ci/packaged-eyelog.test.cjs scripts/ci/release-artifacts.test.cjs scripts/ci/release-331-preflight.test.cjs
       - name: Strict payload synthetic negative controls
         run: |
           python3 scripts/ci/test-asar-evidence.py
