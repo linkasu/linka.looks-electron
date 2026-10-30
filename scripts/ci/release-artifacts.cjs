@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const nodeCrypto = require("node:crypto");
-const { execFileSync } = require("node:child_process");
+const childProcess = require("node:child_process");
 
 const VERSION = "3.3.1";
 const digest = (bytes, algorithm = "sha256", encoding = "hex") =>
@@ -81,9 +81,9 @@ function stage(platform) {
   for (const name of names)
     fs.copyFileSync(path.join("dist", name), path.join("release-ready", name));
   const source = `source-notices-${platform}-${VERSION}.tar.gz`;
-  execFileSync("tar", [
+  childProcess.execFileSync("tar", [
     "-czf",
-    path.resolve("release-ready", source),
+    `release-ready/${source}`,
     "-C",
     "release-evidence",
     "."
@@ -138,7 +138,7 @@ function verifyPromotion(directory, app, tooling, run) {
     "unexpected promotion files"
   );
 }
-module.exports = { assets, digest, verifyMetadata, verifyPromotion };
+module.exports = { assets, digest, verifyMetadata, verifyPromotion, stage };
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2);
   if (command === "stage") stage(...args);

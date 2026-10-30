@@ -53,6 +53,12 @@ increase. This evidence does not retroactively prove a cause of the old CI delay
 
 ## Historical build-only stage (superseded scope)
 
+At `3c148b4`, Checks, Electron test and full release acceptance succeeded.
+Preflight `41065894582` passed macOS staging and Windows installer/metadata/notices
+validation, then Windows GNU tar interpreted the absolute `D:` archive path as a
+remote host. A regression reproduces rejection of that argument locally; staging
+now passes a relative forward-slash output path. No asset or hash assertion changes.
+
 This stage continues draft PR140, not a second release/tooling PR. The starting
 application SHA is `50ded57808f80abd4ca13021fa20fa75c2059581`; the package and lock
 blobs remain `7807769d1769a7d4674a7fdc136457391756aec8` and
