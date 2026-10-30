@@ -1,5 +1,6 @@
 """Synthetic mutation controls; optional macOS ad-hoc test uses no identity/secrets."""
 import importlib.util
+import json
 from pathlib import Path
 import shutil
 import struct
@@ -70,6 +71,23 @@ class PayloadTests(unittest.TestCase):
             (path / "native").write_bytes(b"\xcf\xfa\xed\xfe" + bytes(100))
         with self.assertRaises(ValueError):
             gate.native_equal(self.left / "native", self.right / "native")
+
+    def test_rejection_diagnostics_are_scoped_and_never_include_paths_or_payload(self):
+        gate.checkpoint("synthetic-control", arch="x64", ordinal=23)
+        changed = bytearray((self.right / "native").read_bytes())
+        changed[4096 + 260] ^= 1
+        (self.right / "native").write_bytes(changed)
+        with patch.object(gate, "identity"), patch.object(gate, "codesign"):
+            with self.assertRaises(ValueError):
+                gate.native_equal(self.left / "native", self.right / "native")
+        self.assertEqual(gate.diagnostic["stage"], "native-content-hashes")
+        self.assertEqual(gate.diagnostic["arch"], "x64")
+        self.assertEqual(gate.diagnostic["ordinal"], 23)
+        output = json.dumps(gate.diagnostic)
+        self.assertNotIn(str(self.root), output)
+        self.assertLess(len(output), 2048)
+        self.assertTrue(all(isinstance(value, bool) for key, value in gate.diagnostic.items()
+                            if key.endswith("Equal")))
 
     def compare_linkedit(self, before, signed, removed):
         left, right = self.left / "native", self.right / "native"
