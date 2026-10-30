@@ -148,6 +148,23 @@ def compare(left, right):
     return result
 
 
+def capture_one(source, output):
+    source, output = no_symlink_parents(source), no_symlink_parents(output)
+    require(not output.exists())
+    output.parent.mkdir(parents=True, exist_ok=True)
+    before, _ = inspect(source)
+    with tempfile.TemporaryDirectory(prefix=".capture-", dir=output.parent) as tmp:
+        saved = Path(tmp) / "snapshot"
+        saved.mkdir()
+        shutil.copy2(source, saved / "app.asar")
+        shutil.copytree(str(source) + ".unpacked", saved / "app.asar.unpacked", symlinks=True)
+        manifest, raw_header = inspect(saved / "app.asar")
+        require(manifest == before)
+        (saved / "header.bin").write_bytes(raw_header)
+        write_json(saved / "manifest.json", manifest)
+        saved.rename(output)
+
+
 def capture(app, root, stage):
     require(stage in ("unsigned-before", "signed-rebuild"))
     app, root = no_symlink_parents(app), no_symlink_parents(root)
@@ -158,15 +175,8 @@ def capture(app, root, stage):
     with tempfile.TemporaryDirectory(prefix=".capture-", dir=root) as tmp:
         for arch, directory in (("x64", "mac"), ("arm64", "mac-arm64")):
             source = app / "dist" / directory / "LINKa. смотри.app/Contents/Resources/app.asar"
-            before, _ = inspect(source)
             output = Path(tmp) / arch
-            output.mkdir()
-            shutil.copy2(source, output / "app.asar")
-            shutil.copytree(str(source) + ".unpacked", output / "app.asar.unpacked", symlinks=True)
-            manifest, raw_header = inspect(output / "app.asar")
-            require(manifest == before)
-            (output / "header.bin").write_bytes(raw_header)
-            write_json(output / "manifest.json", manifest)
+            capture_one(source, output)
         Path(tmp).rename(root / stage)
 
 
@@ -188,6 +198,8 @@ def main():
         capture(*sys.argv[2:])
     elif len(sys.argv) == 3 and sys.argv[1] == "diff":
         diff(sys.argv[2])
+    elif len(sys.argv) == 4 and sys.argv[1] == "capture-one":
+        capture_one(*sys.argv[2:])
     else:
         raise ValueError("invalid command")
 

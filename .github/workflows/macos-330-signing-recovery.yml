@@ -5,6 +5,7 @@ on:
       - ".github/workflows/macos-330-signing-recovery.yml"
       - "scripts/ci/backport-keychain-password*"
       - "scripts/ci/*asar-evidence*"
+      - "scripts/ci/*macos*"
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,6 +38,9 @@ jobs:
         run: |
           python3 scripts/ci/test-asar-evidence.py
           python3 scripts/ci/test-report-asar-evidence.py
+          python3 scripts/ci/test-verify-macos-payload.py
+      - name: Pinned builder hook and per-architecture regression tests (no signing)
+        run: BUILDER_FIXTURE="$RUNNER_TEMP/signing-fixture/package" node --test scripts/ci/macos-single-build.test.cjs
   signed-build:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'linkasu/linka.looks-electron'
     needs: synthetic
@@ -71,7 +75,10 @@ jobs:
           shasum -a 256 tooling/scripts/ci/backport-keychain-password.cjs >> evidence/provenance.txt
       - name: Install locked application build dependencies
         working-directory: app
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node node_modules/@linkasu/tobii-electron/scripts/copy-eyelog-bin.js
       - name: Apply exact upstream build-tool fix and regressions
         shell: bash
         run: |
@@ -79,46 +86,41 @@ jobs:
           SIGNING_FIXTURE="$PWD/app/node_modules/app-builder-lib/out/codeSign/macCodeSign.js" node --test tooling/scripts/ci/backport-keychain-password.test.cjs
           node tooling/scripts/ci/backport-keychain-password.cjs app > evidence/patch.json
           git -C app diff --exit-code
-          node --version >> evidence/provenance.txt
-          npm --version >> evidence/provenance.txt
-          node -e 'for(const name of ["electron-builder","app-builder-lib","electron"]){ console.log(name+"="+require("./app/node_modules/"+name+"/package.json").version); }' >> evidence/provenance.txt
-      - name: Build unsigned application for source-equivalence control
-        working-directory: app
-        run: npm run electron:build -- --mac --x64 --arm64 --dir -p never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - name: Save pre-sign application payload checksums
+          {
+            node --version
+            npm --version
+            node -e 'for(const name of ["electron-builder","app-builder-lib","electron"]){ console.log(name+"="+require("./app/node_modules/"+name+"/package.json").version); }'
+          } >> evidence/provenance.txt
+      - name: Initialize runner-only snapshot provenance
         shell: bash
         run: |
           set -euo pipefail
-          shasum -a 256 'app/dist/mac/LINKa. смотри.app/Contents/Resources/app.asar' 'app/dist/mac-arm64/LINKa. смотри.app/Contents/Resources/app.asar' > evidence/app-asar-before.sha256
-      - name: Preserve unsigned ASAR and unpacked outside dist
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tooling/scripts/ci/asar-evidence.py capture app evidence/payload unsigned-before
+          mkdir -p evidence/payload
           node -e 'require("fs").writeFileSync("evidence/payload/provenance.json", JSON.stringify({app:process.argv[1],tooling:process.argv[2]})+"\n")' "$APP_SHA" "$GITHUB_SHA"
-      - name: Build signed and notarized Mac artifacts (never publish)
+          shasum -a 256 tooling/scripts/ci/macos-single-build.cjs tooling/scripts/ci/asar-evidence.py tooling/scripts/ci/verify-macos-payload.py >> evidence/provenance.txt
+      - name: Build once per architecture, snapshot before/after normal signing (never publish)
         working-directory: app
-        run: npm run electron:build -- --mac --x64 --arm64 -p never
+        run: npm run electron:build -- --mac --x64 --arm64 -p never --config ../tooling/scripts/ci/macos-single-build.cjs
         env:
+          MACOS_EVIDENCE_ROOT: ${{ github.workspace }}/evidence
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_NAME: "Иван Бакаидов (29HEQ626X2)"
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      - name: Preserve signed counterparts and full diff before strict raw-hash gate
+      - name: Compare hook snapshots before strict raw-hash gate
         shell: bash
         run: |
           set -euo pipefail
-          python3 tooling/scripts/ci/asar-evidence.py capture app evidence/payload signed-rebuild
+          cat evidence/app-asar-x64.sha256 evidence/app-asar-arm64.sha256 > evidence/app-asar-before.sha256
           python3 tooling/scripts/ci/asar-evidence.py diff evidence/payload
       - name: Verify signatures, notarization, payload equivalence and resources
         shell: bash
         run: |
           set -euo pipefail
           shasum -a 256 -c evidence/app-asar-before.sha256
+          python3 tooling/scripts/ci/verify-macos-payload.py evidence app
           for appdir in 'app/dist/mac/LINKa. смотри.app' 'app/dist/mac-arm64/LINKa. смотри.app'; do
             codesign --verify --deep --strict --verbose=2 "$appdir"
             spctl --assess --type execute --verbose=2 "$appdir"
@@ -135,9 +137,11 @@ jobs:
             ditto -x -k "app/dist/linka.looks-3.3.0-mac-$arch.zip" "$unpack"
             codesign --verify --deep --strict --verbose=2 "$unpack/LINKa. смотри.app"
             xcrun stapler validate "$unpack/LINKa. смотри.app"
+            spctl --assess --type execute --verbose=2 "$unpack/LINKa. смотри.app"
             dir=mac
             if [ "$arch" = arm64 ]; then dir=mac-arm64; fi
             cmp "app/dist/$dir/LINKa. смотри.app/Contents/Resources/app.asar" "$unpack/LINKa. смотри.app/Contents/Resources/app.asar"
+            python3 tooling/scripts/ci/verify-macos-payload.py resources-equal "app/dist/$dir/LINKa. смотри.app" "$unpack/LINKa. смотри.app"
           done
           test -s app/dist/latest-mac.yml
           shasum -a 256 app/dist/*.dmg app/dist/*.zip app/dist/latest-mac.yml > evidence/artifacts.sha256
@@ -165,16 +169,3 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           path: ${{ steps.disclosure.outputs.paths }}
-      - name: Upload verified installers only after all gates succeed
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-330-signed-${{ github.run_id }}
-          retention-days: 3
-          if-no-files-found: error
-          path: |
-            app/dist/linka.looks-3.3.0-mac-x64.dmg
-            app/dist/linka.looks-3.3.0-mac-arm64.dmg
-            app/dist/linka.looks-3.3.0-mac-x64.zip
-            app/dist/linka.looks-3.3.0-mac-arm64.zip
-            app/dist/latest-mac.yml
