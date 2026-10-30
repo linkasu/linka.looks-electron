@@ -71,6 +71,13 @@ test("inventory uses actual ASAR metadata/notices and extra resources; missing a
     JSON.stringify({ name: "fixture", version: "3.3.1" })
   );
   fs.writeFileSync(path.join(input, "LICENSE"), "existing notice, not a new grant");
+  const dependency = path.join(input, "node_modules/@fixture/nested");
+  fs.mkdirSync(dependency, { recursive: true });
+  fs.writeFileSync(
+    path.join(dependency, "package.json"),
+    JSON.stringify({ name: "nested", version: "1.0.0" })
+  );
+  fs.writeFileSync(path.join(dependency, "NOTICE"), "nested notice");
   fs.writeFileSync(path.join(resources, "vendor.dll"), "fixture DLL");
   const archive = path.join(resources, "app.asar");
   await asar.createPackage(input, archive);
@@ -80,7 +87,12 @@ test("inventory uses actual ASAR metadata/notices and extra resources; missing a
   );
   const notices = path.join(root, "notices");
   const result = inspect(archive, resources, notices);
-  assert.equal(result.packages[0].license, null);
+  assert.equal(result.packages.find((pkg) => pkg.path === "package.json").license, null);
+  assert.equal(
+    result.packages.find((pkg) => pkg.name === "nested").path,
+    "node_modules/@fixture/nested/package.json"
+  );
+  assert(result.notices.some((item) => item.path === "node_modules/@fixture/nested/NOTICE"));
   assert.equal(result.notices[0].path, "LICENSE");
   assert.match(result.notices[0].sha256, /^[a-f0-9]{64}$/);
   assert.equal(

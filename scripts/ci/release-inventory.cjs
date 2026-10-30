@@ -27,10 +27,11 @@ function inspect(archive, resources, noticeDirectory, bundle = resources) {
   }
   for (const entry of asar.listPackage(archive)) {
     const name = entry.replaceAll("\\", "/").replace(/^\/+/, "");
-    const stat = asar.statFile(archive, name, false);
+    const nativeName = path.normalize(name);
+    const stat = asar.statFile(archive, nativeName, false);
     if (stat.files || stat.link) continue;
     if (/(^|\/)package\.json$/.test(name)) {
-      const pkg = JSON.parse(asar.extractFile(archive, name).toString("utf8"));
+      const pkg = JSON.parse(asar.extractFile(archive, nativeName).toString("utf8"));
       packages.push({
         path: name,
         name: pkg.name ?? null,
@@ -38,7 +39,7 @@ function inspect(archive, resources, noticeDirectory, bundle = resources) {
         license: pkg.license ?? null
       });
     }
-    if (notice(name)) saveNotice(name, asar.extractFile(archive, name));
+    if (notice(name)) saveNotice(name, asar.extractFile(archive, nativeName));
   }
   assert(
     packages.some((pkg) => pkg.path === "package.json"),

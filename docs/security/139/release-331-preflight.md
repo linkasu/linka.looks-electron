@@ -124,3 +124,22 @@ and explicitly invokes the official checksum-verifying Electron installer before
 the mock test. Both regressions were reproduced red locally, then passed after
 the fix; the Windows-style listing control runs on all hosts. No retry/skip or
 feature/payload assertion relaxation replaces either failure.
+
+At `f6248a03b7c2a1eb5a6f811b964917959bfe3bd6`, Checks, Electron test and the
+old recovery workflow's **synthetic-only** PR job succeeded. Preflight
+[41058445052](https://github.com/linkasu/linka.looks-electron/actions/runs/41058445052)
+built macOS x64/arm64 installers and passed their packaged checks/inventory:
+338 package metadata records, 283 notice files and 857 bundle entries per target.
+Its downloaded inventory JSON hash is
+`05cf18dc9223a397a725f2398fdc54c18defc283709ae026580a24fc0643490a`.
+Windows built its installer and passed packaged resources, but nested ASAR lookup
+failed because the Windows API requires native separators, not report-style `/`.
+The follow-up keeps portable report paths while passing native paths to ASAR and
+adds scoped, nested-package/notice fixtures.
+
+Software acceptance
+[41058445099](https://github.com/linkasu/linka.looks-electron/actions/runs/41058445099)
+failed separately at a synthetic Windows supervisor timeout (`ETIMEDOUT`, 40-second
+outer deadline, no supervisor output), before the real SDK launch step. The exact
+substage/root cause is unconfirmed. No deadline, containment rule, classification
+or assertion is changed; a later green run cannot erase this observed failure.
