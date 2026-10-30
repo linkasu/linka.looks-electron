@@ -115,6 +115,10 @@ jobs:
           set -euo pipefail
           npm run test:packaged-resources
           node scripts/ci/release-inventory.cjs
+          node scripts/ci/release-source-bundle.cjs
+          platform=windows
+          if [ "$RUNNER_OS" = macOS ]; then platform=macos; fi
+          node scripts/ci/release-artifacts.cjs stage "$platform"
           git diff --exit-code
       - name: Upload source pins and inventories only (NO binaries)
         uses: actions/upload-artifact@v4
