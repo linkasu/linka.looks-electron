@@ -185,8 +185,8 @@ Five local negative/positive controls cover lock drift, digest drift, installer
 failure and missing resources without publishing paths/errors.
 The packaged resource gate compares all five SDK files byte-for-byte against this
 provisioning on Windows and macOS. Its five synthetic controls reject missing,
-non-file, stale and empty payloads. It no longer launches EyeLog.exe or treats a
-Tobii startup exception as success; physical runtime acceptance remains separate.
+non-file, stale and empty payloads. The follow-up below restores an additional
+hosted-Windows-only launch gate; physical runtime acceptance remains separate.
 
 The retained upstream SDK **1.1.3.0** is a real delta from the old app's 1.1.1.0:
 raw gaze plus invariant-culture output. Asset 467473707 is 389225 bytes, pinned
@@ -261,6 +261,54 @@ comparisons were weakened. New signed acceptance is still required separately.
   Terminal exact-head cross-platform CI is recorded in PR #140, not inferred here.
 
 ## Verification boundaries
+
+### Bounded Windows SDK launch follow-up (2026-10-30)
+
+The starting head is `8c75894b4331336a2095128fa12142dd1929f277`. Package and
+lockfile contents are unchanged, so the complete audits and reachability analysis
+above still apply (all: 8, including 2 high; production: 2 high; both exit 1).
+Unchanged blobs: package `7807769d1769a7d4674a7fdc136457391756aec8`, lock
+`1c1f959d6f339b63263b6c2d0bb6f55a0271a054`.
+
+Public source at [SDK tag 1.1.3.0](https://github.com/linkasu/EyeLog/tree/1.1.3.0)
+shows `new Host()` before the input/gaze threads, .NET Framework 4.8 and x86 release
+configuration. There is no normal no-device shutdown path. A timeout, empty
+zero-exit or broad `BadImageFormatException` suppression cannot demonstrate launch
+acceptance. No missing-runtime signature is accepted without corroborating the
+specific native dependency and observing the actual pinned payload in CI.
+
+The candidate Windows PR and acceptance workflows now explicitly enable launch
+after the other software checks, preserving their assertions and historical jobs.
+Checkout credentials are not persisted in these Windows jobs; no signing/repository
+secrets are passed. Execution is restricted to pull-request jobs on GitHub-hosted
+Windows for this repository. Both the PowerShell supervisor and SDK receive only
+`SystemRoot` and `WINDIR`, not the runner environment. This is ephemeral hosted-CI
+containment, not a claim that an environment allowlist isolates arbitrary hostile
+code from the runner filesystem or network.
+
+The supervisor creates the process suspended, assigns a kill-on-close Windows Job
+Object, then resumes it. SDK stdout/stderr are bounded to 8,193 bytes per stream;
+the deadline is 10 seconds, followed by bounded termination/pipe collection.
+All descendants are terminated even after an early parent exit, and active job
+processes must reach zero. Supervisor timeout/error, cleanup failure, unexpected
+output/exit and hangs fail closed. Raw runner environment and supervisor credentials
+are never logged. Pinned provisioning and all five byte comparisons still run
+before the launch.
+
+Offline policy/equality controls cover credential/context rejection, required CI
+gate wiring, equality-before-launch and unexpected outcome rejection. Hosted Windows
+process controls additionally exercise clean exit, environment isolation, crash,
+wrong-architecture exit, misleading BadImageFormat text, unexpected/overflow output,
+hang, missing executable and a child surviving its parent. They do not run EyeLog
+on a developer's Mac or physical Windows/Tobii system. Exact-head CI observations
+and any unresolved launch blocker are recorded in PR #140; delivery is not acceptance.
+
+Local Node 22.22.2 checks: format/lint/typecheck/knip passed; unit 223 passed and
+1 existing skipped. Policy/equality controls 13/13 passed. Combined candidate
+synthetic checks passed 27 with the opt-in real-builder case initially not enabled;
+that case was then explicitly enabled and all three builder tests passed with mock
+signing only. Strict payload/evidence suites passed 42 tests. No Windows SDK or
+Windows process fixture was executed locally.
 
 Local and exact-head CI results are recorded in the draft PR. In particular:
 

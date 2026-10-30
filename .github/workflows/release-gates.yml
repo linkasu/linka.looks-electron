@@ -138,6 +138,7 @@ jobs:
         working-directory: app
         run: npm run electron:build -- --dir -p never
       - name: Packaged resources
+        id: packaged
         working-directory: app
         run: npm run test:packaged-resources
       - name: Plain executable startup (no Electron automation loader)
@@ -175,6 +176,19 @@ jobs:
         timeout-minutes: 5
         working-directory: app
         run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
       - name: Evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -17,12 +17,18 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: read
+
 jobs:
   build-windows:
     # node-gyp 11 supports VS2022, not windows-latest's VS2026 image.
     runs-on: windows-2022
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -50,6 +56,7 @@ jobs:
       - name: Build unpacked app for packaged resource smoke test
         run: npm run electron:build -- --dir -p never
       - name: Packaged resource smoke test
+        id: packaged
         run: npm run test:packaged-resources
       - name: Load native modules with packaged Windows Electron (no hardware access)
         env:
@@ -62,6 +69,17 @@ jobs:
       - name: Production text image generation smoke test
         timeout-minutes: 5
         run: node scripts/ci/run-text-image-smoke.mjs
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: ${{ !cancelled() }}
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' }}
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
       - name: Upload text image screenshots
         if: always()
         uses: actions/upload-artifact@v4

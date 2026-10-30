@@ -64,6 +64,8 @@ jobs:
           python3 scripts/ci/test-asar-evidence.py
           python3 scripts/ci/test-report-asar-evidence.py
           python3 scripts/ci/test-verify-macos-payload.py
+      - name: SDK launch policy negative controls (no executable launch)
+        run: node --test scripts/ci/windows-sdk-launch.test.cjs
       - name: Mirror atomic update and rollback tests (no production access)
         run: node --test scripts/mirror/update.test.cjs
       - name: Baseline result validator self-test

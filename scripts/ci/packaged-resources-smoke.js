@@ -134,6 +134,11 @@ function smokeMacPackage() {
 (async () => {
   if (process.platform === "win32") {
     assertPinnedEyeLog(getWindowsExtraResourcesDir());
+    if (process.env.EYELOG_SANDBOX_GATE === "1") {
+      require("./windows-sdk-launch.cjs").launch(
+        join(getWindowsExtraResourcesDir(), "bin", "EyeLog.exe")
+      );
+    }
   } else if (process.platform === "darwin") {
     smokeMacPackage();
   } else {
