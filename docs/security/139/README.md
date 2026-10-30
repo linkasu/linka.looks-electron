@@ -174,5 +174,10 @@ Local and exact-head CI results are recorded in the draft PR. In particular:
   launches whose first usable window each has a 20s wait. Initial default-budget
   runs failed 3/3 at 30s; traces showed the first root at 18–19s and the second
   root still pending. The same assertions passed 3/3 with the scoped budget.
+- Initial exact-head CI passed Checks and both macOS architecture jobs. Windows
+  failed native compilation: the windows-latest image was windows-2025-vs2026,
+  while the installed node-gyp 11 finder only recognizes VS2019/2022. Candidate
+  Windows jobs are pinned to windows-2022 instead of adding a native-toolchain
+  major upgrade; historical baseline/PR121 jobs and signing recovery are unchanged.
 - macos-330-signing-recovery.yml and run 41033267787 are not changed, cancelled or
   repurposed. Ordinary release/update/publish workflows are not dispatched.

@@ -71,7 +71,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
+          # Candidate node-gyp 11 requires the VS2022 toolchain.
+          - os: windows-2022
             revision: candidate
           - os: windows-latest
             revision: baseline

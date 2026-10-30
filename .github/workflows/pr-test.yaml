@@ -19,7 +19,8 @@ env:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    # node-gyp 11 supports VS2022, not windows-latest's VS2026 image.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
