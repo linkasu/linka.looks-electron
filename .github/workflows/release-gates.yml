@@ -126,6 +126,10 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm rebuild pictures.bank-api esbuild electron
+      - name: Provision checksum-pinned candidate SDK (no binary execution)
+        if: matrix.revision == 'candidate'
+        working-directory: app
+        run: node scripts/ci/provision-eyelog.cjs
       - name: Provision real EyeLog binaries for the legacy development layout
         if: runner.os == 'Windows'
         working-directory: app

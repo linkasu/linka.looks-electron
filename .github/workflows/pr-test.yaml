@@ -27,7 +27,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 22.22.2
           cache: "npm"
 
       - name: Cache Electron downloads
@@ -46,10 +46,19 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
       - name: Build unpacked app for packaged resource smoke test
         run: npm run electron:build -- --dir -p never
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
+      - name: Load native modules with packaged Windows Electron (no hardware access)
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        run: |
+          & "dist/win-unpacked/LINKa. смотри.exe" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "dist/win-unpacked/LINKa. смотри.exe" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function"); console.log("USB native load passed; no devices queried");'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Production text image generation smoke test
         timeout-minutes: 5
         run: node scripts/ci/run-text-image-smoke.mjs
@@ -72,7 +81,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 22.22.2
           cache: "npm"
 
       - name: Cache Electron downloads
@@ -91,6 +100,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
       - name: Build unpacked app for packaged resource smoke test
         run: npm run electron:build -- --mac --${{ matrix.arch }} --dir -p never
         env:
@@ -106,7 +116,12 @@ jobs:
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
       - name: Text image editor smoke test
-        run: npx playwright test tests/e2e/text-images.spec.ts
+        run: npx playwright test tests/e2e/text-images.spec.ts --trace retain-on-failure
+      - name: Candidate builder build-once hooks (synthetic signing only)
+        env:
+          CANDIDATE_BUILDER: "1"
+          MACOS_BUILDER_INTEGRATION: ${{ github.workspace }}/node_modules/electron/dist
+        run: node --test scripts/ci/macos-single-build.test.cjs
       - name: Production text image generation smoke test
         run: node scripts/ci/run-text-image-smoke.mjs
       - name: Upload text image screenshots

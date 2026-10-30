@@ -27,12 +27,13 @@
     "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",
     "native:test-load": "npm --prefix node_modules/@linkasu/tobii-electron run native:test-load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
+    "preelectron:build": "node scripts/ci/provision-eyelog.cjs",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run electron:build -- --win -p never",
     "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
     "electron:build:linux": "npm run electron:build -- --linux -p never",
     "electron:serve": "vite",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node scripts/ci/provision-eyelog.cjs && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps",
     "prepare": "husky"
   },
@@ -189,7 +190,7 @@
     "@vue/test-utils": "^2.4.10",
     "chai": "^4.2.0",
     "electron": "^43.8.4",
-    "electron-builder": "^26.15.0",
+    "electron-builder": "26.16.1",
     "electron-devtools-installer": "^3.1.0",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
@@ -207,6 +208,9 @@
     "vite-plugin-electron": "^0.29.1",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "eyelog": "git+https://github.com/linkasu/node-eyelog.git#b1200c685fc11337e3eec1dda12045b2fdc99d3f"
   },
   "packageManager": "npm@10.9.7",
   "lint-staged": {

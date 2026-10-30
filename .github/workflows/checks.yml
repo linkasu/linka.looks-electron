@@ -35,7 +35,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 22.22.2
           cache: "npm"
 
       - name: Install Linux native build dependencies
@@ -44,6 +44,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
       - name: Format check
         run: npm run format:check
       - name: Lint
@@ -54,6 +55,15 @@ jobs:
         run: npm run knip
       - name: Unit tests
         run: npm run test:unit
+      - name: Candidate builder password separation and hook fixtures (no signing)
+        env:
+          CANDIDATE_BUILDER: "1"
+        run: node --test scripts/ci/candidate-keychain-password.test.cjs scripts/ci/candidate-mac-sign.test.cjs scripts/ci/macos-single-build.test.cjs scripts/ci/provision-eyelog.test.cjs scripts/ci/candidate-eyelog-api.test.cjs scripts/ci/packaged-eyelog.test.cjs
+      - name: Strict payload synthetic negative controls
+        run: |
+          python3 scripts/ci/test-asar-evidence.py
+          python3 scripts/ci/test-report-asar-evidence.py
+          python3 scripts/ci/test-verify-macos-payload.py
       - name: Mirror atomic update and rollback tests (no production access)
         run: node --test scripts/mirror/update.test.cjs
       - name: Baseline result validator self-test

@@ -6,10 +6,14 @@ const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 
 const fixture = path.resolve(process.env.BUILDER_FIXTURE || "node_modules/app-builder-lib");
+const candidate = process.env.CANDIDATE_BUILDER === "1";
 
-test("26.8.1 public API and normal packing/signing/notarization order", async () => {
+test("pinned public API and normal packing/signing/notarization order", async () => {
   const read = (file) => fs.readFile(path.join(fixture, "out", file), "utf8");
-  assert.equal(JSON.parse(await fs.readFile(path.join(fixture, "package.json"))).version, "26.8.1");
+  assert.equal(
+    JSON.parse(await fs.readFile(path.join(fixture, "package.json"))).version,
+    candidate ? "26.16.1" : "26.8.1"
+  );
   const api = await read("configuration.d.ts");
   assert.match(api, /readonly afterPack\?: Hook<AfterPackContext/);
   assert.match(api, /readonly afterSign\?: Hook<AfterPackContext/);
@@ -25,7 +29,11 @@ test("26.8.1 public API and normal packing/signing/notarization order", async ()
   const mac = await read("macPackager.js");
   assert(
     mac.indexOf("await this.doSign(signOptions") <
-      mac.indexOf("await this.notarizeIfProvided(appPath)")
+      mac.indexOf(
+        candidate
+          ? "await this.helper.notarizeIfProvided(appPath)"
+          : "await this.notarizeIfProvided(appPath)"
+      )
   );
   assert.match(
     mac,
@@ -103,6 +111,7 @@ test("per-architecture snapshots are awaited, immutable and reject missing/dupli
     await assert.rejects(config.afterPack(context));
     await assert.rejects(config.afterSign(context));
     await assert.rejects(config.afterPack({ ...context, arch: 4 }));
+    await assert.rejects(config.afterPack({ ...context, electronPlatformName: "mas" }));
     await assert.rejects(config.afterPack({ ...context, appOutDir: project }));
   }
 });
@@ -155,7 +164,12 @@ test(
     assert.equal(typeof loaded.afterSign, "function");
     const events = [];
     class MockSigningMacPackager extends MacPackager {
-      async sign(appPath, _outDir, _mas, arch) {
+      async sign(appPath, options, third, fourth) {
+        const arch = candidate ? third : fourth;
+        if (candidate) {
+          assert.equal(options, null);
+          assert.equal(fourth, false);
+        }
         events.push(`${Arch[arch]}:sign-mock`);
         await fs.writeFile(
           path.join(appPath, "Contents/Resources/app.asar.unpacked/native.node"),
@@ -170,7 +184,7 @@ test(
       targets: Platform.MAC.createTarget("dir", Arch.x64, Arch.arm64),
       config: {
         ...hooks,
-        electronVersion: "42.0.0",
+        electronVersion: candidate ? "43.8.4" : "42.0.0",
         electronDist: process.env.MACOS_BUILDER_INTEGRATION,
         beforeBuild: ({ arch }) => {
           events.push(`${arch}:dependency-phase`);
