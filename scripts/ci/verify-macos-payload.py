@@ -43,7 +43,12 @@ def native_equal(left, right):
     a, b = left.read_bytes(), right.read_bytes()
     result = report.native_diff(a, b)
     checkpoint("native-layout", supported=result["supported"],
-               comparedSlices=len(result["sliceComparisons"]))
+               comparedSlices=len(result["sliceComparisons"]),
+               geometry=[side["slices"][:4] for side in (result["before"], result["after"])],
+               fileTypes=[[struct.unpack_from("<I", data, item["offset"] + 12)[0]
+                           if item["magicKind"] == "thin64le" and item["size"] >= 16 else None
+                           for item in side["slices"][:4]]
+                          for data, side in ((a, result["before"]), (b, result["after"]))])
     require(result["supported"] and result["sliceComparisons"])
     checkpoint("native-content-hashes", codeEqual=all(s["codeHashEqual"] for s in result["sliceComparisons"]),
                sectionsEqual=all(s["sectionsHashEqual"] for s in result["sliceComparisons"]),

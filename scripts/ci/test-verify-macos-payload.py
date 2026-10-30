@@ -72,6 +72,16 @@ class PayloadTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             gate.native_equal(self.left / "native", self.right / "native")
 
+    def test_identical_macho_object_is_still_rejected_not_normalized_as_runtime(self):
+        data = bytearray(fixtures.native())
+        struct.pack_into("<I", data, 12, 1)  # MH_OBJECT, not executable/dylib/bundle.
+        for path in (self.left, self.right):
+            (path / "native").write_bytes(data)
+        with self.assertRaises(ValueError):
+            gate.native_equal(self.left / "native", self.right / "native")
+        self.assertEqual(gate.diagnostic["stage"], "native-layout")
+        self.assertEqual(gate.diagnostic["fileTypes"], [[1], [1]])
+
     def test_rejection_diagnostics_are_scoped_and_never_include_paths_or_payload(self):
         gate.checkpoint("synthetic-control", arch="x64", ordinal=23)
         changed = bytearray((self.right / "native").read_bytes())
