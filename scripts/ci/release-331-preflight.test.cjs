@@ -9,6 +9,34 @@ const builderRequire = createRequire(require.resolve("electron-builder"));
 const asar = builderRequire("@electron/asar");
 const { inspect } = require("./release-inventory.cjs");
 
+test("USB runtime resources retain bindings and notices, not compiler intermediates", () => {
+  const pkg = JSON.parse(fs.readFileSync("package.json"));
+  const resource = pkg.build.extraResources.find((item) => item.from === "./node_modules/usb/");
+  const { FileMatcher } = builderRequire("app-builder-lib/out/fileMatcher");
+  const root = path.resolve("node_modules/usb");
+  const filter = new FileMatcher(
+    root,
+    path.resolve("fixture-output"),
+    (value) => value,
+    resource.filter
+  ).createFilter();
+  const included = (name) => filter(path.join(root, name), { isDirectory: () => false });
+  for (const name of [
+    "package.json",
+    "LICENSE",
+    "dist/index.js",
+    "build/Release/usb_bindings.node",
+    "prebuilds/darwin-x64+arm64/node.napi.node"
+  ])
+    assert(included(name), `runtime/notice omitted: ${name}`);
+  for (const name of [
+    "build/Release/obj.target/usb_bindings/src/device.o",
+    "build/Release/obj.target/libusb/libusb/core.o",
+    "build/Release/obj.target/usb_bindings/src/device.obj"
+  ])
+    assert.equal(included(name), false, "compiler intermediates must not ship as runtime payload");
+});
+
 test("3.3.1 builds once, main-gates accepted artifact retention and never publishes", () => {
   const source = fs.readFileSync(".github/workflows/release-331-preflight.yml", "utf8");
   const workflow = yaml.parse(source);

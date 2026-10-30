@@ -53,6 +53,23 @@ increase. This evidence does not retroactively prove a cause of the old CI delay
 
 ## Historical build-only stage (superseded scope)
 
+Signed main run `41069269720` completed the builder signing/notarization step and
+raw-ASAR equality but failed the strict payload verifier; no macOS bytes were accepted.
+Diagnostic tooling `98a1a3c` retained all assertions. Its first dispatch returned HTTP
+500 and created no observed run during a 10-minute reconciliation; a single repeat
+was explicitly authorized by the owner. Run `41073412620` rejected
+`arch=x64, ordinal=406, stage=native-layout, supported=false`. This does not prove
+the earlier FAT-alignment hypothesis. Windows artifact retention succeeded in both
+runs; neither failed run may be promoted.
+
+An independent real-FileMatcher regression proves USB compiler `.o/.obj` files from
+`build/**/obj.target` were included as runtime resources. MH_OBJECT is intentionally
+unsupported by the native gate, including when byte-identical. The packaging fix
+excludes only that intermediate subtree and explicitly retains runtime bindings,
+prebuilds, JavaScript and notices. Whether this is the sole signed-CI rejection cause
+must be confirmed by the next exact-source signed candidate, not inferred from green
+synthetic tests. Numeric file-type/geometry diagnostics are retained for that check.
+
 At `3c148b4`, Checks, Electron test and full release acceptance succeeded.
 Preflight `41065894582` passed macOS staging and Windows installer/metadata/notices
 validation, then Windows GNU tar interpreted the absolute `D:` archive path as a

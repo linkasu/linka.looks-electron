@@ -160,7 +160,8 @@
         "from": "./node_modules/usb/",
         "to": "extraResources/bin/node_modules/usb",
         "filter": [
-          "**/*"
+          "**/*",
+          "!build/**/obj.target/**/*"
         ]
       },
       {
