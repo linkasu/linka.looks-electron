@@ -2,7 +2,12 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const { join } = require("node:path");
-const { assertSandbox, classify } = require("./windows-sdk-launch.cjs");
+const {
+  assertSandbox,
+  classify,
+  missingRuntimeStderr,
+  missingRuntimeWithSymbols
+} = require("./windows-sdk-launch.cjs");
 
 const sandbox = {
   GITHUB_ACTIONS: "true",
@@ -59,6 +64,44 @@ test("unexpected startup outcomes cannot masquerade as missing runtime", () => {
     { Stderr: "EyeX unexpected exception" }
   ])
     assert.throws(() => classify({ ...clean, ...delta }));
+});
+
+test("exact observed exception needs independent x86 VC110 evidence; no broad exception allowlist", () => {
+  const observed = { ...clean, ExitCode: 0xe0434352, Stderr: missingRuntimeStderr };
+  const missing = { Bits: 32, Msvcp110: 126, Msvcr110: 126 };
+  assert.match(classify(observed, missing), /^missing-vc110-runtime-only;/);
+  assert.match(
+    classify({ ...observed, Stderr: missingRuntimeWithSymbols }, missing),
+    /^missing-vc110-runtime-only;/
+  );
+  assert.match(
+    classify({ ...observed, Stderr: observed.Stderr.replace(/\n/g, "\r\n") }, missing),
+    /^missing-vc110-runtime-only;/
+  );
+  for (const delta of [
+    { Cleanup: false },
+    { TimedOut: true },
+    { OutputLimit: true },
+    { ExitCode: 0 },
+    { ExitCode: 0xc000007b },
+    { Stdout: "extra" },
+    { Stderr: missingRuntimeStderr + "extra" },
+    { Stderr: missingRuntimeStderr.replace("DllNotFoundException", "BadImageFormatException") },
+    { Stderr: missingRuntimeStderr.replace("0x8007007E", "0x8007000B") },
+    { Stderr: missingRuntimeStderr.replace("Tobii.EyeX.Client.dll", "other.dll") },
+    { Stderr: missingRuntimeWithSymbols.replace("line 57", "line 58") }
+  ])
+    assert.throws(() => classify({ ...observed, ...delta }, missing));
+  for (const evidence of [
+    undefined,
+    { ...missing, Bits: 64 },
+    { ...missing, Msvcp110: 193 },
+    { ...missing, Msvcp110: 5 },
+    { ...missing, Msvcr110: null },
+    { Bits: 32, Msvcp110: 0, Msvcr110: 0 }
+  ]) {
+    assert.throws(() => classify(observed, evidence));
+  }
 });
 
 test("both candidate Windows workflows require launch, not only equality", () => {

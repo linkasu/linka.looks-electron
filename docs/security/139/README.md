@@ -333,6 +333,38 @@ non-file device. The harness now supplies stdin EOF through a native pipe instea
 a new `Console.Read() == -1` process control verifies that path. No runtime error
 was accepted or timeout increased to hide this failure.
 
+Third exact-head CI (`bfbd818`): Checks
+[41049240280](https://github.com/linkasu/linka.looks-electron/actions/runs/41049240280)
+passed; both macOS architectures and all prior software assertions passed.
+Windows process controls now passed, including stdin EOF and descendant cleanup.
+Electron [41049240298](https://github.com/linkasu/linka.looks-electron/actions/runs/41049240298)
+and acceptance [41049240344](https://github.com/linkasu/linka.looks-electron/actions/runs/41049240344)
+**actually launched** the checksum-pinned packaged SDK and failed closed on the
+previously unclassified startup exception: exit `0xe0434352`, no stdout, no timeout
+or output overflow, cleanup true, `DllNotFoundException` / `0x8007007E` for
+`Tobii.EyeX.Client.dll` at `IsEyeXInitialized → Environment.IsInitialized → Host`
+before the gaze/input loops. Acceptance includes the fixed build-source PDB suffix
+`D:\a\EyeLog\EyeLog\EyeLog\Program.cs:line 57`; Electron's trace has no suffix.
+
+Static PE inspection of the pinned bytes confirms x86 EyeLog (CLR flags `0x3`),
+x86 native EyeX and imports `MSVCP110.dll` / `MSVCR110.dll`. A missing named DLL
+exception does not distinguish a missing dependency from a missing target. See
+Microsoft's [LoadLibraryEx documentation](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw):
+loading fails when a module **or its dependencies** cannot be found; the
+`LOAD_LIBRARY_SEARCH_SYSTEM32` flag restricts the search to the system directory.
+
+The follow-up adds an independent synthetic x86 probe of just those two system
+runtime DLL names, in the same bounded Job Object/minimal environment. It neither
+loads Tobii nor installs a runtime. Only a corroborating error 126 for at least one
+VC110 import, with the other either loadable or also 126, permits the **separate
+missing-VC110-runtime-only outcome**, never hardware/full-runtime acceptance.
+The complete observed exception/stack (one of the two exact variants), exit code,
+empty stdout, limits and cleanup must also match. BadImageFormat, other HRESULTs,
+other DLLs, altered stack/output, x64 probes, access-denied/wrong-architecture probe
+errors and a fully loadable VC110 runtime all fail. New synthetic mutations cover
+those rejection boundaries. If CI does not corroborate this cause, the gate stays
+blocked; no dependency, SDK, timeout, retry, skip or hardware assertion is changed.
+
 Local and exact-head CI results are recorded in the draft PR. In particular:
 
 - Physical Tobii, live calibration/gaze and a real installer update are **never run**.
