@@ -1,0 +1,146 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@linkasu/tobii-electron": {
+      "name": "@linkasu/tobii-electron",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": ["eyelog"],
+      "effects": [],
+      "range": "",
+      "nodes": ["node_modules/@linkasu/tobii-electron"],
+      "fixAvailable": false
+    },
+    "@vue/server-renderer": {
+      "name": "@vue/server-renderer",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1241259,
+          "name": "@vue/server-renderer",
+          "dependency": "@vue/server-renderer",
+          "title": "@vue/server-renderer: XSS via missing CR in attribute-name blacklist",
+          "url": "https://github.com/advisories/GHSA-g2v6-rqmx-r4w6",
+          "severity": "high",
+          "cwe": ["CWE-79", "CWE-116"],
+          "cvss": {
+            "score": 7.2,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:N"
+          },
+          "range": "<3.5.42"
+        },
+        "vue"
+      ],
+      "effects": ["vue"],
+      "range": "<=3.5.41",
+      "nodes": ["node_modules/@vue/server-renderer"],
+      "fixAvailable": true
+    },
+    "decompress": {
+      "name": "decompress",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1122670,
+          "name": "decompress",
+          "dependency": "decompress",
+          "title": "Decompress: Archive extraction can create files and links outside of the target directory",
+          "url": "https://github.com/advisories/GHSA-mp2f-45pm-3cg9",
+          "severity": "critical",
+          "cwe": ["CWE-22", "CWE-59", "CWE-732"],
+          "cvss": {
+            "score": 9.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+          },
+          "range": "<=4.2.1"
+        },
+        {
+          "source": 1130126,
+          "name": "decompress",
+          "dependency": "decompress",
+          "title": "decompress: Arbitrary File Write via Archive Extraction (Zip Slip)",
+          "url": "https://github.com/advisories/GHSA-h39j-r5qq-r9mm",
+          "severity": "moderate",
+          "cwe": ["CWE-22", "CWE-29"],
+          "cvss": {
+            "score": 6.4,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:H/A:L"
+          },
+          "range": "<=4.2.1"
+        },
+        {
+          "source": 1139405,
+          "name": "decompress",
+          "dependency": "decompress",
+          "title": "decompress allows arbitrary hardlink creation during archive extraction",
+          "url": "https://github.com/advisories/GHSA-jwp9-9v96-94mx",
+          "severity": "moderate",
+          "cwe": ["CWE-59"],
+          "cvss": {
+            "score": 5.5,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": "<=4.2.1"
+        },
+        {
+          "source": 1240094,
+          "name": "decompress",
+          "dependency": "decompress",
+          "title": "@xhmikosr/decompress: Path traversal via symlink chain",
+          "url": "https://github.com/advisories/GHSA-hrh2-vp3x-79xf",
+          "severity": "critical",
+          "cwe": ["CWE-22", "CWE-59"],
+          "cvss": {
+            "score": 9.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+          },
+          "range": "<=4.2.1"
+        }
+      ],
+      "effects": ["eyelog"],
+      "range": "*",
+      "nodes": ["node_modules/decompress"],
+      "fixAvailable": false
+    },
+    "eyelog": {
+      "name": "eyelog",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": ["decompress"],
+      "effects": ["@linkasu/tobii-electron"],
+      "range": "*",
+      "nodes": ["node_modules/eyelog"],
+      "fixAvailable": false
+    },
+    "vue": {
+      "name": "vue",
+      "severity": "high",
+      "isDirect": true,
+      "via": ["@vue/server-renderer"],
+      "effects": ["@vue/server-renderer"],
+      "range": "3.2.13 - 3.5.41",
+      "nodes": ["node_modules/vue"],
+      "fixAvailable": true
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 2,
+      "critical": 1,
+      "total": 5
+    },
+    "dependencies": {
+      "prod": 288,
+      "dev": 513,
+      "optional": 125,
+      "peer": 14,
+      "peerOptional": 0,
+      "total": 804
+    }
+  }
+}

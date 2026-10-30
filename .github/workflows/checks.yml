@@ -41,7 +41,9 @@ jobs:
       - name: Install Linux native build dependencies
         run: sudo apt-get update && sudo apt-get install -y libudev-dev libopenjp2-tools
       - name: Install deps
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
       - name: Format check
         run: npm run format:check
       - name: Lint

@@ -120,9 +120,11 @@ jobs:
           if [ "${{ matrix.revision }}" != baseline ]; then
             cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
           fi
-      - name: Install dependencies (native startup stays enabled)
+      - name: Install dependencies without unsafe EyeLog lifecycle
         working-directory: app
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
       - name: Provision real EyeLog binaries for the legacy development layout
         if: runner.os == 'Windows'
         working-directory: app
