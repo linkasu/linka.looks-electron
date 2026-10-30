@@ -170,5 +170,9 @@ Local and exact-head CI results are recorded in the draft PR. In particular:
   must fail the existing resource/provisioning check; do not suppress that failure.
 - PR macOS checks cover both packaging architectures; their conclusions must be
   checked for the exact pushed head before promoting the draft.
+- The three arrow settings/restart E2E tests now allow 60s, since they contain two
+  launches whose first usable window each has a 20s wait. Initial default-budget
+  runs failed 3/3 at 30s; traces showed the first root at 18–19s and the second
+  root still pending. The same assertions passed 3/3 with the scoped budget.
 - macos-330-signing-recovery.yml and run 41033267787 are not changed, cancelled or
   repurposed. Ordinary release/update/publish workflows are not dispatched.

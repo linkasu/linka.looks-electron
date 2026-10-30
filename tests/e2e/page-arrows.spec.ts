@@ -19,6 +19,8 @@ const modes = [
 
 for (const mode of modes) {
   test(`page arrows: settings and restart preserve ${mode.value}`, async () => {
+    // Two launches each allow up to 20s for the first usable window.
+    test.setTimeout(60000);
     const context = createArrowContext();
     const setName = "page-arrows.linka";
     writeLinkaSet(

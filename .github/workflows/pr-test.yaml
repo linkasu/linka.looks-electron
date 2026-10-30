@@ -94,6 +94,14 @@ jobs:
         run: npm run electron:build -- --mac --${{ matrix.arch }} --dir -p never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Load native modules with the target Electron (no hardware access)
+        shell: bash
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        run: |
+          electron="dist/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/LINKa. смотри.app/Contents/MacOS/LINKa. смотри"
+          "$electron" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
+          "$electron" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function"); console.log("USB native load passed; no devices queried");'
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
       - name: Text image editor smoke test
