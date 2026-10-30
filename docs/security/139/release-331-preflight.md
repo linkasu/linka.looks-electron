@@ -107,3 +107,20 @@ GitHub-generated gzip bytes will never change. Commits remain the source pins.
 The independent safe build path is ready for CI; release publication remains
 blocked by the above decisions/evidence and the old tag-publish path. v3.3.0's
 tag and old draft release must not be moved or published.
+
+## Retained first-attempt failure
+
+At `5a6b6b01227ec3aeb4cceb35ed90e3674befaa5a`, Checks
+[41056781659](https://github.com/linkasu/linka.looks-electron/actions/runs/41056781659)
+and software acceptance
+[41056781177](https://github.com/linkasu/linka.looks-electron/actions/runs/41056781177)
+succeeded, but preflight
+[41056781427](https://github.com/linkasu/linka.looks-electron/actions/runs/41056781427)
+failed before installers were built. Windows ASAR listing uses backslashes; the
+inventory stripped only a leading slash. macOS mock integration lacked its explicit
+Electron distribution: Electron 43's package has no postinstall, so rebuilding the
+package does not install that distribution. The follow-up normalizes ASAR paths
+and explicitly invokes the official checksum-verifying Electron installer before
+the mock test. Both regressions were reproduced red locally, then passed after
+the fix; the Windows-style listing control runs on all hosts. No retry/skip or
+feature/payload assertion relaxation replaces either failure.

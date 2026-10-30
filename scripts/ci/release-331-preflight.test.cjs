@@ -50,6 +50,13 @@ test("3.3.1 workflow is build-only, main-gated signing, no binary disclosure", (
     assert(source.includes(gate), `missing strict gate: ${gate}`);
   }
   assert.equal(builderRequire("app-builder-lib/package.json").version, "26.16.1");
+  const integration = workflow.jobs.unsigned.steps.find((step) =>
+    step.run?.includes("MACOS_BUILDER_INTEGRATION=")
+  );
+  assert.match(
+    integration.run,
+    /node node_modules\/electron\/install\.js[\s\S]+MACOS_BUILDER_INTEGRATION=/
+  );
 });
 
 test("inventory uses actual ASAR metadata/notices and extra resources; missing app fails closed", async (t) => {
@@ -67,6 +74,10 @@ test("inventory uses actual ASAR metadata/notices and extra resources; missing a
   fs.writeFileSync(path.join(resources, "vendor.dll"), "fixture DLL");
   const archive = path.join(resources, "app.asar");
   await asar.createPackage(input, archive);
+  const listPackage = asar.listPackage;
+  t.mock.method(asar, "listPackage", (...args) =>
+    listPackage(...args).map((name) => name.replaceAll("/", "\\"))
+  );
   const notices = path.join(root, "notices");
   const result = inspect(archive, resources, notices);
   assert.equal(result.packages[0].license, null);

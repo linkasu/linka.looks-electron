@@ -90,7 +90,10 @@ jobs:
       - name: Real 26.16.1 builder with mock signing (no credentials, no hardware claim)
         if: runner.os == 'macOS'
         shell: bash
-        run: MACOS_BUILDER_INTEGRATION="$PWD/node_modules/electron/dist" node --test scripts/ci/macos-single-build.test.cjs
+        run: |
+          set -euo pipefail
+          node node_modules/electron/install.js
+          MACOS_BUILDER_INTEGRATION="$PWD/node_modules/electron/dist" node --test scripts/ci/macos-single-build.test.cjs
       - name: Build Windows installer once (never publish)
         if: runner.os == 'Windows'
         run: npm run electron:build -- --win --x64 -p never

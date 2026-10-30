@@ -26,8 +26,8 @@ function inspect(archive, resources, noticeDirectory, bundle = resources) {
     notices.push(item);
   }
   for (const entry of asar.listPackage(archive)) {
-    const name = entry.replace(/^\//, "");
-    const stat = asar.statFile(archive, name);
+    const name = entry.replaceAll("\\", "/").replace(/^\/+/, "");
+    const stat = asar.statFile(archive, name, false);
     if (stat.files || stat.link) continue;
     if (/(^|\/)package\.json$/.test(name)) {
       const pkg = JSON.parse(asar.extractFile(archive, name).toString("utf8"));
