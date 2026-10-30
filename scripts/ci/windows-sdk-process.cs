@@ -60,6 +60,7 @@ public static class WindowsSdkProcess
     public static Result Run(string executable, string arguments, string cwd, string environment, uint timeout) {
         IntPtr job = IntPtr.Zero, outputRead = IntPtr.Zero, outputWrite = IntPtr.Zero;
         IntPtr errorRead = IntPtr.Zero, errorWrite = IntPtr.Zero, env = IntPtr.Zero;
+        IntPtr inputRead = IntPtr.Zero, inputWrite = IntPtr.Zero;
         var p = new ProcessInfo(); bool assigned = false;
         try {
             SetErrorMode(0x8003); // No critical-error/GP-fault/open-file dialogs on the ephemeral runner.
@@ -69,15 +70,16 @@ public static class WindowsSdkProcess
             var security = new Security { size = Marshal.SizeOf(typeof(Security)), inherit = 1 };
             Check(CreatePipe(out outputRead, out outputWrite, ref security, 0));
             Check(CreatePipe(out errorRead, out errorWrite, ref security, 0));
+            Check(CreatePipe(out inputRead, out inputWrite, ref security, 0));
             Check(SetHandleInformation(outputRead, 1, 0)); Check(SetHandleInformation(errorRead, 1, 0));
-            using (var input = new FileStream("NUL", FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                Check(SetHandleInformation(input.SafeFileHandle.DangerousGetHandle(), 1, 1));
-                var startup = new Startup { size = Marshal.SizeOf(typeof(Startup)), flags = 0x100,
-                    input = input.SafeFileHandle.DangerousGetHandle(), output = outputWrite, error = errorWrite };
-                env = Marshal.StringToHGlobalUni(environment + "\0\0");
-                Check(CreateProcess(executable, new StringBuilder("\"" + executable + "\" " + arguments),
-                    IntPtr.Zero, IntPtr.Zero, true, 0x08000404, env, cwd, ref startup, out p));
-            }
+            // A pipe with no writer supplies EOF without .NET's unsupported NUL-device FileStream.
+            Check(CloseHandle(inputWrite)); inputWrite = IntPtr.Zero;
+            var startup = new Startup { size = Marshal.SizeOf(typeof(Startup)), flags = 0x100,
+                input = inputRead, output = outputWrite, error = errorWrite };
+            env = Marshal.StringToHGlobalUni(environment + "\0\0");
+            Check(CreateProcess(executable, new StringBuilder("\"" + executable + "\" " + arguments),
+                IntPtr.Zero, IntPtr.Zero, true, 0x08000404, env, cwd, ref startup, out p));
+            Check(CloseHandle(inputRead)); inputRead = IntPtr.Zero;
             Check(AssignProcessToJobObject(job, p.process)); assigned = true;
             CloseHandle(outputWrite); outputWrite = IntPtr.Zero; CloseHandle(errorWrite); errorWrite = IntPtr.Zero;
             var stdout = Read(outputRead); outputRead = IntPtr.Zero;
@@ -107,7 +109,7 @@ public static class WindowsSdkProcess
             return result;
         } finally {
             if (p.process != IntPtr.Zero && !assigned) { Check(TerminateProcess(p.process, 1)); Check(WaitForSingleObject(p.process, 5000) == 0); }
-            foreach (var handle in new[] {job,p.process,p.thread,outputRead,outputWrite,errorRead,errorWrite})
+            foreach (var handle in new[] {job,p.process,p.thread,outputRead,outputWrite,errorRead,errorWrite,inputRead,inputWrite})
                 if (handle != IntPtr.Zero) Check(CloseHandle(handle));
             if (env != IntPtr.Zero) Marshal.FreeHGlobal(env);
         }

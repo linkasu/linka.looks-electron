@@ -6,6 +6,7 @@ public static class SdkFixture {
     public static int Main(string[] args) {
         switch (args[0]) {
             case "clean": return 0;
+            case "stdin": return Console.Read() == -1 ? 0 : 7;
             case "crash": throw new InvalidOperationException("synthetic crash");
             case "architecture": return unchecked((int)0xc000007b);
             case "bad-image": Console.Error.WriteLine("Tobii.Interaction BadImageFormatException Host..ctor"); return 1;

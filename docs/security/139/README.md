@@ -323,6 +323,16 @@ names, tests harmless metadata separately, and reports only the offending name,
 never its value. The original failure log did not identify that name, so its precise
 runner variable is not claimed known. No CI rerun or skip was used.
 
+Second exact-head CI (`971daef`): Checks
+[41048407572](https://github.com/linkasu/linka.looks-electron/actions/runs/41048407572)
+passed. Both macOS architecture jobs and prior software checks passed again.
+Electron [41048407466](https://github.com/linkasu/linka.looks-electron/actions/runs/41048407466)
+and acceptance [41048407688](https://github.com/linkasu/linka.looks-electron/actions/runs/41048407688)
+failed before SDK launch: .NET Framework rejects `FileStream("NUL", ...)` as a
+non-file device. The harness now supplies stdin EOF through a native pipe instead;
+a new `Console.Read() == -1` process control verifies that path. No runtime error
+was accepted or timeout increased to hide this failure.
+
 Local and exact-head CI results are recorded in the draft PR. In particular:
 
 - Physical Tobii, live calibration/gaze and a real installer update are **never run**.

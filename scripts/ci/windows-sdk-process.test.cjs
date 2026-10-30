@@ -18,7 +18,7 @@ test("hosted Windows process negative controls and descendant cleanup", () => {
       { encoding: "utf8", timeout: 30000 }
     );
     assert.equal(built.status, 0, built.stdout);
-    for (const mode of ["clean", "environment"]) {
+    for (const mode of ["clean", "environment", "stdin"]) {
       const result = runProcess(exe, mode);
       assert.deepEqual(result, {
         ExitCode: 0,
