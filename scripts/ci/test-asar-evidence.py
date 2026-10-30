@@ -264,8 +264,15 @@ class EvidenceTests(unittest.TestCase):
         workflow = (HERE.parent.parent / ".github/workflows/macos-330-signing-recovery.yml").read_text()
         gate = "shasum -a 256 -c evidence/app-asar-before.sha256"
         self.assertEqual(workflow.count(gate), 1)
-        self.assertLess(workflow.index("capture app evidence/payload unsigned-before"), workflow.index("Build signed and notarized"))
-        self.assertLess(workflow.index("capture app evidence/payload signed-rebuild"), workflow.index(gate))
+        self.assertEqual(workflow.count("npm run electron:build --"), 1)
+        self.assertIn("--config ../tooling/scripts/ci/macos-single-build.cjs", workflow)
+        self.assertNotIn("--prepackaged", workflow)
+        self.assertNotIn("--dir -p never", workflow)
+        self.assertIn("npm ci --ignore-scripts", workflow)
+        self.assertIn("npm rebuild pictures.bank-api esbuild electron", workflow)
+        self.assertNotIn("npmRebuild: false", workflow)
+        self.assertLess(workflow.index("asar-evidence.py diff evidence/payload"), workflow.index(gate))
+        self.assertIn("verify-macos-payload.py evidence app", workflow)
         self.assertNotIn("continue-on-error", workflow)
         self.assertEqual(workflow.count("uses: actions/upload-artifact@v4"), 2)
         self.assertIn("if: always() && steps.disclosure.outcome == 'success'", workflow)
@@ -273,11 +280,26 @@ class EvidenceTests(unittest.TestCase):
         self.assertIn('report-asar-evidence.py validate evidence/report/diagnostic.json "$GITHUB_SHA" "$GITHUB_OUTPUT"', workflow)
         self.assertIn("path: ${{ steps.disclosure.outputs.paths }}", workflow)
         self.assertEqual(workflow.count("retention-days: 3"), 2)
-        self.assertIn("if: success()", workflow)
         self.assertNotIn("            evidence/", workflow)
         upload = workflow[workflow.index("      - name: Fail-closed report schema"):]
         self.assertNotIn("app/dist/*", upload)
         self.assertIn("APP_SHA: 25a967bbefce93ff2e5dd17623cd10568b9dea76", workflow)
+        marker = "      - name: Upload verified installers only after all gates succeed\n"
+        self.assertEqual(workflow.count(marker), 1)
+        gates, upload = workflow.split(marker)
+        for gate_command in (gate, "verify-macos-payload.py evidence app",
+                             "test -s app/dist/latest-mac.yml", "steps.disclosure.outputs.paths"):
+            self.assertIn(gate_command, gates)
+        self.assertIn("        if: success()\n", upload)
+        self.assertIn("          retention-days: 3\n", upload)
+        self.assertIn("          if-no-files-found: error\n", upload)
+        self.assertIn("          include-hidden-files: false\n", upload)
+        self.assertEqual(upload.split("          path: |\n")[1].split(), [
+            "app/dist/linka.looks-3.3.0-mac-x64.dmg",
+            "app/dist/linka.looks-3.3.0-mac-arm64.dmg",
+            "app/dist/linka.looks-3.3.0-mac-x64.zip",
+            "app/dist/linka.looks-3.3.0-mac-arm64.zip",
+            "app/dist/latest-mac.yml"])
 
 
 if __name__ == "__main__":
