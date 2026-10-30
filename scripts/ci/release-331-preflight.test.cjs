@@ -30,11 +30,16 @@ test("USB runtime resources retain bindings and notices, not compiler intermedia
   ])
     assert(included(name), `runtime/notice omitted: ${name}`);
   for (const name of [
+    "build/Release/usb.a",
+    "build/Release/usb.lib",
+    "build/config.gypi",
     "build/Release/obj.target/usb_bindings/src/device.o",
     "build/Release/obj.target/libusb/libusb/core.o",
     "build/Release/obj.target/usb_bindings/src/device.obj"
   ])
     assert.equal(included(name), false, "compiler intermediates must not ship as runtime payload");
+  for (const name of ["build", "build/Release"])
+    assert(filter(path.join(root, name), { isDirectory: () => true }), "runtime parent omitted");
 });
 
 test("3.3.1 builds once, main-gates accepted artifact retention and never publishes", () => {

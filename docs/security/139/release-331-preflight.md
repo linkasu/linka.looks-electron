@@ -53,6 +53,16 @@ increase. This evidence does not retroactively prove a cause of the old CI delay
 
 ## Historical build-only stage (superseded scope)
 
+PR141/app `8948812` passed all four exact-head gates and merged as `e6b5639`.
+Signed run `41077797735` still rejected `x64, ordinal=384, native-layout`, now with
+empty parsed geometry. Local inspection found USB `build/Release/usb.a` is a FAT
+container of static ar archives, not runtime Mach-O slices; the strict parser
+reproduces the empty-geometry rejection. Excluding only obj.target was incomplete.
+The build filter now keeps only `build/Release/*.node` under build, leaving the
+rest of the package unchanged. Real FileMatcher controls cover static .a/.lib,
+object files, config debris, retained native bindings and parent-directory traversal.
+Neither signed failed run establishes ZIP/DMG or final candidate acceptance.
+
 Signed main run `41069269720` completed the builder signing/notarization step and
 raw-ASAR equality but failed the strict payload verifier; no macOS bytes were accepted.
 Diagnostic tooling `98a1a3c` retained all assertions. Its first dispatch returned HTTP
