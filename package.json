@@ -161,7 +161,8 @@
         "to": "extraResources/bin/node_modules/usb",
         "filter": [
           "**/*",
-          "!build/**/obj.target/**/*"
+          "!build/**/*",
+          "build/Release/*.node"
         ]
       },
       {
