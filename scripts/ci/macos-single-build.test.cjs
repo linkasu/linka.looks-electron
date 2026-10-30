@@ -5,7 +5,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 
-const fixture = process.env.BUILDER_FIXTURE || path.resolve("node_modules/app-builder-lib");
+const fixture = path.resolve(process.env.BUILDER_FIXTURE || "node_modules/app-builder-lib");
 
 test("26.8.1 public API and normal packing/signing/notarization order", async () => {
   const read = (file) => fs.readFile(path.join(fixture, "out", file), "utf8");
@@ -113,9 +113,9 @@ test(
     skip: !process.env.MACOS_BUILDER_INTEGRATION
   },
   async (t) => {
-    const { Packager } = require("app-builder-lib/out/packager");
-    const { MacPackager } = require("app-builder-lib/out/macPackager");
-    const { Platform, Arch } = require("app-builder-lib");
+    const { Packager } = require(path.join(fixture, "out/packager.js"));
+    const { MacPackager } = require(path.join(fixture, "out/macPackager.js"));
+    const { Platform, Arch } = require(fixture);
     const tmp = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "mac-builder-")));
     const oldCwd = process.cwd();
     const oldRoot = process.env.MACOS_EVIDENCE_ROOT;
@@ -148,7 +148,7 @@ test(
     const configPath = path.join(oldCwd, "scripts/ci/macos-single-build.cjs");
     delete require.cache[require.resolve(configPath)];
     const hooks = require(configPath);
-    const { getConfig } = require("app-builder-lib/out/util/config/config");
+    const { getConfig } = require(path.join(fixture, "out/util/config/config.js"));
     const loaded = await getConfig(project, configPath);
     assert.equal(loaded.productName, "LINKa. смотри");
     assert.equal(typeof loaded.afterPack, "function");

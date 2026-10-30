@@ -61,9 +61,11 @@ The external config retains every option from the immutable app's `build` field.
 - App executable architecture, main bundle identity, deep codesign, stapler,
   spctl, packaged resources, both DMG/ZIP pairs and update metadata remain gated.
   Extracted ZIP resources must match the verified signed bundle exactly.
-- Only the existing validated fixed-schema `diagnostic.json` can be uploaded,
-  in this repository for three days. Installers, full snapshots, raw ASAR,
-  paths and local provenance files are not uploaded. Diagnostic differences
+- Diagnostics upload only the validated fixed-schema `diagnostic.json`,
+  in this repository for three days. After all gates succeed, a separate
+  success-only upload retains exactly both verified DMGs, both ZIPs and
+  `latest-mac.yml` for three days. Full snapshots, raw ASAR, private paths,
+  logs/environment and local provenance files are never uploaded. Diagnostic differences
   remain diagnostic, not equivalence approval; its conservative blocking flags
   are not rewritten to claim success.
 
@@ -82,6 +84,10 @@ and exercises real ad-hoc codesign/removal without identities or credentials.
 Identity is mocked **only** in that fixture; the production gate rejects ad-hoc.
 Mutation controls cover both slices, sections, unknown bytes, UUID/load commands,
 CPU mismatch, malformed layout, wrong team and resource/ASAR changes.
+Linux synthetic fixtures also exercise x64/arm64 __LINKEDIT VM-only rounding
+through signature removal, rejecting invalid VM sizes, non-EOF original slices,
+changed file offsets/sizes and every remaining byte difference. They mock removal,
+not the normalizer; the macOS fixture independently checks real removal behavior.
 
 For a local pinned-builder packaging integration test, set
 `MACOS_BUILDER_INTEGRATION` to an existing unpacked Electron distribution when

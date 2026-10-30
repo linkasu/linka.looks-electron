@@ -169,3 +169,17 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           path: ${{ steps.disclosure.outputs.paths }}
+      - name: Upload verified installers only after all gates succeed
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-330-signed-${{ github.run_id }}
+          retention-days: 3
+          if-no-files-found: error
+          include-hidden-files: false
+          path: |
+            app/dist/linka.looks-3.3.0-mac-x64.dmg
+            app/dist/linka.looks-3.3.0-mac-arm64.dmg
+            app/dist/linka.looks-3.3.0-mac-x64.zip
+            app/dist/linka.looks-3.3.0-mac-arm64.zip
+            app/dist/latest-mac.yml
