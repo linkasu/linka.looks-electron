@@ -15,6 +15,10 @@ const sandbox = {
 
 test("only explicitly enabled hosted test-only Windows accepts launch", () => {
   assertSandbox(sandbox, "win32");
+  assertSandbox(
+    { ...sandbox, AZURE_HTTP_USER_AGENT: "synthetic-agent", AWS_REGION: "synthetic-region" },
+    "win32"
+  );
   for (const key of Object.keys(sandbox)) {
     assert.throws(() => assertSandbox({ ...sandbox, [key]: "" }, "win32"));
   }
@@ -25,6 +29,8 @@ test("only explicitly enabled hosted test-only Windows accepts launch", () => {
     "CSC_LINK",
     "CSC_KEY_PASSWORD",
     "APPLE_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AZURE_CLIENT_SECRET",
     "ACTIONS_ID_TOKEN_REQUEST_TOKEN"
   ]) {
     assert.throws(() => assertSandbox({ ...sandbox, [key]: "synthetic-not-a-secret" }, "win32"));

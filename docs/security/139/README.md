@@ -310,6 +310,19 @@ that case was then explicitly enabled and all three builder tests passed with mo
 signing only. Strict payload/evidence suites passed 42 tests. No Windows SDK or
 Windows process fixture was executed locally.
 
+First exact-head CI (`0345a19`): Checks
+[41047601215](https://github.com/linkasu/linka.looks-electron/actions/runs/41047601215)
+passed. Electron [41047601260](https://github.com/linkasu/linka.looks-electron/actions/runs/41047601260)
+passed both macOS architectures and Windows resource/native/text-image checks, but
+failed the new Windows process precondition; SDK launch was not run. Acceptance
+[41047601153](https://github.com/linkasu/linka.looks-electron/actions/runs/41047601153)
+passed all prior software assertions (including historical baseline/PR121 jobs)
+and failed the same precondition. The first predicate rejected **every** AWS/Azure
+environment name, including noncredential metadata. It now targets actual credential
+names, tests harmless metadata separately, and reports only the offending name,
+never its value. The original failure log did not identify that name, so its precise
+runner variable is not claimed known. No CI rerun or skip was used.
+
 Local and exact-head CI results are recorded in the draft PR. In particular:
 
 - Physical Tobii, live calibration/gaze and a real installer update are **never run**.

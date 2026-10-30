@@ -12,10 +12,10 @@ function assertSandbox(env = process.env, platform = process.platform) {
   assert.equal(env.EYELOG_SANDBOX_GATE, "1", "explicit test-only workflow gate required");
   for (const name of Object.keys(env)) {
     assert(
-      !/^(GH_TOKEN|GITHUB_TOKEN|ACTIONS_ID_TOKEN_REQUEST_TOKEN|CSC_.*(?:PASSWORD|LINK)|APPLE_.+|AWS_.+|AZURE_.+)$/i.test(
+      !/^(GH_TOKEN|GITHUB_TOKEN|ACTIONS_ID_TOKEN_REQUEST_TOKEN|CSC_.*(?:PASSWORD|LINK)|APPLE_(ID|APP_SPECIFIC_PASSWORD|API_KEY|API_KEY_ID|API_ISSUER)|AWS_(ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN)|AZURE_(CLIENT_SECRET|CLIENT_CERTIFICATE_PASSWORD|FEDERATED_TOKEN_FILE))$/i.test(
         name
       ) || !env[name],
-      "credential-bearing launch environment"
+      `credential-bearing launch environment: ${name}`
     );
   }
 }
