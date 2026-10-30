@@ -37,3 +37,5 @@ pnpm-debug.log*
 /packaged-report
 /plain-startup*.png
 /.playwright-mcp
+/release-evidence/
+__pycache__/

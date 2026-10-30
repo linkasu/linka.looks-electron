@@ -17,16 +17,23 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: read
+
 jobs:
   build-windows:
-    runs-on: windows-latest
+    # node-gyp 11 supports VS2022, not windows-latest's VS2026 image.
+    runs-on: windows-2022
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 22.22.2
           cache: "npm"
 
       - name: Cache Electron downloads
@@ -42,14 +49,37 @@ jobs:
             ${{ runner.os }}-electron-
 
       - name: Install deps
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
       - name: Build unpacked app for packaged resource smoke test
-        run: npm run electron:build -- --dir
+        run: npm run electron:build -- --dir -p never
       - name: Packaged resource smoke test
+        id: packaged
         run: npm run test:packaged-resources
+      - name: Load native modules with packaged Windows Electron (no hardware access)
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        run: |
+          & "dist/win-unpacked/LINKa. смотри.exe" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "dist/win-unpacked/LINKa. смотри.exe" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function"); console.log("USB native load passed; no devices queried");'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Production text image generation smoke test
         timeout-minutes: 5
         run: node scripts/ci/run-text-image-smoke.mjs
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: ${{ !cancelled() }}
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' }}
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
       - name: Upload text image screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,13 +89,17 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 22.22.2
           cache: "npm"
 
       - name: Cache Electron downloads
@@ -81,20 +115,36 @@ jobs:
             ${{ runner.os }}-electron-
 
       - name: Install deps
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
       - name: Build unpacked app for packaged resource smoke test
-        run: npm run electron:build -- --mac --x64 --dir
+        run: npm run electron:build -- --mac --${{ matrix.arch }} --dir -p never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Load native modules with the target Electron (no hardware access)
+        shell: bash
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        run: |
+          electron="dist/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/LINKa. смотри.app/Contents/MacOS/LINKa. смотри"
+          "$electron" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
+          "$electron" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function"); console.log("USB native load passed; no devices queried");'
       - name: Packaged resource smoke test
         run: npm run test:packaged-resources
       - name: Text image editor smoke test
-        run: npx playwright test tests/e2e/text-images.spec.ts
+        run: npx playwright test tests/e2e/text-images.spec.ts --trace retain-on-failure
+      - name: Candidate builder build-once hooks (synthetic signing only)
+        env:
+          CANDIDATE_BUILDER: "1"
+          MACOS_BUILDER_INTEGRATION: ${{ github.workspace }}/node_modules/electron/dist
+        run: node --test scripts/ci/macos-single-build.test.cjs
       - name: Production text image generation smoke test
         run: node scripts/ci/run-text-image-smoke.mjs
       - name: Upload text image screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: macos-text-images
+          name: macos-${{ matrix.arch }}-text-images
           path: test-results/

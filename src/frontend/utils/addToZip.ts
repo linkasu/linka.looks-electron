@@ -1,17 +1,18 @@
 // require modules
 import fs from "fs";
 import archiver from "archiver";
-import AdmZip from "adm-zip";
+import { assertZipPath, openLinkaZip } from "@/common/utils/linkaZip";
 import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 const fsp = fs.promises;
 export async function appendZip(source: string, file: string, biff: Buffer) {
+  assertZipPath(file);
   const tempDir = await fsp.mkdtemp(join(tmpdir(), "linka-zip-"));
   const tempArchive = join(dirname(source), `.${basename(source)}.${uuid()}.tmp`);
   try {
     if (fs.existsSync(source)) {
-      new AdmZip(source).extractAllTo(tempDir);
+      openLinkaZip(source).extractAllTo(tempDir);
     }
     await fsp.writeFile(join(tempDir, file), biff);
     const archive = archiver("zip", { zlib: { level: 9 } });
@@ -28,6 +29,7 @@ export async function appendZip(source: string, file: string, biff: Buffer) {
 
     await archive.finalize();
     await outputClosed;
+    openLinkaZip(tempArchive);
     await fsp.rename(tempArchive, source);
   } finally {
     await fsp.rm(tempDir, { recursive: true, force: true });

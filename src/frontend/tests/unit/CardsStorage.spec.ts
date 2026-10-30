@@ -1,6 +1,14 @@
 import chai from "chai";
 import AdmZip from "adm-zip";
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { CardType, CURRENT_SET_VERSION, type ConfigFile } from "@/common/interfaces/ConfigFile";
@@ -81,8 +89,15 @@ describe("CardsStorage", () => {
     roots.push(root);
     const external = join(root, "external.linka");
     writeLinka(external, baseConfig(), {
-      "../unsafe.txt": Buffer.from("unsafe")
+      "xx/unsafe.txt": Buffer.from("unsafe")
     });
+    // Craft the archive bytes: current adm-zip sanitizes paths when creating ZIPs.
+    const data = readFileSync(external);
+    const name = Buffer.from("xx/unsafe.txt");
+    for (let offset = data.indexOf(name); offset >= 0; offset = data.indexOf(name, offset + 1)) {
+      Buffer.from("../unsafe.txt").copy(data, offset);
+    }
+    writeFileSync(external, data);
 
     try {
       await storage.importExternalSet(external);
@@ -125,6 +140,53 @@ describe("CardsStorage", () => {
     expect(config.pages?.[0].cards[1].cardType).to.equal(CardType.EmptyCard);
     expect(zip.getEntry("image.png")).not.to.equal(null);
     expect(zip.getEntry("unused.png")).to.equal(null);
+  });
+
+  it("rejects false media sizes on open, read, import, save and merge without replacing data", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+    const source = join(homeDir, "malformed.linka");
+    const target = join(homeDir, "target.linka");
+    writeLinka(source, baseConfig(), { "asset.txt": Buffer.alloc(4096, 65) });
+    writeLinka(target, baseConfig());
+    const data = readFileSync(source);
+    const signature = Buffer.from("PK\x01\x02", "binary");
+    for (
+      let offset = data.indexOf(signature);
+      offset >= 0;
+      offset = data.indexOf(signature, offset + 1)
+    ) {
+      if (data.subarray(offset + 46, offset + 55).toString() === "asset.txt") {
+        data.writeUInt32LE(0, offset + 24);
+        data.writeUInt32LE(0, data.readUInt32LE(offset + 42) + 22);
+      }
+    }
+    writeFileSync(source, data);
+    const before = readFileSync(target);
+    expect(() => storage.getConfigFile(source)).to.throw();
+    expect(() => storage.getImage(source, "asset.txt")).to.throw();
+    expect(() => storage.getAudio(source, "asset.txt")).to.throw();
+    await expectRejected(storage.importExternalSet(source));
+    await expectRejected(storage.saveSet(source, target, baseConfig()));
+    await expectRejected(storage.mergeSets(target, source));
+    expect(readFileSync(target).equals(before)).to.equal(true);
+    expect(readFileSync(source).equals(data)).to.equal(true);
+  });
+
+  it("unpacks valid archives but refuses existing destination links", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+    const source = join(homeDir, "source.linka");
+    const target = join(homeDir, "unpacked");
+    writeLinka(source, baseConfig(), { "nested/asset.txt": Buffer.from("fixture") });
+    await storage["unpack"](source, target);
+    expect(readFileSync(join(target, "nested/asset.txt"), "utf8")).to.equal("fixture");
+    rmSync(join(target, "nested"), { recursive: true });
+    const outside = join(homeDir, "outside");
+    mkdirSync(outside);
+    symlinkSync(outside, join(target, "nested"), "junction");
+    await expectRejected(storage["unpack"](source, target));
+    expect(existsSync(join(outside, "asset.txt"))).to.equal(false);
   });
 
   it("duplicates, renames and moves sets", async () => {
@@ -233,6 +295,16 @@ async function createStorage(homeDir: string) {
   vi.resetModules();
   const { CardsStorage } = await import("@/electron/services/card-storage-service");
   return new CardsStorage();
+}
+
+async function expectRejected(promise: Promise<unknown>) {
+  let rejected = false;
+  try {
+    await promise;
+  } catch {
+    rejected = true;
+  }
+  expect(rejected).to.equal(true);
 }
 
 function createHomeDir(): string {

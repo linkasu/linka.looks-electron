@@ -71,7 +71,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
+          # Candidate node-gyp 11 requires the VS2022 toolchain.
+          - os: windows-2022
             revision: candidate
           - os: windows-latest
             revision: baseline
@@ -120,9 +121,15 @@ jobs:
           if [ "${{ matrix.revision }}" != baseline ]; then
             cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
           fi
-      - name: Install dependencies (native startup stays enabled)
+      - name: Install dependencies without unsafe EyeLog lifecycle
         working-directory: app
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+      - name: Provision checksum-pinned candidate SDK (no binary execution)
+        if: matrix.revision == 'candidate'
+        working-directory: app
+        run: node scripts/ci/provision-eyelog.cjs
       - name: Provision real EyeLog binaries for the legacy development layout
         if: runner.os == 'Windows'
         working-directory: app
@@ -131,6 +138,7 @@ jobs:
         working-directory: app
         run: npm run electron:build -- --dir -p never
       - name: Packaged resources
+        id: packaged
         working-directory: app
         run: npm run test:packaged-resources
       - name: Plain executable startup (no Electron automation loader)
@@ -168,6 +176,19 @@ jobs:
         timeout-minutes: 5
         working-directory: app
         run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
       - name: Evidence
         if: always()
         uses: actions/upload-artifact@v4

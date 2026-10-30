@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import AdmZip from "adm-zip";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
+import type { observeTextImageOperation } from "./text-image-operation";
 import {
   cleanupE2EContext,
   createE2EContext,
@@ -11,6 +12,12 @@ import {
   writeLinkaSet
 } from "./helpers";
 
+declare global {
+  interface Window {
+    __textImageOperation?: ReturnType<typeof observeTextImageOperation>;
+  }
+}
+
 const oldImage = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
   "base64"
@@ -18,6 +25,7 @@ const oldImage = Buffer.from(
 
 for (const span of [1, 3]) {
   test(`text images wrap and round-trip in a ${span}-cell card`, async () => {
+    const startedAt = Date.now();
     const testInfo = test.info();
     test.setTimeout(90000);
     const context = createE2EContext();
@@ -56,8 +64,14 @@ for (const span of [1, 3]) {
       { "old.png": oldImage, "voice.mp3": audio }
     );
     const app = await launchTestElectron(context);
+    const diagnostics: unknown[] = [];
+    await app.context().tracing.start({ screenshots: true, snapshots: true });
     try {
       const window = await firstTestWindow(app);
+      window.on("pageerror", (error) => diagnostics.push({ pageerror: error.message }));
+      window.on("console", (message) => {
+        if (message.type() === "error") diagnostics.push({ consoleError: message.text() });
+      });
       await window.goto(`${devServerUrl}/#/edit/§${setName}`);
       await window.getByRole("button", { name: "Исходная карточка", exact: true }).click();
       const image = window.locator(".cards .selected .img");
@@ -73,7 +87,27 @@ for (const span of [1, 3]) {
         const previous = await image.getAttribute("style");
         await window.getByRole("button", { name: "Создать из текста" }).click();
         await window.getByLabel("Текст для картинки").fill(text);
+        await window.evaluate(
+          async (urls) => {
+            const { storageService } = await import(urls.service);
+            const { observeTextImageOperation } = await import(urls.observer);
+            window.__textImageOperation = observeTextImageOperation(storageService);
+          },
+          {
+            service: "/src/frontend/services/card-storage-service.ts",
+            observer: "/tests/e2e/text-image-operation.ts"
+          }
+        );
         await window.getByRole("button", { name: "Создать", exact: true }).click();
+        // The dialog closes before its asynchronous IPC handler completes.
+        await window.waitForFunction(() => window.__textImageOperation?.settled, undefined, {
+          timeout: Math.max(1, testInfo.timeout - (Date.now() - startedAt))
+        });
+        const operation = await window.evaluate(() => window.__textImageOperation!);
+        diagnostics.push({ index, operation });
+        expect(operation.started).toBe(true);
+        expect(operation.error).toBeNull();
+        expect(operation.path).toMatch(/\S/);
         await expect(image).not.toHaveAttribute("style", previous!);
         const metrics = await image.evaluate(async (element) => {
           const url = getComputedStyle(element).backgroundImage.match(/url\("(.+)"\)/)?.[1];
@@ -167,6 +201,15 @@ for (const span of [1, 3]) {
         window.getByRole("button", { name: "Исходная карточка", exact: true })
       ).toBeVisible();
     } finally {
+      const operation = await app
+        .windows()[0]
+        ?.evaluate(() => window.__textImageOperation)
+        .catch(() => null);
+      await testInfo.attach("generation-diagnostics", {
+        body: JSON.stringify({ diagnostics, operation }),
+        contentType: "application/json"
+      });
+      await app.context().tracing.stop({ path: testInfo.outputPath("renderer-trace.zip") });
       await app.close();
       cleanupE2EContext(context);
     }

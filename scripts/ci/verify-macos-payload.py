@@ -104,6 +104,12 @@ def resources(left, right, signing=False):
             require(before == after)  # Raw ASAR, JS, unknown formats and every extra resource.
 
 
+def bundle_equal(left, right):
+    # Promotion preserves the entire signed bundle, not just Contents/Resources.
+    manifests = [evidence.unpacked_manifest(Path(p)) for p in (left, right)]
+    require(bool(manifests[0]) and manifests[0] == manifests[1])
+
+
 def verify(root, app):
     root, app = evidence.no_symlink_parents(root), evidence.no_symlink_parents(app)
     for arch, directory in (("x64", "mac"), ("arm64", "mac-arm64")):
@@ -128,7 +134,17 @@ def verify(root, app):
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) == 4 and sys.argv[1] == "resources-equal":
+        if len(sys.argv) == 5 and sys.argv[1] == "bundle-equal":
+            left, right, arch = sys.argv[2:]
+            require(arch in ("x64", "arm64"))
+            expected = "x86_64" if arch == "x64" else "arm64"
+            bundle_equal(left, right)
+            for bundle in (left, right):
+                identity(bundle, expected)
+                actual = subprocess.run(["lipo", "-archs", str(Path(bundle) / "Contents/MacOS/LINKa. смотри")],
+                                        check=True, capture_output=True).stdout
+                require(actual.strip() == expected.encode())
+        elif len(sys.argv) == 4 and sys.argv[1] == "resources-equal":
             resources(*sys.argv[2:])
         elif len(sys.argv) == 3:
             verify(*sys.argv[1:])

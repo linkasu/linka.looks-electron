@@ -12,5 +12,6 @@
   ],
   "project": ["src/**/*.{ts,vue}", "scripts/**/*.{js,cjs,mjs,ts}", "tests/**/*.ts"],
   "ignoreDependencies": ["original-fs", "node-gyp"],
+  "ignoreBinaries": ["openssl"],
   "ignoreExportsUsedInFile": true
 }
