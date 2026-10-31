@@ -1,5 +1,5 @@
 <template>
-  <div fluid class="editor">
+  <div ref="editorRef" fluid class="editor">
     <new-file-dialog :show="newFileDialogShow" :disabled="ui_disabled" @text="newFileName" />
     <v-dialog v-model="audioOverwriteDialog" max-width="420">
       <v-card>
@@ -226,7 +226,11 @@
                         </v-btn>
                       </v-row>
                       <v-row>
-                        <create-from-text-dialog block :file="filename" @image="onImageSelected" />
+                        <create-from-text-dialog
+                          :file="filename"
+                          :get-image-size="getSelectedImageSize"
+                          @image="onImageSelected"
+                        />
                       </v-row>
                       <v-row>
                         <picture-bank-dialog
@@ -405,6 +409,15 @@ import {
 
 const store = useStore();
 const route = useRoute();
+const editorRef = ref<HTMLElement | null>(null);
+
+function getSelectedImageSize() {
+  const area = editorRef.value?.querySelector(".selected .cardContainer");
+  const bounds = area?.getBoundingClientRect();
+  if (bounds && bounds.width > 0 && bounds.height > 0) {
+    return { width: bounds.width, height: bounds.height };
+  }
+}
 
 const newFileDialogShow = ref(false);
 const selectedCardId = ref<string | null>(null);

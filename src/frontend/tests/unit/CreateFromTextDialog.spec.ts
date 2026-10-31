@@ -47,8 +47,22 @@ describe("CreateFromTextDialog", () => {
     await confirmBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(createImageFromText.mock.calls[0]).to.deep.equal(["set.linka", "Кот"]);
+    expect(createImageFromText.mock.calls[0]).to.deep.equal(["set.linka", "Кот", undefined]);
     expect(wrapper.emitted("image")?.[0]).to.deep.equal(["generated.png"]);
+  });
+
+  it("preserves the selected card image dimensions", async () => {
+    const wrapper = mountDialog();
+    await wrapper.setProps({ getImageSize: () => ({ width: 900, height: 300 }) });
+
+    await wrapper.get("input").setValue("  Кот  ");
+    await findConfirmButton(wrapper).trigger("click");
+
+    expect(createImageFromText.mock.calls[0]).to.deep.equal([
+      "set.linka",
+      "Кот",
+      { width: 900, height: 300 }
+    ]);
   });
 });
 

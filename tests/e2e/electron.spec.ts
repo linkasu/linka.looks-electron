@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AdmZip from "adm-zip";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanupE2EContext,
@@ -13,7 +13,7 @@ import {
 } from "./helpers";
 
 test("existing activation still requires an explicit telemetry choice", async () => {
-  const context = createE2EContext();
+  const context = createE2EContext(false);
   writeFileSync(
     join(context.userDataDir, "config.json"),
     JSON.stringify({
@@ -30,10 +30,12 @@ test("existing activation still requires an explicit telemetry choice", async ()
     await window.getByRole("button", { name: "Не отправлять" }).click();
     await expect(window.getByText("Техническая статистика", { exact: true })).toBeHidden();
 
-    const config = JSON.parse(readFileSync(join(context.userDataDir, "config.json"), "utf8")) as {
-      telemetryConsent?: string;
-    };
-    expect(config.telemetryConsent).toBe("disabled");
+    const preferencePath = join(context.userDataDir, "telemetry-preference-v3.json");
+    await expect
+      .poll(() =>
+        existsSync(preferencePath) ? JSON.parse(readFileSync(preferencePath, "utf8")) : null
+      )
+      .toEqual({ schemaVersion: 3, preference: "disabled" });
   } finally {
     await electronApp.close();
     cleanupE2EContext(context);
@@ -169,31 +171,26 @@ async function expectEditorAudioControlsReachable(
   });
 
   const metrics = await panel.evaluate((el) => {
-    const panelRect = el.getBoundingClientRect();
-    const button = Array.from(el.querySelectorAll("button")).find((candidate) =>
-      candidate.textContent?.includes("оздать из текста")
-    );
-    const buttonRect = button?.getBoundingClientRect();
-
     return {
-      buttonBottom: buttonRect?.bottom ?? 0,
-      buttonTop: buttonRect?.top ?? 0,
       clientHeight: el.clientHeight,
       overflowY: getComputedStyle(el).overflowY,
-      panelBottom: panelRect.bottom,
-      panelTop: panelRect.top,
-      scrollHeight: el.scrollHeight,
-      viewportHeight: window.innerHeight
+      scrollHeight: el.scrollHeight
     };
   });
 
   expect(metrics.overflowY).toBe("auto");
-  expect(metrics.buttonTop).toBeGreaterThanOrEqual(metrics.panelTop - 1);
-  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.panelBottom + 1);
-  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.viewportHeight + 1);
   if (viewport.height <= 600) {
     expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
   }
+  await window.getByRole("button", { name: "Создать из текста", exact: true }).click();
+  await expect(window.getByLabel("Текст для картинки")).toBeVisible();
+  await window.getByRole("button", { name: "Отмена", exact: true }).click();
+  await window.getByRole("button", { name: "Cоздать из текста", exact: true }).click();
+  await expect(window.getByLabel("Текст для озвучки")).toBeVisible();
+  await window.getByRole("button", { name: "Отмена", exact: true }).click();
+  const audioFile = window.getByRole("button", { name: "Выбрать звук из файла", exact: true });
+  await audioFile.scrollIntoViewIfNeeded();
+  await expect(audioFile).toBeInViewport();
 }
 
 test("gaze set explorer keeps page scrolling disabled", async () => {

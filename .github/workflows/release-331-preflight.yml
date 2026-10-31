@@ -1,0 +1,280 @@
+name: 3.3.1 build-only preflight
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Exact 40-hex 3.3.1 app SHA in main history (no tag)"
+        required: true
+        type: string
+      tooling_sha:
+        description: "Exact 40-hex workflow/tooling SHA (must equal workflow main revision)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-331-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.target.outputs.app }}
+      tooling: ${{ steps.target.outputs.tooling }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Validate immutable sources before application execution
+        id: target
+        shell: bash
+        env:
+          ACCEPTANCE_SHA: ${{ inputs.sha }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_TOOLING_SHA: ${{ inputs.tooling_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_SHA" = "$EXPECTED_TOOLING_SHA"
+            app=$(node scripts/ci/validate-acceptance-target.mjs)
+          else
+            app="$PR_SHA"
+          fi
+          test "$(git show "$app:package.json" | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).version))')" = 3.3.1
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+          echo "tooling=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  unsigned:
+    if: github.event_name == 'pull_request'
+    needs: target
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      CANDIDATE_BUILDER: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.app }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Install locked candidate (no legacy lifecycle)
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
+      - name: Official 26.16.1 hooks, password separation and negative controls
+        run: node --test scripts/ci/candidate-keychain-password.test.cjs scripts/ci/candidate-mac-sign.test.cjs scripts/ci/release-331-preflight.test.cjs scripts/ci/release-artifacts.test.cjs
+      - name: Strict payload negative controls
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/test-asar-evidence.py
+          python3 scripts/ci/test-report-asar-evidence.py
+          python3 scripts/ci/test-verify-macos-payload.py
+      - name: Real 26.16.1 builder with mock signing (no credentials, no hardware claim)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/electron/install.js
+          MACOS_BUILDER_INTEGRATION="$PWD/node_modules/electron/dist" node --test scripts/ci/macos-single-build.test.cjs
+      - name: Build Windows installer once (never publish)
+        if: runner.os == 'Windows'
+        run: npm run electron:build -- --win --x64 -p never
+      - name: Build macOS installers once per architecture (never publish)
+        if: runner.os == 'macOS'
+        run: npm run electron:build -- --mac --x64 --arm64 -p never
+      - name: Packaged resources and real component inventory
+        shell: bash
+        env:
+          APP_SHA: ${{ needs.target.outputs.app }}
+          TOOLING_SHA: ${{ needs.target.outputs.tooling }}
+        run: |
+          set -euo pipefail
+          npm run test:packaged-resources
+          node scripts/ci/release-inventory.cjs
+          node scripts/ci/release-source-bundle.cjs
+          platform=windows
+          if [ "$RUNNER_OS" = macOS ]; then platform=macos; fi
+          node scripts/ci/release-artifacts.cjs stage "$platform"
+          git diff --exit-code
+      - name: Upload source pins and inventories only (NO binaries)
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-331-${{ runner.os }}-${{ needs.target.outputs.app }}
+          retention-days: 7
+          if-no-files-found: error
+          path: release-evidence/inventory.json
+
+  signed-macos:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'linkasu/linka.looks-electron'
+    needs: target
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      APP_SHA: ${{ needs.target.outputs.app }}
+      TOOLING_SHA: ${{ needs.target.outputs.tooling }}
+      CANDIDATE_BUILDER: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.tooling }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.app }}
+          path: app
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Verify sources and install official unpatched builder
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$APP_SHA"
+          test "$(git -C ../tooling rev-parse HEAD)" = "$TOOLING_SHA"
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
+          node --test scripts/ci/candidate-keychain-password.test.cjs scripts/ci/candidate-mac-sign.test.cjs scripts/ci/macos-single-build.test.cjs
+          python3 ../tooling/scripts/ci/test-asar-evidence.py
+          python3 ../tooling/scripts/ci/test-report-asar-evidence.py
+          python3 ../tooling/scripts/ci/test-verify-macos-payload.py
+          mkdir -p ../evidence/payload
+          node -e 'require("fs").writeFileSync("../evidence/payload/provenance.json",JSON.stringify({app:process.env.APP_SHA,tooling:process.env.TOOLING_SHA})+"\n")'
+      - name: Single build per architecture with normal signing and notarization (no publication)
+        working-directory: app
+        run: npm run electron:build -- --mac --x64 --arm64 -p never --config ../tooling/scripts/ci/macos-single-build.cjs
+        env:
+          MACOS_EVIDENCE_ROOT: ${{ github.workspace }}/evidence
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: "Иван Бакаидов (29HEQ626X2)"
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Strict raw ASAR, full payload, identity, notarization and ZIP gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat evidence/app-asar-x64.sha256 evidence/app-asar-arm64.sha256 > evidence/app-asar-before.sha256
+          shasum -a 256 -c evidence/app-asar-before.sha256
+          python3 tooling/scripts/ci/asar-evidence.py diff evidence/payload
+          python3 tooling/scripts/ci/verify-macos-payload.py evidence app
+          for arch in x64 arm64; do
+            dir=mac
+            if [ "$arch" = arm64 ]; then dir=mac-arm64; fi
+            bundle="app/dist/$dir/LINKa. смотри.app"
+            codesign --verify --deep --strict "$bundle"
+            test -s "app/dist/linka.looks-3.3.1-mac-$arch.dmg"
+            zip="app/dist/linka.looks-3.3.1-mac-$arch.zip"
+            test -s "$zip"
+            unpack="$RUNNER_TEMP/verified-331-$arch"
+            mkdir "$unpack"
+            ditto -x -k "$zip" "$unpack"
+            codesign --verify --deep --strict "$unpack/LINKa. смотри.app"
+            xcrun stapler validate "$unpack/LINKa. смотри.app"
+            spctl --assess --type execute "$unpack/LINKa. смотри.app"
+            python3 tooling/scripts/ci/verify-macos-payload.py bundle-equal "$bundle" "$unpack/LINKa. смотри.app" "$arch"
+            mount="$RUNNER_TEMP/verified-331-dmg-$arch"
+            mkdir "$mount"
+            hdiutil attach -quiet -readonly -nobrowse -mountpoint "$mount" "app/dist/linka.looks-3.3.1-mac-$arch.dmg"
+            trap 'hdiutil detach -quiet "$mount"' EXIT
+            codesign --verify --deep --strict "$mount/LINKa. смотри.app"
+            xcrun stapler validate "$mount/LINKa. смотри.app"
+            spctl --assess --type execute "$mount/LINKa. смотри.app"
+            python3 tooling/scripts/ci/verify-macos-payload.py bundle-equal "$bundle" "$mount/LINKa. смотри.app" "$arch"
+            hdiutil detach -quiet "$mount"
+            trap - EXIT
+          done
+          (cd app && npm run test:packaged-resources && node ../tooling/scripts/ci/release-inventory.cjs)
+          git -C app diff --exit-code
+      - name: Freeze accepted installers, sources, notices and provenance (no publication)
+        working-directory: app
+        run: |
+          node ../tooling/scripts/ci/release-source-bundle.cjs
+          node ../tooling/scripts/ci/release-artifacts.cjs stage macos
+      - name: Save exact accepted macOS bytes for promotion
+        uses: actions/upload-artifact@v4
+        with:
+          name: accepted-331-macos-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: app/release-ready/
+
+  release-windows:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'linkasu/linka.looks-electron'
+    needs: target
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      APP_SHA: ${{ needs.target.outputs.app }}
+      TOOLING_SHA: ${{ needs.target.outputs.tooling }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      CANDIDATE_BUILDER: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.tooling }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.app }}
+          path: app
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Build Windows installer once with existing configuration (no certificate claim)
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$APP_SHA"
+          test "$(git -C ../tooling rev-parse HEAD)" = "$TOOLING_SHA"
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+          node scripts/ci/provision-eyelog.cjs
+          npm run electron:build -- --win --x64 -p never
+          npm run test:packaged-resources
+          node ../tooling/scripts/ci/release-inventory.cjs
+          node ../tooling/scripts/ci/release-source-bundle.cjs
+          node ../tooling/scripts/ci/release-artifacts.cjs stage windows
+          git diff --exit-code
+      - name: Save exact accepted Windows bytes for promotion
+        uses: actions/upload-artifact@v4
+        with:
+          name: accepted-331-windows-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: app/release-ready/

@@ -1,0 +1,202 @@
+name: Release acceptance (test only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Exact 40-hex commit SHA in this repository's main history"
+        required: true
+        type: string
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "agents/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-acceptance-${{ github.ref }}-${{ inputs.sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Reject dispatch outside this repository's main before checkout
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REPOSITORY" = linkasu/linka.looks-electron
+            test "$GITHUB_REF" = refs/heads/main
+          fi
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Test dispatch trust boundaries (no dependencies or target execution)
+        run: node --test scripts/ci/validate-acceptance-target.test.mjs
+      - name: Resolve exact acceptance target
+        id: target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACCEPTANCE_SHA: ${{ inputs.sha }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            sha=$(node scripts/ci/validate-acceptance-target.mjs)
+            echo "Validated main ancestry at $(git rev-parse refs/remotes/origin/main)"
+          else
+            sha="$PR_SHA"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Acceptance target: $sha" >> "$GITHUB_STEP_SUMMARY"
+
+  software-acceptance:
+    needs: acceptance-target
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Candidate node-gyp 11 requires the VS2022 toolchain.
+          - os: windows-2022
+            revision: candidate
+          - os: windows-latest
+            revision: baseline
+          - os: macos-latest
+            revision: candidate
+          - os: windows-latest
+            revision: pr121
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      DEBUG: pw:browser,pw:api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          ref: ${{ needs.acceptance-target.outputs.sha }}
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          ref: ${{ matrix.revision == 'baseline' && 'ae1392aa5c17b465a39ab61b12bab20858d8db8a' || matrix.revision == 'pr121' && '9980f4fc2a09a9c480d96748f4ccbb0c2ef08160' || needs.acceptance-target.outputs.sha }}
+          path: app
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Record exact sources and install common test harness
+        shell: bash
+        run: |
+          git -C app rev-parse HEAD
+          git -C harness rev-parse HEAD
+          cp harness/tests/e2e/helpers.ts app/tests/e2e/helpers.ts
+          cp harness/playwright.config.ts app/playwright.config.ts
+          cp harness/vite.config.ts app/vite.config.ts
+          cp harness/playwright.packaged.config.ts app/playwright.packaged.config.ts
+          mkdir -p app/tests/packaged app/scripts/ci
+          cp harness/tests/packaged/app.spec.ts app/tests/packaged/app.spec.ts
+          cp harness/scripts/ci/startup-diagnostics.cjs app/scripts/ci/startup-diagnostics.cjs
+          cp harness/scripts/ci/plain-app-startup.mjs app/scripts/ci/plain-app-startup.mjs
+          cp harness/scripts/ci/check-baseline-result.mjs app/scripts/ci/check-baseline-result.mjs
+          if [ "${{ matrix.revision }}" != baseline ]; then
+            cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
+          fi
+      - name: Install dependencies without unsafe EyeLog lifecycle
+        working-directory: app
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild pictures.bank-api esbuild electron
+      - name: Provision checksum-pinned candidate SDK (no binary execution)
+        if: matrix.revision == 'candidate'
+        working-directory: app
+        run: node scripts/ci/provision-eyelog.cjs
+      - name: Provision real EyeLog binaries for the legacy development layout
+        if: runner.os == 'Windows'
+        working-directory: app
+        run: node -e "const fs=require('node:fs'); fs.cpSync('node_modules/@linkasu/tobii-electron/extraResources/bin','extraResources/bin',{recursive:true}); if(!fs.existsSync('extraResources/bin/EyeLog.exe')) throw new Error('Real EyeLog missing');"
+      - name: Build unpacked production app (never publish)
+        working-directory: app
+        run: npm run electron:build -- --dir -p never
+      - name: Packaged resources
+        id: packaged
+        working-directory: app
+        run: npm run test:packaged-resources
+      - name: Plain executable startup (no Electron automation loader)
+        timeout-minutes: 2
+        working-directory: app
+        run: node scripts/ci/plain-app-startup.mjs
+      - name: PR121 exact-head unit regressions
+        if: matrix.revision == 'pr121'
+        working-directory: app
+        run: npm run test:unit
+      - name: Full candidate E2E
+        if: matrix.revision != 'baseline'
+        timeout-minutes: 8
+        working-directory: app
+        run: npx playwright test --trace retain-on-failure
+      - name: Baseline differential gate (raw suite must be 10 pass / 2 known failures)
+        if: matrix.revision == 'baseline'
+        timeout-minutes: 6
+        working-directory: app
+        shell: bash
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: baseline-report.json
+        run: |
+          status=0
+          npx playwright test --trace retain-on-failure --reporter=list,json || status=$?
+          test "$status" -eq 1
+          node scripts/ci/check-baseline-result.mjs baseline-report.json
+      - name: Packaged startup and storage IPC (identical baseline and candidate)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 4
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged startup"
+      - name: Packaged generation user path (feature added after baseline)
+        if: ${{ !cancelled() && matrix.revision != 'baseline' }}
+        timeout-minutes: 5
+        working-directory: app
+        run: npx playwright test --config playwright.packaged.config.ts --grep "packaged editor"
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' && matrix.revision == 'candidate' && runner.os == 'Windows' }}
+        working-directory: app
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
+      - name: Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-${{ matrix.os }}-${{ matrix.revision }}
+          path: |
+            app/test-results/
+            app/packaged-results/
+            app/packaged-report/
+            app/plain-startup*.png
+            app/baseline-report.json

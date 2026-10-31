@@ -1,7 +1,7 @@
-const { existsSync, mkdtempSync, readdirSync, rmSync, statSync } = require("fs");
-const { spawn, spawnSync } = require("child_process");
-const { join } = require("path");
-const { tmpdir } = require("os");
+const { existsSync, readdirSync, statSync, readFileSync } = require("fs");
+const { join, dirname } = require("path");
+const { createRequire } = require("node:module");
+const assert = require("node:assert/strict");
 
 const projectRoot = join(__dirname, "..", "..");
 const distDir = join(projectRoot, "dist");
@@ -24,113 +24,30 @@ function assertDirectory(directory) {
   }
 }
 
-function smokeImageGenerator() {
-  const extraResourcesDir = getWindowsExtraResourcesDir();
-  const imageGenerator = join(extraResourcesDir, "ImageGenerator.exe");
-  assertFile(imageGenerator);
-
-  const outputDir = mkdtempSync(join(tmpdir(), "linka-image-generator-"));
-  const outputFile = join(outputDir, "image.png");
-  const result = spawnSync(imageGenerator, [outputFile, "test"], {
-    encoding: "utf8",
-    timeout: 30000,
-    windowsHide: true
-  });
-
-  try {
-    if (result.error) {
-      if (result.error.code === "ETIMEDOUT" && hasNonEmptyFile(outputFile)) {
-        console.warn(
-          "ImageGenerator.exe produced a PNG but did not exit before timeout; treating packaged resource smoke as success."
-        );
-        return;
-      }
-      throw result.error;
-    }
-    if (result.status !== 0) {
-      throw new Error(
-        `ImageGenerator.exe exited with ${result.status}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
-      );
-    }
-    if (!hasNonEmptyFile(outputFile)) {
-      throw new Error("ImageGenerator.exe did not produce a non-empty PNG file");
-    }
-  } finally {
-    rmSync(outputDir, { force: true, recursive: true });
-  }
-}
-
-function hasNonEmptyFile(file) {
-  return existsSync(file) && statSync(file).size > 0;
-}
-
-function smokeEyeLog() {
-  const extraResourcesDir = getWindowsExtraResourcesDir();
-  const eyeLog = join(extraResourcesDir, "bin", "EyeLog.exe");
-  assertFile(eyeLog);
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(eyeLog, [], {
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-    child.once("error", (error) => {
-      settled = true;
-      reject(error);
-    });
-
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      if (!child.killed) child.kill();
-      resolve();
-    }, 2000);
-
-    child.once("exit", (code, signal) => {
-      clearTimeout(timer);
-      if (settled) return;
-      settled = true;
-      if (code === 0 || signal) {
-        resolve();
-        return;
-      }
-      if (isExpectedEyeLogCiFailure(stderr)) {
-        console.warn(
-          "EyeLog.exe started, but Tobii runtime is unavailable on the CI runner; treating this as a launch smoke success."
-        );
-        console.warn(stderr);
-        resolve();
-        return;
-      }
-      reject(new Error(`EyeLog.exe exited with ${code}\nstdout: ${stdout}\nstderr: ${stderr}`));
-    });
-  });
-}
-
-function isExpectedEyeLogCiFailure(stderr) {
-  return (
-    stderr.includes("Tobii.Interaction") &&
-    (stderr.includes("BadImageFormatException") ||
-      stderr.includes("EyeX") ||
-      stderr.includes("Host..ctor"))
+function assertPinnedEyeLog(extraResourcesDir) {
+  const resolveTobii = createRequire(
+    join(projectRoot, "node_modules/@linkasu/tobii-electron/package.json")
   );
+  const root = dirname(resolveTobii.resolve("eyelog/package.json"));
+  const { REQUIRED } = require(join(root, "download.js"));
+  for (const name of REQUIRED) {
+    const source = join(root, "bin", name);
+    const packaged = join(extraResourcesDir, "bin", name);
+    assertFile(source);
+    assertFile(packaged);
+    const expected = readFileSync(source);
+    assert(
+      expected.length > 0 && expected.equals(readFileSync(packaged)),
+      "Packaged EyeLog SDK differs from pinned provisioning"
+    );
+  }
 }
 
 function getWindowsExtraResourcesDir() {
   return join(distDir, "win-unpacked", "resources", "extraResources");
 }
 
-function findMacAppBundle() {
+function findMacAppBundles() {
   const appBundles = [];
 
   function scan(directory, depth) {
@@ -147,7 +64,7 @@ function findMacAppBundle() {
   }
 
   scan(distDir, 0);
-  return appBundles.sort()[0];
+  return appBundles.sort();
 }
 
 function assertMacIcon(resourcesDir) {
@@ -191,12 +108,7 @@ function smokeMacNativeAddon(resourcesDir) {
   assertFile(join(unpackedDir, "index.js"));
 }
 
-function smokeMacPackage() {
-  const appBundle = findMacAppBundle();
-  if (!appBundle) {
-    throw new Error(`No packaged .app bundle found in ${distDir}`);
-  }
-
+function smokeMacPackage(appBundle) {
   const contentsDir = join(appBundle, "Contents");
   const resourcesDir = join(contentsDir, "Resources");
   const extraResourcesDir = join(resourcesDir, "extraResources");
@@ -211,14 +123,24 @@ function smokeMacPackage() {
   assertDirectory(join(extraResourcesDir, "bin", "node_modules", "usb", "prebuilds"));
   assertFile(join(extraResourcesDir, "bin", "node_modules", "node-gyp-build", "package.json"));
   smokeMacNativeAddon(resourcesDir);
+  assertPinnedEyeLog(extraResourcesDir);
 }
 
 (async () => {
   if (process.platform === "win32") {
-    smokeImageGenerator();
-    await smokeEyeLog();
+    assertPinnedEyeLog(getWindowsExtraResourcesDir());
+    if (process.env.EYELOG_SANDBOX_GATE === "1") {
+      require("./windows-sdk-launch.cjs").launch(
+        join(getWindowsExtraResourcesDir(), "bin", "EyeLog.exe")
+      );
+    }
   } else if (process.platform === "darwin") {
-    smokeMacPackage();
+    const bundles = findMacAppBundles();
+    assert(bundles.length > 0, "No packaged .app bundle found");
+    for (const bundle of bundles) {
+      smokeMacPackage(bundle);
+      console.log(`Packaged resource smoke test passed: ${bundle}`);
+    }
   } else {
     console.log(
       "Packaged resource smoke test is supported on Windows and macOS; skipping on",

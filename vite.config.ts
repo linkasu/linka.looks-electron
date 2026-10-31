@@ -39,6 +39,7 @@ export default defineConfig(({ command }) => ({
       main: {
         entry: "src/electron/main.ts",
         onstart({ startup }) {
+          if (process.env.IS_TEST === "1") return;
           const port = process.env.ELECTRON_REMOTE_DEBUGGING_PORT || "9222";
           void startup([".", "--no-sandbox", `--remote-debugging-port=${port}`]);
         },

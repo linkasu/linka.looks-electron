@@ -29,6 +29,17 @@ export function resolveExtraResource(...segments: string[]): string {
         ...rest
       );
     }
+
+    if (first === "bin") {
+      return join(
+        projectRoot,
+        "node_modules",
+        "@linkasu",
+        "tobii-electron",
+        "extraResources",
+        ...segments
+      );
+    }
   }
 
   const basePath = app.isPackaged
