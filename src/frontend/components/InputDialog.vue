@@ -1,7 +1,13 @@
 <template>
   <v-dialog v-model="dialog" width="auto" @show="dialog = true">
-    <template v-if="buttonText || icon" #activator="{ props }">
-      <v-btn v-bind="props" :block="!!!icon" :icon="icon" :flat="!!icon">
+    <template v-if="buttonText || icon" #activator="{ props: activatorProps }">
+      <v-btn
+        v-bind="activatorProps"
+        :block="!!!icon"
+        :disabled="props.disabled"
+        :icon="icon"
+        :flat="!!icon"
+      >
         {{ buttonText }}
         <v-icon v-if="icon">
           {{ icon }}
@@ -19,7 +25,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="submit()">
+        <v-btn color="primary" :disabled="isValid(text) !== true" @click="submit()">
           {{ confirmText }}
         </v-btn>
         <v-btn v-if="cancelText" color="primary" @click="dialog = false">
@@ -38,15 +44,19 @@ interface IInputDialogProps {
   title: string;
   label: string;
   confirmText: string;
+  allowEmpty?: boolean;
   show?: boolean;
   checkFilePath?: boolean;
+  disabled?: boolean;
   buttonText?: string;
   icon?: string;
   cancelText?: string;
 }
 
 const props = withDefaults(defineProps<IInputDialogProps>(), {
+  allowEmpty: false,
   checkFilePath: false,
+  disabled: false,
   show: false
 });
 
@@ -83,7 +93,8 @@ async function submit() {
 }
 
 function isValid(text: string) {
-  if (!props.checkFilePath) return true;
-  return validateStorageName(text);
+  if (props.checkFilePath) return validateStorageName(text);
+  if (!props.allowEmpty && !text.trim()) return "Введите текст";
+  return true;
 }
 </script>

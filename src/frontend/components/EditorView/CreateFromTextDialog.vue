@@ -30,11 +30,13 @@ const showError = ref(false);
 const errorMessage = ref("");
 
 async function create(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
   store.dispatch("disable_ui");
   try {
     const value = await storageService.createImageFromText(
       props.file,
-      text,
+      trimmed,
       props.getImageSize?.()
     );
     if (value) emit("image", value);
