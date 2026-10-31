@@ -167,10 +167,13 @@ for (const span of [1, 3]) {
 
       const unchangedImage = await image.getAttribute("style");
       await window.getByRole("button", { name: "Создать из текста" }).click();
+      await expect(window.getByRole("button", { name: "Создать", exact: true })).toBeDisabled();
       await window.getByLabel("Текст для картинки").fill("   ");
-      await window.getByRole("button", { name: "Создать", exact: true }).click();
-      await expect(window.getByText(/Введите текст для картинки/)).toBeVisible();
+      await expect(window.getByRole("button", { name: "Создать", exact: true })).toBeDisabled();
+      await window.getByLabel("Текст для картинки").press("Enter");
+      await expect(window.getByLabel("Текст для картинки")).toBeVisible();
       await expect(image).toHaveAttribute("style", unchangedImage!);
+      await window.getByRole("button", { name: "Отмена", exact: true }).click();
 
       await window.locator(".v-app-bar button").last().click();
       await window
