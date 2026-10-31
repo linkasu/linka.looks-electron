@@ -89,6 +89,99 @@ describe("InstallationTokenTts", () => {
     );
   });
 
+  it("uses an unexpired cached token when early refresh fails", async () => {
+    const now = 1_000;
+    const store = createStore();
+    store.values.set("ttsInstallationToken", {
+      token: "still-valid-token",
+      expiresAt: now + 60_000
+    });
+    const post = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transient network error"))
+      .mockResolvedValueOnce({ data: new Uint8Array([7]) });
+    const service = new InstallationTokenTts(
+      store,
+      { post },
+      () => now,
+      () => "stable-id"
+    );
+
+    await expect(service.synthesize("мама", "alena")).resolves.toEqual(Buffer.from([7]));
+
+    expect(post).toHaveBeenNthCalledWith(
+      2,
+      "https://backend.linka.su/v1/tts/anonymous",
+      { text: "мама", voice: "alena" },
+      expect.objectContaining({
+        headers: {
+          "X-TTS-Installation-Token": "still-valid-token",
+          "Idempotency-Key": "stable-id"
+        }
+      })
+    );
+  });
+
+  it("rethrows refresh error when cached token has already expired", async () => {
+    const now = 5_000;
+    const store = createStore();
+    store.values.set("ttsInstallationToken", {
+      token: "already-expired-token",
+      expiresAt: now
+    });
+    const networkError = new Error("offline");
+    const post = vi.fn().mockRejectedValueOnce(networkError);
+    const service = new InstallationTokenTts(
+      store,
+      { post },
+      () => now,
+      () => "stable-id"
+    );
+
+    await expect(service.synthesize("мама", "alena")).rejects.toBe(networkError);
+    expect(post).toHaveBeenCalledOnce();
+  });
+
+  it("does not reuse a rejected cached token when forced refresh fails", async () => {
+    const store = createStore();
+    store.values.set("ttsInstallationToken", {
+      token: "rejected-token",
+      expiresAt: 48 * 60 * 60 * 1000
+    });
+    const networkError = new Error("offline");
+    const post = vi
+      .fn()
+      .mockRejectedValueOnce({ response: { status: 401 } })
+      .mockRejectedValueOnce(networkError);
+    const service = new InstallationTokenTts(store, { post }, () => 1_000);
+
+    await expect(service.synthesize("hello", "john")).rejects.toBe(networkError);
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([404, 501])(
+    "does not mask compatibility status %s with a cached token",
+    async (status) => {
+      const store = createStore();
+      store.values.set("ttsInstallationToken", {
+        token: "still-valid-token",
+        expiresAt: 60_000
+      });
+      const post = vi
+        .fn()
+        .mockRejectedValueOnce({ response: { status } })
+        .mockResolvedValueOnce({ data: new Uint8Array([4]) });
+      const service = new InstallationTokenTts(store, { post }, () => 1_000);
+
+      await expect(service.synthesize("hello", "john")).resolves.toEqual(Buffer.from([4]));
+      expect(post).toHaveBeenLastCalledWith(
+        "https://tts.linka.su/tts",
+        { text: "hello", voice: "john" },
+        { responseType: "arraybuffer" }
+      );
+    }
+  );
+
   it("refreshes once after 401 and reuses the idempotency key", async () => {
     const store = createStore();
     store.values.set("ttsInstallationToken", {
