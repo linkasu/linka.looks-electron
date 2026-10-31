@@ -55,6 +55,7 @@ export interface LINKaStore {
     isDirectSet: boolean;
     isWithoutSpace: boolean;
     description?: string;
+    cleanSnapshot?: string;
   };
   layoutSettings: {
     isOpened: boolean;
