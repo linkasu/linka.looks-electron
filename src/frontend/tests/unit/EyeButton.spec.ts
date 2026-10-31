@@ -100,6 +100,27 @@ describe("eye button", () => {
     expect(wrapper.find(".overlay").exists()).to.equal(false);
   });
 
+  it("does not show gaze overlay for eye-disabled lock buttons while staying clickable", async () => {
+    const wrapper = mount(EyeButton, {
+      props: {
+        eyeDisabled: true,
+        lock: true
+      },
+      global: {
+        plugins: [createVuexStore({ enabled: false })]
+      }
+    });
+
+    expect(wrapper.get("button").attributes("data-eye-disabled")).to.equal("1");
+    expect((wrapper.get("button").element as HTMLButtonElement).disabled).to.equal(false);
+
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".overlay").exists()).to.equal(false);
+    expect(wrapper.find(".progress-bar").exists()).to.equal(false);
+  });
+
   it("allows lock buttons to react to keyboard enter when gaze lock is disabled", async () => {
     const wrapper = mount(EyeButton, {
       props: {

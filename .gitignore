@@ -33,4 +33,9 @@ pnpm-debug.log*
 # Playwright output
 /test-results
 /playwright-report
+/packaged-results
+/packaged-report
+/plain-startup*.png
 /.playwright-mcp
+/release-evidence/
+__pycache__/

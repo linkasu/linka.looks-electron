@@ -1,0 +1,122 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const { join } = require("node:path");
+const {
+  assertSandbox,
+  classify,
+  missingRuntimeStderr,
+  missingRuntimeWithSymbols
+} = require("./windows-sdk-launch.cjs");
+
+const sandbox = {
+  GITHUB_ACTIONS: "true",
+  RUNNER_ENVIRONMENT: "github-hosted",
+  RUNNER_OS: "Windows",
+  GITHUB_REPOSITORY: "linkasu/linka.looks-electron",
+  GITHUB_EVENT_NAME: "pull_request",
+  EYELOG_SANDBOX_GATE: "1"
+};
+
+test("only explicitly enabled hosted test-only Windows accepts launch", () => {
+  assertSandbox(sandbox, "win32");
+  assertSandbox(
+    { ...sandbox, AZURE_HTTP_USER_AGENT: "synthetic-agent", AWS_REGION: "synthetic-region" },
+    "win32"
+  );
+  for (const key of Object.keys(sandbox)) {
+    assert.throws(() => assertSandbox({ ...sandbox, [key]: "" }, "win32"));
+  }
+  assert.throws(() => assertSandbox(sandbox, "darwin"));
+  for (const key of [
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "CSC_LINK",
+    "CSC_KEY_PASSWORD",
+    "APPLE_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AZURE_CLIENT_SECRET",
+    "ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+  ]) {
+    assert.throws(() => assertSandbox({ ...sandbox, [key]: "synthetic-not-a-secret" }, "win32"));
+  }
+});
+
+const clean = {
+  ExitCode: 0,
+  TimedOut: false,
+  OutputLimit: false,
+  Cleanup: true,
+  Stdout: "",
+  Stderr: ""
+};
+test("unexpected startup outcomes cannot masquerade as missing runtime", () => {
+  for (const delta of [
+    {},
+    { TimedOut: true },
+    { Cleanup: false },
+    { OutputLimit: true },
+    { Stdout: "gaze:1,2,3" },
+    { ExitCode: 1 },
+    { ExitCode: 0xc000007b },
+    { Stderr: "Tobii.Interaction BadImageFormatException Host..ctor" },
+    { Stderr: "Tobii.Interaction DllNotFoundException anything" },
+    { Stderr: "EyeX unexpected exception" }
+  ])
+    assert.throws(() => classify({ ...clean, ...delta }));
+});
+
+test("exact observed exception needs independent x86 VC110 evidence; no broad exception allowlist", () => {
+  const observed = { ...clean, ExitCode: 0xe0434352, Stderr: missingRuntimeStderr };
+  const missing = { Bits: 32, Msvcp110: 126, Msvcr110: 126 };
+  assert.match(classify(observed, missing), /^missing-vc110-runtime-only;/);
+  assert.match(
+    classify({ ...observed, Stderr: missingRuntimeWithSymbols }, missing),
+    /^missing-vc110-runtime-only;/
+  );
+  assert.match(
+    classify({ ...observed, Stderr: observed.Stderr.replace(/\n/g, "\r\n") }, missing),
+    /^missing-vc110-runtime-only;/
+  );
+  for (const delta of [
+    { Cleanup: false },
+    { TimedOut: true },
+    { OutputLimit: true },
+    { ExitCode: 0 },
+    { ExitCode: 0xc000007b },
+    { Stdout: "extra" },
+    { Stderr: missingRuntimeStderr + "extra" },
+    { Stderr: missingRuntimeStderr.replace("DllNotFoundException", "BadImageFormatException") },
+    { Stderr: missingRuntimeStderr.replace("0x8007007E", "0x8007000B") },
+    { Stderr: missingRuntimeStderr.replace("Tobii.EyeX.Client.dll", "other.dll") },
+    { Stderr: missingRuntimeWithSymbols.replace("line 57", "line 58") }
+  ])
+    assert.throws(() => classify({ ...observed, ...delta }, missing));
+  for (const evidence of [
+    undefined,
+    { ...missing, Bits: 64 },
+    { ...missing, Msvcp110: 193 },
+    { ...missing, Msvcp110: 5 },
+    { ...missing, Msvcr110: null },
+    { Bits: 32, Msvcp110: 0, Msvcr110: 0 }
+  ]) {
+    assert.throws(() => classify(observed, evidence));
+  }
+});
+
+test("both candidate Windows workflows require launch, not only equality", () => {
+  const pr = fs.readFileSync(join(__dirname, "../../.github/workflows/pr-test.yaml"), "utf8");
+  const acceptance = fs.readFileSync(
+    join(__dirname, "../../.github/workflows/release-gates.yml"),
+    "utf8"
+  );
+  assert.match(pr, /persist-credentials: false/);
+  assert.match(
+    pr,
+    /name: Sandboxed packaged Windows SDK launch\s+if:.*steps.packaged.outcome == 'success'.*\s+env:\s+EYELOG_SANDBOX_GATE: "1"\s+run: npm run test:packaged-resources/
+  );
+  assert.match(
+    acceptance,
+    /name: Sandboxed packaged Windows SDK launch\s+if:.*matrix.revision == 'candidate'.*runner.os == 'Windows'.*\s+working-directory: app\s+env:\s+EYELOG_SANDBOX_GATE: "1"/
+  );
+});

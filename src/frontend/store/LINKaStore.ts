@@ -9,7 +9,7 @@ interface KeyMap {
   enter: string[];
 }
 export type Side = keyof KeyMap;
-export type PageTurnMode = "mouseOnly" | "mouseAndEyes";
+export type PageTurnMode = "hidden" | "mouseOnly" | "mouseAndEyes";
 export interface LINKaStore {
   pcHash: string;
   telemetryConsent: TelemetryConsent;

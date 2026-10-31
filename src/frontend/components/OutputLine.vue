@@ -3,7 +3,12 @@
     <eye-button v-if="isExitButton" color="accent" @click="$router.back()">
       <v-icon>mdi-exit-run</v-icon>
     </eye-button>
-    <eye-button lock :color="buttonEnabled ? 'accent' : ''" @click="switchButtonEnabled">
+    <eye-button
+      lock
+      eye-disabled
+      :color="buttonEnabled ? 'accent' : ''"
+      @click="switchButtonEnabled"
+    >
       <v-icon>{{ buttonEnabled ? "mdi-eye" : "mdi-eye-off" }}</v-icon>
     </eye-button>
     <eye-button class="output-block" @click="say">

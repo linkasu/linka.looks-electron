@@ -68,6 +68,26 @@ describe("store", () => {
     expect(store.state.button.pageTurnMode).to.equal("mouseOnly");
   });
 
+  for (const mode of ["hidden", "mouseOnly", "mouseAndEyes"] as const) {
+    it(`persists and restores page turn mode ${mode}`, async () => {
+      store.commit("button_pageTurnMode", mode);
+      expect(eStore.get("button_pageTurnMode")).to.equal(mode);
+
+      vi.resetModules();
+      const { default: restartedStore } = await import("@/frontend/store");
+
+      expect(restartedStore.state.button.pageTurnMode).to.equal(mode);
+    });
+  }
+
+  it("restores the default page turn mode when the setting is absent", async () => {
+    eStore.delete("button_pageTurnMode");
+    vi.resetModules();
+    const { default: restartedStore } = await import("@/frontend/store");
+
+    expect(restartedStore.state.button.pageTurnMode).to.equal("mouseAndEyes");
+  });
+
   it("toggles output line and gaze lock through actions", async () => {
     await store.dispatch("interface_outputLine");
     await store.dispatch("button_enabled");
@@ -259,6 +279,36 @@ describe("store", () => {
     expect(store.state.explorer.config?.directSet).to.equal(true);
     expect(store.state.ui.outputLine).to.equal(false);
   });
+
+  for (const action of ["editor_save", "editor_save_as"]) {
+    it(`${action} keeps edits made while saving dirty`, async () => {
+      let finish!: () => void;
+      storage.saveSet.mockImplementationOnce(
+        () => new Promise<void>((resolve) => (finish = resolve))
+      );
+      store.commit("editor_description", "saved notes");
+
+      const saving = store.dispatch(action, "copy.linka");
+      store.commit("editor_description", "new unsaved notes");
+      finish();
+      await saving;
+
+      expect(store.getters.editor_hasChanges).to.equal(true);
+      store.commit("editor_description", "saved notes");
+      expect(store.getters.editor_hasChanges).to.equal(false);
+    });
+
+    it(`${action} does not mark failed saves clean`, async () => {
+      const error = new Error("disk full");
+      storage.saveSet.mockRejectedValueOnce(error);
+      store.commit("editor_description", "unsaved notes");
+
+      const failure = await store.dispatch(action, "copy.linka").catch((reason) => reason);
+
+      expect(failure).to.equal(error);
+      expect(store.getters.editor_hasChanges).to.equal(true);
+    });
+  }
 
   it("tracks unsaved editor changes and resets clean state after load and save", async () => {
     storage.copyToTemp.mockResolvedValue("tmp-copy.linka");

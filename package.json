@@ -1,6 +1,7 @@
 {
+  "license": "GPL-3.0-or-later",
   "name": "linka.looks",
-  "version": "3.2.14",
+  "version": "3.3.1",
   "author": "ibakaidov",
   "private": true,
   "engines": {
@@ -27,25 +28,25 @@
     "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",
     "native:test-load": "npm --prefix node_modules/@linkasu/tobii-electron run native:test-load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
+    "preelectron:build": "node scripts/ci/provision-eyelog.cjs",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run electron:build -- --win -p never",
     "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
     "electron:build:linux": "npm run electron:build -- --linux -p never",
     "electron:serve": "vite",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node scripts/ci/provision-eyelog.cjs && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps",
     "prepare": "husky"
   },
   "dependencies": {
     "@linkasu/tobii-electron": "https://github.com/linkasu/linka-tobii-electron/releases/download/v0.2.16/linkasu-tobii-electron-0.2.16.tgz",
     "@mdi/font": "7.3.67",
-    "@types/adm-zip": "^0.5.0",
-    "adm-zip": "^0.5.10",
+    "adm-zip": "^0.6.1",
     "archiver": "^5.3.1",
-    "axios": "^1.6.0",
+    "axios": "^1.20.0",
     "delay": "^5.0.0",
     "electron-store": "^8.1.0",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "pictures.bank-api": "https://github.com/linkasu/pictures.bank-client.git",
     "uuid": "^14.0.0",
     "vue": "^3.5.34",
@@ -75,6 +76,8 @@
       "!dist/builder-debug.yml",
       "dist-electron/**/*",
       "node_modules/@linkasu/tobii-electron/**/*",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
       "package.json"
     ],
     "fileAssociations": [
@@ -157,7 +160,9 @@
         "from": "./node_modules/usb/",
         "to": "extraResources/bin/node_modules/usb",
         "filter": [
-          "**/*"
+          "**/*",
+          "!build/**/*",
+          "build/Release/*.node"
         ]
       },
       {
@@ -189,8 +194,8 @@
     "@vitest/coverage-v8": "^4.1.5",
     "@vue/test-utils": "^2.4.10",
     "chai": "^4.2.0",
-    "electron": "^42.0.0",
-    "electron-builder": "^26.8.1",
+    "electron": "^43.8.4",
+    "electron-builder": "26.16.1",
     "electron-devtools-installer": "^3.1.0",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
@@ -204,10 +209,13 @@
     "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.68.0",
-    "vite": "^7.3.2",
+    "vite": "^7.3.7",
     "vite-plugin-electron": "^0.29.1",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "eyelog": "git+https://github.com/linkasu/node-eyelog.git#b1200c685fc11337e3eec1dda12045b2fdc99d3f"
   },
   "packageManager": "npm@10.9.7",
   "lint-staged": {

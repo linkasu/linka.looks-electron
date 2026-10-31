@@ -2,6 +2,7 @@ import { ipcRenderer } from "electron";
 import { ConfigFile } from "@/common/interfaces/ConfigFile";
 import { ICloudStorage } from "@/common/abstract";
 import { Directory } from "@/common/interfaces/Directory";
+import type { TextImageSize } from "@/common/textImageLayout";
 
 class StorageService extends ICloudStorage {
   downloadImageFromBank(file: string, id: string): Promise<string> {
@@ -65,8 +66,8 @@ class StorageService extends ICloudStorage {
     return ipcRenderer.invoke("storage:createAudioFromText", path, text, voice);
   }
 
-  createImageFromText(path: string, text: string): Promise<string | null> {
-    return ipcRenderer.invoke("storage:createImageFromText", path, text);
+  createImageFromText(path: string, text: string, size?: TextImageSize): Promise<string | null> {
+    return ipcRenderer.invoke("storage:createImageFromText", path, text, size);
   }
 
   copyToTemp(path: string): Promise<string> {

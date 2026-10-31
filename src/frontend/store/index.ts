@@ -211,8 +211,8 @@ const store = createStore<LINKaStore>({
     editor_page({ editor }, value) {
       editor.page = value;
     },
-    editor_mark_clean(state) {
-      state.editor.cleanSnapshot = serializeEditorConfig(buildEditorConfig(state));
+    editor_mark_clean(state, snapshot?: string) {
+      state.editor.cleanSnapshot = snapshot ?? serializeEditorConfig(buildEditorConfig(state));
     },
     explorer_page({ explorer }, value) {
       explorer.page = value;
@@ -391,12 +391,9 @@ const store = createStore<LINKaStore>({
     },
 
     async editor_save({ state, commit }) {
-      await storageService.saveSet(
-        state.editor.temp,
-        state.editor.current,
-        buildEditorConfig(state)
-      );
-      commit("editor_mark_clean");
+      const config = buildEditorConfig(state);
+      await storageService.saveSet(state.editor.temp, state.editor.current, config);
+      commit("editor_mark_clean", serializeEditorConfig(config));
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
@@ -409,8 +406,9 @@ const store = createStore<LINKaStore>({
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
-      await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
-      commit("editor_mark_clean");
+      const config = buildEditorConfig(state);
+      await storageService.saveSet(state.editor.temp, current, config);
+      commit("editor_mark_clean", serializeEditorConfig(config));
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
