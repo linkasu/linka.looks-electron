@@ -87,14 +87,27 @@ export class InstallationTokenTts {
       return current;
     }
 
-    const response = await this.client.post(`${BACKEND_URL}/tts/installations`, undefined, {
-      timeout: REQUEST_TIMEOUT_MS
-    });
-    const token = (response.data as { token?: unknown }).token;
-    if (typeof token !== "string" || !token) throw new TypeError("invalid TTS installation token");
-    const next = { token, expiresAt: expirationOf(response.data) };
-    this.store.set("ttsInstallationToken", next);
-    return next;
+    try {
+      const response = await this.client.post(`${BACKEND_URL}/tts/installations`, undefined, {
+        timeout: REQUEST_TIMEOUT_MS
+      });
+      const token = (response.data as { token?: unknown }).token;
+      if (typeof token !== "string" || !token)
+        throw new TypeError("invalid TTS installation token");
+      const next = { token, expiresAt: expirationOf(response.data) };
+      this.store.set("ttsInstallationToken", next);
+      return next;
+    } catch (error) {
+      if (
+        !force &&
+        current?.token &&
+        current.expiresAt > this.now() &&
+        !isCompatibilityError(error)
+      ) {
+        return current;
+      }
+      throw error;
+    }
   }
 
   private async anonymous(
