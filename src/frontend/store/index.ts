@@ -17,6 +17,7 @@ import {
   normalizeTelemetryConsent,
   type TelemetryConsent
 } from "@/frontend/utils/TelemetryConsent";
+import { serializeEditorConfig } from "@/frontend/utils/editorLogic";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
@@ -102,7 +103,15 @@ const store = createStore<LINKaStore>({
       quizAutoNext: true,
       quizReadQuestion: true,
       isDirectSet: false,
-      isWithoutSpace: false
+      isWithoutSpace: false,
+      cleanSnapshot: serializeEditorConfig({
+        pages: [createEditorPage()],
+        directSet: false,
+        withoutSpace: false,
+        quizAutoNext: true,
+        quizReadQuestion: true,
+        version: CURRENT_SET_VERSION
+      })
     },
     explorer: {
       page: 0,
@@ -113,6 +122,15 @@ const store = createStore<LINKaStore>({
       hasChanges: false,
       fontSize: 16,
       fontBold: true
+    }
+  },
+
+  getters: {
+    editor_hasChanges(state): boolean {
+      if (state.editor.cleanSnapshot === undefined) {
+        return false;
+      }
+      return serializeEditorConfig(buildEditorConfig(state)) !== state.editor.cleanSnapshot;
     }
   },
 
@@ -192,6 +210,9 @@ const store = createStore<LINKaStore>({
     },
     editor_page({ editor }, value) {
       editor.page = value;
+    },
+    editor_mark_clean(state, snapshot?: string) {
+      state.editor.cleanSnapshot = snapshot ?? serializeEditorConfig(buildEditorConfig(state));
     },
     explorer_page({ explorer }, value) {
       explorer.page = value;
@@ -351,6 +372,7 @@ const store = createStore<LINKaStore>({
       commit("editor_temp", "");
       commit("editor_pages", [createEditorPage()]);
       commit("editor_page", 0);
+      commit("editor_mark_clean");
     },
 
     async editor_load_set({ state, commit }) {
@@ -365,14 +387,13 @@ const store = createStore<LINKaStore>({
       commit("editor_quizAutoNext", normalized.quizAutoNext ?? true);
       commit("editor_quizReadQuestion", normalized.quizReadQuestion ?? false);
       commit("editor_page", 0);
+      commit("editor_mark_clean");
     },
 
-    async editor_save({ state }) {
-      await storageService.saveSet(
-        state.editor.temp,
-        state.editor.current,
-        buildEditorConfig(state)
-      );
+    async editor_save({ state, commit }) {
+      const config = buildEditorConfig(state);
+      await storageService.saveSet(state.editor.temp, state.editor.current, config);
+      commit("editor_mark_clean", serializeEditorConfig(config));
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
@@ -381,11 +402,13 @@ const store = createStore<LINKaStore>({
       });
     },
 
-    async editor_save_as({ state }, title) {
+    async editor_save_as({ state, commit }, title) {
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
-      await storageService.saveSet(state.editor.temp, current, buildEditorConfig(state));
+      const config = buildEditorConfig(state);
+      await storageService.saveSet(state.editor.temp, current, config);
+      commit("editor_mark_clean", serializeEditorConfig(config));
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",

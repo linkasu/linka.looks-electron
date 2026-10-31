@@ -279,6 +279,85 @@ describe("store", () => {
     expect(store.state.explorer.config?.directSet).to.equal(true);
     expect(store.state.ui.outputLine).to.equal(false);
   });
+
+  for (const action of ["editor_save", "editor_save_as"]) {
+    it(`${action} keeps edits made while saving dirty`, async () => {
+      let finish!: () => void;
+      storage.saveSet.mockImplementationOnce(
+        () => new Promise<void>((resolve) => (finish = resolve))
+      );
+      store.commit("editor_description", "saved notes");
+
+      const saving = store.dispatch(action, "copy.linka");
+      store.commit("editor_description", "new unsaved notes");
+      finish();
+      await saving;
+
+      expect(store.getters.editor_hasChanges).to.equal(true);
+      store.commit("editor_description", "saved notes");
+      expect(store.getters.editor_hasChanges).to.equal(false);
+    });
+
+    it(`${action} does not mark failed saves clean`, async () => {
+      const error = new Error("disk full");
+      storage.saveSet.mockRejectedValueOnce(error);
+      store.commit("editor_description", "unsaved notes");
+
+      const failure = await store.dispatch(action, "copy.linka").catch((reason) => reason);
+
+      expect(failure).to.equal(error);
+      expect(store.getters.editor_hasChanges).to.equal(true);
+    });
+  }
+
+  it("tracks unsaved editor changes and resets clean state after load and save", async () => {
+    storage.copyToTemp.mockResolvedValue("tmp-copy.linka");
+    storage.getConfigFile.mockResolvedValue({
+      version: CURRENT_SET_VERSION,
+      withoutSpace: false,
+      directSet: false,
+      quizAutoNext: true,
+      quizReadQuestion: false,
+      description: "initial notes",
+      pages: [
+        {
+          id: "page-1",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+        },
+        {
+          id: "page-2",
+          mode: "standard",
+          columns: 1,
+          rows: 1,
+          cards: [{ id: "card-2", cardType: CardType.AudioCard, title: "two" }]
+        }
+      ]
+    });
+
+    await store.dispatch("editor_current", "source.linka");
+    expect(store.getters.editor_hasChanges).to.equal(false);
+
+    // Navigating between pages without modifying content does not mark the set dirty
+    store.commit("editor_page", 1);
+    expect(store.getters.editor_hasChanges).to.equal(false);
+
+    // Mutating a card in-place marks the set dirty, and reverting restores clean state
+    store.state.editor.pages[0].cards[0].title = "updated";
+    expect(store.getters.editor_hasChanges).to.equal(true);
+
+    store.state.editor.pages[0].cards[0].title = "one";
+    expect(store.getters.editor_hasChanges).to.equal(false);
+
+    // Changing set settings marks dirty until saved
+    store.commit("editor_isDirectSet", true);
+    expect(store.getters.editor_hasChanges).to.equal(true);
+
+    await store.dispatch("editor_save");
+    expect(store.getters.editor_hasChanges).to.equal(false);
+  });
 });
 
 function resetStoreState() {
@@ -302,6 +381,7 @@ function resetStoreState() {
       cards: []
     })
   ]);
+  store.commit("editor_mark_clean");
   store.commit("explorer_config", undefined);
   store.commit("explorer_page", 0);
   store.commit("interface_outputLine", true);
