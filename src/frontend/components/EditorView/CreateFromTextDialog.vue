@@ -8,7 +8,12 @@
     :disabled="ui_disabled"
     @confirm="create"
   />
-  <v-snackbar v-model="showError" :timeout="6000">{{ errorMessage }}</v-snackbar>
+  <v-snackbar v-model="showError" :timeout="6000">
+    {{ errorMessage }}
+    <template #actions>
+      <v-btn class="retry" :disabled="ui_disabled" @click="create(lastText)">Повторить</v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <script lang="ts" setup>
@@ -28,10 +33,13 @@ const emit = defineEmits<{
 const ui_disabled = computed(() => store.state.ui.disabled);
 const showError = ref(false);
 const errorMessage = ref("");
+const lastText = ref("");
 
 async function create(text: string) {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed || ui_disabled.value) return;
+  lastText.value = trimmed;
+  showError.value = false;
   store.dispatch("disable_ui");
   try {
     const value = await storageService.createImageFromText(

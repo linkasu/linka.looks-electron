@@ -29,26 +29,23 @@ describe("text image layout", () => {
       });
     }
   }
-
-  it("keeps ordinary words intact and uses wide-card space for larger text", () => {
+  it("keeps ordinary words intact and uses wide-card space", () => {
     const square = layoutTextImage("Хочу пить", 512, 512, measure);
     const wide = layoutTextImage("Хочу пить", 1536, 512, measure);
     expect(square.lines).toEqual(["Хочу", "пить"]);
     expect(wide.fontSize).toBeGreaterThan(square.fontSize);
     expect(wide.lines).toEqual(["Хочу пить"]);
   });
-
   it("preserves explicit paragraph breaks", () => {
     expect(layoutTextImage("Да\n\nНет", 512, 512, measure).lines).toEqual(["Да", "", "Нет"]);
   });
-
-  it("does not split ordinary words or detach their punctuation", () => {
+  it("does not detach punctuation or split ordinary words", () => {
     const text = "Пожалуйста, помогите";
-    const layout = layoutTextImage(text, 1024, 1024, measure);
-    expect(layout.lines.flatMap((line) => line.split(" "))).toEqual(text.split(" "));
+    expect(
+      layoutTextImage(text, 1024, 1024, measure).lines.flatMap((line) => line.split(" "))
+    ).toEqual(text.split(" "));
   });
-
-  it("rejects text that cannot fit rather than clipping it", () => {
+  it("rejects text that cannot fit instead of clipping it", () => {
     expect(() => layoutTextImage("Текст", 1, 1, measure)).toThrow("не помещается");
   });
 });

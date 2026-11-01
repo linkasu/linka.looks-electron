@@ -1,18 +1,18 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
+  <v-dialog v-model="dialog" max-width="640" scrollable>
     <template #activator="{ props }">
-      <v-btn title="Заметки о наборе" flat icon="" v-bind="props">
+      <v-btn title="Заметки о наборе" aria-label="Заметки о наборе" flat icon="" v-bind="props">
         <v-icon>mdi-note-text</v-icon>
       </v-btn>
     </template>
 
-    <v-card min-width="600px" min-height="200px">
+    <v-card min-height="200px">
       <v-card-title primary-title> Заметки к набору </v-card-title>
       <v-card-text v-if="!edit">
         <pre>{{ description }} </pre>
       </v-card-text>
       <v-card-text v-else>
-        <v-textarea v-model="description" multi-line />
+        <v-textarea v-model="description" label="Заметки к набору" multi-line />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -57,3 +57,11 @@ function onDialog() {
   }
 }
 </script>
+
+<style scoped>
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+</style>

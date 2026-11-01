@@ -46,10 +46,10 @@ onMounted(() => {
     return;
   }
   if (props.file && !props.file.directory) {
-    storageService.getDefaultImage(props.file.file).then((buffer: string) => {
+    storageService.getDefaultImage(props.file.file).then((buffer) => {
       if (!buffer) return;
       const url = URL.createObjectURL(new Blob([buffer], { type: "image/png" } /* (1) */));
-      image.value = `url("${url}"`;
+      image.value = `url("${url}")`;
     });
   }
 });

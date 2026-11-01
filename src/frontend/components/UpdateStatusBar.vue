@@ -1,21 +1,34 @@
 <template>
-  <section>
-    <span> Версия приложения: {{ version }}. </span>
-    <span v-if="available"> Доступно обновление! Идет загрузка. {{ percent.toFixed(1) }}%. </span>
-    <span v-if="errorMessage" class="update-error"> Ошибка обновления: {{ errorMessage }} </span>
-    <v-layout row justify-center>
-      <v-dialog v-model="downloaded" persistent max-width="290">
-        <v-card>
-          <v-card-title class="headline"> Обновление загружено </v-card-title>
-          <v-card-text> установить сейчас? </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn color="primary" flat @click="downloaded = false"> Нет </v-btn>
-            <v-btn color="primary" flat @click="((downloaded = false), update())"> Да </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </v-layout>
+  <section class="update-status">
+    <span class="version"> Версия {{ version }} </span>
+    <span v-if="available" role="status"> Загрузка обновления: {{ percent.toFixed(1) }}% </span>
+    <button v-if="downloaded" class="status-action" @click="installDialog = true">
+      Обновление готово — установить
+    </button>
+    <button v-if="errorMessage" class="status-action update-error" @click="errorDialog = true">
+      Ошибка обновления — подробнее
+    </button>
+    <v-dialog v-model="installDialog" max-width="480">
+      <v-card>
+        <v-card-title class="headline"> Обновление загружено </v-card-title>
+        <v-card-text>
+          Установка перезапустит приложение. Сначала завершите занятие и сохраните изменения.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="installDialog = false"> Позже </v-btn>
+          <v-btn color="primary" variant="flat" @click="((installDialog = false), update())">
+            Установить и перезапустить
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="errorDialog" max-width="560" scrollable>
+      <v-card title="Не удалось обновить приложение">
+        <v-card-text class="error-details">{{ errorMessage }}</v-card-text>
+        <v-card-actions><v-btn @click="errorDialog = false">Закрыть</v-btn></v-card-actions>
+      </v-card>
+    </v-dialog>
   </section>
 </template>
 
@@ -29,6 +42,8 @@ const percent = ref(0);
 const version = ref("");
 const available = ref(false);
 const downloaded = ref(false);
+const installDialog = ref(false);
+const errorDialog = ref(false);
 const errorMessage = ref("");
 
 onMounted(async (): Promise<void> => {
@@ -75,6 +90,7 @@ function onUpdateError(event: unknown, message: string) {
   errorMessage.value = message;
   available.value = false;
   downloaded.value = false;
+  installDialog.value = false;
   trackUpdateTelemetry("updateError");
 }
 
@@ -92,7 +108,37 @@ function trackUpdateTelemetry(
 
 <style scoped>
 .update-error {
-  color: #c62828;
-  display: block;
+  color: rgb(var(--v-theme-error));
+}
+.update-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+.status-action {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.error-details {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+:deep(.v-card-title) {
+  white-space: normal;
+}
+:deep(.v-card-actions) {
+  flex-wrap: wrap;
+}
+@media (max-width: 650px) {
+  .version {
+    display: none;
+  }
 }
 </style>

@@ -11,6 +11,7 @@ vi.mock("@/frontend/utils/TTS", () => ({
 
 describe("OutputLine lock with the real EyeButton and PageWatcher", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     Object.defineProperty(navigator, "getGamepads", { configurable: true, value: () => [] });
   });
 
@@ -18,14 +19,14 @@ describe("OutputLine lock with the real EyeButton and PageWatcher", () => {
     Reflect.deleteProperty(navigator, "getGamepads");
   });
 
-  it("keeps gaze-only output usable after attempting to activate lock", async () => {
+  it("pauses and resumes by gaze without activating output while paused", async () => {
     const { wrapper, watcher, store, ipc, send, cards } = mountOutputLine(false);
     try {
       const lock = wrapper.get("button.lock");
       const output = wrapper.get("button.output-block");
-      const targets = wrapper.findAll("button.eye");
       // Replay the tracker protocol using the current target ID and index.
       function gaze(button: Element) {
+        const targets = wrapper.findAll("button.eye");
         const update = send.mock.calls.at(-1)?.[1];
         const data = {
           id: update?.id,
@@ -43,16 +44,25 @@ describe("OutputLine lock with the real EyeButton and PageWatcher", () => {
       await wrapper.vm.$nextTick();
       watcher.watchElementsChange(true);
 
-      expect(store.state.button.enabled).toBe(true);
+      expect(store.state.button.enabled).toBe(false);
       expect(lock.classes()).not.toContain("isInside");
       expect(lock.find(".progress-bar").exists()).toBe(false);
-      expect(wrapper.findAll("button.eye")).toHaveLength(targets.length);
-      expect(send.mock.calls.at(-1)?.[1].elements).toHaveLength(targets.length);
+      expect(output.classes()).not.toContain("eye");
+      expect((output.element as HTMLButtonElement).disabled).toBe(true);
+      (output.element as HTMLButtonElement).click();
+      await wrapper.vm.$nextTick();
+      expect(TTS.instance.playCards).not.toHaveBeenCalled();
+
+      gaze(lock.element);
+      await wrapper.vm.$nextTick();
+      watcher.watchElementsChange(true);
+      expect(store.state.button.enabled).toBe(true);
+      expect(output.classes()).toContain("eye");
 
       gaze(output.element);
       await wrapper.vm.$nextTick();
 
-      expect(output.classes()).toContain("isInside");
+      expect(output.classes()).not.toContain("isInside");
       expect(TTS.instance.playCards).toHaveBeenCalledExactlyOnceWith("set.linka", cards);
       expect(store.state.button.enabled).toBe(true);
     } finally {

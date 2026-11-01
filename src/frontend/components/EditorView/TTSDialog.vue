@@ -1,11 +1,13 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
+  <v-dialog v-model="dialog" max-width="600" :persistent="busy">
     <template #activator="{ props }">
-      <v-btn v-bind="props" block class="mb-1" :disabled="ui_disabled"> Cоздать из текста </v-btn>
+      <v-btn v-bind="props" block class="mb-1" :disabled="ui_disabled">
+        Создать озвучку из текста
+      </v-btn>
     </template>
 
-    <v-card min-width="300px">
-      <v-card-title primary-title> Введите текст </v-card-title>
+    <v-card>
+      <v-card-title primary-title> Озвучка из текста </v-card-title>
       <v-card-text>
         <v-form>
           <v-select
@@ -14,18 +16,41 @@
             label="Голос"
             item-value="value"
             item-title="text"
+            :disabled="busy"
           />
 
-          <v-text-field v-model="enteredText" label="Текст для озвучки" />
+          <v-textarea
+            v-model="enteredText"
+            label="Текст для озвучки"
+            rows="4"
+            auto-grow
+            :disabled="busy"
+          />
+          <v-alert v-if="errorMessage" type="error" variant="tonal" role="alert">{{
+            errorMessage
+          }}</v-alert>
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="create" :disabled="!hasText"> Создать </v-btn>
-        <v-btn color="primary" @click="dialog = false"> Отмена </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          @click="create"
+          :loading="operation === 'create'"
+          :disabled="!hasText || busy"
+        >
+          Добавить озвучку
+        </v-btn>
+        <v-btn @click="dialog = false" :disabled="busy"> Отменить </v-btn>
 
         <v-spacer />
-        <v-btn color="success" @click="playExample" :disabled="!hasText">
-          Послушать результат
+        <v-btn
+          variant="text"
+          @click="playExample"
+          :loading="operation === 'preview'"
+          :disabled="!hasText || busy"
+        >
+          Прослушать
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -47,6 +72,9 @@ const emit = defineEmits<{
 const ui_disabled = computed(() => store.state.ui.disabled);
 
 const dialog = ref(false);
+const operation = ref<"create" | "preview" | null>(null);
+const busy = computed(() => operation.value !== null);
+const errorMessage = ref("");
 
 const enteredText: Ref<string> = ref("");
 const currentAudioText = computed({
@@ -72,6 +100,9 @@ const currentVoice = computed({
 watch(dialog, onDialog);
 
 async function create() {
+  if (busy.value || !hasText.value) return;
+  operation.value = "create";
+  errorMessage.value = "";
   store.dispatch("disable_ui");
   try {
     const audioSrcFile = await storageService.createAudioFromText(
@@ -79,29 +110,49 @@ async function create() {
       currentAudioText.value,
       currentVoice.value
     );
-    if (!audioSrcFile) return;
+    if (!audioSrcFile) throw new Error("Audio creation returned no file");
 
     emit("audio", { audioSrcFile, audioText: enteredText.value, audioVoice: voice.value });
     dialog.value = false;
   } catch (error) {
     console.error(error);
+    errorMessage.value = "Не удалось создать озвучку. Попробуйте ещё раз.";
   } finally {
+    operation.value = null;
     store.dispatch("enable_ui");
   }
 }
 
 function onDialog(v: boolean) {
   if (v) {
+    errorMessage.value = "";
     currentAudioText.value = props.audioText ?? "";
     currentVoice.value = props.audioVoice ?? TTS.instance.resolveVoice(currentAudioText.value);
   }
 }
 
-function playExample() {
-  TTS.instance.playText(enteredText.value, voice.value);
+async function playExample() {
+  if (busy.value || !hasText.value) return;
+  operation.value = "preview";
+  errorMessage.value = "";
+  try {
+    await TTS.instance.playText(enteredText.value, voice.value);
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = "Не удалось воспроизвести озвучку. Попробуйте ещё раз.";
+  } finally {
+    operation.value = null;
+  }
 }
 
 const hasText = computed(() => {
   return enteredText.value.trim() !== "";
 });
 </script>
+
+<style scoped>
+.v-card-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>

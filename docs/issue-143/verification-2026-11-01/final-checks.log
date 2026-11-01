@@ -1,0 +1,13 @@
+$ npm run format:check
+
+> linka.looks@3.2.14 format:check
+> prettier --check "**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+exit_code=0
+$ git diff --check
+exit_code=0
+Integrity PASS: only existing README modified; all added files under issue-143 verification evidence.
+Helper 43642: not running
+Helper 43643: not running

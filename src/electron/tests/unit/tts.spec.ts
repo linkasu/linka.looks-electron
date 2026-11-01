@@ -11,6 +11,37 @@ function createStore() {
 }
 
 describe("InstallationTokenTts", () => {
+  it("uses an unexpired token after early refresh fails without masking expiry, force or compatibility", async () => {
+    for (const scenario of ["valid", "expired", "forced", "compatibility"] as const) {
+      const store = createStore();
+      store.values.set("ttsInstallationToken", {
+        token: "fixture-token",
+        expiresAt: scenario === "expired" ? 1000 : scenario === "forced" ? 172801000 : 61000
+      });
+      const failure =
+        scenario === "compatibility" ? { response: { status: 501 } } : new Error("offline");
+      const post = vi.fn();
+      if (scenario === "forced") post.mockRejectedValueOnce({ response: { status: 401 } });
+      post.mockRejectedValueOnce(failure).mockResolvedValueOnce({ data: new Uint8Array([7]) });
+      const service = new InstallationTokenTts(
+        store,
+        { post },
+        () => 1000,
+        () => "fixture-id"
+      );
+      if (scenario === "expired" || scenario === "forced") {
+        await expect(service.synthesize("мама", "alena")).rejects.toBe(failure);
+        expect(post).toHaveBeenCalledTimes(scenario === "forced" ? 2 : 1);
+      } else {
+        await expect(service.synthesize("мама", "alena")).resolves.toEqual(Buffer.from([7]));
+        expect(post.mock.calls[1][0]).toBe(
+          scenario === "valid"
+            ? "https://backend.linka.su/v1/tts/anonymous"
+            : "https://tts.linka.su/tts"
+        );
+      }
+    }
+  });
   it("uses the persisted token and stable installation id", async () => {
     const store = createStore();
     store.values.set("ttsInstallationToken", {

@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -25,6 +26,61 @@ vi.mock("original-fs", async () => {
 });
 
 describe("CardsStorage", () => {
+  it("rejects a false media size at read/import/save/merge and preserves source and destination", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "malformed.linka");
+    const target = join(home, "target.linka");
+    writeLinka(source, baseConfig(), { "asset.txt": Buffer.alloc(4096, 65) });
+    writeLinka(target, baseConfig());
+    const data = readFileSync(source);
+    const signature = Buffer.from("PK\x01\x02", "binary");
+    for (
+      let offset = data.indexOf(signature);
+      offset >= 0;
+      offset = data.indexOf(signature, offset + 1)
+    ) {
+      if (data.subarray(offset + 46, offset + 55).toString() === "asset.txt") {
+        data.writeUInt32LE(0, offset + 24);
+        data.writeUInt32LE(0, data.readUInt32LE(offset + 42) + 22);
+      }
+    }
+    writeFileSync(source, data);
+    const before = readFileSync(target);
+    expect(() => storage.getConfigFile(source)).to.throw();
+    expect(() => storage.getImage(source, "asset.txt")).to.throw();
+    await expectRejected(storage.importExternalSet(source));
+    await expectRejected(storage.saveSet(source, target, baseConfig()));
+    await expectRejected(storage.mergeSets(target, source));
+    expect(readFileSync(target)).to.deep.equal(before);
+    expect(readFileSync(source)).to.deep.equal(data);
+  });
+
+  it("rejects extraction through an existing symlink entirely inside a temporary fixture", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "unpacked");
+    const outside = join(home, "outside");
+    mkdirSync(target);
+    mkdirSync(outside);
+    symlinkSync(outside, join(target, "nested"), "junction");
+    writeLinka(source, baseConfig(), { "nested/asset.txt": Buffer.from("fixture") });
+    await expectRejected(storage["unpack"](source, target));
+    expect(existsSync(join(outside, "asset.txt"))).to.equal(false);
+  });
+
+  it("keeps referenced nested image bytes in saved archives", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "target.linka");
+    const config = baseConfig();
+    config.pages![0].cards[0].imagePath = "nested/image.png";
+    writeLinka(source, config, { "nested/image.png": Buffer.from("nested image") });
+    await storage.saveSet(source, target, config);
+    expect(new AdmZip(target).readAsText("nested/image.png")).to.equal("nested image");
+  });
   afterEach(() => {
     delete process.env.LINKA_HOME_DIR;
     for (const file of tmpFiles.splice(0)) {
@@ -140,6 +196,46 @@ describe("CardsStorage", () => {
     expect(config.pages?.[0].cards[1].cardType).to.equal(CardType.EmptyCard);
     expect(zip.getEntry("image.png")).not.to.equal(null);
     expect(zip.getEntry("unused.png")).to.equal(null);
+    expect(new AdmZip(source).getEntry("unused.png")).not.to.equal(null);
+  });
+
+  it("keeps editor media available across saves and can reuse previously unreferenced audio", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+    const source = join(homeDir, "editing.linka");
+    const target = join(homeDir, "saved.linka");
+    writeLinka(source, baseConfig(), { "copied.mp3": Buffer.from("copied audio") });
+    const original = readFileSync(source);
+    await storage.saveSet(source, target, baseConfig());
+    expect(readFileSync(source).equals(original)).to.equal(true);
+    expect(new AdmZip(target).getEntry("copied.mp3")).to.equal(null);
+    const next = baseConfig();
+    next.pages![0].cards = [
+      { id: "pasted", cardType: CardType.AudioCard, audioPath: "copied.mp3" }
+    ];
+    await storage.saveSet(source, target, next);
+    expect(new AdmZip(target).readAsText("copied.mp3")).to.equal("copied audio");
+    expect(readdirSync(homeDir).some((name) => name.endsWith(".tmp"))).to.equal(false);
+  });
+
+  it("leaves the editor source intact and cleans staging if replacing the destination fails", async () => {
+    const homeDir = createHomeDir();
+    const storage = await createStorage(homeDir);
+    const source = join(homeDir, "editing.linka");
+    const target = join(homeDir, "blocked.linka");
+    writeLinka(source, baseConfig(), { "copied.mp3": Buffer.from("copied audio") });
+    mkdirSync(target);
+    const original = readFileSync(source);
+    let failed = false;
+    try {
+      await storage.saveSet(source, target, baseConfig());
+    } catch {
+      failed = true;
+    }
+    expect(failed).to.equal(true);
+    expect(readFileSync(source).equals(original)).to.equal(true);
+    expect(existsSync(target)).to.equal(true);
+    expect(readdirSync(homeDir).some((name) => name.endsWith(".tmp"))).to.equal(false);
   });
 
   it("rejects false media sizes on open, read, import, save and merge without replacing data", async () => {

@@ -1,10 +1,15 @@
 <template>
   <v-card>
-    <v-card-title primary-title> Настройки кнопок </v-card-title>
+    <v-card-title primary-title> Клавиатура и джойстик </v-card-title>
     <v-card-text>
+      <p>
+        Выберите «Назначить», затем нажмите нужную клавишу или кнопку джойстика. Существующие
+        назначения сохранятся. Escape отменяет ожидание. Назначьте перемещение между карточками и
+        кнопку активации; включение способов активации настраивается отдельно выше.
+      </p>
       <v-container>
         <v-row>
-          <v-col v-for="side in sides" :key="side" cols="3" xs="4">
+          <v-col v-for="side in sides" :key="side" cols="12" sm="6">
             <key-binding :side="side" />
           </v-col>
         </v-row>

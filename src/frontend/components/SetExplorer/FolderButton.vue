@@ -1,16 +1,33 @@
 <template>
-  <v-dialog v-model="dialog" fullscreen :scrim="false" transition="dialog-bottom-transition">
+  <v-dialog v-model="dialog" max-width="720" scrollable>
     <template #activator="{ props: activator_props }">
-      <v-btn icon v-bind="activator_props" title="Переместить набор">
-        <v-icon>mdi-folder-swap</v-icon>
+      <v-btn
+        :icon="!text"
+        :prepend-icon="text ? 'mdi-folder-swap' : undefined"
+        v-bind="activator_props"
+        title="Переместить набор"
+        aria-label="Переместить набор"
+      >
+        <v-icon v-if="!text">mdi-folder-swap</v-icon>
+        {{ text }}
       </v-btn>
     </template>
     <v-card>
       <v-toolbar>
-        <v-btn icon dark @click="dialog = false">
+        <v-btn
+          icon
+          title="Отмена перемещения"
+          aria-label="Отмена перемещения"
+          @click="dialog = false"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
-        <v-btn icon @click="open('/')">
+        <v-btn
+          icon
+          title="Корневая папка наборов"
+          aria-label="Корневая папка наборов"
+          @click="open('/')"
+        >
           <v-icon>mdi-home</v-icon>
         </v-btn>
         <v-toolbar-title>{{ toBasename(current === "/" ? "LINKa" : current) }}</v-toolbar-title>
@@ -50,7 +67,7 @@ import pathModule from "path";
 import { DirectoryFile } from "../../../common/interfaces/Directory";
 
 const store = useStore();
-const props = defineProps<{ file: string }>();
+const props = defineProps<{ file: string; text?: string }>();
 const emit = defineEmits<{ (e: "move", payload: string): void }>();
 
 const dialog = ref(false);

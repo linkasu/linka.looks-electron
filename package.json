@@ -20,6 +20,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}\"",
     "format:check": "prettier --check \"**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}\"",
+    "report:visual": "node scripts/visual-report.mjs",
     "knip": "knip",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
@@ -53,8 +54,7 @@
     "vue-router": "^4.6.4",
     "vuedraggable": "^4.1.0",
     "vuetify": "^3.12.5",
-    "vuex": "^4.1.0",
-    "webfontloader": "^1.0.0"
+    "vuex": "^4.1.0"
   },
   "build": {
     "productName": "LINKa. смотри",
@@ -189,7 +189,6 @@
     "@types/archiver": "^5.3.2",
     "@types/chai": "^4.2.15",
     "@types/electron-devtools-installer": "^2.2.0",
-    "@types/webfontloader": "^1.0.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vitest/coverage-v8": "^4.1.5",
     "@vue/test-utils": "^2.4.10",

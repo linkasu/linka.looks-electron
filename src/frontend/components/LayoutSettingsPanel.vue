@@ -1,17 +1,17 @@
 <template>
   <div class="settingsPanel" v-if="isSettingsPanelOpen === true">
-    <v-btn variant="text" @click="closeSettings" size="x-small" class="btn_close">
-      Закрыть
+    <v-btn variant="tonal" @click="closeSettings" min-height="48" class="btn_close">
+      Сохранить и закрыть
       <v-icon>mdi-close</v-icon>
     </v-btn>
     <v-row>
-      <v-col md="3" sm="6" xs="9">
+      <v-col cols="12" md="3" sm="6">
         <v-card-text>
           <v-card-subtitle class="pl-2 pr-2">Настройка анимации</v-card-subtitle>
           <v-checkbox v-model="animation" label="Анимация изображений" />
         </v-card-text>
       </v-col>
-      <v-col md="3" sm="6" xs="9">
+      <v-col cols="12" md="3" sm="6">
         <v-card-text>
           <v-card-subtitle class="pl-0">Настройки шрифта</v-card-subtitle>
           <v-row class="mt-0 ml-0 mr-0 mb-0 btn_settings-row">
@@ -19,16 +19,20 @@
               <v-btn
                 :disabled="fontSize - 1 < 16"
                 variant="tonal"
-                size="small"
+                min-height="48"
+                min-width="48"
+                aria-label="Уменьшить размер текста"
                 @click="decreaseFontSize"
                 class="btn_settings"
                 >-</v-btn
               >
-              <div class="fontSettingLabel v-label">{{ fontSize }}</div>
+              <div class="fontSettingLabel v-label" role="status">{{ fontSize }} px</div>
               <v-btn
                 :disabled="fontSize + 1 > 30"
                 variant="tonal"
-                size="small"
+                min-height="48"
+                min-width="48"
+                aria-label="Увеличить размер текста"
                 @click="increaseFontSize"
                 class="btn_settings"
                 >+</v-btn
@@ -36,7 +40,10 @@
             </div>
             <v-btn
               :variant="fontBold ? 'text' : 'tonal'"
-              size="small"
+              min-height="48"
+              min-width="48"
+              aria-label="Полужирный текст"
+              :aria-pressed="fontBold"
               :class="fontBold ? 'btn-fontBold btn-fontBold_bold' : 'btn-fontBold'"
               :color="fontBold ? 'primary' : ''"
               @click="toggleBold"
@@ -45,7 +52,7 @@
           </v-row>
         </v-card-text>
       </v-col>
-      <v-col md="6" sm="12">
+      <v-col cols="12" md="6" sm="12">
         <v-card-text>
           <v-form @submit.prevent="">
             <v-card-subtitle>Настройки размера сетки</v-card-subtitle>
@@ -205,8 +212,9 @@ const currentPage = computed({
 .settingsPanel {
   z-index: 1005;
   width: 100%;
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 25%);
+  background-color: var(--linka-surface);
+  color: var(--linka-text);
+  border-bottom: 1px solid var(--linka-border);
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
@@ -220,15 +228,17 @@ const currentPage = computed({
 }
 .settingGroup {
   display: flex;
-  flex-flow: nowrap;
+  flex-wrap: wrap;
 }
 .fontSettingLabel {
-  padding: 2px 8px;
+  padding: 12px 8px;
+  white-space: nowrap;
 }
 .btn_settings-row {
   align-items: center;
   min-height: 3.5rem;
-  flex-flow: nowrap;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .btn_settings {
   font-size: 20px;

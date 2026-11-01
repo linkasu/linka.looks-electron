@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app :class="{ 'reduce-motion': !store.state.button.animation }">
     <telemetry-consent-notice />
     <template v-if="pcHash != 'unknow'">
       <download-default-sets-dialog />
@@ -50,23 +50,6 @@ watch(
   },
   { immediate: true }
 );
-
-const primary = computed(() => {
-  return hexToRGB(store.state.colors.primary);
-});
-const accent = computed(() => {
-  return hexToRGB(store.state.colors.accent);
-});
-const secondary = computed(() => {
-  return hexToRGB(store.state.colors.secondary);
-});
-
-function hexToRGB(input: string) {
-  const aRgbHex = input.slice(1).match(/.{1,2}/g);
-  if (!aRgbHex) return null;
-  const aRgb = [parseInt(aRgbHex[0], 16), parseInt(aRgbHex[1], 16), parseInt(aRgbHex[2], 16)];
-  return aRgb;
-}
 </script>
 
 <style>
@@ -90,9 +73,57 @@ function hexToRGB(input: string) {
 }
 
 :root {
-  --v-theme-primary: v-bind(primary) !important;
-  --v-theme-accent: v-bind(accent) !important;
-  --v-theme-secondary: v-bind(secondary) !important;
+  --linka-canvas: #f6f7f4;
+  --linka-surface: #ffffff;
+  --linka-text: #243431;
+  --linka-muted: #536761;
+  --linka-border: #d6e1db;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  color: var(--linka-text);
+}
+
+.v-application,
+.v-field,
+.v-btn {
+  font-family: inherit;
+}
+
+.v-application {
+  line-height: 1.5;
+}
+
+.v-card-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.v-card-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+}
+
+.v-btn,
+.eyebtn {
+  touch-action: manipulation;
+}
+
+:is(button, a, input, textarea, [tabindex]):focus-visible {
+  outline: 3px solid rgb(var(--v-theme-primary));
+  outline-offset: -3px;
+}
+
+.reduce-motion .v-btn,
+.reduce-motion .v-overlay__content {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-btn,
+  .v-overlay__content {
+    transition: none !important;
+  }
 }
 
 .footer {
@@ -100,7 +131,10 @@ function hexToRGB(input: string) {
   bottom: 0;
   width: 100%;
   height: 40px;
-  background: #fdfdfd;
+  background: var(--linka-canvas);
+  border-top: 1px solid var(--linka-border);
+  color: var(--linka-muted);
+  font-size: 13px;
   align-items: center;
   padding: 0 16px;
 }

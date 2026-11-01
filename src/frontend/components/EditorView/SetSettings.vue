@@ -1,17 +1,27 @@
 <template>
-  <v-dialog v-model="dialog" fullscreen width="50%" class="set-settings" right="50%">
+  <v-dialog v-model="dialog" class="set-settings" scrollable>
     <template #activator="{ props }">
-      <v-btn flat i v-bind="props"> Открыть настройки набора </v-btn>
+      <v-btn
+        variant="text"
+        prepend-icon="mdi-cog-outline"
+        aria-label="Открыть настройки набора"
+        title="Настройки набора"
+        v-bind="props"
+        ><span class="settings-label">Настройки набора</span></v-btn
+      >
     </template>
     <v-card>
       <v-toolbar>
         <v-toolbar-title>Настройки набора </v-toolbar-title>
         <v-spacer />
-        <v-btn @click="dialog = false">
+        <v-btn icon aria-label="Закрыть настройки набора" @click="dialog = false">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-toolbar>
       <v-card-text>
+        <p class="settings-hint">
+          Изменения применяются сразу. Чтобы сохранить их в файле, нажмите «Сохранить» в редакторе.
+        </p>
         <v-form @submit.prevent="">
           <v-card-subtitle>Настройки текущей страницы</v-card-subtitle>
           <v-row>
@@ -222,13 +232,32 @@ const editor_quizAutoNext = computed({
 
 <style>
 .set-settings > .v-overlay__content {
-  position: absolute;
   left: auto !important;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 50% !important;
-  max-width: 50% !important;
+  width: min(560px, 100%) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: 100%;
   margin: 0 !important;
+}
+
+.set-settings .v-card-subtitle {
+  margin: 24px 0 12px;
+  padding: 0;
+  font-weight: 600;
+  opacity: 1;
+  color: var(--linka-text);
+}
+
+.set-settings .settings-hint {
+  color: var(--linka-muted);
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) {
+  .settings-label {
+    display: none;
+  }
 }
 </style>

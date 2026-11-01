@@ -1,0 +1,6 @@
+
+> linka.looks@3.2.14 format:check
+> prettier --check "**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}"
+
+Checking formatting...
+All matched files use Prettier code style!

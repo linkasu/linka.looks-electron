@@ -17,7 +17,9 @@ function mountExitButton(confirm?: boolean) {
         },
         VDialog: {
           props: ["modelValue"],
-          template: "<div v-if='modelValue' data-testid='exit-dialog'><slot /></div>"
+          emits: ["update:modelValue"],
+          template:
+            "<div><slot name='activator' :props='{ onClick: () => $emit(\"update:modelValue\", true) }' /><div v-if='modelValue' data-testid='exit-dialog'><slot /></div></div>"
         },
         VCard: { template: "<div><slot /></div>" },
         VCardTitle: { template: "<div><slot /></div>" },
@@ -32,7 +34,7 @@ describe("ExitButton", () => {
   it("exits immediately without confirmation dialog when confirm is false", async () => {
     const wrapper = mountExitButton(false);
 
-    await wrapper.get("[data-testid='editor-exit-btn']").trigger("click");
+    await wrapper.get('[aria-label="Выйти из редактора"]').trigger("click");
 
     expect(wrapper.emitted("exit")).to.have.length(1);
     expect(wrapper.find("[data-testid='exit-dialog']").exists()).to.equal(false);
@@ -41,18 +43,18 @@ describe("ExitButton", () => {
   it("asks for confirmation before exiting when confirm is true", async () => {
     const wrapper = mountExitButton(true);
 
-    await wrapper.get("[data-testid='editor-exit-btn']").trigger("click");
+    await wrapper.get('[aria-label="Выйти из редактора"]').trigger("click");
 
     expect(wrapper.emitted("exit")).to.equal(undefined);
     expect(wrapper.find("[data-testid='exit-dialog']").exists()).to.equal(true);
     expect(wrapper.text()).to.contain("Выйти без сохранения?");
 
-    await wrapper.get("[data-testid='editor-exit-cancel']").trigger("click");
+    await wrapper.get("[data-testid='exit-dialog'] button:last-child").trigger("click");
     expect(wrapper.emitted("exit")).to.equal(undefined);
     expect(wrapper.find("[data-testid='exit-dialog']").exists()).to.equal(false);
 
-    await wrapper.get("[data-testid='editor-exit-btn']").trigger("click");
-    await wrapper.get("[data-testid='editor-exit-confirm']").trigger("click");
+    await wrapper.get('[aria-label="Выйти из редактора"]').trigger("click");
+    await wrapper.get("[data-testid='exit-dialog'] button:first-child").trigger("click");
     expect(wrapper.emitted("exit")).to.have.length(1);
   });
 });

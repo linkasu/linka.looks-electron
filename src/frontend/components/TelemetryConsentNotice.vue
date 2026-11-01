@@ -3,6 +3,8 @@
     :model-value="showNotice"
     location="top"
     max-width="60rem"
+    class="telemetry-notice"
+    multi-line
     :timeout="-1"
     @update:model-value="onNoticeChange"
   >
@@ -56,3 +58,21 @@ function openPrivacy() {
   shell.openExternal("https://metric.linka.su/privacy");
 }
 </script>
+
+<style scoped>
+.telemetry-notice :deep(.v-snackbar__wrapper) {
+  max-width: calc(100vw - 24px);
+  flex-wrap: wrap;
+}
+.telemetry-notice :deep(.v-snackbar__content) {
+  min-width: 0;
+  flex-basis: 24rem;
+  line-height: 1.5;
+}
+.telemetry-notice :deep(.v-snackbar__actions) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  margin: 0 8px 8px;
+}
+</style>

@@ -1,10 +1,12 @@
 import { createStore } from "vuex";
 
-import { LINKaStore, PageTurnMode, Side } from "./LINKaStore";
+import { LINKaStore, PageTurnMode, Side, type DwellIndicatorMode } from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
+import { DEFAULT_COLORS } from "@/frontend/plugins/visualDefaults";
 import { ipcRenderer } from "electron";
 import { Telemetry } from "@/frontend/utils/Telemetry";
+import { serializeEditorConfig } from "@/frontend/utils/editorLogic";
 import type { ConfigFile, PageMode, SetPage } from "@/common/interfaces/ConfigFile";
 import {
   CURRENT_SET_VERSION,
@@ -17,21 +19,21 @@ import {
   normalizeTelemetryConsent,
   type TelemetryConsent
 } from "@/frontend/utils/TelemetryConsent";
-import { serializeEditorConfig } from "@/frontend/utils/editorLogic";
 
 const fields = [
   { commit: "pcHash", default: "unknow" } as Field<string>,
   { commit: "popupVersion", default: 0 } as Field<number>,
   { commit: "defaultSetsDownloaded", default: 0 } as Field<number>,
-  { commit: "colors_primary", default: "#197377" } as Field<string>,
-  { commit: "colors_accent", default: "#7DF6FA" } as Field<string>,
-  { commit: "colors_secondary", default: "#FFAF00" } as Field<string>,
+  { commit: "colors_primary", default: DEFAULT_COLORS.primary } as Field<string>,
+  { commit: "colors_accent", default: DEFAULT_COLORS.accent } as Field<string>,
+  { commit: "colors_secondary", default: DEFAULT_COLORS.secondary } as Field<string>,
   { commit: "voiceRu", default: "alena" } as Field<string>,
   { commit: "voiceEn", default: "john" } as Field<string>,
-  { commit: "layoutSettings_fontSize", default: 16 } as Field<number>,
+  { commit: "layoutSettings_fontSize", default: 24 } as Field<number>,
   { commit: "layoutSettings_fontBold", default: true } as Field<boolean>,
   { commit: "layoutSettings_isOpened", default: false } as Field<boolean>,
   { commit: "button_timeout", default: 1000 } as Field<number>,
+  { commit: "button_dwellIndicator", default: "inward" } as Field<DwellIndicatorMode>,
   { commit: "button_eyeSelect", default: true } as Field<boolean>,
   { commit: "button_eyeActivation", default: true } as Field<boolean>,
   { commit: "button_joystickActivation", default: true } as Field<boolean>,
@@ -61,15 +63,12 @@ const store = createStore<LINKaStore>({
     pcHash: "unknow",
     telemetryConsent: "unknown",
     firstCalibrate: false,
-    colors: {
-      secondary: "",
-      accent: "",
-      primary: "#197377"
-    },
+    colors: { ...DEFAULT_COLORS },
     voiceRu: "alena",
     voiceEn: "john",
     button: {
       timeout: 1000,
+      dwellIndicator: "inward",
       enabled: true,
       eyeSelect: true,
       eyeActivation: true,
@@ -83,6 +82,7 @@ const store = createStore<LINKaStore>({
       multiplyScale: false
     },
     ui: {
+      gazeSuspended: false,
       disabled: false,
       outputLine: true,
       exitButton: true
@@ -120,21 +120,22 @@ const store = createStore<LINKaStore>({
     layoutSettings: {
       isOpened: false,
       hasChanges: false,
-      fontSize: 16,
+      fontSize: 24,
       fontBold: true
     }
   },
 
   getters: {
     editor_hasChanges(state): boolean {
-      if (state.editor.cleanSnapshot === undefined) {
-        return false;
-      }
+      if (state.editor.cleanSnapshot === undefined) return false;
       return serializeEditorConfig(buildEditorConfig(state)) !== state.editor.cleanSnapshot;
     }
   },
 
   mutations: {
+    ui_gazeSuspended(state, value: boolean) {
+      state.ui.gazeSuspended = value;
+    },
     enable_ui(state) {
       state.ui.disabled = false;
     },
@@ -264,6 +265,9 @@ const store = createStore<LINKaStore>({
     button_animation({ button }, value) {
       button.animation = value;
     },
+    button_dwellIndicator({ button }, value: unknown) {
+      button.dwellIndicator = value === "circle" ? "circle" : "inward";
+    },
     button_clickSound({ button }, value) {
       button.clickSound = value;
       Telemetry.product("settingsToggleTypeSound");
@@ -392,8 +396,9 @@ const store = createStore<LINKaStore>({
 
     async editor_save({ state, commit }) {
       const config = buildEditorConfig(state);
+      const snapshot = serializeEditorConfig(config);
       await storageService.saveSet(state.editor.temp, state.editor.current, config);
-      commit("editor_mark_clean", serializeEditorConfig(config));
+      commit("editor_mark_clean", snapshot);
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
@@ -407,8 +412,9 @@ const store = createStore<LINKaStore>({
       parts[parts.length - 1] = title;
       const current = parts.join("§");
       const config = buildEditorConfig(state);
+      const snapshot = serializeEditorConfig(config);
       await storageService.saveSet(state.editor.temp, current, config);
-      commit("editor_mark_clean", serializeEditorConfig(config));
+      commit("editor_mark_clean", snapshot);
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",

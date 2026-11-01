@@ -4,17 +4,43 @@
       <v-card>
         <v-card-title> Калибровка Tobii Eye Tracker 5 </v-card-title>
         <v-card-text>
-          <v-alert v-if="firstFlow" class="mb-4" type="info" variant="tonal">
+          <v-alert v-if="firstFlow && canUseTobii" class="mb-4" type="info" variant="tonal">
             Tobii подключён. Перед первым использованием выполните калибровку или примените
             сохранённую.
           </v-alert>
-          Смотрите на любую доступную точку и удерживайте взгляд, пока она не сработает. Если
-          отвести взгляд раньше времени, точка вернётся в исходное состояние. Для отмены нажмите
-          Escape.
-          <v-alert class="mt-4" :type="tobiiStatusAlertType" variant="tonal">
-            <div>{{ tobiiStatusMessage }}</div>
-            <div v-if="tobiiStatus?.lastError">Ошибка: {{ tobiiStatus.lastError }}</div>
+          <h2 class="text-subtitle-1 mb-2">Перед началом</h2>
+          <ol class="calibration-checklist">
+            <li>Подключите Tobii к USB-порту компьютера.</li>
+            <li>
+              Убедитесь, что устройство найдено:
+              <strong data-testid="tobii-device-found">{{
+                !tobiiStatus
+                  ? "проверяем…"
+                  : tobiiStatus.deviceFound
+                    ? "найдено"
+                    : "пока не найдено"
+              }}</strong
+              >. Если оно не найдено, проверьте кабель и подключите устройство заново. Приложение
+              продолжит поиск автоматически.
+            </li>
+            <li>
+              Закрепите устройство под экраном и сядьте напротив. Расположитесь удобно, чтобы видеть
+              весь экран и не менять положение во время калибровки.
+            </li>
+          </ol>
+          <v-alert class="my-4" :type="tobiiStatusAlertType" variant="tonal" role="status">
+            <div data-testid="tobii-readiness">{{ tobiiReadiness }}</div>
           </v-alert>
+          <details class="calibration-details">
+            <summary>Технические сведения о подключении</summary>
+            <p>{{ tobiiStatusMessage }}</p>
+            <p v-if="tobiiStatus?.lastError">Ошибка: {{ tobiiStatus.lastError }}</p>
+          </details>
+          <h2 class="text-subtitle-1 mt-4 mb-2">Как проходит калибровка</h2>
+          Смотрите в центр выделенной точки. Точки сменяются автоматически в заданном порядке:
+          сначала три, затем ещё три. У каждой точки есть время на перевод и удержание взгляда. Если
+          отвести взгляд, таймер не остановится. Для отмены нажмите Escape или попросите помощника
+          нажать «Отменить».
           <v-alert v-if="calibrationMessage" class="mt-4" type="info" variant="tonal">
             {{ calibrationMessage }}
           </v-alert>
@@ -22,9 +48,10 @@
             {{ calibrationError }}
           </v-alert>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="calibration-actions">
           <v-btn
             color="primary"
+            data-testid="tobii-start-calibration"
             :disabled="!canUseTobii"
             :loading="calibrationBusy"
             @click="startTobiiCalibration"
@@ -41,7 +68,23 @@
       </v-card>
     </v-container>
 
-    <div v-else class="calibration-stage" :class="{ 'is-finishing': phase === 'finish' }">
+    <div
+      v-else
+      class="calibration-stage"
+      :class="{ 'is-finishing': phase === 'finish', 'no-animation': !store.state.button.animation }"
+    >
+      <div class="calibration-toolbar">
+        <span role="status">{{
+          phase === "start"
+            ? "Подготовка…"
+            : phase === "finish"
+              ? "Сохранение…"
+              : `Группа ${activeGroupIndex + 1} из 2 · смотрите в центр выделенной точки`
+        }}</span>
+        <v-btn variant="outlined" min-height="48" @click="cancelTobiiCalibration"
+          >Отменить · Esc</v-btn
+        >
+      </div>
       <div v-if="showDebug && debugState" class="debug-gaze-marker" :style="debugMarkerStyle"></div>
       <template v-for="(point, index) in currentGroup" :key="`${activeGroupIndex}-${index}`">
         <div
@@ -54,9 +97,6 @@
           @eye-exit="onPointExit(index)"
           @click.prevent="onPointClick(index)"
         >
-          <div class="target-sparks" aria-hidden="true">
-            <span v-for="spark in 10" :key="spark" class="target-spark"></span>
-          </div>
           <div class="target-ring">
             <div class="target-dot"></div>
           </div>
@@ -169,6 +209,13 @@ const firstFlow = computed(() => route.query.first === "1");
 const tobiiStatusMessage = computed(
   () => tobiiStatus.value?.message || "Проверяю состояние Tobii..."
 );
+const tobiiReadiness = computed(() => {
+  if (!tobiiStatus.value) return "Проверяем подключение Tobii…";
+  if (canUseTobii.value) return "Tobii готов. Можно начать калибровку.";
+  if (!tobiiStatus.value.deviceFound)
+    return "Tobii пока недоступен. Проверьте подключение по шагам выше.";
+  return "Устройство найдено, но подключение ещё не готово. Дождитесь готовности; если статус не меняется, проверьте технические сведения.";
+});
 const tobiiStatusAlertType = computed(() => {
   if (!tobiiStatus.value) return "info";
   if (canUseTobii.value) return "success";
@@ -531,22 +578,49 @@ onBeforeUnmount(() => {
 .panel-container {
   max-width: 760px;
 }
+.calibration-checklist {
+  padding-left: 24px;
+  line-height: 1.6;
+}
+.calibration-checklist li + li {
+  margin-top: 8px;
+}
+.calibration-details summary {
+  min-height: 48px;
+  padding-block: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.calibration-details p {
+  overflow-wrap: anywhere;
+}
 
 .calibration-stage {
   position: fixed;
   inset: 0;
   z-index: 1000;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 50% 45%,
-      rgba(42, 101, 255, 0.24) 0%,
-      rgba(6, 17, 45, 0.92) 45%,
-      #020817 100%
-    ),
-    #020817;
+  background: #152a2d;
   color: #fff;
   transition: opacity 240ms ease;
+}
+
+.calibration-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.calibration-actions :deep(.v-btn) {
+  min-height: 48px;
+}
+.calibration-toolbar {
+  position: fixed;
+  inset: 12px 16px auto;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.875rem;
 }
 
 .calibration-stage.is-finishing {
@@ -584,10 +658,7 @@ onBeforeUnmount(() => {
   place-items: center;
   border-radius: 50%;
   pointer-events: auto;
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease,
-    filter 180ms ease;
+  transition: opacity 180ms ease;
 }
 
 .calibration-target.is-disabled:not(.is-holding):not(.is-bursting) {
@@ -596,7 +667,6 @@ onBeforeUnmount(() => {
 
 .calibration-target.is-done {
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0.7);
   pointer-events: none;
 }
 
@@ -607,10 +677,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: conic-gradient(#4dffea var(--hold-progress), rgba(77, 255, 234, 0.26) 0);
-  box-shadow:
-    0 0 28px rgba(77, 255, 234, 0.7),
-    0 0 76px rgba(54, 116, 255, 0.38);
+  background: conic-gradient(#dcece5 var(--hold-progress), #637b79 0);
 }
 
 .target-ring::before {
@@ -618,16 +685,12 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 10px;
   border-radius: 50%;
-  background: #04122e;
-  box-shadow: inset 0 0 18px rgba(77, 255, 234, 0.18);
+  background: #152a2d;
 }
 
-.is-holding .target-ring {
-  animation: target-spin 720ms linear infinite;
-}
-
-.is-bursting .target-ring {
-  animation: target-burst 280ms ease-out forwards;
+.is-active .target-ring {
+  outline: 2px solid #fff;
+  outline-offset: 6px;
 }
 
 .target-dot {
@@ -637,126 +700,18 @@ onBeforeUnmount(() => {
   height: 14px;
   border-radius: 50%;
   background: #ffec5c;
-  box-shadow:
-    0 0 0 8px rgba(255, 236, 92, 0.22),
-    0 0 24px rgba(255, 236, 92, 0.9);
+  box-shadow: 0 0 0 4px #152a2d;
 }
 
-.is-bursting .target-dot {
-  animation: dot-burst 280ms ease-out forwards;
+.no-animation,
+.no-animation .calibration-target {
+  transition: none;
 }
 
-.target-sparks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.target-spark {
-  --spark-distance: 42px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: #ffec5c;
-  opacity: 0;
-  transform: rotate(var(--spark-angle)) translateX(24px) scale(0.4);
-  box-shadow: 0 0 14px rgba(255, 236, 92, 0.95);
-}
-
-.is-holding .target-spark {
-  animation: spark-orbit 720ms linear infinite;
-}
-
-.is-bursting .target-spark {
-  animation: spark-burst 280ms ease-out forwards;
-}
-
-.target-spark:nth-child(1) {
-  --spark-angle: 0deg;
-}
-.target-spark:nth-child(2) {
-  --spark-angle: 36deg;
-}
-.target-spark:nth-child(3) {
-  --spark-angle: 72deg;
-}
-.target-spark:nth-child(4) {
-  --spark-angle: 108deg;
-}
-.target-spark:nth-child(5) {
-  --spark-angle: 144deg;
-}
-.target-spark:nth-child(6) {
-  --spark-angle: 180deg;
-}
-.target-spark:nth-child(7) {
-  --spark-angle: 216deg;
-}
-.target-spark:nth-child(8) {
-  --spark-angle: 252deg;
-}
-.target-spark:nth-child(9) {
-  --spark-angle: 288deg;
-}
-.target-spark:nth-child(10) {
-  --spark-angle: 324deg;
-}
-
-@keyframes target-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes target-burst {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  70% {
-    opacity: 0.85;
-    transform: scale(1.5);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.1);
-  }
-}
-
-@keyframes dot-burst {
-  to {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-}
-
-@keyframes spark-orbit {
-  0% {
-    opacity: 0.25;
-    transform: rotate(var(--spark-angle)) translateX(22px) scale(0.35);
-  }
-  50% {
-    opacity: 1;
-    transform: rotate(calc(var(--spark-angle) + 180deg)) translateX(34px) scale(0.8);
-  }
-  100% {
-    opacity: 0.25;
-    transform: rotate(calc(var(--spark-angle) + 360deg)) translateX(22px) scale(0.35);
-  }
-}
-
-@keyframes spark-burst {
-  0% {
-    opacity: 1;
-    transform: rotate(var(--spark-angle)) translateX(28px) scale(0.7);
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(var(--spark-angle)) translateX(74px) scale(0.15);
+@media (prefers-reduced-motion: reduce) {
+  .calibration-stage,
+  .calibration-target {
+    transition: none;
   }
 }
 </style>

@@ -1,5 +1,10 @@
 <template>
-  <v-dialog v-model="showPopup" persistent max-width="500px">
+  <v-dialog
+    :model-value="showPopup"
+    max-width="560"
+    scrollable
+    @update:model-value="!$event && closePopup()"
+  >
     <v-card v-if="pData">
       <v-card-title>
         <span class="headline">{{ pData.title }}</span>
@@ -27,6 +32,7 @@ import type { Ref } from "vue";
 import { ref, computed, onMounted } from "vue";
 
 import { useStore } from "vuex";
+import { useRoute } from "vue-router";
 
 import axios from "axios";
 import { shell } from "electron";
@@ -41,10 +47,11 @@ interface PopupData {
 type Nullable<T> = T | null;
 
 const store = useStore();
+const route = useRoute();
 
 const pData: Ref<Nullable<PopupData>> = ref(null);
 const showPopup = computed(() => {
-  return !!pData.value && pData.value.version > store.state.popupVersion;
+  return route.name === "home" && !!pData.value && pData.value.version > store.state.popupVersion;
 });
 
 onMounted((): void => {
@@ -69,3 +76,11 @@ function openLink(url: string) {
   shell.openExternal(url);
 }
 </script>
+
+<style scoped>
+:deep(.v-card-title),
+:deep(.v-list-item-title) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+</style>

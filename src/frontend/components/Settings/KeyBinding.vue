@@ -1,15 +1,29 @@
 <template>
-  <v-card :color="isCurrent ? 'primary' : ''">
+  <v-card :variant="isCurrent ? 'tonal' : 'outlined'" :color="isCurrent ? 'primary' : undefined">
     <v-card-title primary-title>
       {{ titles[side] }}
     </v-card-title>
     <v-card-text>
-      <v-chip v-for="key of keys" :key="key" closable @click:close="remove(key)">
+      <v-btn
+        v-for="key of keys"
+        :key="key"
+        class="ma-1"
+        variant="outlined"
+        min-height="48"
+        :aria-label="`Удалить назначение ${key}`"
+        @click="remove(key)"
+      >
         {{ key }}
-      </v-chip>
+        <v-icon end aria-hidden="true">mdi-close</v-icon>
+      </v-btn>
+      <p v-if="!keys.length">Не назначено</p>
+      <p v-if="isCurrent" role="status" class="mt-3">Ожидание клавиши… Escape — отменить.</p>
     </v-card-text>
     <v-card-actions>
-      <v-btn color="success" @click="select()"> Назначить </v-btn>
+      <v-btn v-if="!isCurrent" class="assign-key" min-height="48" variant="tonal" @click="select()"
+        >Назначить</v-btn
+      >
+      <v-btn v-else min-height="48" @click="selected = undefined">Отменить</v-btn>
     </v-card-actions>
   </v-card>
 </template>
@@ -37,6 +51,7 @@ onMounted((): void => {
 });
 
 onUnmounted((): void => {
+  if (isCurrent.value) selected.value = undefined;
   document.removeEventListener("keydown", onKeyDown);
   document.removeEventListener("joystick-keydown", onJoystickKeyDown);
 });
@@ -60,6 +75,11 @@ const isCurrent = computed(() => {
 
 function onKeyDown(ev: KeyboardEvent) {
   if (isCurrent.value) {
+    ev.preventDefault();
+    if (ev.code === "Escape") {
+      selected.value = undefined;
+      return;
+    }
     store.dispatch("keymap_push", { side: props.side, code: ev.code });
   }
 }

@@ -41,6 +41,19 @@ describe("OutputLine", () => {
     expect(wrapper.emitted("value")?.[0]).to.deep.equal([[cards[0]]]);
   });
 
+  it("can restore a cleared message but never carries undo into another set", async () => {
+    const cards = [audioCard("one"), audioCard("two")];
+    const wrapper = mountOutputLine({ cards });
+    await wrapper.get('[aria-label="Очистить сообщение"]').trigger("click");
+    await wrapper.setProps({ cards: [] });
+    await wrapper.get('[aria-label="Вернуть сообщение"]').trigger("click");
+    expect(wrapper.emitted("value")?.[1]).to.deep.equal([cards]);
+    await wrapper.setProps({ cards });
+    await wrapper.get('[aria-label="Очистить сообщение"]').trigger("click");
+    await wrapper.setProps({ cards: [], file: "another.linka" });
+    expect(wrapper.find('[aria-label="Вернуть сообщение"]').exists()).to.equal(false);
+  });
+
   it("speaks concatenated text in without-space mode", async () => {
     const wrapper = mountOutputLine({
       cards: [
@@ -77,54 +90,6 @@ describe("OutputLine", () => {
       "button_enabled"
     );
   });
-
-  it("disables eye activation only on the gaze lock toggle button", () => {
-    const wrapper = mountOutputLine();
-
-    expect(
-      eyeButtons(wrapper).map((button) => button.attributes("data-eye-disabled"))
-    ).to.deep.equal(["1", undefined, undefined, undefined]);
-  });
-
-  it("ignores gaze enter on the gaze lock button while keeping mouse click active", async () => {
-    const store = createVuexStore(false);
-    const wrapper = mount(OutputLine, {
-      props: {
-        cards: [],
-        config: {
-          version: "3.0",
-          withoutSpace: false,
-          pages: []
-        },
-        file: "set.linka"
-      },
-      global: {
-        plugins: [store],
-        stubs: {
-          SetGridButton: true,
-          VIcon: true,
-          VLayout: {
-            template: "<div><slot /></div>"
-          }
-        }
-      }
-    });
-
-    const lockButton = wrapper.findAll("button.eyebtn")[0];
-    expect(lockButton.attributes("data-eye-disabled")).to.equal("1");
-    expect((lockButton.element as HTMLButtonElement).disabled).to.equal(false);
-
-    lockButton.element.dispatchEvent(new CustomEvent("eye-enter", { detail: { eye: true } }));
-    await wrapper.vm.$nextTick();
-
-    expect(lockButton.find(".overlay").exists()).to.equal(false);
-    expect(lockButton.find(".progress-bar").exists()).to.equal(false);
-
-    await lockButton.trigger("click");
-    expect((store.dispatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).to.equal(
-      "button_enabled"
-    );
-  });
 });
 
 function mountOutputLine({
@@ -150,13 +115,10 @@ function mountOutputLine({
       plugins: [store],
       stubs: {
         EyeButton: {
-          props: {
-            color: String,
-            eyeDisabled: Boolean,
-            lock: Boolean
-          },
+          emits: ["click"],
+          props: ["color", "lock"],
           template:
-            '<button class="eye-button-stub" :class="{ lock }" :data-eye-disabled="eyeDisabled ? \'1\' : null" @click="$emit(&quot;click&quot;)"><slot /></button>'
+            '<button class="eye-button-stub" @click="$emit(&quot;click&quot;)"><slot /></button>'
         },
         SetGridButton: {
           props: ["card"],
@@ -171,18 +133,11 @@ function mountOutputLine({
   });
 }
 
-function createVuexStore(enabled = true) {
+function createVuexStore() {
   const store = createStore({
     state: {
       button: {
-        borders: 1,
-        clickSound: false,
-        enabled,
-        eyeActivation: true,
-        eyeSelect: true,
-        joystickActivation: true,
-        keyboardActivation: true,
-        timeout: 1000
+        enabled: true
       },
       ui: {
         exitButton: false

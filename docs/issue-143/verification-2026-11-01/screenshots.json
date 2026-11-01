@@ -1,0 +1,106 @@
+[
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/communication.png",
+    "sha256": "65f3fe2289db26b8514f8848957966b0f4b890e84dff23c7fdd2ed8b2223e839"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/editor-compact.png",
+    "sha256": "cfab41293924e1a8fbbec03ec57eef0883077cafc264c62e15a014c8af9bbf69"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/editor.png",
+    "sha256": "4987755bb4f150800c1206daa67763a7c3278adea56d58cf7104d23128bf48e3"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/set-actions.png",
+    "sha256": "9cfa9fa2f3a2db8669589994bed45de8c97e64907bcb80b77fe059bc89f4cd5b"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/sets.png",
+    "sha256": "bfef40a4cb3ba62012149da395e0ee0bd3fffeb41a9de20228137800e6b30976"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/after/settings.png",
+    "sha256": "789bc618fa775653c29ee9391200817fd2b6561dae928b97d1c631c6a8c98df2"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/calibration.png",
+    "sha256": "72c0d3ce7d228b87c3524d4d12c63489b7879398c9546f7020b9eb673a1846d5"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/communication.png",
+    "sha256": "82a13554ddb7c719374dc734fb93311f231c1da71b0be51744a71f19c8f75c1b"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/editor.png",
+    "sha256": "b5a3e93c59cc1aa8c9bf2cf33230e431f568cfac420ab45bbe4d82b4fd383d23"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/gaze-dwell-central-circle.png",
+    "sha256": "fa5003c006266f40ee2baebfc04d34469400b05eded48f005050181d93dc63f7"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/gaze-dwell-full-card.png",
+    "sha256": "e66a8e68ecb56c75a32e009e1cd90f9091fce2d8169d54df127496bfb7b8bb01"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/match-found-pair.png",
+    "sha256": "941ff53f8aa3f8bf54a54a09265210ce65fd1e932ba988265af2486cd21b342b"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/match-selected.png",
+    "sha256": "21f24a70faf78bdc726ab010be334c2cdf9ea1a88b1219b1bc58e51e9edbe014"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/match-task.png",
+    "sha256": "f8a4596e0936bdd2d56d068f3c1559e0dd5f3f7345bf02dcf023f1df155b4f01"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/match-wrong-pair.png",
+    "sha256": "101d52ee9d74a1f2d48c555d696c5d8ccce2fb0768836fdbfbda18504567c94e"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/message-cleared.png",
+    "sha256": "2736ce0f4557314ebac17143d12f695cd8782343a3909529f39ece1f758b71a0"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/paused.png",
+    "sha256": "f0d50675d5108a583b2deb5dc25525f7a9ef600bcd6e1147d50aed1504088f03"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/quiz-4-of-4.png",
+    "sha256": "aeea653af0e915fa68a0a01173b1190679f6125070002835173534fe4916c82c"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/quiz-correct-answer.png",
+    "sha256": "af72eedc01312ec25528ac9cd7ae6bd35583a23422be57a7d8b184c420cac42f"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/quiz-finished.png",
+    "sha256": "c1e6302055ca3fe9980756cc6c4140c2d674405a0dedfcfdb8278f3a151c6faa"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/quiz-wrong-answer.png",
+    "sha256": "86e643c3fa00f8bbedd13f77918b607bd8512ebb1d9740ce0c00a99592395b33"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/quiz.png",
+    "sha256": "854d876e1bc0cbe4b17219862a857372aaeffc2388f03412d79c39b5574f232c"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/settings-compact.png",
+    "sha256": "d19372687630bca73c0d53463e434b8512999bbae4e3f13da909d5c1289e32e3"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/settings-trial.png",
+    "sha256": "9fb5861fee4f1194e7f57cbc43a79be4e2c0c1216d6341213f9e1d242718df78"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/settings.png",
+    "sha256": "912185f9b14968194eca99cc41d09140e0cfcb925240324709d17ac412fe5c8f"
+  },
+  {
+    "path": "/Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux/docs/issue-143/verification-2026-11-01/regression/task-paused.png",
+    "sha256": "12318103127b36a594aae49eb2df155ef128fb9059228fc1bdf7108cabe84995"
+  }
+]

@@ -1,39 +1,70 @@
 <template>
-  <v-dialog :model-value="true" persistent max-width="600px" min-width="360px">
-    <v-alert v-if="error" color="error">
+  <v-dialog :model-value="true" persistent max-width="600px" scrollable>
+    <v-alert v-if="error" color="error" role="alert">
       {{ error }}
     </v-alert>
     <v-card v-if="step == 0">
-      <v-card-title primary-title> LINKa. смотри. Регистрация. </v-card-title>
+      <v-card-title primary-title> Активация LINKa. смотри — шаг 1 из 2 </v-card-title>
       <v-card-text>
         Благодарим вас за установку LINKa смотри. Совсем скоро вы сможете использовать программу, но
         для начала введите ваш email. Вы можете использовать один email на разных компьютерах.
       </v-card-text>
       <v-card-text>
         <v-form @submit.prevent="getCode()">
-          <v-text-field v-model="email" label="E-mail" type="email" required />
+          <v-text-field
+            v-model="email"
+            label="Электронная почта"
+            type="email"
+            autocomplete="email"
+            :disabled="loading"
+            required
+          />
         </v-form>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn :disabled="loading" :loading="loading" @click="getCode()"> Получить код </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :disabled="loading || !isValidEmail(email)"
+          :loading="loading"
+          @click="getCode()"
+        >
+          Получить код
+        </v-btn>
       </v-card-actions>
     </v-card>
     <v-card v-if="step == 1">
-      <v-card-title primary-title> Проверка кода </v-card-title>
+      <v-card-title primary-title> Проверка почты — шаг 2 из 2 </v-card-title>
       <v-card-text>
-        Мы отправили шестизначный проверолчный код на вашу почту <b>{{ email }}</b
+        Мы отправили шестизначный проверочный код на вашу почту <b>{{ email }}</b
         >.
       </v-card-text>
       <v-card-text>
         <v-form @submit.prevent="checkCode">
-          <v-text-field v-model="code" label="Код" required :rules="[(s) => s.length === 6]" />
+          <v-text-field
+            v-model="code"
+            label="Код из письма"
+            hint="Введите 6 цифр из письма. Если письма нет, проверьте папку «Спам»."
+            persistent-hint
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            :disabled="loading"
+            required
+            :rules="[(s) => s.length === 6 || 'Код должен содержать 6 символов']"
+          />
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn @click="step = 0"> Указать другой e-mail </v-btn>
+        <v-btn :disabled="loading" @click="step = 0"> Изменить почту </v-btn>
         <v-spacer />
-        <v-btn v-if="code.length === 6" :disabled="loading" :loading="loading" @click="checkCode()">
+        <v-btn
+          color="primary"
+          variant="flat"
+          :disabled="loading || code.length !== 6"
+          :loading="loading"
+          @click="checkCode()"
+        >
           Проверить код
         </v-btn>
       </v-card-actions>
@@ -94,3 +125,14 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 </script>
+
+<style scoped>
+:deep(.v-card-title) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:deep(.v-card-actions) {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>

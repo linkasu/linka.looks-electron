@@ -175,10 +175,8 @@ for (const span of [1, 3]) {
       await expect(image).toHaveAttribute("style", unchangedImage!);
       await window.getByRole("button", { name: "Отмена", exact: true }).click();
 
-      await window.locator(".v-app-bar button").last().click();
-      await window
-        .getByRole("button", { name: /^Сохранить$/ })
-        .evaluate((el) => (el as HTMLButtonElement).click());
+      await window.getByRole("button", { name: "Сохранить", exact: true }).click();
+      await expect(window.getByText("Набор сохранён", { exact: true })).toBeVisible();
       const readCard = () => {
         const zip = new AdmZip(join(context.homeDir, setName));
         return JSON.parse(zip.readAsText("config.json")).pages[0].cards[0];
