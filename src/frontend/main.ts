@@ -6,6 +6,7 @@ import store from "./store";
 import vuetify from "./plugins/vuetify";
 import platformPlugin from "./plugins/platform";
 import "./store/eStore";
+import { watchGazeGeometry } from "./utils/watchGazeGeometry";
 const pageWatcher = new PageWatcher({
   getSettings: () => ({
     timeout: store.state.button.timeout,
@@ -27,4 +28,6 @@ watch(
   }
 );
 
-createApp(App).use(router).use(store).use(platformPlugin).use(vuetify).mount("#app");
+const app = createApp(App).use(router).use(store).use(platformPlugin).use(vuetify);
+app.onUnmount(watchGazeGeometry(pageWatcher));
+app.mount("#app");

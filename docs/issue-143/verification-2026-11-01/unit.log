@@ -1,0 +1,22 @@
+
+> linka.looks@3.2.14 test:unit
+> vitest run && vitest run --config vitest.node.config.ts
+
+
+ RUN  v4.1.5 /Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux
+
+
+ Test Files  28 passed (28)
+      Tests  146 passed | 1 skipped (147)
+   Start at  15:12:54
+   Duration  3.43s (transform 3.92s, setup 500ms, import 7.43s, tests 1.55s, environment 15.99s)
+
+
+ RUN  v4.1.5 /Volumes/data/linka/.opencode-worktrees/looks-143-calm-ux
+
+
+ Test Files  5 passed (5)
+      Tests  25 passed (25)
+   Start at  15:12:58
+   Duration  986ms (transform 237ms, setup 88ms, import 246ms, tests 843ms, environment 0ms)
+

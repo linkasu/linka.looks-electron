@@ -1,5 +1,5 @@
 <template>
-  <div fluid class="editor">
+  <div ref="editorRef" fluid class="editor">
     <new-file-dialog :show="newFileDialogShow" :disabled="ui_disabled" @text="newFileName" />
     <v-dialog v-model="deleteConfirmation" max-width="440" :persistent="ui_disabled">
       <v-card>
@@ -127,7 +127,7 @@
       </v-card>
       <v-card v-if="selected" class="editor-side-panel editor-side-panel--selected">
         <v-card-title class="inspector-title">
-          Редактирование
+          Карточка {{ selectedIndex + 1 }}
           <v-spacer />
           <v-btn
             v-if="selected.cardType !== CardTypes.NewCard"
@@ -136,6 +136,7 @@
             icon
             depressed
             color="primary"
+            variant="text"
             class="copy"
             :disabled="ui_disabled"
             @click="copySelected"
@@ -149,6 +150,7 @@
             icon
             depressed
             color="error"
+            variant="text"
             class="delete"
             :disabled="ui_disabled"
             @click="requestDelete('card')"
@@ -186,7 +188,7 @@
             <section v-if="selected.cardType === CardTypes.AudioCard">
               <v-row>
                 <v-card width="100%" elevation="0">
-                  <v-card-title primary-title> Работа с изображением </v-card-title>
+                  <v-card-title primary-title> Изображение </v-card-title>
                   <v-card-text>
                     <v-container>
                       <v-row>
@@ -195,7 +197,12 @@
                         </v-btn>
                       </v-row>
                       <v-row>
-                        <create-from-text-dialog block :file="filename" @image="onImageSelected" />
+                        <create-from-text-dialog
+                          block
+                          :file="filename"
+                          :get-image-size="getSelectedImageSize"
+                          @image="onImageSelected"
+                        />
                       </v-row>
                       <v-row>
                         <picture-bank-dialog
@@ -211,7 +218,7 @@
               </v-row>
               <v-row>
                 <v-card width="100%" elevation="0">
-                  <v-card-title primary-title> Работа с озвучкой </v-card-title>
+                  <v-card-title primary-title> Озвучка </v-card-title>
                   <v-card-subtitle>
                     {{
                       selected.audioText ??
@@ -431,6 +438,15 @@ import {
 
 const store = useStore();
 const route = useRoute();
+const editorRef = ref<HTMLElement | null>(null);
+
+function getSelectedImageSize() {
+  const area = editorRef.value?.querySelector(".selected .cardContainer");
+  const bounds = area?.getBoundingClientRect();
+  if (bounds && bounds.width > 0 && bounds.height > 0) {
+    return { width: bounds.width, height: bounds.height };
+  }
+}
 
 const newFileDialogShow = ref(false);
 const selectedCardId = ref<string | null>(null);
@@ -1050,6 +1066,30 @@ function clearMatchLink() {
 .editor-side-panel :deep(.v-btn) {
   min-height: 44px;
   height: auto;
+  box-shadow: none;
+}
+
+.editor-side-panel :deep(.v-btn--variant-elevated) {
+  border: 1px solid var(--linka-border);
+}
+
+.editor-side-panel :deep(.v-card-subtitle) {
+  opacity: 1;
+  color: var(--linka-muted);
+  white-space: normal;
+}
+
+.editor-side-panel :deep(.v-container) {
+  padding: 8px 12px;
+}
+
+.editor-side-panel :deep(.v-container > .v-row) {
+  margin-block: 0;
+  gap: 8px;
+}
+
+.editor-side-panel :deep(.v-container > .v-row > .v-col) {
+  padding: 4px 0;
 }
 
 @media (max-width: 700px) {

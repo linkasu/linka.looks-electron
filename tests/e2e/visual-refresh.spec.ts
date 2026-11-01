@@ -12,7 +12,7 @@ import {
   writeLinkaSet
 } from "./helpers";
 
-const screenshotDir = resolve("docs/visual-refresh");
+const screenshotDir = resolve(process.env.UX_SCREENSHOT_DIR || "docs/visual-refresh");
 
 type GazeTargets = {
   id: string;

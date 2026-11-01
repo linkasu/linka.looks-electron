@@ -1,6 +1,15 @@
 import chai from "chai";
 import AdmZip from "adm-zip";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { CardType, CURRENT_SET_VERSION, type ConfigFile } from "@/common/interfaces/ConfigFile";
@@ -17,6 +26,61 @@ vi.mock("original-fs", async () => {
 });
 
 describe("CardsStorage", () => {
+  it("rejects a false media size at read/import/save/merge and preserves source and destination", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "malformed.linka");
+    const target = join(home, "target.linka");
+    writeLinka(source, baseConfig(), { "asset.txt": Buffer.alloc(4096, 65) });
+    writeLinka(target, baseConfig());
+    const data = readFileSync(source);
+    const signature = Buffer.from("PK\x01\x02", "binary");
+    for (
+      let offset = data.indexOf(signature);
+      offset >= 0;
+      offset = data.indexOf(signature, offset + 1)
+    ) {
+      if (data.subarray(offset + 46, offset + 55).toString() === "asset.txt") {
+        data.writeUInt32LE(0, offset + 24);
+        data.writeUInt32LE(0, data.readUInt32LE(offset + 42) + 22);
+      }
+    }
+    writeFileSync(source, data);
+    const before = readFileSync(target);
+    expect(() => storage.getConfigFile(source)).to.throw();
+    expect(() => storage.getImage(source, "asset.txt")).to.throw();
+    await expectRejected(storage.importExternalSet(source));
+    await expectRejected(storage.saveSet(source, target, baseConfig()));
+    await expectRejected(storage.mergeSets(target, source));
+    expect(readFileSync(target)).to.deep.equal(before);
+    expect(readFileSync(source)).to.deep.equal(data);
+  });
+
+  it("rejects extraction through an existing symlink entirely inside a temporary fixture", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "unpacked");
+    const outside = join(home, "outside");
+    mkdirSync(target);
+    mkdirSync(outside);
+    symlinkSync(outside, join(target, "nested"), "junction");
+    writeLinka(source, baseConfig(), { "nested/asset.txt": Buffer.from("fixture") });
+    await expectRejected(storage["unpack"](source, target));
+    expect(existsSync(join(outside, "asset.txt"))).to.equal(false);
+  });
+
+  it("keeps referenced nested image bytes in saved archives", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "target.linka");
+    const config = baseConfig();
+    config.pages![0].cards[0].imagePath = "nested/image.png";
+    writeLinka(source, config, { "nested/image.png": Buffer.from("nested image") });
+    await storage.saveSet(source, target, config);
+    expect(new AdmZip(target).readAsText("nested/image.png")).to.equal("nested image");
+  });
   afterEach(() => {
     delete process.env.LINKA_HOME_DIR;
     for (const file of tmpFiles.splice(0)) {
@@ -81,8 +145,19 @@ describe("CardsStorage", () => {
     roots.push(root);
     const external = join(root, "external.linka");
     writeLinka(external, baseConfig(), {
-      "../unsafe.txt": Buffer.from("unsafe")
+      "xx/unsafe.txt": Buffer.from("unsafe")
     });
+    // adm-zip 0.6 sanitizes addFile names; patch both ZIP headers to retain the negative fixture.
+    const bytes = readFileSync(external);
+    const safeName = Buffer.from("xx/unsafe.txt");
+    for (
+      let offset = bytes.indexOf(safeName);
+      offset >= 0;
+      offset = bytes.indexOf(safeName, offset + 1)
+    ) {
+      Buffer.from("../unsafe.txt").copy(bytes, offset);
+    }
+    writeFileSync(external, bytes);
 
     try {
       await storage.importExternalSet(external);
@@ -273,6 +348,16 @@ async function createStorage(homeDir: string) {
   vi.resetModules();
   const { CardsStorage } = await import("@/electron/services/card-storage-service");
   return new CardsStorage();
+}
+
+async function expectRejected(promise: Promise<unknown>) {
+  let rejected = false;
+  try {
+    await promise;
+  } catch {
+    rejected = true;
+  }
+  expect(rejected).to.equal(true);
 }
 
 function createHomeDir(): string {

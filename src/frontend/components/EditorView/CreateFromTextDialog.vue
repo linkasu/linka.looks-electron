@@ -8,30 +8,50 @@
     :disabled="ui_disabled"
     @confirm="create"
   />
+  <v-snackbar v-model="showError" :timeout="6000">
+    {{ errorMessage }}
+    <template #actions>
+      <v-btn class="retry" :disabled="ui_disabled" @click="create(lastText)">Повторить</v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import type { TextImageSize } from "@/common/textImageLayout";
 import InputDialog from "@/frontend/components/InputDialog.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { useStore } from "vuex";
 
 const store = useStore();
 
-const props = defineProps<{ file: string }>();
+const props = defineProps<{ file: string; getImageSize?: () => TextImageSize | undefined }>();
 const emit = defineEmits<{
   (e: "image", value: string): void;
 }>();
 
 const ui_disabled = computed(() => store.state.ui.disabled);
+const showError = ref(false);
+const errorMessage = ref("");
+const lastText = ref("");
 
 async function create(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed || ui_disabled.value) return;
+  lastText.value = trimmed;
+  showError.value = false;
   store.dispatch("disable_ui");
   try {
-    const value = await storageService.createImageFromText(props.file, text);
+    const value = await storageService.createImageFromText(
+      props.file,
+      trimmed,
+      props.getImageSize?.()
+    );
     if (value) emit("image", value);
   } catch (error) {
     console.error(error);
+    errorMessage.value = error instanceof Error ? error.message : "Не удалось создать картинку";
+    showError.value = true;
   } finally {
     store.dispatch("enable_ui");
   }

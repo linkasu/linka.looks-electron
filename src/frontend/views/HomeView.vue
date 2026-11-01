@@ -13,7 +13,12 @@
       <p>Создайте набор кнопкой «+» или выберите другую папку.</p>
     </div>
     <div class="folder-grid">
-      <explorer-grid-button v-if="!isHome" :back="true" @click="back()" />
+      <explorer-grid-button
+        v-if="!isHome"
+        :back="true"
+        :disabled="assistantActionOpen"
+        @click="back()"
+      />
 
       <div
         v-for="file in sorted"
@@ -21,51 +26,65 @@
         class="folder-item"
         @contextmenu.prevent="openContextMenu($event, file)"
       >
-        <explorer-grid-button :file="file" @click="select(file)" />
+        <explorer-grid-button :file="file" :disabled="assistantActionOpen" @click="select(file)" />
         <v-btn
           class="item-tools"
-          size="small"
+          variant="text"
           icon="mdi-dots-vertical"
+          aria-haspopup="menu"
+          :aria-expanded="contextMenuOpen && contextItem?.file === file.file"
           :title="'Действия помощника: ' + toDisplayName(file)"
           :aria-label="'Действия помощника: ' + toDisplayName(file)"
           @click.stop="openContextMenu($event, file)"
+          @keydown.stop
         />
       </div>
     </div>
 
-    <div
-      v-if="contextMenuOpen"
-      class="context-menu"
-      :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
-      @click.stop
-      @contextmenu.prevent
+    <v-menu
+      v-model="contextMenuOpen"
+      :target="[contextMenuX, contextMenuY]"
+      @after-enter="contextMenuList?.focus('first')"
+      @after-leave="restoreContextFocus"
     >
       <v-card>
         <v-card-subtitle class="pt-3">{{ contextTitle }}</v-card-subtitle>
-        <v-list density="compact">
-          <v-list-item @click="openSelected">
+        <v-list
+          ref="contextMenuList"
+          role="menu"
+          aria-label="Действия с набором или папкой"
+          @keydown.stop
+          @keydown.esc="closeContextMenu"
+          @keydown.tab="closeContextMenu"
+        >
+          <v-list-item role="menuitem" @click="openSelected">
             <v-list-item-title>Открыть</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="duplicateSelected">
+          <v-list-item v-if="!contextItem?.directory" role="menuitem" @click="editSelected">
+            <v-list-item-title>Редактировать набор</v-list-item-title>
+          </v-list-item>
+          <v-divider />
+          <v-list-item role="menuitem" @click="duplicateSelected">
             <v-list-item-title>Дублировать</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="startRename">
+          <v-list-item role="menuitem" @click="startRename">
             <v-list-item-title>Переименовать</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="confirmDelete">
-            <v-list-item-title class="danger">Удалить</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="showInFolder">
+          <v-list-item role="menuitem" @click="showInFolder">
             <v-list-item-title>Показать в папке</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="!contextItem?.directory" @click="startMerge">
+          <v-list-item v-if="!contextItem?.directory" role="menuitem" @click="startMerge">
             <v-list-item-title>Объединить...</v-list-item-title>
+          </v-list-item>
+          <v-divider />
+          <v-list-item role="menuitem" @click="confirmDelete">
+            <v-list-item-title class="danger">Удалить</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-card>
-    </div>
+    </v-menu>
 
-    <v-dialog v-model="mergeDialog" max-width="560">
+    <v-dialog v-model="mergeDialog" max-width="560" @after-leave="restoreContextFocus">
       <v-card>
         <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
@@ -98,7 +117,7 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="renameDialog" max-width="480">
+    <v-dialog v-model="renameDialog" max-width="480" @after-leave="restoreContextFocus">
       <v-card>
         <v-card-title primary-title> Переименовать </v-card-title>
         <v-card-text>
@@ -113,7 +132,7 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="deleteDialog" max-width="480">
+    <v-dialog v-model="deleteDialog" max-width="480" @after-leave="restoreContextFocus">
       <v-card>
         <v-card-title primary-title> Удалить {{ contextTitle }}? </v-card-title>
         <v-card-text>
@@ -162,6 +181,8 @@ const contextMenuOpen = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextItem: Ref<DirectoryFile | null> = ref(null);
+let contextTrigger: HTMLElement | null = null;
+const contextMenuList = ref<{ focus: (location: "first") => void } | null>(null);
 const renameDialog = ref(false);
 const renameValue = ref("");
 const deleteDialog = ref(false);
@@ -170,6 +191,9 @@ const errorText = ref("");
 const mergeDialog = ref(false);
 const mergeTarget = ref("");
 const mergeName = ref("");
+const assistantActionOpen = computed(
+  () => contextMenuOpen.value || renameDialog.value || deleteDialog.value || mergeDialog.value
+);
 
 const sorted: ComputedRef<Directory> = computed(() => {
   return [...files.value].sort((a: DirectoryFile, b: DirectoryFile) => {
@@ -243,14 +267,19 @@ function buildMergeName(basePath: string, otherPath: string) {
 
 function openContextMenu(event: MouseEvent, item: DirectoryFile) {
   contextItem.value = item;
-  const menuWidth = 220;
-  const menuHeight = 360;
-  const x = Math.min(event.clientX, window.innerWidth - menuWidth);
-  const y = Math.min(event.clientY, window.innerHeight - menuHeight);
-  contextMenuX.value = Math.max(8, x);
-  contextMenuY.value = Math.max(8, y);
+  const element = event.currentTarget as HTMLElement;
+  contextTrigger = element.matches("button") ? element : element.querySelector(".item-tools");
+  const bounds = element.getBoundingClientRect();
+  const keyboardClick = event.type === "click" && event.detail === 0;
+  contextMenuX.value = keyboardClick ? bounds.left : event.clientX;
+  contextMenuY.value = keyboardClick ? bounds.bottom : event.clientY;
   contextMenuOpen.value = true;
-  window.addEventListener("click", closeContextMenu, { once: true });
+}
+
+function restoreContextFocus() {
+  if (!renameDialog.value && !deleteDialog.value && !mergeDialog.value) {
+    contextTrigger?.focus();
+  }
 }
 
 function closeContextMenu() {
@@ -261,6 +290,12 @@ function openSelected() {
   if (!contextItem.value) return;
   closeContextMenu();
   select(contextItem.value);
+}
+
+function editSelected() {
+  if (!contextItem.value || contextItem.value.directory) return;
+  closeContextMenu();
+  router.push("/edit/" + mroot.value + "§" + pathModule.basename(contextItem.value.file));
 }
 
 async function duplicateSelected() {
@@ -431,13 +466,6 @@ async function applyMerge() {
   position: absolute;
   top: 4px;
   right: 4px;
-}
-.context-menu {
-  position: fixed;
-  z-index: 2000;
-  max-height: calc(100vh - 16px);
-  max-width: calc(100vw - 16px);
-  overflow: auto;
 }
 .danger {
   color: rgb(var(--v-theme-error));

@@ -167,7 +167,7 @@ async function expectEditorAudioControlsReachable(
   await window.setViewportSize(viewport);
   await window.goto(`${devServerUrl}/#/edit/§${setName}`);
   await window.getByRole("button", { name: "Карточка", exact: true }).click();
-  await expect(window.getByText("Редактирование")).toBeVisible();
+  await expect(window.locator(".inspector-title")).toContainText("Карточка 1");
 
   const panel = window.locator(".editor-side-panel");
   await panel.evaluate((el) => {

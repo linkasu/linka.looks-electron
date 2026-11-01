@@ -1,13 +1,17 @@
 <template>
-  <v-app-bar>
+  <v-app-bar class="home-appbar">
     <v-app-bar-title>
       {{ title || "LINKa. смотри" }}
     </v-app-bar-title>
     <v-spacer />
     <v-dialog v-model="toolsDialog" max-width="520">
       <template #activator="{ props }">
-        <v-btn v-bind="props" prepend-icon="mdi-tools" aria-label="Инструменты помощника"
-          >Помощнику</v-btn
+        <v-btn
+          v-bind="props"
+          class="assistant-tools"
+          prepend-icon="mdi-tools"
+          aria-label="Инструменты помощника"
+          ><span class="assistant-label">Помощнику</span></v-btn
         >
       </template>
       <template #default="{ isActive }">
@@ -55,8 +59,16 @@
     >
       <v-icon>mdi-eye</v-icon>
     </v-btn>
-    <v-btn flat icon :to="newHref" title="Создать набор" aria-label="Создать набор">
-      <v-icon>mdi-plus</v-icon>
+    <v-btn
+      class="create-set"
+      color="primary"
+      variant="tonal"
+      prepend-icon="mdi-plus"
+      :to="newHref"
+      aria-label="Создать набор"
+      title="Создать набор"
+    >
+      <span class="create-label">Создать набор</span>
     </v-btn>
     <v-btn flat icon to="/settings" title="Настройки приложения" aria-label="Настройки приложения">
       <v-icon>mdi-cog</v-icon>
@@ -198,5 +210,19 @@ onBeforeUnmount(() => {
 .assistant-actions {
   display: grid;
   gap: 12px;
+}
+@media (max-width: 600px) {
+  .assistant-label,
+  .create-label {
+    display: none;
+  }
+  .assistant-tools,
+  .create-set {
+    min-width: 44px;
+    padding-inline: 12px;
+  }
+  .home-appbar :deep(.v-toolbar-title) {
+    min-width: 0;
+  }
 }
 </style>

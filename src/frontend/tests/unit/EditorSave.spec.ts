@@ -1,5 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createStore } from "vuex";
+import { ref } from "vue";
 import EditorAppbar from "@/frontend/views/EditorView.appbar.vue";
 import SaveButton from "@/frontend/components/EditorView/SaveButton.vue";
 import ExitButton from "@/frontend/components/EditorView/ExitButton.vue";
@@ -36,14 +37,16 @@ const stubs = {
   SetSettings: true
 };
 
-function mountAppbar(save = vi.fn().mockResolvedValue(undefined)) {
+function mountAppbar(save = vi.fn().mockResolvedValue(undefined), dirty = false) {
   const saveAs = vi.fn().mockResolvedValue("folder§copy.linka");
+  const hasChanges = ref(dirty);
   const store = createStore({
     state: { ui: { disabled: false }, editor: { current: "folder§set.linka", temp: "temp.linka" } },
-    actions: { editor_save: save, editor_save_as: saveAs }
+    actions: { editor_save: save, editor_save_as: saveAs },
+    getters: { editor_hasChanges: () => hasChanges.value }
   });
   const wrapper = mount(EditorAppbar, { global: { plugins: [store], stubs } });
-  return { wrapper, store, save, saveAs };
+  return { wrapper, store, save, saveAs, hasChanges };
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -138,5 +141,55 @@ describe("Editor save commands", () => {
       .find((button) => button.text() === "Выйти без сохранения")!
       .trigger("click");
     expect(wrapper.emitted("exit")).toHaveLength(1);
+  });
+
+  for (const command of ["saveAndExit", "saveAs"] as const) {
+    it(`${command} keeps newer edits in the editor with a visible notice`, async () => {
+      let finish!: () => void;
+      const { wrapper, store, save, saveAs, hasChanges } = mountAppbar();
+      const pending = new Promise<string>((resolve) => {
+        finish = () => resolve("folder§copy.linka");
+      });
+      (command === "saveAs" ? saveAs : save).mockReturnValueOnce(pending);
+      if (command === "saveAs") wrapper.getComponent(SaveButton).vm.$emit(command, "copy.linka");
+      else wrapper.getComponent(SaveButton).vm.$emit(command);
+      await flushPromises();
+      expect(wrapper.getComponent(SaveButton).props("disabled")).toBe(true);
+      hasChanges.value = true;
+      finish();
+      await flushPromises();
+      expect(router.back).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(
+        "Есть новые несохранённые изменения. Сохраните их перед выходом."
+      );
+      expect(wrapper.getComponent(ExitButton).props("confirm")).toBe(true);
+      expect(wrapper.getComponent(SaveButton).props("disabled")).toBe(false);
+      expect(store.state.editor).toEqual({ current: "folder§set.linka", temp: "temp.linka" });
+    });
+  }
+
+  it("exits a clean editor immediately without opening confirmation", async () => {
+    const wrapper = mount(ExitButton, { props: { confirm: false }, global: { stubs } });
+    await wrapper.get("[aria-label='Выйти из редактора']").trigger("click");
+    expect(wrapper.emitted("exit")).toHaveLength(1);
+    expect(wrapper.find("aside").exists()).toBe(false);
+  });
+
+  it("passes clean and dirty state to exit confirmation", () => {
+    for (const dirty of [false, true]) {
+      const { wrapper } = mountAppbar(undefined, dirty);
+      expect(wrapper.getComponent(ExitButton).props("confirm")).toBe(dirty);
+    }
+  });
+
+  it("does not exit a disabled clean editor", async () => {
+    const wrapper = mount(ExitButton, {
+      props: { confirm: false, disabled: true },
+      global: { stubs }
+    });
+    await wrapper.get("[aria-label='Выйти из редактора']").trigger("click");
+    expect(wrapper.emitted("exit")).toBeUndefined();
+    expect(wrapper.find("aside").exists()).toBe(false);
   });
 });

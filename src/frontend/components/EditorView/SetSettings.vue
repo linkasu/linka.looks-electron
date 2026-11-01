@@ -3,11 +3,11 @@
     <template #activator="{ props }">
       <v-btn
         variant="text"
-        icon
+        prepend-icon="mdi-cog-outline"
         aria-label="Открыть настройки набора"
         title="Настройки набора"
         v-bind="props"
-        ><v-icon>mdi-cog-outline</v-icon></v-btn
+        ><span class="settings-label">Настройки набора</span></v-btn
       >
     </template>
     <v-card>
@@ -254,5 +254,10 @@ const editor_quizAutoNext = computed({
 .set-settings .settings-hint {
   color: var(--linka-muted);
   margin-bottom: 16px;
+}
+@media (max-width: 600px) {
+  .settings-label {
+    display: none;
+  }
 }
 </style>

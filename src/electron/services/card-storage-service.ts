@@ -13,6 +13,7 @@ import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp } from "fs/prom
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 import AdmZip from "adm-zip";
+import { openLinkaZip } from "@/common/utils/linkaZip";
 import {
   CardType,
   ConfigFile,
@@ -28,6 +29,7 @@ import { tts } from "@/frontend/utils/TTSServer";
 import { get } from "https";
 import delay from "delay";
 import { createImageFromText } from "@/electron/utils/ImageFromText";
+import type { TextImageSize } from "@/common/textImageLayout";
 import { HOME_DIR } from "../../common/constants";
 import { renameSync } from "original-fs";
 import axios from "axios";
@@ -37,8 +39,6 @@ import { assertValidStorageName } from "@/common/utils/storageName";
 const DEFAULT_SETS = resolveExtraResource("defaultSets");
 const DEFAULT_SEED_ITEMS = ["Клавиатура.linka", "Крупная клавиатура", "цифры знаки.linka"];
 const DEFAULT_SETS_URL = "https://linka.su/dist/linka.looks/sasha.sets.zip";
-const MAX_UNPACKED_SIZE = 500 * 1024 * 1024;
-const MAX_UNPACKED_ENTRIES = 2000;
 
 let win: BrowserWindow | null = null;
 
@@ -114,7 +114,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   getConfigFile(path: string) {
-    const zip = new AdmZip(this.checkPath(path));
+    const zip = openLinkaZip(this.checkPath(path));
     const raw = zip.readAsText("config.json");
     try {
       return normalizeConfigFile(JSON.parse(raw) as ConfigFile);
@@ -152,7 +152,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   private getBuffer(path: string, entry: string) {
-    const zip = new AdmZip(this.checkPath(path));
+    const zip = openLinkaZip(this.checkPath(path));
     return zip.readFile(entry);
   }
 
@@ -231,8 +231,12 @@ export class CardsStorage extends ICloudStorage {
     return this.addBuffer(path, buff, "mp3");
   }
 
-  async createImageFromText(path: string, text: string): Promise<string | null> {
-    const buffer = await createImageFromText(text);
+  async createImageFromText(
+    path: string,
+    text: string,
+    size?: TextImageSize
+  ): Promise<string | null> {
+    const buffer = await createImageFromText(text, size);
 
     return this.addBuffer(path, buffer, "png");
   }
@@ -298,6 +302,7 @@ export class CardsStorage extends ICloudStorage {
     const staged = join(dirname(location), `.${basename(location)}.${uuid()}.tmp`);
     try {
       await zip.writeZipPromise(staged);
+      openLinkaZip(staged);
       await rename(staged, location);
     } finally {
       await rm(staged, { force: true });
@@ -341,8 +346,8 @@ export class CardsStorage extends ICloudStorage {
     }
 
     const tmp = await this.copyToTemp(base);
-    const zipBase = new AdmZip(tmp);
-    const zipOther = new AdmZip(other);
+    const zipBase = openLinkaZip(tmp);
+    const zipOther = openLinkaZip(other);
     const baseEntries = zipBase.getEntries();
     baseEntries.forEach((entry) => entry.getData());
     const existingEntries = new Set(baseEntries.map((e) => e.entryName));
@@ -379,6 +384,7 @@ export class CardsStorage extends ICloudStorage {
 
     const mergedTmp = `${tmp}.merged`;
     zipBase.writeZip(mergedTmp);
+    openLinkaZip(mergedTmp);
     await rename(mergedTmp, tmp);
 
     const mergedConfig: ConfigFile = {
@@ -401,7 +407,7 @@ export class CardsStorage extends ICloudStorage {
         }
       }
     }
-    const source = new AdmZip(path);
+    const source = openLinkaZip(path);
     const zip = new AdmZip();
     for (const entry of source.getEntries()) {
       if (paths.includes(entry.entryName)) zip.addFile(entry.entryName, entry.getData());
@@ -475,36 +481,28 @@ export class CardsStorage extends ICloudStorage {
   }
 
   private unpack(file: string, target: string) {
-    return new Promise((resolve, reject) => {
-      const zip = new AdmZip(file);
-      this.validateZipEntries(zip);
-      zip.extractAllToAsync(target, true, undefined, (error) => {
+    return new Promise<void>((done, reject) => {
+      const zip = openLinkaZip(file);
+      for (const entry of zip.getEntries()) {
+        let current = resolve(target);
+        for (const part of entry.entryName.split("/")) {
+          if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+            throw new Error("Путь распаковки содержит ссылку");
+          }
+          current = join(current, part);
+        }
+        if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+          throw new Error("Путь распаковки содержит ссылку");
+        }
+      }
+      zip.extractAllToAsync(target, true, false, (error) => {
         if (error) {
           reject(error);
           return;
         }
-        resolve(void 0);
+        done();
       });
     });
-  }
-
-  private validateZipEntries(zip: AdmZip) {
-    const entries = zip.getEntries();
-    if (entries.length > MAX_UNPACKED_ENTRIES) {
-      throw new Error("Архив содержит слишком много файлов");
-    }
-    let totalSize = 0;
-    for (const entry of entries) {
-      const name = entry.entryName.replace(/\\/g, "/");
-      const normalized = normalize(name);
-      if (normalized.startsWith("..") || isAbsolute(normalized)) {
-        throw new Error("Архив содержит небезопасный путь");
-      }
-      totalSize += entry.header.size;
-      if (totalSize > MAX_UNPACKED_SIZE) {
-        throw new Error("Архив слишком большой");
-      }
-    }
   }
 
   private downloadToStream(url: string, stream: WriteStream) {
@@ -579,7 +577,7 @@ export class CardsStorage extends ICloudStorage {
       throw new Error("Можно импортировать только .linka файл");
     }
     assertValidStorageName(basename(source));
-    this.validateZipEntries(new AdmZip(source));
+    openLinkaZip(source);
     const home = resolve(HOME_DIR);
     if (source === home || source.startsWith(home + sep)) {
       return source;

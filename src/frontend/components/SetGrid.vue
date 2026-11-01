@@ -21,7 +21,7 @@
         v-if="showPagination"
         color="accent"
         lock
-        :disabled="interactionBlocked || !store.state.button.enabled"
+        :disabled="interactionBlocked"
         aria-label="Предыдущая страница"
         :eye-disabled="isPageTurnEyeDisabled"
         @click="changePage(-1)"
@@ -70,7 +70,7 @@
       v-if="showPagination"
       color="accent"
       lock
-      :disabled="interactionBlocked || !store.state.button.enabled"
+      :disabled="interactionBlocked"
       aria-label="Следующая страница"
       :eye-disabled="isPageTurnEyeDisabled"
       @click="changePage(1)"
@@ -160,12 +160,18 @@ const matchGridColumns = computed(() =>
 );
 
 const showPagination = computed(() => {
-  return currentPage.value.mode !== "quiz" && totalPages.value > 1;
+  return (
+    store.state.button.pageTurnMode !== "hidden" &&
+    currentPage.value.mode !== "quiz" &&
+    totalPages.value > 1
+  );
 });
 
 const matchedCardIds = computed(() => props.matchedCardIds ?? []);
 const selectedCardId = computed(() => props.selectedCardId ?? null);
-const isPageTurnEyeDisabled = computed(() => store.state.button.pageTurnMode === "mouseOnly");
+const isPageTurnEyeDisabled = computed(
+  () => !store.state.button.enabled || store.state.button.pageTurnMode === "mouseOnly"
+);
 
 watch(() => props.page, onPageChanged);
 watch(currentPage, () => {

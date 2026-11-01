@@ -38,6 +38,7 @@ describe("HomeView folder states", () => {
           VBtn: { template: "<button><slot /></button>" },
           VDialog: { props: ["modelValue"], template: "<div v-if='modelValue'><slot /></div>" },
           VSnackbar: { props: ["modelValue"], template: "<div v-if='modelValue'><slot /></div>" },
+          VMenu: { props: ["modelValue"], template: "<div v-if='modelValue'><slot /></div>" },
           ExplorerGridButton: true
         }
       }

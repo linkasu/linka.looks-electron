@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 import {
   Card,
   CardType,
+  ConfigFile,
   cloneCard,
   clonePage,
   createPlaceholderCard,
@@ -595,4 +596,35 @@ function isMergeTargetAvailable(
 function clampPageIndex(page: number, length: number): number {
   if (!length) return 0;
   return Math.max(0, Math.min(length - 1, page ?? 0));
+}
+
+export function serializeEditorConfig(config: ConfigFile): string {
+  return JSON.stringify({
+    directSet: !!config.directSet,
+    withoutSpace: !!config.withoutSpace,
+    quizAutoNext: config.quizAutoNext ?? true,
+    quizReadQuestion: config.quizReadQuestion ?? false,
+    description: config.description ?? "",
+    pages: (config.pages ?? []).map((page) => ({
+      mode: page.mode,
+      columns: page.columns,
+      rows: page.rows,
+      topColumns: page.topColumns ?? null,
+      bottomColumns: page.bottomColumns ?? null,
+      question: page.question ?? "",
+      cards: (page.cards ?? []).map((card) => ({
+        cardType: card.cardType,
+        width: card.width ?? 1,
+        height: card.height ?? 1,
+        imagePath: card.imagePath ?? "",
+        title: card.title ?? "",
+        audioPath: card.audioPath ?? "",
+        audioText: card.audioText ?? "",
+        audioVoice: card.audioVoice ?? "",
+        answer: !!card.answer,
+        matchId: card.matchId ?? "",
+        matchLane: card.matchLane ?? ""
+      }))
+    }))
+  });
 }

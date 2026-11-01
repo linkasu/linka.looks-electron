@@ -77,6 +77,9 @@ describe("store", () => {
     store.commit("button_pageTurnMode", "mouseOnly");
 
     expect(store.state.button.pageTurnMode).to.equal("mouseOnly");
+    store.commit("button_pageTurnMode", "hidden");
+    expect(store.state.button.pageTurnMode).to.equal("hidden");
+    expect(eStore.get("button_pageTurnMode")).to.equal("hidden");
   });
 
   it("toggles output line and gaze lock through actions", async () => {
@@ -247,6 +250,72 @@ describe("store", () => {
     ).to.equal(true);
   });
 
+  it("tracks content changes but ignores page navigation and regenerated placeholder ids", async () => {
+    storage.getConfigFile.mockResolvedValue({
+      version: CURRENT_SET_VERSION,
+      withoutSpace: false,
+      pages: [
+        normalizePage({
+          columns: 2,
+          rows: 1,
+          cards: [{ id: "card-1", cardType: CardType.AudioCard, title: "one" }]
+        }),
+        normalizePage({ columns: 1, rows: 1, cards: [] })
+      ]
+    });
+    await store.dispatch("editor_load_set");
+    expect(store.getters.editor_hasChanges).to.equal(false);
+    store.commit("editor_page", 1);
+    store.state.editor.pages[0].cards[1].id = "renewed-placeholder";
+    expect(store.getters.editor_hasChanges).to.equal(false);
+    store.state.editor.pages[0].cards[0].title = "edited";
+    expect(store.getters.editor_hasChanges).to.equal(true);
+    store.state.editor.pages[0].cards[0].title = "one";
+    expect(store.getters.editor_hasChanges).to.equal(false);
+    store.commit("editor_isDirectSet", true);
+    expect(store.getters.editor_hasChanges).to.equal(true);
+    await store.dispatch("editor_save");
+    expect(store.getters.editor_hasChanges).to.equal(false);
+  });
+
+  for (const action of ["editor_save", "editor_save_as"]) {
+    it(`${action} keeps newer edits dirty and records the exact pre-await snapshot`, async () => {
+      let finish!: () => void;
+      storage.saveSet.mockImplementationOnce((_temp, _current, config) => {
+        // A service mutation must not change which snapshot was submitted.
+        config.description = "service-mutated notes";
+        return new Promise<void>((resolve) => (finish = resolve));
+      });
+      store.commit("editor_description", "saved notes");
+      store.state.editor.pages[0].cards[0].title = "saved title";
+      const saving = store.dispatch(action, "copy.linka");
+      store.commit("editor_description", "new notes");
+      store.state.editor.pages[0].cards[0].title = "new title";
+      finish();
+      await saving;
+      expect(store.getters.editor_hasChanges).to.equal(true);
+      store.commit("editor_description", "saved notes");
+      store.state.editor.pages[0].cards[0].title = "saved title";
+      expect(store.getters.editor_hasChanges).to.equal(false);
+    });
+
+    it(`${action} leaves failed saves dirty and allows a successful retry`, async () => {
+      const error = new Error("disk full");
+      storage.saveSet.mockRejectedValueOnce(error);
+      store.commit("editor_description", "unsaved notes");
+      expect(await store.dispatch(action, "copy.linka").catch((reason) => reason)).to.equal(error);
+      expect(store.getters.editor_hasChanges).to.equal(true);
+      await store.dispatch(action, "copy.linka");
+      expect(store.getters.editor_hasChanges).to.equal(false);
+    });
+  }
+
+  it("resets the editor baseline when returning to default state", async () => {
+    store.commit("editor_description", "old notes");
+    await store.dispatch("editor_current_default");
+    expect(store.getters.editor_hasChanges).to.equal(false);
+  });
+
   it("opens set in explorer and applies directSet output mode", async () => {
     storage.getConfigFile.mockResolvedValue({
       version: CURRENT_SET_VERSION,
@@ -303,4 +372,5 @@ function resetStoreState() {
   store.commit("keyMapping_right", ["ArrowRight"]);
   store.commit("keyMapping_enter", ["Enter"]);
   store.commit("selectedKey", undefined);
+  store.commit("editor_mark_clean");
 }

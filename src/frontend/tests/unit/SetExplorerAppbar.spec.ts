@@ -67,12 +67,14 @@ describe("SetExplorer assistant tools", () => {
 
     expect(wrapper.find("[aria-label='Выключить управление глазами']").exists()).toBe(true);
     expect(wrapper.find("[aria-label='Настройки отображения']").exists()).toBe(true);
+    expect(wrapper.get("[aria-label='Редактировать набор']").attributes("to")).toBe(
+      "/edit/§§Игры.linka"
+    );
     expect(wrapper.text()).not.toContain("Копировать набор");
     await wrapper.get("[aria-label='Инструменты помощника']").trigger("click");
     expect(store.state.button.enabled).toBe(false);
     expect(store.state.ui.gazeSuspended).toBe(true);
     expect(wrapper.text()).toContain("Копировать набор");
-    expect(wrapper.text()).toContain("Редактировать набор");
     expect(wrapper.text()).toContain("Переместить набор");
     await wrapper.get("[aria-label='Удалить набор']").trigger("click");
     expect(wrapper.text()).toContain("Набор будет перемещён в корзину");

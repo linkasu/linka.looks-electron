@@ -4,18 +4,11 @@
     full-height
     class="root"
     :class="{
-      root_settings: isSettingsOpened
+      root_settings: isSettingsOpened,
+      root_hide: !showStandardOutput && !isQuiz && !isMatch && !isSettingsOpened
     }"
   >
     <layout-settings-panel />
-    <div
-      v-if="!showStandardOutput && !isQuiz && !isMatch && !isSettingsOpened"
-      class="compact-controls"
-    >
-      <gaze-pause-button />
-      <span>Выберите карточку, чтобы произнести</span>
-    </div>
-
     <output-line
       v-if="showStandardOutput"
       :cards="cards"
@@ -101,7 +94,6 @@ import SetGrid from "@/frontend/components/SetGrid.vue";
 import { normalizePage, type Card } from "@/common/interfaces/ConfigFile";
 import { TTS } from "@/frontend/utils/TTS";
 import EyeButton from "@/frontend/components/EyeButton.vue";
-import GazePauseButton from "@/frontend/components/GazePauseButton.vue";
 import { Telemetry } from "@/frontend/utils/Telemetry";
 import LayoutSettingsPanel from "../components/LayoutSettingsPanel.vue";
 import {
@@ -377,16 +369,6 @@ async function onMatchCard(card: Card, index: number) {
 }
 </script>
 <style scoped>
-.compact-controls {
-  display: grid;
-  grid-template-columns: 1fr 9fr;
-  height: 150px;
-}
-.compact-controls > span {
-  align-self: center;
-  padding: 16px;
-  font-size: 22px;
-}
 .root {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

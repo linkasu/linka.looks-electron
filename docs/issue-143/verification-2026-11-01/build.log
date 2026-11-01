@@ -1,0 +1,29 @@
+
+> linka.looks@3.2.14 build
+> vite build
+
+vite v7.3.2 building client environment for production...
+transforming...
+✓ 1042 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                             1.05 kB │ gzip:   0.57 kB
+dist/assets/materialdesignicons-webfont-CMxqBFRe.woff2    400.44 kB
+dist/assets/materialdesignicons-webfont-BEZhCrOs.woff     583.48 kB
+dist/assets/materialdesignicons-webfont-CyuVDWYP.ttf    1,295.26 kB
+dist/assets/materialdesignicons-webfont-DkY_eBaD.eot    1,295.48 kB
+dist/assets/index-jJhl4KC5.css                            861.54 kB │ gzip: 123.29 kB
+dist/assets/index-DLbleHoe.js                           1,340.32 kB │ gzip: 437.56 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.41s
+vite v7.3.2 building client environment for production...
+transforming...
+✓ 219 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-electron/main.js  267.91 kB │ gzip: 86.23 kB
+✓ built in 353ms

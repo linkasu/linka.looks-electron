@@ -12,6 +12,10 @@
     </div>
     <v-spacer />
     <notes-button v-if="config?.description" :config="config" />
+    <gaze-pause-button
+      v-if="pageMode === 'standard' && !interfaceOutputLine && !isSettingsOpened"
+      class="output-hidden-pause"
+    />
     <v-btn
       v-if="pageMode === 'standard'"
       flat
@@ -45,6 +49,16 @@
     >
       <v-icon> mdi-view-dashboard-edit-outline </v-icon>
     </v-btn>
+    <v-btn
+      variant="text"
+      prepend-icon="mdi-pencil"
+      :to="editLink"
+      :disabled="!config || isSettingsOpened"
+      aria-label="Редактировать набор"
+      title="Редактировать набор"
+    >
+      <span class="assistant-label">Редактировать</span>
+    </v-btn>
     <v-dialog v-model="toolsDialog" max-width="520">
       <template #activator="{ props }">
         <v-btn
@@ -63,7 +77,6 @@
             <share-button text="Показать файл для отправки" />
             <v-btn prepend-icon="mdi-content-copy" @click="duplicateSet">Копировать набор</v-btn>
             <v-btn prepend-icon="mdi-merge" @click="startMerge">Объединить наборы</v-btn>
-            <v-btn prepend-icon="mdi-pencil" :to="editLink">Редактировать набор</v-btn>
             <folder-button :file="file" text="Переместить набор" @move="move" />
             <delete-button :file="title" text="Удалить набор" @delete="del" />
           </v-card-text>
@@ -108,6 +121,7 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import DeleteButton from "@/frontend/components/SetExplorer/DeleteButton.vue";
 import FolderButton from "@/frontend/components/SetExplorer/FolderButton.vue";
 import NotesButton from "@/frontend/components/SetExplorer/NotesButton.vue";
+import GazePauseButton from "@/frontend/components/GazePauseButton.vue";
 
 import { useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
@@ -286,7 +300,7 @@ onUnmounted(async () => {
   font-size: 13px;
   white-space: nowrap;
 }
-@media (max-width: 650px) {
+@media (max-width: 900px) {
   .set-explorer-appbar :deep(.v-toolbar-title) {
     min-width: 0;
     margin-inline-start: 4px;
@@ -303,5 +317,17 @@ onUnmounted(async () => {
   .assistant-label {
     display: none;
   }
+}
+.output-hidden-pause {
+  flex: 0 0 112px;
+  width: 112px;
+  height: 56px;
+  margin: 0 8px;
+}
+.output-hidden-pause :deep(span),
+.output-hidden-pause :deep(strong) {
+  display: inline;
+  margin: 0 0 0 4px;
+  font-size: 12px;
 }
 </style>

@@ -7,6 +7,7 @@
         :icon="icon"
         :flat="!!icon"
         :title="title"
+        :disabled="disabled"
         :aria-label="buttonText || title"
       >
         {{ buttonText }}
@@ -26,7 +27,12 @@
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" variant="flat" @click="submit()">
+        <v-btn
+          color="primary"
+          variant="flat"
+          :disabled="disabled || isValid(text) !== true"
+          @click="submit()"
+        >
           {{ confirmText }}
         </v-btn>
         <v-btn v-if="cancelText" @click="dialog = false">
@@ -50,6 +56,7 @@ interface IInputDialogProps {
   buttonText?: string;
   icon?: string;
   cancelText?: string;
+  disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<IInputDialogProps>(), {
@@ -79,7 +86,7 @@ function onDialog(v: boolean) {
 }
 
 async function submit() {
-  if (isValid(text.value) !== true) {
+  if (props.disabled || isValid(text.value) !== true) {
     return;
   }
   noCancel.value = true;
@@ -90,7 +97,7 @@ async function submit() {
 }
 
 function isValid(text: string) {
-  if (!props.checkFilePath) return true;
+  if (!props.checkFilePath) return !!text.trim() || "Введите текст";
   return validateStorageName(text);
 }
 </script>

@@ -1,4 +1,4 @@
-import { _electron as electron, ElectronApplication, Page } from "@playwright/test";
+import { _electron as electron, ElectronApplication, Page, test } from "@playwright/test";
 import AdmZip from "adm-zip";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -90,7 +90,38 @@ export async function launchTestElectron(context: E2EContext): Promise<ElectronA
 
 export async function firstTestWindow(electronApp: ElectronApplication): Promise<Page> {
   const window = await electronApp.firstWindow();
+  const errors: string[] = [];
+  window.on("pageerror", (error) => errors.push(error.message));
+  window.on("requestfailed", (request) => {
+    if (request.url().startsWith(devServerUrl)) {
+      errors.push(`${new URL(request.url()).pathname}: ${request.failure()?.errorText}`);
+    }
+  });
   await mockExternalServices(window);
+  try {
+    await window.locator(".folder-grid").waitFor({ state: "visible", timeout: 20000 });
+    await window.waitForURL(/#\/(?:%C2%A7|§)$/, { timeout: 20000 });
+  } catch (error) {
+    console.error("E2E_STARTUP_DIAGNOSTIC", {
+      url: window.url(),
+      errors,
+      windows: await electronApp.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().map((window) => ({
+          url: window.webContents.getURL(),
+          visible: window.isVisible()
+        }))
+      )
+    });
+    try {
+      await window.screenshot({
+        path: test.info().outputPath("startup-failure.png"),
+        timeout: 2000
+      });
+    } catch (captureError) {
+      console.error("E2E_STARTUP_CAPTURE_FAILED", String(captureError));
+    }
+    throw error;
+  }
   return window;
 }
 

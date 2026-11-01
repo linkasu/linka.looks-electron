@@ -113,11 +113,9 @@ describe("Editor destructive actions", () => {
     expect(wrapper.get("details").attributes("open")).toBeUndefined();
     expect(wrapper.get("summary").text()).toContain("Размер карточки");
     const html = wrapper.html();
-    expect(html.indexOf('label="Название карточки"')).toBeLessThan(
-      html.indexOf("Работа с изображением")
-    );
-    expect(html.indexOf("Работа с изображением")).toBeLessThan(html.indexOf("Работа с озвучкой"));
-    expect(html.indexOf("Работа с озвучкой")).toBeLessThan(html.indexOf("<details"));
+    expect(html.indexOf('label="Название карточки"')).toBeLessThan(html.indexOf("Изображение"));
+    expect(html.indexOf("Изображение")).toBeLessThan(html.indexOf("Озвучка"));
+    expect(html.indexOf("Озвучка")).toBeLessThan(html.indexOf("<details"));
     expect(wrapper.get("[data-testid='editor-card']").attributes("aria-pressed")).toBe("true");
   });
 

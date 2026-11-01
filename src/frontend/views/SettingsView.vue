@@ -223,6 +223,7 @@ const dwellIndicator = computed({
 });
 
 const pageTurnModeOptions: { text: string; value: PageTurnMode }[] = [
+  { text: "Стрелки скрыты", value: "hidden" },
   { text: "Только мышь", value: "mouseOnly" },
   { text: "Мышь и глаза", value: "mouseAndEyes" }
 ];

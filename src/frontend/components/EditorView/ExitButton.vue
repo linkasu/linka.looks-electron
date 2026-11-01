@@ -1,5 +1,10 @@
 <template>
-  <v-dialog v-model="dialog" max-width="480" :persistent="disabled">
+  <v-dialog
+    :model-value="dialog"
+    max-width="480"
+    :persistent="disabled"
+    @update:model-value="setDialog"
+  >
     <template #activator="{ props }">
       <v-btn flat icon="" aria-label="Выйти из редактора" :disabled="disabled" v-bind="props">
         <v-icon>mdi-arrow-left</v-icon>
@@ -22,11 +27,19 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 
-defineProps<{ disabled?: boolean }>();
+const props = withDefaults(defineProps<{ disabled?: boolean; confirm?: boolean }>(), {
+  confirm: true
+});
 
 const dialog = ref(false);
 
 const emit = defineEmits<{ (e: "exit"): void }>();
+
+function setDialog(value: boolean) {
+  if (props.disabled) return;
+  if (value && !props.confirm) emit("exit");
+  else dialog.value = value;
+}
 </script>
 
 <style scoped>
