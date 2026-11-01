@@ -197,12 +197,15 @@ async function expectEditorAudioControlsReachable(
   if (viewport.height <= 600) {
     expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
   }
+  expect(metrics.buttonTop).toBeGreaterThanOrEqual(metrics.panelTop);
+  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.panelBottom);
+  expect(metrics.buttonBottom).toBeLessThanOrEqual(metrics.viewportHeight);
   await window.getByRole("button", { name: "Создать из текста", exact: true }).click();
   await expect(window.getByLabel("Текст для картинки")).toBeVisible();
   await window.getByRole("button", { name: "Отмена", exact: true }).click();
-  await window.getByRole("button", { name: "Cоздать из текста", exact: true }).click();
+  await window.getByRole("button", { name: "Создать озвучку из текста", exact: true }).click();
   await expect(window.getByLabel("Текст для озвучки")).toBeVisible();
-  await window.getByRole("button", { name: "Отмена", exact: true }).click();
+  await window.getByRole("button", { name: "Отменить", exact: true }).click();
   const audioFile = window.getByRole("button", { name: "Выбрать звук из файла", exact: true });
   await audioFile.scrollIntoViewIfNeeded();
   await expect(audioFile).toBeInViewport();
