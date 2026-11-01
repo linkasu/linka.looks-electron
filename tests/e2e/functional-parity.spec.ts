@@ -1,4 +1,4 @@
-import { expect, test, type ElectronApplication, type Locator } from "@playwright/test";
+import { expect, test, type ElectronApplication, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -62,6 +62,23 @@ async function recordTargets(app: ElectronApplication) {
       (globalThis as typeof globalThis & { parityTargets: Targets }).parityTargets = targets;
     });
   });
+}
+
+async function waitForLayout(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document
+            .getAnimations()
+            .filter(
+              (animation) =>
+                animation.playState === "running" &&
+                animation.effect?.getComputedTiming().iterations !== Infinity
+            ).length
+      )
+    )
+    .toBe(0);
 }
 
 async function gaze(app: ElectronApplication, button: Locator) {
@@ -165,20 +182,7 @@ for (const mode of modes) {
         await expect
           .poll(() => page.evaluate(() => ({ width: innerWidth, height: innerHeight })))
           .toEqual({ width: 1024, height: 600 });
-        await expect
-          .poll(() =>
-            page.evaluate(
-              () =>
-                document
-                  .getAnimations()
-                  .filter(
-                    (animation) =>
-                      animation.playState === "running" &&
-                      animation.effect?.getComputedTiming().iterations !== Infinity
-                  ).length
-            )
-          )
-          .toBe(0);
+        await waitForLayout(page);
         await gaze(app, arrows.nth(1));
         if (mode.value === "mouseOnly") {
           await expect(page.getByRole("button", { name: "А", exact: true })).toBeVisible();
@@ -226,6 +230,12 @@ test("functional parity: hidden output gives grid space and retains gaze pause a
       .toEqual({ width: 800, height: 600 });
     await page.goto(`${devServerUrl}/#/set/§parity.linka`);
     await expect(page.getByRole("button", { name: "А", exact: true })).toBeVisible();
+    await waitForLayout(page);
+    await expect
+      .poll(() =>
+        page.locator(".grid").evaluate((element) => element.getBoundingClientRect().bottom)
+      )
+      .toBeLessThanOrEqual(600);
     const height = await page
       .locator(".grid")
       .evaluate((element) => element.getBoundingClientRect().height);
