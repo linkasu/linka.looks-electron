@@ -49,7 +49,7 @@
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.9",
     "pictures.bank-api": "https://github.com/linkasu/pictures.bank-client.git",
-    "uuid": "^14.0.0",
+    "uuid": "^14.0.3",
     "vue": "^3.5.34",
     "vue-router": "^4.6.4",
     "vuedraggable": "^4.1.0",
