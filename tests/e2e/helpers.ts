@@ -107,7 +107,8 @@ export async function firstTestWindow(electronApp: ElectronApplication): Promise
   });
   await mockExternalServices(window);
   try {
-    await window.locator(".folder-grid").waitFor({ state: "visible", timeout: 20000 });
+    // Legacy reference builds and the redesign share .root, not .folder-grid.
+    await window.locator(".root").waitFor({ state: "visible", timeout: 20000 });
     await window.waitForURL(/#\/(?:%C2%A7|§)$/, { timeout: 20000 });
   } catch (error) {
     console.error("E2E_STARTUP_DIAGNOSTIC", {

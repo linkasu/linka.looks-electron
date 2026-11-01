@@ -118,8 +118,10 @@ jobs:
           cp harness/scripts/ci/startup-diagnostics.cjs app/scripts/ci/startup-diagnostics.cjs
           cp harness/scripts/ci/plain-app-startup.mjs app/scripts/ci/plain-app-startup.mjs
           cp harness/scripts/ci/check-baseline-result.mjs app/scripts/ci/check-baseline-result.mjs
-          if [ "${{ matrix.revision }}" != baseline ]; then
-            cp harness/tests/e2e/electron.spec.ts app/tests/e2e/electron.spec.ts
+          if [ "${{ matrix.revision }}" = pr121 ]; then
+            # PR121 predates the redesign: keep the audited legacy UI contracts, not new UX assertions.
+            git -C harness fetch --no-tags --depth=1 origin 1cd6fcbc0b208705f4ad45138b0b7f8e8a2b8bd0
+            git -C harness show 1cd6fcbc0b208705f4ad45138b0b7f8e8a2b8bd0:tests/e2e/electron.spec.ts > app/tests/e2e/electron.spec.ts
           fi
       - name: Install dependencies without unsafe EyeLog lifecycle
         working-directory: app

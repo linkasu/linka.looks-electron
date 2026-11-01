@@ -159,11 +159,12 @@ for (const mode of modes) {
         await app.evaluate(({ BrowserWindow }) => {
           const window = BrowserWindow.getAllWindows()[0];
           window.unmaximize();
-          window.setContentSize(1024, 768);
+          // macOS CI can clamp 768px content to its smaller desktop work area.
+          window.setContentSize(1024, 600);
         });
         await expect
           .poll(() => page.evaluate(() => ({ width: innerWidth, height: innerHeight })))
-          .toEqual({ width: 1024, height: 768 });
+          .toEqual({ width: 1024, height: 600 });
         await expect
           .poll(() =>
             page.evaluate(
