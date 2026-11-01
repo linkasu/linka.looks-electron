@@ -53,6 +53,21 @@ describe("eye button", () => {
     expect((wrapper.get("button").element as HTMLButtonElement).disabled).to.equal(true);
   });
 
+  it("keeps resume discoverable by the gaze watcher while paused but excludes disabled lock targets", async () => {
+    const wrapper = mount(EyeButton, {
+      props: { lock: true },
+      global: { plugins: [createVuexStore({ enabled: false })] }
+    });
+    expect(wrapper.classes()).to.include("eye");
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".progress-bar").exists()).to.equal(true);
+    await wrapper.setProps({ disabled: true });
+    expect(wrapper.classes()).not.to.include("eye");
+    expect(wrapper.find(".progress-bar").exists()).to.equal(false);
+    expect((wrapper.element as HTMLButtonElement).disabled).to.equal(true);
+  });
+
   it("shows gaze overlay and progress on eye enter", async () => {
     const wrapper = mount(EyeButton, {
       global: {
@@ -66,6 +81,23 @@ describe("eye button", () => {
     expect(wrapper.get("button").classes()).to.include("isInside");
     expect(wrapper.find(".overlay").exists()).to.equal(true);
     expect(wrapper.find(".progress-bar").exists()).to.equal(true);
+  });
+
+  it("offers the legacy central circle and applies changes on the next dwell", async () => {
+    const store = createVuexStore({ dwellIndicator: "circle" });
+    const wrapper = mount(EyeButton, { global: { plugins: [store] } });
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(true);
+    store.state.button.dwellIndicator = "inward";
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(true);
+    dispatchEyeEvent(wrapper, "eye-exit");
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".dwell-fill").exists()).to.equal(true);
+    expect(wrapper.find(".dwell-circle").exists()).to.equal(false);
+    expect(wrapper.get(".progress-bar").attributes("style")).to.contain("--seconds: 1s");
   });
 
   it("removes gaze overlay on eye exit", async () => {
@@ -82,6 +114,18 @@ describe("eye button", () => {
 
     expect(wrapper.get("button").classes()).not.to.include("isInside");
     expect(wrapper.find(".overlay").exists()).to.equal(false);
+  });
+
+  it("clears completed dwell after activation even if the target list is rebuilt", async () => {
+    const wrapper = mount(EyeButton, {
+      props: { lock: true },
+      global: { plugins: [createVuexStore()] }
+    });
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    await wrapper.trigger("click");
+    expect(wrapper.classes()).not.to.include("isInside");
+    expect(wrapper.find(".progress-bar").exists()).to.equal(false);
   });
 
   it("does not show overlay for eye-disabled buttons", async () => {
@@ -190,9 +234,36 @@ describe("eye button", () => {
     expect(audio.currentTime).to.equal(0);
     expect(play.mock.calls).to.have.length(1);
   });
+
+  it("renders a non-interactive preview without nested button or gaze target", async () => {
+    const wrapper = mount(EyeButton, {
+      props: { preview: true },
+      global: { plugins: [createVuexStore()] },
+      slots: { default: "Карточка в сообщении" }
+    });
+
+    expect(wrapper.find("button").exists()).to.equal(false);
+    expect(wrapper.classes()).not.to.include("eye");
+    wrapper.element.dispatchEvent(new CustomEvent("eye-enter", { detail: { eye: true } }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".overlay").exists()).to.equal(false);
+  });
+
+  it("keeps decorative progress out of the accessibility tree", async () => {
+    const wrapper = mount(EyeButton, {
+      attrs: { "aria-label": "Выбрать воду" },
+      global: { plugins: [createVuexStore()] }
+    });
+    dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.attributes("aria-label")).to.equal("Выбрать воду");
+    expect(wrapper.get(".overlay").attributes("aria-hidden")).to.equal("true");
+    expect(wrapper.attributes("type")).to.equal("button");
+  });
 });
 
 interface ButtonState {
+  dwellIndicator?: "inward" | "circle";
   enabled: boolean;
   borders: number;
   timeout: number;

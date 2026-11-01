@@ -1,48 +1,91 @@
 <template>
-  <v-layout full-height class="root">
-    <explorer-grid-button v-if="!isHome" :back="true" @click="back()" />
+  <section class="root">
+    <header class="folder-heading">
+      <span>{{ ["Наборы", ...mroot.split("§").filter(Boolean)].join(" / ") }}</span>
+      <span v-if="loading" role="status">Загрузка наборов…</span>
+    </header>
+    <div v-if="loadError" class="folder-state" role="alert">
+      <p>Не удалось открыть папку. Проверьте доступ к файлам.</p>
+      <v-btn @click="loadSets">Повторить загрузку</v-btn>
+    </div>
+    <div v-else-if="!loading && !sorted.length" class="folder-state" role="status">
+      <p>В этой папке пока нет наборов.</p>
+      <p>Создайте набор кнопкой «+» или выберите другую папку.</p>
+    </div>
+    <div class="folder-grid">
+      <explorer-grid-button
+        v-if="!isHome"
+        :back="true"
+        :disabled="assistantActionOpen"
+        @click="back()"
+      />
 
-    <explorer-grid-button
-      v-for="file in sorted"
-      :key="file.file"
-      :file="file"
-      @click="select(file)"
-      @contextmenu.prevent="openContextMenu($event, file)"
-    />
+      <div
+        v-for="file in sorted"
+        :key="file.file"
+        class="folder-item"
+        @contextmenu.prevent="openContextMenu($event, file)"
+      >
+        <explorer-grid-button :file="file" :disabled="assistantActionOpen" @click="select(file)" />
+        <v-btn
+          class="item-tools"
+          variant="text"
+          icon="mdi-dots-vertical"
+          aria-haspopup="menu"
+          :aria-expanded="contextMenuOpen && contextItem?.file === file.file"
+          :title="'Действия помощника: ' + toDisplayName(file)"
+          :aria-label="'Действия помощника: ' + toDisplayName(file)"
+          @click.stop="openContextMenu($event, file)"
+          @keydown.stop
+        />
+      </div>
+    </div>
 
-    <div
-      v-if="contextMenuOpen"
-      class="context-menu"
-      :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
-      @click.stop
-      @contextmenu.prevent
+    <v-menu
+      v-model="contextMenuOpen"
+      :target="[contextMenuX, contextMenuY]"
+      @after-enter="contextMenuList?.focus('first')"
+      @after-leave="restoreContextFocus"
     >
       <v-card>
-        <v-list density="compact">
-          <v-list-item @click="openSelected">
+        <v-card-subtitle class="pt-3">{{ contextTitle }}</v-card-subtitle>
+        <v-list
+          ref="contextMenuList"
+          role="menu"
+          aria-label="Действия с набором или папкой"
+          @keydown.stop
+          @keydown.esc="closeContextMenu"
+          @keydown.tab="closeContextMenu"
+        >
+          <v-list-item role="menuitem" @click="openSelected">
             <v-list-item-title>Открыть</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="duplicateSelected">
+          <v-list-item v-if="!contextItem?.directory" role="menuitem" @click="editSelected">
+            <v-list-item-title>Редактировать набор</v-list-item-title>
+          </v-list-item>
+          <v-divider />
+          <v-list-item role="menuitem" @click="duplicateSelected">
             <v-list-item-title>Дублировать</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="startRename">
+          <v-list-item role="menuitem" @click="startRename">
             <v-list-item-title>Переименовать</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="confirmDelete">
-            <v-list-item-title class="danger">Удалить</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="showInFolder">
+          <v-list-item role="menuitem" @click="showInFolder">
             <v-list-item-title>Показать в папке</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="!contextItem?.directory" @click="startMerge">
+          <v-list-item v-if="!contextItem?.directory" role="menuitem" @click="startMerge">
             <v-list-item-title>Объединить...</v-list-item-title>
+          </v-list-item>
+          <v-divider />
+          <v-list-item role="menuitem" @click="confirmDelete">
+            <v-list-item-title class="danger">Удалить</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-card>
-    </div>
+    </v-menu>
 
-    <v-dialog v-model="mergeDialog" width="auto">
-      <v-card min-width="340px">
+    <v-dialog v-model="mergeDialog" max-width="560" @after-leave="restoreContextFocus">
+      <v-card>
         <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
           <div class="merge-subtitle">Основной: {{ contextTitle }}</div>
@@ -66,14 +109,16 @@
           </div>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" :disabled="!mergeTarget" @click="applyMerge"> Объединить </v-btn>
-          <v-btn color="primary" @click="mergeDialog = false"> Отмена </v-btn>
+          <v-btn color="primary" variant="flat" :disabled="!mergeTarget" @click="applyMerge">
+            Создать набор
+          </v-btn>
+          <v-btn @click="mergeDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="renameDialog" width="auto">
-      <v-card min-width="300px">
+    <v-dialog v-model="renameDialog" max-width="480" @after-leave="restoreContextFocus">
+      <v-card>
         <v-card-title primary-title> Переименовать </v-card-title>
         <v-card-text>
           <v-form @submit.prevent="applyRename">
@@ -81,19 +126,25 @@
           </v-form>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" @click="applyRename"> Сохранить </v-btn>
-          <v-btn color="primary" @click="renameDialog = false"> Отмена </v-btn>
+          <v-btn color="primary" variant="flat" @click="applyRename"> Переименовать </v-btn>
+          <v-btn @click="renameDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="deleteDialog" width="auto">
-      <v-card min-width="300px">
+    <v-dialog v-model="deleteDialog" max-width="480" @after-leave="restoreContextFocus">
+      <v-card>
         <v-card-title primary-title> Удалить {{ contextTitle }}? </v-card-title>
-        <v-card-text> Вы уверены? </v-card-text>
+        <v-card-text>
+          {{
+            contextItem?.directory
+              ? "Папка со всем содержимым будет перемещена в корзину."
+              : "Набор будет перемещён в корзину."
+          }}
+        </v-card-text>
         <v-card-actions>
-          <v-btn color="error" @click="applyDelete"> Да </v-btn>
-          <v-btn color="primary" @click="deleteDialog = false"> Нет </v-btn>
+          <v-btn color="error" variant="flat" @click="applyDelete"> Переместить в корзину </v-btn>
+          <v-btn @click="deleteDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -101,15 +152,15 @@
     <v-snackbar v-model="error" :timeout="5000">
       {{ errorText }}
       <template #actions>
-        <v-btn color="blue" variant="text" @click="error = false"> Закрыть </v-btn>
+        <v-btn color="primary" variant="text" @click="error = false"> Закрыть </v-btn>
       </template>
     </v-snackbar>
-  </v-layout>
+  </section>
 </template>
 
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import { ref, computed, ComputedRef, watch, onMounted } from "vue";
+import { ref, computed, ComputedRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { validateStorageName } from "@/common/utils/storageName";
 
@@ -123,11 +174,15 @@ const router = useRouter();
 const route = useRoute();
 
 const files: Ref<Directory> = ref([]);
-const mroot = ref("");
+const loading = ref(true);
+const loadError = ref(false);
+const mroot = computed(() => route.params.path.toString());
 const contextMenuOpen = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextItem: Ref<DirectoryFile | null> = ref(null);
+let contextTrigger: HTMLElement | null = null;
+const contextMenuList = ref<{ focus: (location: "first") => void } | null>(null);
 const renameDialog = ref(false);
 const renameValue = ref("");
 const deleteDialog = ref(false);
@@ -136,10 +191,9 @@ const errorText = ref("");
 const mergeDialog = ref(false);
 const mergeTarget = ref("");
 const mergeName = ref("");
-
-onMounted(() => {
-  mroot.value = route.params.path.toString();
-});
+const assistantActionOpen = computed(
+  () => contextMenuOpen.value || renameDialog.value || deleteDialog.value || mergeDialog.value
+);
 
 const sorted: ComputedRef<Directory> = computed(() => {
   return [...files.value].sort((a: DirectoryFile, b: DirectoryFile) => {
@@ -155,36 +209,32 @@ const isHome = computed(() => {
   return mroot.value === "§";
 });
 
-// const root = computed({
-//   get () {
-//     return mroot.value;
-//   },
-//   set (v: string) {
-//     mroot.value = v;
-//     router.push(v);
-//     loadSets();
-//   }
-// });
-
-watch(mroot, () => {
-  router.push(mroot.value);
-  loadSets();
-});
+watch(mroot, loadSets, { immediate: true });
 
 function back() {
-  mroot.value = mroot.value.split("§").slice(0, -1).join("§");
+  router.push("/" + mroot.value.split("§").slice(0, -1).join("§"));
 }
 
-function loadSets() {
-  storageService.getFiles(mroot.value).then((newFiles: Directory) => {
-    if (!newFiles) return;
+async function loadSets() {
+  const folder = mroot.value;
+  loading.value = true;
+  loadError.value = false;
+  files.value = [];
+  try {
+    const newFiles = await storageService.getFiles(folder);
+    if (folder !== mroot.value) return;
+    if (!newFiles) throw new Error("Folder unavailable");
     files.value = newFiles;
-  });
+  } catch {
+    if (folder === mroot.value) loadError.value = true;
+  } finally {
+    if (folder === mroot.value) loading.value = false;
+  }
 }
 
 function select(item: DirectoryFile) {
   if (item.directory) {
-    mroot.value += "§" + pathModule.basename(item.file);
+    router.push("/" + mroot.value + "§" + pathModule.basename(item.file));
     Telemetry.product("openFolder");
   } else {
     router.push("/set/" + mroot.value.replace(/\//g, "§") + "§" + pathModule.basename(item.file));
@@ -217,14 +267,19 @@ function buildMergeName(basePath: string, otherPath: string) {
 
 function openContextMenu(event: MouseEvent, item: DirectoryFile) {
   contextItem.value = item;
-  const menuWidth = 220;
-  const menuHeight = 220;
-  const x = Math.min(event.clientX, window.innerWidth - menuWidth);
-  const y = Math.min(event.clientY, window.innerHeight - menuHeight);
-  contextMenuX.value = Math.max(8, x);
-  contextMenuY.value = Math.max(8, y);
+  const element = event.currentTarget as HTMLElement;
+  contextTrigger = element.matches("button") ? element : element.querySelector(".item-tools");
+  const bounds = element.getBoundingClientRect();
+  const keyboardClick = event.type === "click" && event.detail === 0;
+  contextMenuX.value = keyboardClick ? bounds.left : event.clientX;
+  contextMenuY.value = keyboardClick ? bounds.bottom : event.clientY;
   contextMenuOpen.value = true;
-  window.addEventListener("click", closeContextMenu, { once: true });
+}
+
+function restoreContextFocus() {
+  if (!renameDialog.value && !deleteDialog.value && !mergeDialog.value) {
+    contextTrigger?.focus();
+  }
 }
 
 function closeContextMenu() {
@@ -235,6 +290,12 @@ function openSelected() {
   if (!contextItem.value) return;
   closeContextMenu();
   select(contextItem.value);
+}
+
+function editSelected() {
+  if (!contextItem.value || contextItem.value.directory) return;
+  closeContextMenu();
+  router.push("/edit/" + mroot.value + "§" + pathModule.basename(contextItem.value.file));
 }
 
 async function duplicateSelected() {
@@ -368,22 +429,46 @@ async function applyMerge() {
 
 <style scoped>
 .root {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 104px);
+  overflow: hidden;
+  color: var(--linka-text);
+}
+.folder-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  color: var(--linka-muted);
+  overflow-wrap: anywhere;
+}
+.folder-state {
+  padding: 16px;
+}
+.folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   grid-auto-rows: 160px;
   align-content: start;
-  /* 64px app bar + 40px fixed footer. Subtracting only the app bar left the
-     last row under the footer, unreachable even scrolled to the bottom.
-     EditorView already uses the same 104px. */
-  height: calc(100vh - 104px);
-  overflow-y: auto !important;
+  min-height: 0;
+  overflow-y: auto;
 }
-.context-menu {
-  position: fixed;
-  z-index: 2000;
+.folder-item {
+  position: relative;
+  min-width: 0;
+}
+.folder-item :deep(.eyebtn) {
+  width: 100%;
+  height: 100%;
+}
+.item-tools {
+  position: absolute;
+  top: 4px;
+  right: 4px;
 }
 .danger {
-  color: #b00020;
+  color: rgb(var(--v-theme-error));
   font-weight: 600;
 }
 .merge-subtitle {
@@ -395,7 +480,7 @@ async function applyMerge() {
 }
 .merge-warning {
   margin-top: 8px;
-  color: #b00020;
+  color: var(--linka-muted);
   font-weight: 600;
 }
 </style>

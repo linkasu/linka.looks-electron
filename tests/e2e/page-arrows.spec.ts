@@ -13,8 +13,8 @@ import {
 
 const modes = [
   { value: "hidden", label: "Стрелки скрыты" },
-  { value: "mouseOnly", label: "Только клик специалиста" },
-  { value: "mouseAndEyes", label: "Мышь и взгляд" }
+  { value: "mouseOnly", label: "Только мышь" },
+  { value: "mouseAndEyes", label: "Мышь и глаза" }
 ];
 
 for (const mode of modes) {
@@ -41,6 +41,7 @@ for (const mode of modes) {
     try {
       let window = await firstTestWindow(app);
       await window.goto(`${devServerUrl}/#/settings`);
+      await window.getByText("Перелистывание и выход из набора", { exact: true }).click();
       const select = window.getByRole("combobox", { name: "Способ перелистывания" });
       await select.press("Enter");
       for (const option of modes) {
@@ -57,6 +58,7 @@ for (const mode of modes) {
       app = await launchTestElectron(context);
       window = await firstTestWindow(app);
       await window.goto(`${devServerUrl}/#/settings`);
+      await window.getByText("Перелистывание и выход из набора", { exact: true }).click();
       await expect(window.getByRole("combobox", { name: "Способ перелистывания" })).toHaveValue(
         mode.label
       );
@@ -120,8 +122,9 @@ for (const value of [undefined, "mouseOnly", "mouseAndEyes"]) {
     try {
       const window = await firstTestWindow(app);
       await window.goto(`${devServerUrl}/#/settings`);
+      await window.getByText("Перелистывание и выход из набора", { exact: true }).click();
       await expect(window.getByRole("combobox", { name: "Способ перелистывания" })).toHaveValue(
-        value === "mouseOnly" ? "Только клик специалиста" : "Мышь и взгляд"
+        value === "mouseOnly" ? "Только мышь" : "Мышь и глаза"
       );
     } finally {
       await app.close();

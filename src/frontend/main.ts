@@ -1,12 +1,12 @@
-import { createApp } from "vue";
+import { createApp, nextTick, watch } from "vue";
 import { PageWatcher } from "@linkasu/tobii-electron/renderer";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
 import vuetify from "./plugins/vuetify";
 import platformPlugin from "./plugins/platform";
-import { loadFonts } from "./plugins/webfontloader";
 import "./store/eStore";
+import { watchGazeGeometry } from "./utils/watchGazeGeometry";
 const pageWatcher = new PageWatcher({
   getSettings: () => ({
     timeout: store.state.button.timeout,
@@ -20,6 +20,14 @@ const pageWatcher = new PageWatcher({
 });
 void pageWatcher;
 
-loadFonts();
+watch(
+  () => [store.state.button.enabled, store.state.ui.gazeSuspended],
+  async () => {
+    await nextTick();
+    pageWatcher.watchElementsChange(true);
+  }
+);
 
-createApp(App).use(router).use(store).use(platformPlugin).use(vuetify).mount("#app");
+const app = createApp(App).use(router).use(store).use(platformPlugin).use(vuetify);
+app.onUnmount(watchGazeGeometry(pageWatcher));
+app.mount("#app");

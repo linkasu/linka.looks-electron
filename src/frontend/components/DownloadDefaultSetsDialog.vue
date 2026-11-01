@@ -1,27 +1,26 @@
 <template>
-  <v-dialog v-model="dialog" persistent max-width="60%">
+  <v-dialog v-model="dialog" persistent max-width="640" scrollable>
     <v-card>
-      <v-card-title v-if="!downloading" class="text-h5">
-        Вы хотите скачать дополнительные наборы?
-      </v-card-title>
+      <v-card-title v-if="!downloading" class="text-h5"> Дополнительные наборы </v-card-title>
       <v-card-title v-else> Идет загрузка. </v-card-title>
       <v-card-text v-if="!downloading">
         <p>
-          Совсем скоро вы сможете начать пользоваться программой LINKa смотри, однако, сейчас в ней
-          только два готовых набора. Клавиатура и цифры.
+          В программе LINKa смотри уже есть базовые наборы. Вы можете добавить другие готовые
+          наборы.
         </p>
         <p>
           Но специалист проекта Александра Анурова предоставила пакет бесплатных наборов, которые
           отлично подходят для старта работы с программой.
         </p>
         <p>
-          Также вы можете записатьна на консультацию по программе по
+          Также вы можете записаться на консультацию по программе по
           <a @click.prevent="consultation" href=""> ссылке</a>.
         </p>
-        <p>Хотите их скачать?</p>
+        <p>Загрузить бесплатные наборы на этот компьютер?</p>
       </v-card-text>
       <v-card-text v-if="downloading">
-        <v-progress-linear color="green" :model-value="progress" />
+        <v-progress-linear color="primary" :model-value="progress" aria-label="Загрузка наборов" />
+        <p role="status">Загружено {{ Math.round(progress) }}%</p>
       </v-card-text>
       <v-card-text v-if="error">
         <v-alert color="error">
@@ -31,8 +30,8 @@
 
       <v-card-actions v-if="!downloading">
         <v-spacer />
-        <v-btn color="error" variant="text" @click="dialog = false"> Отказаться </v-btn>
-        <v-btn color="green-darken-1" variant="text" @click="download()"> Загрузить </v-btn>
+        <v-btn variant="text" @click="dialog = false"> Не сейчас </v-btn>
+        <v-btn color="primary" variant="flat" @click="download()"> Загрузить наборы </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

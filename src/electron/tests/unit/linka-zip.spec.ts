@@ -37,10 +37,13 @@ describe("bounded .linka ZIP reading", () => {
     expect(JSON.parse(zip.readAsText("config.json"))).toEqual({ version: "2.0" });
   });
 
-  it.each([0, 1, 1024, 501 * 1024 * 1024])("rejects a false DEFLATE size %s", (size) => {
+  it.each([0, 1, 1024, 501 * 1024 * 1024])("rejects a false DEFLATE size %s", async (size) => {
     const file = fixture(Buffer.alloc(4096, 65));
     changeSize(file, size);
+    const before = readFileSync(file);
     expect(() => openLinkaZip(file)).toThrow();
+    await expect(appendZip(file, "config.json", Buffer.from("{}"))).rejects.toThrow();
+    expect(readFileSync(file)).toEqual(before);
   });
 
   it("rejects a false STORED size", () => {

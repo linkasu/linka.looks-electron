@@ -185,7 +185,7 @@ describe("setGameLogic", () => {
     expect(result.advancePageAfterSolved).to.equal(true);
   });
 
-  it("handles wrong match pair", () => {
+  it("keeps the first match selection after a wrong pair for a direct retry", () => {
     const cards = createMatchCards();
     const result = handleMatchCard(
       cards[3],
@@ -196,7 +196,17 @@ describe("setGameLogic", () => {
     expect(result.feedbackText).to.equal("Неправильно");
     expect(result.matchErrors).to.equal(1);
     expect(result.matchMessage).to.equal("Неверная пара");
-    expect(result.selectedCardId).to.equal(null);
+    expect(result.selectedCardId).to.equal("top-1");
+    const retry = handleMatchCard(
+      cards[2],
+      2,
+      createMatchState(cards, {
+        selectedCardId: result.selectedCardId,
+        matchErrors: result.matchErrors
+      })
+    );
+    expect(retry.feedbackText).to.equal("Правильно");
+    expect(retry.matchErrors).to.equal(1);
   });
 
   it("ignores disabled match cards", () => {

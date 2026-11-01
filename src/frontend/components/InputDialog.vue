@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" width="auto" @show="dialog = true">
+  <v-dialog v-model="dialog" max-width="480" @show="dialog = true">
     <template v-if="buttonText || icon" #activator="{ props: activatorProps }">
       <v-btn
         v-bind="activatorProps"
@@ -7,6 +7,8 @@
         :disabled="props.disabled"
         :icon="icon"
         :flat="!!icon"
+        :title="title"
+        :aria-label="buttonText || title"
       >
         {{ buttonText }}
         <v-icon v-if="icon">
@@ -15,7 +17,7 @@
       </v-btn>
     </template>
 
-    <v-card min-width="300px">
+    <v-card>
       <v-card-title primary-title>
         {{ title }}
       </v-card-title>
@@ -25,10 +27,15 @@
         </v-form>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" :disabled="isValid(text) !== true" @click="submit()">
+        <v-btn
+          color="primary"
+          variant="flat"
+          :disabled="disabled || isValid(text) !== true"
+          @click="submit()"
+        >
           {{ confirmText }}
         </v-btn>
-        <v-btn v-if="cancelText" color="primary" @click="dialog = false">
+        <v-btn v-if="cancelText" @click="dialog = false">
           {{ cancelText }}
         </v-btn>
       </v-card-actions>
@@ -82,7 +89,7 @@ function onDialog(v: boolean) {
 }
 
 async function submit() {
-  if (isValid(text.value) !== true) {
+  if (props.disabled || isValid(text.value) !== true) {
     return;
   }
   noCancel.value = true;

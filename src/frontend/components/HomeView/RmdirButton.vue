@@ -1,19 +1,36 @@
 <template>
-  <v-dialog v-model="dialog" width="auto">
+  <v-dialog v-model="dialog" max-width="520">
     <template #activator="{ props }">
-      <v-btn flat icon="" v-bind="props">
-        <v-icon>mdi-folder-remove</v-icon>
+      <v-btn
+        flat
+        :icon="!text"
+        :block="!!text"
+        :prepend-icon="text ? 'mdi-folder-remove' : undefined"
+        v-bind="props"
+        title="Удалить папку"
+        aria-label="Удалить папку"
+      >
+        <v-icon v-if="!text">mdi-folder-remove</v-icon>
+        {{ text }}
       </v-btn>
     </template>
 
-    <v-card min-width="300px">
+    <v-card>
       <v-card-title primary-title> Какую папку вы хотите удалить? </v-card-title>
       <v-card-text>
         <v-select v-if="directories" v-model="directory" :items="titles" label="Папка" />
+        <p>Папка со всем содержимым будет удалена безвозвратно, без перемещения в корзину.</p>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="primary" @click="(remove(), (dialog = false))"> Удалить </v-btn>
-        <v-btn color="primary" @click="dialog = false"> Отмена </v-btn>
+        <v-btn
+          color="error"
+          variant="flat"
+          :disabled="!directory"
+          @click="(remove(), (dialog = false))"
+        >
+          Удалить папку
+        </v-btn>
+        <v-btn @click="dialog = false"> Отмена </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -29,6 +46,7 @@ import { storageService } from "@/frontend/services/card-storage-service";
 import { DirectoryFile } from "@/common/interfaces/Directory";
 
 const route = useRoute();
+defineProps<{ text?: string }>();
 
 const dialog = ref(false);
 const directories: Ref<DirectoryFile[] | null> = ref(null);

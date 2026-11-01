@@ -1,0 +1,51 @@
+[
+  {
+    "name": "format",
+    "command": ["npm", "run", "format:check"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:44.507933+03:00",
+    "finished": "2026-11-01T15:12:46.083542+03:00"
+  },
+  {
+    "name": "lint",
+    "command": ["npm", "run", "lint"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:46.086392+03:00",
+    "finished": "2026-11-01T15:12:48.575287+03:00"
+  },
+  {
+    "name": "typecheck",
+    "command": ["npm", "run", "typecheck"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:48.576445+03:00",
+    "finished": "2026-11-01T15:12:51.125736+03:00"
+  },
+  {
+    "name": "build",
+    "command": ["npm", "run", "build"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:51.126160+03:00",
+    "finished": "2026-11-01T15:12:54.302667+03:00"
+  },
+  {
+    "name": "unit",
+    "command": ["npm", "run", "test:unit"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:54.303299+03:00",
+    "finished": "2026-11-01T15:12:59.272583+03:00"
+  },
+  {
+    "name": "full-e2e",
+    "command": ["npx", "playwright", "test", "--reporter=line,json"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:12:59.273312+03:00",
+    "finished": "2026-11-01T15:18:36.783548+03:00"
+  },
+  {
+    "name": "diff-check",
+    "command": ["git", "diff", "--check"],
+    "exit_code": 0,
+    "started": "2026-11-01T15:18:36.784578+03:00",
+    "finished": "2026-11-01T15:18:36.808604+03:00"
+  }
+]

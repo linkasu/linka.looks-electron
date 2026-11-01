@@ -1,0 +1,41 @@
+
+Running 15 tests using 1 worker
+
+[1A[2K[1/15] tests/e2e/electron.spec.ts:15:5 › existing activation still requires an explicit telemetry choice
+[1A[2K[2m[WebServer] [22m
+[2m[WebServer] [22mDevTools listening on ws://127.0.0.1:9432/devtools/browser/b28a4877-a822-43c9-8286-40ebf04bcaae
+
+[1A[2K[2m[WebServer] [22m[tobiifree-helper] socket error connect ENOENT /var/folders/l4/r3plyjwj7pz_nq7zz50x04880000gn/T/su.linka.looks.tobiifree.501.sock
+
+[1A[2K[2m[WebServer] [22m[tobii] tracker initialized
+
+[1A[2K[2m[WebServer] [22m[43635:1101/151320.915894:ERROR:net/socket/ssl_client_socket_impl.cc:924] handshake failed; returned -1, SSL error code 1, net_error -7
+
+[1A[2K[2m[WebServer] [22m(node:43641) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+[2m[WebServer] [22m(Use `Electron Helper (Renderer) --trace-deprecation ...` to show where the warning was created)
+
+[1A[2K[2m[WebServer] [22m(node:43641) [DEP0093] DeprecationWarning: The crypto.fips is deprecated. Please use crypto.getFips()
+
+[1A[2K[2/15] tests/e2e/electron.spec.ts:48:5 › editor settings expose row and column controls
+[1A[2K[3/15] tests/e2e/electron.spec.ts:84:5 › editor side panel scrolls to audio controls
+[1A[2K[4/15] tests/e2e/electron.spec.ts:132:5 › assistant settings page scrolls within the main content area
+[1A[2K[5/15] tests/e2e/electron.spec.ts:208:5 › gaze set explorer keeps page scrolling disabled
+[1A[2K[6/15] tests/e2e/electron.spec.ts:233:5 › set explorer grid fills the viewport above footer
+[1A[2K[7/15] tests/e2e/electron.spec.ts:289:5 › home grid keeps the last row above the footer
+[1A[2K[8/15] tests/e2e/electron.spec.ts:336:5 › standard set appends clicked cards to text output
+[1A[2K[9/15] tests/e2e/electron.spec.ts:366:5 › standard set preserves typed output while turning pages
+[1A[2K[10/15] tests/e2e/electron.spec.ts:420:5 › quiz set handles wrong and correct answers
+[1A[2K[11/15] tests/e2e/electron.spec.ts:464:5 › match set handles wrong and correct pairs
+[1A[2K[12/15] tests/e2e/electron.spec.ts:512:5 › editor saves changed page settings to set archive
+[1A[2K[13/15] tests/e2e/specialist-ux.spec.ts:15:5 › specialist preparation: sets, card editing, settings and communication
+[1A[2Ktests/e2e/specialist-ux.spec.ts:15:5 › specialist preparation: sets, card editing, settings and communication
+Measured contrast: {
+  text: [33m13.038939739399414[39m,
+  muted: [33m5.611013301830686[39m,
+  focus: [33m5.585091509721717[39m,
+  canvas: [32m'rgb(246, 247, 244)'[39m
+}
+
+[1A[2K[14/15] tests/e2e/visual-refresh.spec.ts:91:5 › calm visual refresh preserves both roles and captures the real screens
+[1A[2K[15/15] tests/e2e/visual-refresh.spec.ts:298:5 › task examples show the fourth quiz question and matching choices without communication output
+[1A[2K  15 passed (5.6m)

@@ -1,22 +1,24 @@
 <template>
-  <v-btn flat icon="" data-testid="editor-exit-btn" @click="handleClick">
-    <v-icon>mdi-arrow-left</v-icon>
-  </v-btn>
-  <v-dialog v-model="dialog" width="auto">
-    <v-card min-width="300px">
+  <v-dialog
+    :model-value="dialog"
+    max-width="480"
+    :persistent="disabled"
+    @update:model-value="setDialog"
+  >
+    <template #activator="{ props }">
+      <v-btn flat icon="" aria-label="Выйти из редактора" :disabled="disabled" v-bind="props">
+        <v-icon>mdi-arrow-left</v-icon>
+      </v-btn>
+    </template>
+
+    <v-card>
       <v-card-title primary-title> Выйти без сохранения? </v-card-title>
-      <v-card-text> Вы уверены? </v-card-text>
+      <v-card-text>Несохранённые изменения будут потеряны.</v-card-text>
       <v-card-actions>
-        <v-btn
-          color="error"
-          data-testid="editor-exit-confirm"
-          @click="(emit('exit'), (dialog = false))"
-        >
-          Да
+        <v-btn color="error" :disabled="disabled" @click="(emit('exit'), (dialog = false))">
+          Выйти без сохранения
         </v-btn>
-        <v-btn color="primary" data-testid="editor-exit-cancel" @click="dialog = false">
-          Нет
-        </v-btn>
+        <v-btn @click="dialog = false"> Продолжить редактирование </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -25,24 +27,28 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 
-const props = withDefaults(
-  defineProps<{
-    confirm?: boolean;
-  }>(),
-  {
-    confirm: true
-  }
-);
+const props = withDefaults(defineProps<{ disabled?: boolean; confirm?: boolean }>(), {
+  confirm: true
+});
 
 const dialog = ref(false);
 
 const emit = defineEmits<{ (e: "exit"): void }>();
 
-function handleClick() {
-  if (!props.confirm) {
-    emit("exit");
-    return;
-  }
-  dialog.value = true;
+function setDialog(value: boolean) {
+  if (props.disabled) return;
+  if (value && !props.confirm) emit("exit");
+  else dialog.value = value;
 }
 </script>
+
+<style scoped>
+.v-card-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.v-card-title,
+.v-card-actions :deep(.v-btn__content) {
+  white-space: normal;
+}
+</style>

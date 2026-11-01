@@ -11,7 +11,13 @@
             item-value="value"
             item-title="text"
           />
-          <v-btn color="success" class="mr-2" @click="playExample('ru')">
+          <v-btn
+            variant="tonal"
+            min-height="48"
+            :loading="playingLanguage === 'ru'"
+            :disabled="isPlayingExample || !voiceRu || !ruVoices.length"
+            @click="playExample('ru')"
+          >
             Прослушать русский
           </v-btn>
 
@@ -23,7 +29,15 @@
             item-value="value"
             item-title="text"
           />
-          <v-btn color="success" @click="playExample('en')"> Прослушать английский </v-btn>
+          <v-btn
+            variant="tonal"
+            min-height="48"
+            :loading="playingLanguage === 'en'"
+            :disabled="isPlayingExample || !voiceEn || !enVoices.length"
+            @click="playExample('en')"
+            >Прослушать английский</v-btn
+          >
+          <p v-if="previewError" role="alert" class="mt-3">{{ previewError }}</p>
         </v-form>
       </v-card-text>
     </v-card>
@@ -36,6 +50,8 @@ import { useStore } from "vuex";
 
 const store = useStore();
 const isPlayingExample = ref(false);
+const playingLanguage = ref<"ru" | "en">();
+const previewError = ref("");
 
 const voices = TTS.voices;
 
@@ -63,11 +79,19 @@ const voiceEn = computed({
 function playExample(lang: "ru" | "en") {
   if (isPlayingExample.value) return;
   isPlayingExample.value = true;
+  playingLanguage.value = lang;
+  previewError.value = "";
 
   const value = lang === "ru" ? voiceRu.value : voiceEn.value;
   const sample = lang === "ru" ? "Привет" : "Hello";
-  TTS.instance.playText(sample, value).finally(() => {
-    isPlayingExample.value = false;
-  });
+  void TTS.instance
+    .playText(sample, value)
+    .catch(() => {
+      previewError.value = "Не удалось воспроизвести пример. Попробуйте ещё раз.";
+    })
+    .finally(() => {
+      isPlayingExample.value = false;
+      playingLanguage.value = undefined;
+    });
 }
 </script>

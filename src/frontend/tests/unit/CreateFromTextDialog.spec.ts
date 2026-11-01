@@ -1,120 +1,110 @@
-import chai from "chai";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 import CreateFromTextDialog from "@/frontend/components/EditorView/CreateFromTextDialog.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 
-const expect = chai.expect;
-const createImageFromText = storageService.createImageFromText as unknown as ReturnType<
-  typeof vi.fn
->;
-
 vi.mock("@/frontend/services/card-storage-service", () => ({
-  storageService: {
-    createImageFromText: vi.fn(() => Promise.resolve("generated.png"))
-  }
+  storageService: { createImageFromText: vi.fn() }
 }));
 
 describe("CreateFromTextDialog", () => {
   beforeEach(() => {
-    createImageFromText.mockClear();
+    vi.mocked(storageService.createImageFromText).mockReset().mockResolvedValue("generated.png");
   });
 
-  it("disables confirmation and does not create an image when text is empty or whitespace", async () => {
+  it("rejects empty and whitespace submissions, including Enter", async () => {
     const wrapper = mountDialog();
-
-    const confirmBtn = findConfirmButton(wrapper);
-    expect((confirmBtn.element as HTMLButtonElement).disabled).to.equal(true);
-
-    await wrapper.get("form").trigger("submit");
-    expect(createImageFromText.mock.calls).to.have.length(0);
-
-    await wrapper.get("input").setValue("   ");
-    expect((confirmBtn.element as HTMLButtonElement).disabled).to.equal(true);
-
-    await wrapper.get("form").trigger("submit");
-    expect(createImageFromText.mock.calls).to.have.length(0);
-    expect(wrapper.emitted("image")).to.equal(undefined);
+    for (const text of ["", " \r\n\t "]) {
+      await wrapper.get("input").setValue(text);
+      expect(wrapper.get(".actions button").attributes("disabled")).toBeDefined();
+      await wrapper.get("form").trigger("submit");
+    }
+    expect(storageService.createImageFromText).not.toHaveBeenCalled();
+    expect(wrapper.emitted("image")).toBeUndefined();
   });
 
-  it("creates an image and emits result when non-empty text is entered", async () => {
-    const wrapper = mountDialog();
-
-    await wrapper.get("input").setValue("  Кот  ");
-    const confirmBtn = findConfirmButton(wrapper);
-    expect((confirmBtn.element as HTMLButtonElement).disabled).to.equal(false);
-
-    await confirmBtn.trigger("click");
-    await wrapper.vm.$nextTick();
-
-    expect(createImageFromText.mock.calls[0]).to.deep.equal(["set.linka", "Кот", undefined]);
-    expect(wrapper.emitted("image")?.[0]).to.deep.equal(["generated.png"]);
-  });
-
-  it("preserves the selected card image dimensions", async () => {
+  it("trims text and forwards the actual selected card dimensions", async () => {
     const wrapper = mountDialog();
     await wrapper.setProps({ getImageSize: () => ({ width: 900, height: 300 }) });
-
     await wrapper.get("input").setValue("  Кот  ");
-    await findConfirmButton(wrapper).trigger("click");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(storageService.createImageFromText).toHaveBeenCalledWith("set.linka", "Кот", {
+      width: 900,
+      height: 300
+    });
+    expect(wrapper.emitted("image")?.[0]).toEqual(["generated.png"]);
+  });
 
-    expect(createImageFromText.mock.calls[0]).to.deep.equal([
-      "set.linka",
-      "Кот",
-      { width: 900, height: 300 }
-    ]);
+  it("disables the activator and refuses submission while UI is disabled", async () => {
+    const wrapper = mountDialog(true);
+    expect(wrapper.get("button").attributes("disabled")).toBeDefined();
+    await wrapper.get("input").setValue("Кот");
+    await wrapper.get("form").trigger("submit");
+    expect(storageService.createImageFromText).not.toHaveBeenCalled();
+  });
+
+  it("keeps the optional square default for callers without card dimensions", async () => {
+    const wrapper = mountDialog();
+    await wrapper.get("input").setValue("Кот");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(storageService.createImageFromText).toHaveBeenCalledWith("set.linka", "Кот", undefined);
+  });
+
+  it("shows generation errors and lets the user retry the same text", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(storageService.createImageFromText).mockRejectedValueOnce(new Error("Ошибка PNG"));
+    const wrapper = mountDialog();
+    await wrapper.get("input").setValue("Кот");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Ошибка PNG");
+    expect(wrapper.emitted("image")).toBeUndefined();
+    await wrapper.get(".retry").trigger("click");
+    await flushPromises();
+    expect(storageService.createImageFromText).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted("image")?.[0]).toEqual(["generated.png"]);
   });
 });
 
-function mountDialog() {
-  const store = createStore({
-    state: {
-      ui: {
-        disabled: false
-      }
-    },
-    actions: {
-      disable_ui: vi.fn(),
-      enable_ui: vi.fn()
-    }
-  });
-
+function mountDialog(disabled = false) {
   return mount(CreateFromTextDialog, {
-    props: {
-      file: "set.linka"
-    },
+    props: { file: "set.linka" },
     global: {
-      plugins: [store],
+      plugins: [
+        createStore({
+          state: { ui: { disabled } },
+          actions: { disable_ui: vi.fn(), enable_ui: vi.fn() }
+        })
+      ],
       stubs: {
-        VDialog: {
-          props: { modelValue: Boolean },
-          template:
-            "<div><slot name='activator' :props='{}' /><div class='dialog-body'><slot /></div></div>"
-        },
+        VDialog: { template: "<div><slot name='activator' :props='{}' /><slot /></div>" },
         VCard: { template: "<div><slot /></div>" },
         VCardTitle: { template: "<div><slot /></div>" },
         VCardText: { template: "<div><slot /></div>" },
         VCardActions: { template: "<div class='actions'><slot /></div>" },
         VForm: {
-          template: "<form @submit.prevent='$emit(&quot;submit&quot;, $event)'><slot /></form>"
+          emits: ["submit"],
+          template: "<form @submit.prevent='$emit(\"submit\", $event)'><slot /></form>"
         },
         VTextField: {
           props: ["modelValue", "label", "rules"],
           emits: ["update:modelValue"],
           template:
-            "<input :value='modelValue' @input='$emit(&quot;update:modelValue&quot;, $event.target.value)' />"
+            "<input :value='modelValue' @input='$emit(\"update:modelValue\", $event.target.value)' />"
         },
         VBtn: {
           props: { disabled: Boolean },
-          template:
-            "<button :disabled='disabled' @click='$emit(&quot;click&quot;)'><slot /></button>"
+          emits: ["click"],
+          template: "<button :disabled='disabled' @click='$emit(\"click\")'><slot /></button>"
+        },
+        VSnackbar: {
+          props: ["modelValue"],
+          template: "<div v-if='modelValue'><slot /><slot name='actions' /></div>"
         },
         VIcon: true
       }
     }
   });
-}
-
-function findConfirmButton(wrapper: ReturnType<typeof mount>) {
-  return wrapper.findAll(".actions button")[0];
 }

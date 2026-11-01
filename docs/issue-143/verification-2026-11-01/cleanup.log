@@ -1,0 +1,4 @@
+First read-only lsof diagnostic could not decode UTF-8; no signals were sent in that attempt. Diagnostic repeated with replacement decoding.
+No helper existed in initial process snapshot. After suite only test-started helpers 43642/43643 held socket; no connected clients listed. Identity rechecked; SIGTERM sent to both. No service configuration modified.
+Electron  43642 aacidov   17u  unix 0xf0a88d8b11cca38d      0t0      /var/folders/l4/r3plyjwj7pz_nq7zz50x04880000gn/T/su.linka.looks.tobiifree.501.sock
+Electron  43643 aacidov   17u  unix 0x399977cdfb1d6090      0t0      /var/folders/l4/r3plyjwj7pz_nq7zz50x04880000gn/T/su.linka.looks.tobiifree.501.sock

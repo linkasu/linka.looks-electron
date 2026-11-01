@@ -2,27 +2,27 @@
   <div class="content">
     <v-container grid-list-xs>
       <v-card>
-        <v-card-title primary-title> Настройка масштаба. </v-card-title>
+        <v-card-title primary-title> Настройка масштаба экрана </v-card-title>
         <v-card-text>
-          Tobii не подключён или ещё не готов, поэтому используется резервная настройка масштаба.
+          Эта настройка помогает согласовать положение взгляда с масштабом экрана. Она не заменяет
+          калибровку Tobii.
           <br />
           Используйте переключатель ниже и проверьте выбор по кнопкам с мишенями. Выбор и реакция
           должны совпадать.
         </v-card-text>
         <v-card-text>
-          <v-checkbox
-            v-model="multiplyScale"
-            label="Учитывать масштабирование экрана?"
-          ></v-checkbox>
+          <v-checkbox v-model="multiplyScale" label="Учитывать масштабирование экрана"></v-checkbox>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn @click="finishCalibration"> Готово. </v-btn>
+          <v-btn min-height="48" variant="tonal" @click="finishCalibration">Готово</v-btn>
         </v-card-actions>
       </v-card>
     </v-container>
     <div class="corner">
-      <eye-button class="button" v-for="i in 4" :key="i"> 🎯 </eye-button>
+      <eye-button class="button" v-for="i in 4" :key="i" :aria-label="`Проверочная мишень ${i}`"
+        ><span aria-hidden="true" class="fixation-point">⊙</span></eye-button
+      >
     </div>
   </div>
 </template>
@@ -69,5 +69,8 @@ function finishCalibration() {
 .button {
   display: block;
   width: auto;
+}
+.fixation-point {
+  font-size: 48px;
 }
 </style>

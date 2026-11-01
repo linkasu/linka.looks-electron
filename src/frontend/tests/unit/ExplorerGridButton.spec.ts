@@ -1,10 +1,21 @@
 import chai from "chai";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
+import { storageService } from "@/frontend/services/card-storage-service";
 
 const expect = chai.expect;
 
 describe("ExplorerGridButton", () => {
+  it("uses a complete CSS image URL without changing contain sizing", async () => {
+    vi.spyOn(storageService, "getDefaultImage").mockResolvedValue(Buffer.from("image"));
+    const wrapper = mountExplorerGridButton({
+      file: { directory: false, file: "/sets/Игры.linka" }
+    });
+    await flushPromises();
+
+    expect(wrapper.get(".img").attributes("style")).to.contain('url("blob:unit-test")');
+  });
+
   it("shows folder names on the home grid", () => {
     const wrapper = mountExplorerGridButton({
       file: {

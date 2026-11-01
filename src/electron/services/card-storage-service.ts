@@ -12,6 +12,7 @@ import { join, basename, extname, normalize, dirname, resolve, sep, isAbsolute }
 import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
+import AdmZip from "adm-zip";
 import { openLinkaZip } from "@/common/utils/linkaZip";
 import {
   CardType,
@@ -279,7 +280,7 @@ export class CardsStorage extends ICloudStorage {
     const normalized = normalizeConfigFile(config);
     if (!normalized) throw new Error("Некорректная конфигурация набора");
 
-    await this.cleanFile(path, normalized);
+    const zip = this.cleanFile(path, normalized);
     normalized.pages = (normalized.pages ?? []).map((page) => {
       const normalizedPage = normalizePage(page);
       normalizedPage.cards = normalizedPage.cards.filter(Boolean).map((card) => {
@@ -296,9 +297,16 @@ export class CardsStorage extends ICloudStorage {
     });
 
     const json = JSON.stringify(normalized);
-    await this.addBuffer(path, Buffer.from(json), "json", "config");
-    await delay(500);
-    await copyFile(path, location);
+    zip.addFile("config.json", Buffer.from(json));
+    // Keep editor media intact; replace the saved archive only after the new ZIP is complete.
+    const staged = join(dirname(location), `.${basename(location)}.${uuid()}.tmp`);
+    try {
+      await zip.writeZipPromise(staged);
+      openLinkaZip(staged);
+      await rename(staged, location);
+    } finally {
+      await rm(staged, { force: true });
+    }
   }
 
   async moveSet(file: string, location: string) {
@@ -399,15 +407,13 @@ export class CardsStorage extends ICloudStorage {
         }
       }
     }
-    const zip = openLinkaZip(path);
-    const entries = zip.getEntries();
-    for (const entry of entries) {
-      if (!paths.includes(entry.name)) {
-        zip.deleteFile(entry);
-      }
+    const source = openLinkaZip(path);
+    const zip = new AdmZip();
+    for (const entry of source.getEntries()) {
+      if (paths.includes(entry.entryName)) zip.addFile(entry.entryName, entry.getData());
     }
 
-    return zip.writeZipPromise(path);
+    return zip;
   }
 
   private async addFile(path: string, file: string) {
