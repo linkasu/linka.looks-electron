@@ -5,9 +5,14 @@ const os = require("node:os");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { spawnSync } = require("node:child_process");
+const { architecture } = require("./verify-predictor-resources.cjs");
 
 const script = path.join(__dirname, "verify-predictor-resources.cjs");
 const hash = (data) => createHash("sha256").update(data).digest("hex");
+const hostWindows = process.platform === "win32";
+const defaultPlatform = hostWindows ? "win32" : "darwin";
+const defaultArch = hostWindows ? "x64" : "arm64";
+const defaultExecutable = hostWindows ? "lp-electron.exe" : "lp-electron";
 
 function binary(platform, arch) {
   const data = Buffer.alloc(512);
@@ -27,7 +32,7 @@ function binary(platform, arch) {
   return data;
 }
 
-function fixture(t, platform = "darwin", arch = "arm64") {
+function fixture(t, platform = defaultPlatform, arch = defaultArch) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "predictor-gate-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const resources = path.join(root, "Resources");
@@ -63,16 +68,35 @@ function fails(result, message) {
   assert.match(result.stderr, message);
 }
 
+function approved(f, platform, arch) {
+  architecture(f.executable, platform, arch);
+  const result = f.check();
+  if (hostWindows && platform === "darwin") fails(result, /missing macOS executable bit/i);
+  else assert.equal(result.status, 0, result.stderr);
+}
+
+function invalidArchitecture(f, platform, arch, message) {
+  assert.throws(() => architecture(f.executable, platform, arch), message);
+  fails(f.check(), hostWindows && platform === "darwin" ? /executable bit/i : message);
+}
+
 for (const [platform, arch] of [
   ["win32", "x64"],
   ["darwin", "arm64"],
   ["darwin", "x64"]
 ]) {
-  test(`approved synthetic ${platform}-${arch} fixture passes static contract only`, (t) => {
-    const result = fixture(t, platform, arch).check();
-    assert.equal(result.status, 0, result.stderr);
+  const capability =
+    hostWindows && platform === "darwin"
+      ? "has valid architecture but host cannot verify macOS executable permissions"
+      : "passes static contract only";
+  test(`approved synthetic ${platform}-${arch} fixture ${capability}`, (t) => {
+    approved(fixture(t, platform, arch), platform, arch);
   });
 }
+
+test("default host fixture passes before negative-control mutations", (t) => {
+  assert.equal(fixture(t).check().status, 0);
+});
 
 test("missing external approval fails closed", (t) => {
   const f = fixture(t);
@@ -121,10 +145,10 @@ test("packaged approval is not a trusted external manifest", (t) => {
   const f = fixture(t);
   const packagedApproval = path.join(f.resources, "predictor-approval.json");
   fs.copyFileSync(f.approval, packagedApproval);
-  fails(f.run(f.resources, "darwin", "arm64", packagedApproval), /outside/i);
+  fails(f.run(f.resources, defaultPlatform, defaultArch, packagedApproval), /outside/i);
 });
 
-for (const name of ["lp-electron", "model.lpk", "LICENSE", "MODEL_NOTICE.md"]) {
+for (const name of [defaultExecutable, "model.lpk", "LICENSE", "MODEL_NOTICE.md"]) {
   for (const problem of ["missing", "empty", "directory"]) {
     test(`${name}: ${problem} fails`, (t) => {
       const f = fixture(t);
@@ -161,13 +185,13 @@ for (const platform of ["darwin", "win32"]) {
     const f = fixture(t, platform, "x64");
     fs.writeFileSync(f.executable, binary(platform, "arm64"));
     f.approve();
-    fails(f.check(), /architecture/i);
+    invalidArchitecture(f, platform, "x64", /architecture/i);
   });
   test(`${platform} invalid executable header fails even when approved`, (t) => {
     const f = fixture(t, platform, "x64");
     fs.writeFileSync(f.executable, "not an executable");
     f.approve();
-    fails(f.check(), /header/i);
+    invalidArchitecture(f, platform, "x64", /header/i);
   });
 }
 
@@ -203,42 +227,42 @@ function universal(wide = false, little = false) {
 for (const arch of ["arm64", "x64"]) {
   for (const wide of [false, true]) {
     for (const little of [false, true]) {
-      test(`approved universal Mach-O includes ${arch}, fat64=${wide}, little=${little}`, (t) => {
+      const capability = hostWindows ? "; host cannot verify macOS executable permissions" : "";
+      test(`approved universal Mach-O includes ${arch}, fat64=${wide}, little=${little}${capability}`, (t) => {
         const f = fixture(t, "darwin", arch);
         fs.writeFileSync(f.executable, universal(wide, little));
         f.approve();
-        const result = f.check();
-        assert.equal(result.status, 0, result.stderr);
+        approved(f, "darwin", arch);
       });
     }
   }
 }
 
 test("universal without requested architecture fails", (t) => {
-  const f = fixture(t);
+  const f = fixture(t, "darwin", "arm64");
   const data = universal();
   data.writeUInt32BE(1, 4);
   fs.writeFileSync(f.executable, data);
   f.approve();
-  fails(f.check(), /architecture/i);
+  invalidArchitecture(f, "darwin", "arm64", /architecture/i);
 });
 
 test("universal slice declaration cannot hide a different architecture", (t) => {
-  const f = fixture(t);
+  const f = fixture(t, "darwin", "arm64");
   const data = universal();
   binary("darwin", "x64").copy(data, 1024);
   fs.writeFileSync(f.executable, data);
   f.approve();
-  fails(f.check(), /architecture/i);
+  invalidArchitecture(f, "darwin", "arm64", /architecture/i);
 });
 
 test("universal slice outside file fails", (t) => {
-  const f = fixture(t);
+  const f = fixture(t, "darwin", "arm64");
   const data = universal();
   data.writeUInt32BE(100000, 36);
   fs.writeFileSync(f.executable, data);
   f.approve();
-  fails(f.check(), /header/i);
+  invalidArchitecture(f, "darwin", "arm64", /header/i);
 });
 
 test("target is mandatory and not inferred from host architecture", (t) => {
