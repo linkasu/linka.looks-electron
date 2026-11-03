@@ -53,8 +53,28 @@ jobs:
         run: npm run typecheck
       - name: Unused code and dependencies
         run: npm run knip
+      - name: Checkout pinned predictor source (test resources only)
+        uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.predictor-rust
+          ref: a83c727b4497471740b4ee31ad0ba0a46ea39633
+          path: predictor-resources/source
+          persist-credentials: false
+      - name: Build real predictor and stage the synthetic CC0 model
+        timeout-minutes: 10
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          cargo +1.98.0 build --locked --release --manifest-path predictor-resources/source/Cargo.toml -p predictor-cli --bin lp-electron
+          install -m 755 predictor-resources/source/target/release/lp-electron predictor-resources/lp-electron
+          cp predictor-resources/source/artifacts/tiny/runtime-v1.lpk predictor-resources/model.lpk
       - name: Unit tests
         run: npm run test:unit
+      - name: Install browser for standalone keyboard tests
+        run: npx playwright install --with-deps chrome
+      - name: Standalone keyboard demo and caret tests
+        run: |
+          npx playwright test --config=playwright.keyboard-prototype.config.ts
+          npx playwright test --config=playwright.caret.config.ts
       - name: Candidate builder password separation and hook fixtures (no signing)
         env:
           CANDIDATE_BUILDER: "1"

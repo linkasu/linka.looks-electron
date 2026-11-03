@@ -45,6 +45,12 @@ failures above used a shared stale `node_modules`: updater 6.8.3 / runtime 9.5.1
 builder 26.8.1, versus lockfile 6.8.9 / 9.7.0 / 26.16.1. Runtime 9.7.0 already
 contains the credential-redirect fix; clean CI installs from the lockfile.
 
+`Checks` builds the real test sidecar from the same pinned upstream commit using
+Rust 1.98.0 and stages its synthetic CC0 tiny model before unit tests. These
+resources exist only in that test job, never in the release-build jobs. Standalone
+keyboard/caret browser suites run there with their dedicated Playwright/Vite
+configs; the default Electron suite does not mix those incompatible entry points.
+
 ## Historical isolated-window integration
 
 The following records the previous local integration, which was **not
