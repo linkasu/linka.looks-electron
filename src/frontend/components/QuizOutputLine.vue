@@ -4,20 +4,22 @@
       <gaze-pause-button :disabled="startDialog || endDialog" />
       <eye-button
         aria-label="Послушать вопрос"
-        :disabled="startDialog || endDialog"
-        @click="sayQuestion"
+        :disabled="startDialog || endDialog || questionBusy"
+        @click="sayQuestion(true)"
       >
         <v-icon>mdi-account-voice</v-icon>
         <span class="button-label">Послушать</span>
       </eye-button>
       <div class="question-block">
         <h1>{{ question }}</h1>
-        <p class="answer-feedback" role="status" aria-live="polite">{{ feedback }}</p>
+        <p class="answer-feedback" role="status" aria-live="polite">
+          {{ feedback }} {{ questionError }}
+        </p>
         <div class="attempts" :aria-label="`Ошибок: ${errors}`">Ошибок: {{ errors }}</div>
       </div>
       <eye-button
         :color="waitingForNext ? 'primary' : 'accent'"
-        :disabled="!waitingForNext || startDialog || endDialog"
+        :disabled="!waitingForNext || busy || startDialog || endDialog"
         @click="emit('next')"
       >
         <span v-if="!waitingForNext" class="next-hint">Выберите ответ</span>
@@ -28,7 +30,7 @@
       </eye-button>
     </v-layout>
     <v-layout row justify-center style="position: absolute">
-      <v-dialog v-model="endDialog">
+      <v-dialog v-model="endDialog" @update:model-value="!$event && finishQuiz()">
         <v-card>
           <v-card-title>
             <span class="headline">Викторина завершена</span>
@@ -72,6 +74,7 @@ interface IQuizOutputLineProps {
   errors: number;
   waitingForNext: boolean;
   feedback?: string;
+  busy?: boolean;
 }
 
 const props = defineProps<IQuizOutputLineProps>();
@@ -85,6 +88,9 @@ const route = useRoute();
 
 const startDialog = ref(true);
 const endDialog = ref(false);
+const questionBusy = ref(false);
+const questionError = ref("");
+let questionRevision = 0;
 
 watch([startDialog, endDialog], ([start, end]) => emit("dialog", start || end), {
   immediate: true
@@ -114,10 +120,20 @@ const end = computed(() => {
   return props.page >= (props.config.pages?.length ?? 0);
 });
 
-async function sayQuestion() {
+async function sayQuestion(manual = false) {
   const text = question.value;
-  if (!text) return;
-  await TTS.instance.forcePlayText(text);
+  if (!text || (manual && questionBusy.value)) return;
+  const revision = ++questionRevision;
+  questionBusy.value = true;
+  questionError.value = "";
+  try {
+    await TTS.instance.forcePlayText(text);
+  } catch {
+    if (revision === questionRevision)
+      questionError.value = "Озвучка недоступна. Попробуйте ещё раз";
+  } finally {
+    if (revision === questionRevision) questionBusy.value = false;
+  }
 }
 
 async function finishQuiz() {
@@ -127,14 +143,16 @@ async function finishQuiz() {
   await router.push(file.includes(":") ? "/" : "/" + file.split("§").slice(0, -1).join("§"));
 }
 
-watch(startDialog, async (v) => {
+watch(startDialog, async (v, _, onCleanup) => {
+  let active = true;
+  onCleanup(() => (active = false));
   if (v) {
     TTS.instance
       .forcePlayText("Этот набор викторина! Вам будут предложены вопросы, выбирайте ответы")
       .catch(console.error);
   } else {
     await TTS.instance.forcePlayText("Начинаем викторину").catch(console.error);
-    if (props.config.quizReadQuestion) {
+    if (active && props.config.quizReadQuestion) {
       await sayQuestion();
     }
   }

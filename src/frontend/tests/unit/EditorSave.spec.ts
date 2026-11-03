@@ -4,6 +4,8 @@ import { ref } from "vue";
 import EditorAppbar from "@/frontend/views/EditorView.appbar.vue";
 import SaveButton from "@/frontend/components/EditorView/SaveButton.vue";
 import ExitButton from "@/frontend/components/EditorView/ExitButton.vue";
+import { ipcRenderer } from "electron";
+import { ICloudStorage } from "@/common/abstract";
 
 const router = vi.hoisted(() => ({ back: vi.fn(), push: vi.fn() }));
 vi.mock("vue-router", () => ({ useRouter: () => router }));
@@ -38,7 +40,7 @@ const stubs = {
 };
 
 function mountAppbar(save = vi.fn().mockResolvedValue(undefined), dirty = false) {
-  const saveAs = vi.fn().mockResolvedValue("folder§copy.linka");
+  const saveAs = vi.fn().mockResolvedValue({ current: "folder§copy.linka", hasChanges: false });
   const hasChanges = ref(dirty);
   const store = createStore({
     state: { ui: { disabled: false }, editor: { current: "folder§set.linka", temp: "temp.linka" } },
@@ -49,7 +51,10 @@ function mountAppbar(save = vi.fn().mockResolvedValue(undefined), dirty = false)
   return { wrapper, store, save, saveAs, hasChanges };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(ipcRenderer.invoke).mockResolvedValue("set копия 2.linka");
+});
 
 describe("Editor save commands", () => {
   it("saves repeatedly without navigating or changing current/temp paths", async () => {
@@ -104,12 +109,19 @@ describe("Editor save commands", () => {
     vi.restoreAllMocks();
   });
 
-  it("validates copy names and preserves the existing copy-and-exit contract", async () => {
-    const { wrapper, saveAs } = mountAppbar();
+  it("offers a separate copy name and navigates using the copied snapshot, not original dirty state", async () => {
+    const { wrapper, saveAs } = mountAppbar(undefined, true);
     await wrapper
       .findAll("button")
       .find((button) => button.text() === "Сохранить копию")!
       .trigger("click");
+    await flushPromises();
+    expect(wrapper.get("input").element.value).toBe("set копия 2");
+    expect(ICloudStorage.getMethods()).toContain("getSuggestedCopyName");
+    expect(ipcRenderer.invoke).toHaveBeenCalledWith(
+      "storage:getSuggestedCopyName",
+      "folder§set.linka"
+    );
     await wrapper.get("input").setValue("../invalid");
     await wrapper
       .findAll("button")
@@ -143,12 +155,123 @@ describe("Editor save commands", () => {
     expect(wrapper.emitted("exit")).toHaveLength(1);
   });
 
+  it("does not overwrite a manually entered name when the suggestion arrives", async () => {
+    let finish!: (name: string) => void;
+    vi.mocked(ipcRenderer.invoke).mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { wrapper, saveAs } = mountAppbar();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Сохранить копию")!
+      .trigger("click");
+    const saveCopy = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Сохранить копию и выйти")!;
+    expect(saveCopy.attributes("disabled")).toBeDefined();
+    await wrapper.get("input").setValue("my copy");
+    finish("set копия 2.linka");
+    await flushPromises();
+    expect(wrapper.get("input").element.value).toBe("my copy");
+    await saveCopy.trigger("click");
+    await flushPromises();
+    expect(saveAs.mock.calls[0][1]).toBe("my copy.linka");
+  });
+
+  it("ignores suggestions from a previous set and from a closed dialog", async () => {
+    let finish!: (name: string) => void;
+    vi.mocked(ipcRenderer.invoke).mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { wrapper, store } = mountAppbar();
+    const open = () =>
+      wrapper
+        .findAll("button")
+        .find((button) => button.text() === "Сохранить копию")!
+        .trigger("click");
+    await open();
+    store.state.editor.current = "another§set.linka";
+    await flushPromises();
+    finish("old копия.linka");
+    await flushPromises();
+    expect(wrapper.get("input").element.value).toBe("set копия 2");
+    expect(ipcRenderer.invoke).toHaveBeenLastCalledWith(
+      "storage:getSuggestedCopyName",
+      "another§set.linka"
+    );
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Продолжить редактирование")!
+      .trigger("click");
+    vi.mocked(ipcRenderer.invoke).mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    await open();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Продолжить редактирование")!
+      .trigger("click");
+    finish("closed копия.linka");
+    await flushPromises();
+    await open();
+    await flushPromises();
+    expect(wrapper.get("input").element.value).toBe("set копия 2");
+  });
+
+  it("reports suggestion errors and retries without saving or changing a manual name", async () => {
+    vi.mocked(ipcRenderer.invoke).mockRejectedValueOnce(new Error("unreadable folder"));
+    const { wrapper, saveAs } = mountAppbar();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Сохранить копию")!
+      .trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[role='alert']").text()).toContain("Не удалось предложить имя копии");
+    const saveCopy = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Сохранить копию и выйти")!;
+    expect(saveCopy.attributes("disabled")).toBeDefined();
+    expect(saveAs).not.toHaveBeenCalled();
+    await wrapper.get("input").setValue("manual");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Повторить")!
+      .trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[role='alert']").exists()).toBe(false);
+    expect(wrapper.get("input").element.value).toBe("manual");
+    await saveCopy.trigger("click");
+    await flushPromises();
+    expect(saveAs.mock.calls[0][1]).toBe("manual.linka");
+  });
+
+  it("reports a refused copy without navigating, changing paths or clearing original dirty state", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { wrapper, saveAs, store, hasChanges } = mountAppbar(undefined, true);
+    saveAs.mockRejectedValueOnce(new Error("EEXIST"));
+    wrapper.getComponent(SaveButton).vm.$emit("saveAs", "set.linka");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Не удалось сохранить набор");
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(hasChanges.value).toBe(true);
+    expect(store.state.editor).toEqual({ current: "folder§set.linka", temp: "temp.linka" });
+    expect(wrapper.getComponent(SaveButton).props("disabled")).toBe(false);
+    errorLog.mockRestore();
+  });
+
   for (const command of ["saveAndExit", "saveAs"] as const) {
     it(`${command} keeps newer edits in the editor with a visible notice`, async () => {
       let finish!: () => void;
       const { wrapper, store, save, saveAs, hasChanges } = mountAppbar();
-      const pending = new Promise<string>((resolve) => {
-        finish = () => resolve("folder§copy.linka");
+      const pending = new Promise<unknown>((resolve) => {
+        finish = () => resolve({ current: "folder§copy.linka", hasChanges: true });
       });
       (command === "saveAs" ? saveAs : save).mockReturnValueOnce(pending);
       if (command === "saveAs") wrapper.getComponent(SaveButton).vm.$emit(command, "copy.linka");

@@ -9,5 +9,9 @@ playwright-report
 packaged-results
 packaged-report
 
+# Generated evidence/toolchains and fetched predictor test resources
+release-evidence
+predictor-resources
+
 # Lockfile is owned by npm
 package-lock.json

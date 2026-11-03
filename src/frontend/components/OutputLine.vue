@@ -19,6 +19,9 @@
       <div class="speak-control">
         <v-icon :color="isPlaying ? 'success' : ''">mdi-account-voice</v-icon>
         <span>{{ isPlaying ? "Говорю…" : "Произнести" }}</span>
+        <span v-if="speechError" role="alert"
+          >Не удалось произнести сообщение. Попробуйте ещё раз.</span
+        >
       </div>
       <div ref="outputTextRef" class="output-text">
         <div v-if="withoutSpace" class="text">{{ text }}<span class="cursor">|</span></div>
@@ -74,6 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const isPlaying = ref(false);
+const speechError = ref(false);
 const clearedCards = ref<Card[]>([]);
 const canRestore = computed(() => props.cards.length === 0 && clearedCards.value.length > 0);
 const outputTextRef: Ref<Element | null> = ref(null);
@@ -143,10 +147,13 @@ function backspace() {
 async function say() {
   if (isPlaying.value) return;
   isPlaying.value = true;
+  speechError.value = false;
   try {
     if (props.config?.withoutSpace) {
       if (text.value) await TTS.instance.playText(text.value);
     } else await TTS.instance.playCards(props.file, props.cards);
+  } catch {
+    speechError.value = true;
   } finally {
     isPlaying.value = false;
   }

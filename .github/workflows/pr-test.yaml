@@ -1,5 +1,7 @@
 name: Electron test
 
+# 4.x is Windows x64 unsigned CI only. macOS 3.3.1 remains a frozen compatibility asset.
+
 on:
   pull_request:
     types: [opened, reopened, edited, synchronize]
@@ -25,6 +27,8 @@ jobs:
     # node-gyp 11 supports VS2022, not windows-latest's VS2026 image.
     runs-on: windows-2022
     timeout-minutes: 25
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,7 +58,9 @@ jobs:
           npm rebuild pictures.bank-api esbuild electron
           node scripts/ci/provision-eyelog.cjs
       - name: Build unpacked app for packaged resource smoke test
-        run: npm run electron:build -- --dir -p never
+        run: npm run electron:build -- --win --x64 --dir -p never
+      - name: Verify approved packaged Windows predictor (not hardware qualification)
+        run: node scripts/ci/verify-predictor-resources.cjs dist/win-unpacked/resources win32 x64 build/predictor-approval.json
       - name: Packaged resource smoke test
         id: packaged
         run: npm run test:packaged-resources
@@ -85,66 +91,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-text-images
-          path: test-results/
-
-  build-macos:
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, arm64]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: "npm"
-
-      - name: Cache Electron downloads
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-            ~\AppData\Local\electron\Cache
-            ~\AppData\Local\electron-builder\Cache
-          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-electron-
-
-      - name: Install deps
-        run: |
-          npm ci --ignore-scripts
-          npm rebuild pictures.bank-api esbuild electron
-          node scripts/ci/provision-eyelog.cjs
-      - name: Build unpacked app for packaged resource smoke test
-        run: npm run electron:build -- --mac --${{ matrix.arch }} --dir -p never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-      - name: Load native modules with the target Electron (no hardware access)
-        shell: bash
-        env:
-          ELECTRON_RUN_AS_NODE: "1"
-        run: |
-          electron="dist/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/LINKa. смотри.app/Contents/MacOS/LINKa. смотри"
-          "$electron" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
-          "$electron" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function"); console.log("USB native load passed; no devices queried");'
-      - name: Packaged resource smoke test
-        run: npm run test:packaged-resources
-      - name: Text image editor smoke test
-        run: npx playwright test tests/e2e/text-images.spec.ts --trace retain-on-failure
-      - name: Candidate builder build-once hooks (synthetic signing only)
-        env:
-          CANDIDATE_BUILDER: "1"
-          MACOS_BUILDER_INTEGRATION: ${{ github.workspace }}/node_modules/electron/dist
-        run: node --test scripts/ci/macos-single-build.test.cjs
-      - name: Production text image generation smoke test
-        run: node scripts/ci/run-text-image-smoke.mjs
-      - name: Upload text image screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-${{ matrix.arch }}-text-images
           path: test-results/

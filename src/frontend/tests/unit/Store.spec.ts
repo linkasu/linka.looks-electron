@@ -221,10 +221,62 @@ describe("store", () => {
     store.commit("editor_current", "folder§old.linka");
     store.commit("editor_temp", "tmp.linka");
 
-    const nextPath = await store.dispatch("editor_save_as", "new.linka");
+    store.commit("editor_description", "copy content");
+    const baseline = store.state.editor.cleanSnapshot;
+    const result = await store.dispatch("editor_save_as", "new.linka");
 
-    expect(nextPath).to.equal("folder§new.linka");
+    expect(result).to.deep.equal({ current: "folder§new.linka", hasChanges: false });
     expect(storage.saveSet.mock.calls[0][1]).to.equal("folder§new.linka");
+    expect(storage.saveSet.mock.calls[0][3]).to.equal(true);
+    expect(store.state.editor.cleanSnapshot).to.equal(baseline);
+    expect(store.getters.editor_hasChanges).to.equal(true);
+    expect(store.state.editor.current).to.equal("folder§old.linka");
+    expect(store.state.editor.temp).to.equal("tmp.linka");
+  });
+
+  it("passes create-only across the existing IPC save path and defaults ordinary saves to overwrite", async () => {
+    const { storageService: bridge } = await vi.importActual<
+      typeof import("@/frontend/services/card-storage-service")
+    >("@/frontend/services/card-storage-service");
+    const config = { version: CURRENT_SET_VERSION, withoutSpace: false, pages: [] };
+    for (const createOnly of [true, undefined]) {
+      await bridge.saveSet("tmp.linka", "copy.linka", config, createOnly);
+      expect(vi.mocked(ipcRenderer.invoke).mock.calls.at(-1)).to.deep.equal([
+        "storage:saveSet",
+        "tmp.linka",
+        "copy.linka",
+        config,
+        createOnly ?? false
+      ]);
+    }
+  });
+
+  it("refuses the original name even before a new original file has been saved", async () => {
+    store.commit("editor_current", "folder§new.linka");
+    store.commit("editor_temp", "tmp.linka");
+    const baseline = store.state.editor.cleanSnapshot;
+    store.commit("editor_description", "unsaved notes");
+    const failure = await store.dispatch("editor_save_as", "new.linka").catch((error) => error);
+    expect(failure).to.be.instanceOf(Error);
+    expect(storage.saveSet.mock.calls).to.have.length(0);
+    expect(store.state.editor.cleanSnapshot).to.equal(baseline);
+    expect(store.getters.editor_hasChanges).to.equal(true);
+  });
+
+  it("detects edits relative to the copy even when they restore the original clean baseline", async () => {
+    const baseline = store.state.editor.cleanSnapshot;
+    store.commit("editor_description", "copy notes");
+    let finish!: () => void;
+    storage.saveSet.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finish = resolve))
+    );
+    const saving = store.dispatch("editor_save_as", "copy.linka");
+    store.commit("editor_description", undefined);
+    finish();
+    const result = await saving;
+    expect(result.hasChanges).to.equal(true);
+    expect(store.state.editor.cleanSnapshot).to.equal(baseline);
+    expect(store.getters.editor_hasChanges).to.equal(false);
   });
 
   it("copies current editor page with renewed ids", async () => {
@@ -312,11 +364,12 @@ describe("store", () => {
       store.commit("editor_description", "new notes");
       store.state.editor.pages[0].cards[0].title = "new title";
       finish();
-      await saving;
+      const result = await saving;
+      if (action === "editor_save_as") expect(result.hasChanges).to.equal(true);
       expect(store.getters.editor_hasChanges).to.equal(true);
       store.commit("editor_description", "saved notes");
       store.state.editor.pages[0].cards[0].title = "saved title";
-      expect(store.getters.editor_hasChanges).to.equal(false);
+      expect(store.getters.editor_hasChanges).to.equal(action === "editor_save_as");
     });
 
     it(`${action} leaves failed saves dirty and allows a successful retry`, async () => {
@@ -326,7 +379,7 @@ describe("store", () => {
       expect(await store.dispatch(action, "copy.linka").catch((reason) => reason)).to.equal(error);
       expect(store.getters.editor_hasChanges).to.equal(true);
       await store.dispatch(action, "copy.linka");
-      expect(store.getters.editor_hasChanges).to.equal(false);
+      expect(store.getters.editor_hasChanges).to.equal(action === "editor_save_as");
     });
   }
 
@@ -375,7 +428,7 @@ describe("store", () => {
 
       expect(store.getters.editor_hasChanges).to.equal(true);
       store.commit("editor_description", "saved notes");
-      expect(store.getters.editor_hasChanges).to.equal(false);
+      expect(store.getters.editor_hasChanges).to.equal(action === "editor_save_as");
     });
 
     it(`${action} does not mark failed saves clean`, async () => {

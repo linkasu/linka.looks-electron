@@ -180,6 +180,7 @@ const route = useRoute();
 const files: Ref<Directory> = ref([]);
 const loading = ref(true);
 const loadError = ref(false);
+let loadRequest = 0;
 const mroot = computed(() => route.params.path.toString());
 const contextMenuOpen = ref(false);
 const contextMenuX = ref(0);
@@ -220,19 +221,20 @@ function back() {
 }
 
 async function loadSets() {
+  const request = ++loadRequest;
   const folder = mroot.value;
   loading.value = true;
   loadError.value = false;
   files.value = [];
   try {
     const newFiles = await storageService.getFiles(folder);
-    if (folder !== mroot.value) return;
+    if (request !== loadRequest || folder !== mroot.value) return;
     if (!newFiles) throw new Error("Folder unavailable");
     files.value = newFiles;
   } catch {
-    if (folder === mroot.value) loadError.value = true;
+    if (request === loadRequest && folder === mroot.value) loadError.value = true;
   } finally {
-    if (folder === mroot.value) loading.value = false;
+    if (request === loadRequest && folder === mroot.value) loading.value = false;
   }
 }
 

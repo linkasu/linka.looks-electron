@@ -26,6 +26,97 @@ vi.mock("original-fs", async () => {
 });
 
 describe("CardsStorage", () => {
+  it("suggests a free copy basename across corrupt archives, directories, links and case collisions without writes", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const folder = join(home, "folder");
+    mkdirSync(folder);
+    writeLinka(join(folder, "set.linka"), baseConfig());
+    writeFileSync(join(folder, "set копия.linka"), "invalid zip");
+    mkdirSync(join(folder, "set копия 2.linka"));
+    symlinkSync(join(folder, "missing"), join(folder, "set копия 3.linka"));
+    writeFileSync(join(folder, "SET КОПИЯ 4.LINKA"), "occupied");
+    const before = readdirSync(folder);
+    expect(await storage.getSuggestedCopyName("folder§set.linka")).to.equal("set копия 5.linka");
+    expect(await storage.getSuggestedCopyName("folder§set.linka")).to.equal("set копия 5.linka");
+    expect(await storage.getSuggestedCopyName("folder§new.linka")).to.equal("new копия.linka");
+    expect(readdirSync(folder)).to.deep.equal(before);
+    const original = readFileSync(join(folder, "set.linka"));
+    const suggested = join(folder, "set копия 5.linka");
+    writeFileSync(suggested, "arrived after query");
+    await expectRejected(storage.saveSet(join(folder, "set.linka"), suggested, baseConfig(), true));
+    expect(readFileSync(suggested, "utf8")).to.equal("arrived after query");
+    expect(readFileSync(join(folder, "set.linka"))).to.deep.equal(original);
+  });
+
+  it("refuses copy-name queries outside storage, through escaping directory links or with invalid names", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const outside = createHomeDir();
+    symlinkSync(outside, join(home, "escape"), "junction");
+    for (const path of [
+      join(outside, "set.linka"),
+      "../set.linka",
+      "escape§set.linka",
+      "CON.linka",
+      "bad?.linka",
+      "folder§set.txt"
+    ]) {
+      await expectRejected(storage.getSuggestedCopyName(path));
+    }
+    const temp = await storage.defaultToTemp("new.linka");
+    tmpFiles.push(temp);
+    await expectRejected(storage.getSuggestedCopyName(temp));
+  });
+
+  it("refuses create-only saves over existing files including the original without changing bytes", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "target.linka");
+    writeLinka(source, baseConfig(), { "unused.mp3": Buffer.from("historical audio") });
+    writeLinka(target, { ...baseConfig(), description: "existing" });
+    const original = readFileSync(source);
+    const existing = readFileSync(target);
+    for (const destination of [source, target]) {
+      await expectRejected(storage.saveSet(source, destination, baseConfig(), true));
+      expect(readFileSync(source)).to.deep.equal(original);
+      expect(readFileSync(target)).to.deep.equal(existing);
+    }
+    expect(readdirSync(home).some((name) => name.endsWith(".tmp"))).to.equal(false);
+  });
+
+  it("publishes exactly one complete copy under concurrent create-only saves and keeps all source media", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const source = join(home, "source.linka");
+    const target = join(home, "copy.linka");
+    const config = baseConfig();
+    config.pages![0].cards[0].imagePath = "image.png";
+    config.pages![0].cards[0].audioPath = "voice.mp3";
+    writeLinka(source, config, {
+      "image.png": Buffer.from("image bytes"),
+      "voice.mp3": Buffer.from("audio bytes"),
+      "unused.mp3": Buffer.from("historical audio")
+    });
+    const original = readFileSync(source);
+    const results = await Promise.allSettled(
+      ["first", "second"].map((description) =>
+        storage.saveSet(source, target, { ...config, description }, true)
+      )
+    );
+    expect(results.filter((result) => result.status === "fulfilled")).to.have.length(1);
+    expect(results.filter((result) => result.status === "rejected")).to.have.length(1);
+    const winner = results.findIndex((result) => result.status === "fulfilled");
+    expect(readConfig(target).description).to.equal(["first", "second"][winner]);
+    const zip = new AdmZip(target);
+    expect(zip.readAsText("image.png")).to.equal("image bytes");
+    expect(zip.readAsText("voice.mp3")).to.equal("audio bytes");
+    expect(zip.getEntry("unused.mp3")).to.equal(null);
+    expect(readFileSync(source)).to.deep.equal(original);
+    expect(readdirSync(home).some((name) => name.endsWith(".tmp"))).to.equal(false);
+  });
+
   it("rejects a false media size at read/import/save/merge and preserves source and destination", async () => {
     const home = createHomeDir();
     const storage = await createStorage(home);
@@ -51,6 +142,7 @@ describe("CardsStorage", () => {
     expect(() => storage.getImage(source, "asset.txt")).to.throw();
     await expectRejected(storage.importExternalSet(source));
     await expectRejected(storage.saveSet(source, target, baseConfig()));
+    await expectRejected(storage.saveSet(source, target, baseConfig(), true));
     await expectRejected(storage.mergeSets(target, source));
     expect(readFileSync(target)).to.deep.equal(before);
     expect(readFileSync(source)).to.deep.equal(data);

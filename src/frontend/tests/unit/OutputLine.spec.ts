@@ -1,5 +1,5 @@
 import chai from "chai";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 import OutputLine from "@/frontend/components/OutputLine.vue";
 import { CardType, type Card } from "@/common/interfaces/ConfigFile";
@@ -89,6 +89,66 @@ describe("OutputLine", () => {
     expect((store.dispatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).to.equal(
       "button_enabled"
     );
+  });
+
+  it.each([false, true])(
+    "reports a speech failure and allows retry (withoutSpace=%s)",
+    async (withoutSpace) => {
+      const play = withoutSpace ? playText : playCards;
+      play.mockRejectedValueOnce(new Error("offline"));
+      const cards = [audioCard("hello")];
+      const wrapper = mountOutputLine({ cards, withoutSpace });
+      const unhandled = vi.fn();
+      wrapper.vm.$.appContext.config.errorHandler = unhandled;
+      await wrapper.get('[aria-label="Произнести сообщение"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.get('[role="alert"]').text()).to.contain("Не удалось произнести сообщение");
+      expect(unhandled.mock.calls).to.have.length(0);
+      expect(wrapper.emitted("value")).to.equal(undefined);
+      await wrapper.get('[aria-label="Произнести сообщение"]').trigger("click");
+      await flushPromises();
+      expect(wrapper.find('[role="alert"]').exists()).to.equal(false);
+      expect(play.mock.calls).to.have.length(2);
+    }
+  );
+
+  it("drops undo after new input and renders cards or literal text with spaces", async () => {
+    const wrapper = mountOutputLine({ cards: [audioCard("old")] });
+    expect(wrapper.get(".card-stub").text()).to.equal("old");
+    await wrapper.get('[aria-label="Очистить сообщение"]').trigger("click");
+    await wrapper.setProps({ cards: [] });
+    await wrapper.setProps({ cards: [audioCard("new")] });
+    await wrapper.setProps({ cards: [] });
+    expect(wrapper.find('[aria-label="Вернуть сообщение"]').exists()).to.equal(false);
+    await wrapper.setProps({
+      cards: [
+        audioCard("hello"),
+        { id: "space", cardType: CardType.SpaceCard },
+        audioCard("world")
+      ],
+      config: { version: "3.0", withoutSpace: true, pages: [] }
+    });
+    expect(wrapper.get(".text").text()).to.equal("hello world|");
+    expect(wrapper.find(".card-stub").exists()).to.equal(false);
+  });
+
+  it("autoscrolls new input and ignores repeated speech clicks until playback finishes", async () => {
+    const wrapper = mountOutputLine();
+    const output = wrapper.get(".output-text").element;
+    Object.defineProperty(output, "scrollWidth", { value: 750 });
+    await wrapper.setProps({ cards: [audioCard("long message")] });
+    await flushPromises();
+    expect(output.scrollLeft).to.equal(750);
+    let finish!: () => void;
+    playCards.mockImplementationOnce(() => new Promise<void>((resolve) => (finish = resolve)));
+    const speak = wrapper.get('[aria-label="Произнести сообщение"]');
+    await speak.trigger("click");
+    await speak.trigger("click");
+    expect(playCards.mock.calls).to.have.length(1);
+    expect(speak.attributes("aria-busy")).to.equal("true");
+    finish();
+    await flushPromises();
+    expect(speak.attributes("aria-busy")).to.equal("false");
   });
 });
 

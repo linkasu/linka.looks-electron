@@ -1,0 +1,126 @@
+name: Windows genuine upgrade (CI only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Successful main build-only preflight candidate run ID"
+        required: true
+        type: string
+      artifact_id:
+        description: "Exact accepted-400-windows artifact ID from that run"
+        required: true
+        type: string
+      app_sha:
+        description: "Exact accepted application SHA in main history"
+        required: true
+        type: string
+      tooling_sha:
+        description: "Exact candidate tooling SHA; must equal this workflow main revision"
+        required: true
+        type: string
+      installer_sha256:
+        description: "Trusted SHA-256 of the accepted 4.0.0 Windows x64 installer"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: windows-upgrade-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    if: github.repository == 'linkasu/linka.looks-electron' && github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      UPGRADE_RUN_ID: ${{ inputs.run_id }}
+      UPGRADE_APP_SHA: ${{ inputs.app_sha }}
+      UPGRADE_TOOLING_SHA: ${{ inputs.tooling_sha }}
+      UPGRADE_INSTALLER_SHA256: ${{ inputs.installer_sha256 }}
+    steps:
+      - name: Verify immutable candidate run and artifact before downloading executable bytes
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+        with:
+          script: |
+            const assert = require('node:assert/strict');
+            const { UPGRADE_RUN_ID: run, UPGRADE_APP_SHA: app, UPGRADE_TOOLING_SHA: tooling,
+              UPGRADE_INSTALLER_SHA256: hash, ARTIFACT_ID: artifact } = process.env;
+            assert(/^[1-9]\d*$/.test(run) && /^[1-9]\d*$/.test(artifact));
+            assert(/^[a-f0-9]{40}$/.test(app) && /^[a-f0-9]{40}$/.test(tooling));
+            assert(/^[a-f0-9]{64}$/.test(hash));
+            assert.equal(context.sha, tooling, 'workflow must be the accepted tooling revision');
+            const { data: source } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: Number(run)
+            });
+            assert.equal(String(source.id), run);
+            assert.equal(source.head_sha, tooling);
+            assert.equal(source.head_repository.full_name, 'linkasu/linka.looks-electron');
+            assert.equal(source.head_branch, 'main');
+            assert.equal(source.path, '.github/workflows/release-331-preflight.yml');
+            assert.equal(source.event, 'workflow_dispatch');
+            assert.equal(source.status, 'completed');
+            assert.equal(source.conclusion, 'success');
+            const { data: item } = await github.rest.actions.getArtifact({
+              ...context.repo, artifact_id: Number(artifact)
+            });
+            assert.equal(String(item.id), artifact);
+            assert.equal(String(item.workflow_run.id), run);
+            assert.equal(item.workflow_run.head_sha, tooling);
+            assert.equal(item.name, `accepted-400-windows-${run}`);
+            assert.equal(item.expired, false);
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Require immutable main application and tooling sources
+        shell: pwsh
+        run: |
+          $env:ACCEPTANCE_SHA = $env:UPGRADE_APP_SHA
+          node scripts/ci/validate-acceptance-target.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Application source is not trusted main history" }
+          $env:ACCEPTANCE_SHA = $env:UPGRADE_TOOLING_SHA
+          node scripts/ci/validate-acceptance-target.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Tooling source is not trusted main history" }
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ inputs.artifact_id }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: accepted
+          merge-multiple: true
+      - name: Install locked JavaScript harness only; never build or publish application
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw "Harness dependency installation failed" }
+          node --test scripts/ci/real-upgrade-contract.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw "Contract self-check failed" }
+          node scripts/ci/real-upgrade-contract.cjs accepted
+          if ($LASTEXITCODE -ne 0) { throw "Candidate bytes/provenance failed" }
+      - name: Genuine historical updater, explicit confirmation, NSIS restart and data verification
+        shell: pwsh
+        run: ./scripts/ci/real-upgrade.ps1 -CandidateDirectory accepted
+      - name: Save synthetic evidence, including failure checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upgrade-400-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: release-evidence/400/upgrade*
+      - name: Qualification limits
+        if: always()
+        shell: pwsh
+        run: |
+          "Windows x64 unsigned / disposable windows-2022 CI only. Native hardware NOT TESTED; client Windows OS qualification WAIVED. See upgrade-result.json for actual status. Historical-reader rollback probe is not an installer downgrade test." >> $env:GITHUB_STEP_SUMMARY

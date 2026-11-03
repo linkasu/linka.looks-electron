@@ -24,6 +24,7 @@
       :errors="quizErrors"
       :waiting-for-next="waitingForNext"
       :feedback="quizFeedback"
+      :busy="interactionBusy"
       @restart="restartQuiz"
       @next="advanceQuiz"
       @dialog="quizDialogOpen = $event"
@@ -122,6 +123,7 @@ const interactionBusy = ref(false);
 let interactionRevision = 0;
 let advanceTimer: ReturnType<typeof setTimeout> | undefined;
 const loadError = ref(false);
+let loadOwner: number | undefined;
 const matchErrors = ref(0);
 const matchMessage = ref("Найдите все связи между верхней и нижней строками");
 const selectedCardId = ref<string | null>(null);
@@ -200,7 +202,12 @@ watch(currentPage, resetInteractivePageState);
 watch(
   () => route.params.path,
   async (value) => {
-    if (!value) return;
+    if (!value) {
+      if (loadOwner !== undefined) store.commit("set_load_invalidate", loadOwner);
+      loadOwner = undefined;
+      filename.value = null;
+      return;
+    }
     await loadSet(value.toString());
   },
   { immediate: true }
@@ -222,6 +229,8 @@ function resetInteractivePageState() {
 }
 
 onUnmounted(() => {
+  if (loadOwner !== undefined) store.commit("set_load_invalidate", loadOwner);
+  loadOwner = undefined;
   interactionRevision++;
   clearTimeout(advanceTimer);
 });
@@ -233,21 +242,30 @@ function restartQuiz() {
 }
 
 async function loadSet(nextFilename: string) {
+  store.commit("set_load_invalidate");
+  const owner = store.state.setLoadRevision;
+  loadOwner = owner;
+  filename.value = null;
   loadError.value = false;
   store.commit("explorer_config", undefined);
   cards.value = [];
   quizErrors.value = 0;
   resetInteractivePageState();
   try {
-    await store.dispatch("open_file", nextFilename);
-    if (!store.state.explorer.config) {
+    const opened = await store.dispatch("open_file", {
+      file: nextFilename,
+      owner,
+      withEditor: true
+    });
+    if (owner !== store.state.setLoadRevision || owner !== loadOwner) return;
+    if (opened === false || !store.state.explorer.config) {
       loadError.value = true;
       return;
     }
-    await store.dispatch("editor_current", nextFilename);
     filename.value = nextFilename;
     Telemetry.product("openSet");
   } catch {
+    if (owner !== store.state.setLoadRevision || owner !== loadOwner) return;
     store.commit("explorer_config", undefined);
     loadError.value = true;
   }
@@ -267,6 +285,8 @@ function advancePage() {
 }
 
 function advanceQuiz() {
+  if (interactionBusy.value || quizDialogOpen.value || !waitingForNext.value || quizFinished.value)
+    return;
   advancePage();
 }
 

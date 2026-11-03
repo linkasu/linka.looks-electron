@@ -176,6 +176,7 @@ const burstMs = 280;
 const groupPauseMs = 120;
 let holdFrame: number | undefined;
 let settleTimer: number | undefined;
+let calibrationRevision = 0;
 
 const calibrationGroups: CalibrationPoint[][] = [
   [
@@ -231,6 +232,7 @@ const tobiiStatusAlertType = computed(() => {
 
 async function startTobiiCalibration() {
   if (calibrationBusy.value) return;
+  const revision = ++calibrationRevision;
   trackTobiiTelemetry("tobiiCalibrationStart");
   calibrationBusy.value = true;
   calibrationActive.value = true;
@@ -246,14 +248,17 @@ async function startTobiiCalibration() {
   try {
     phase.value = "start";
     await ipcRenderer.invoke("tobii:calibration:start");
+    if (revision !== calibrationRevision) return;
     phase.value = "look";
     startNextPointTimer();
   } catch (error) {
+    if (revision !== calibrationRevision) return;
     failCalibration(error);
   }
 }
 
 function cancelTobiiCalibration() {
+  calibrationRevision += 1;
   stopHoldTimer();
   stopSettleTimer();
   cancelled.value = true;
@@ -268,21 +273,25 @@ function cancelTobiiCalibration() {
 }
 
 async function applySavedCalibration() {
+  if (calibrationBusy.value) return;
+  const revision = ++calibrationRevision;
   calibrationBusy.value = true;
   calibrationError.value = "";
   trackTobiiTelemetry("tobiiCalibrationApplySaved");
   try {
     const applied = await ipcRenderer.invoke("tobii:calibration:apply-saved");
+    if (revision !== calibrationRevision) return;
     calibrationMessage.value = applied
       ? "Сохранённая калибровка применена."
       : "Сохранённая калибровка пока не найдена.";
     trackTobiiTelemetry("tobiiCalibrationApplySavedResult");
     if (applied && firstFlow.value) finishFirstFlow();
   } catch (error) {
+    if (revision !== calibrationRevision) return;
     calibrationError.value = error instanceof Error ? error.message : String(error);
     trackTobiiTelemetry("tobiiCalibrationError");
   } finally {
-    calibrationBusy.value = false;
+    if (revision === calibrationRevision) calibrationBusy.value = false;
   }
 }
 
@@ -378,6 +387,7 @@ function startNextPointTimer() {
 
 async function completePoint(index: number) {
   if (completingPoint.value) return;
+  const revision = calibrationRevision;
   completingPoint.value = true;
   stopHoldTimer();
   stopSettleTimer();
@@ -390,24 +400,26 @@ async function completePoint(index: number) {
       ipcRenderer.invoke("tobii:calibration:add-point", currentGroup.value[index]),
       wait(burstMs)
     ]);
-    if (cancelled.value) return;
+    if (revision !== calibrationRevision) return;
     setPointState(index, "done");
     trackTobiiTelemetry("tobiiCalibrationPoint");
     completingPoint.value = false;
     await continueAfterPoint();
   } catch (error) {
+    if (revision !== calibrationRevision) return;
     failCalibration(error);
   }
 }
 
 async function continueAfterPoint() {
+  const revision = calibrationRevision;
   if (!pointStates.value.every((state) => state === "done")) {
     startNextPointTimer();
     return;
   }
   if (activeGroupIndex.value < calibrationGroups.length - 1) {
     await wait(groupPauseMs);
-    if (cancelled.value) return;
+    if (revision !== calibrationRevision) return;
     activeGroupIndex.value += 1;
     resetPointStates();
     startNextPointTimer();
@@ -417,6 +429,7 @@ async function continueAfterPoint() {
   phase.value = "finish";
   try {
     await ipcRenderer.invoke("tobii:calibration:finish");
+    if (revision !== calibrationRevision) return;
     calibrationMessage.value = "Калибровка Tobii сохранена и применена.";
     trackTobiiTelemetry("tobiiCalibrationFinish");
     Telemetry.outcome({ kind: "gaze_calibration_completed", result: "completed" });
@@ -427,11 +440,14 @@ async function continueAfterPoint() {
     calibrationActive.value = false;
     phase.value = "idle";
   } catch (error) {
+    if (revision !== calibrationRevision) return;
     failCalibration(error);
     return;
   } finally {
-    calibrationBusy.value = false;
-    completingPoint.value = false;
+    if (revision === calibrationRevision) {
+      calibrationBusy.value = false;
+      completingPoint.value = false;
+    }
   }
 }
 
@@ -481,6 +497,7 @@ function skipFirstTobiiCalibration() {
 }
 
 function finishFirstFlow() {
+  calibrationRevision += 1;
   store.commit("first_calibrate", true);
   calibrationActive.value = false;
   calibrationBusy.value = false;
@@ -558,6 +575,7 @@ onMounted(() => {
   }
 });
 onBeforeUnmount(() => {
+  calibrationRevision += 1;
   stopHoldTimer();
   stopSettleTimer();
   window.removeEventListener("keydown", onKeydown);

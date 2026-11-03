@@ -4,31 +4,27 @@ const fs = require("node:fs");
 const path = require("node:path");
 const nodeCrypto = require("node:crypto");
 const childProcess = require("node:child_process");
+const macCompatibility = require("./release-artifacts-mac-compat.cjs");
 
-const VERSION = "3.3.1";
+const VERSION = "4.0.0";
 const digest = (bytes, algorithm = "sha256", encoding = "hex") =>
   nodeCrypto.createHash(algorithm).update(bytes).digest(encoding);
 function assets(platform) {
-  assert(["windows", "macos"].includes(platform), "unsupported release platform");
-  const installers =
-    platform === "windows"
-      ? [`linka.looks-${VERSION}-win-x64.exe`]
-      : ["x64", "arm64"].flatMap((arch) =>
-          ["dmg", "zip"].map((ext) => `linka.looks-${VERSION}-mac-${arch}.${ext}`)
-        );
+  assert.equal(platform, "windows", "4.0.0 releases Windows x64 only");
+  const installers = [`linka.looks-${VERSION}-win-x64.exe`];
   return {
     installers,
-    metadata: platform === "windows" ? "latest.yml" : "latest-mac.yml",
-    files: [
-      ...installers.flatMap((name) => [name, `${name}.blockmap`]),
-      platform === "windows" ? "latest.yml" : "latest-mac.yml"
-    ]
+    metadata: "latest.yml",
+    files: [...installers.flatMap((name) => [name, `${name}.blockmap`]), "latest.yml"]
   };
 }
 function verifyMetadata(directory, platform) {
   const yaml = require("node:module").createRequire(path.resolve("package.json"))("yaml");
   const expected = assets(platform);
-  for (const name of expected.files) assert(fs.statSync(path.join(directory, name)).size > 0);
+  for (const name of expected.files) {
+    const stat = fs.lstatSync(path.join(directory, name));
+    assert(stat.isFile() && stat.size > 0, "expected regular release asset");
+  }
   const metadata = yaml.parse(fs.readFileSync(path.join(directory, expected.metadata), "utf8"));
   assert.equal(metadata.version, VERSION, "updater version mismatch");
   assert(Array.isArray(metadata.files) && metadata.files.length > 0, "empty updater asset set");
@@ -62,7 +58,7 @@ function stage(platform) {
   assert.equal(inventory.app, app);
   assert.equal(inventory.tooling, tooling);
   assert.equal(inventory.builder, "26.16.1");
-  assert.equal(inventory.packaged.length, platform === "macos" ? 2 : 1);
+  assert.equal(inventory.packaged.length, 1);
   for (const bundle of inventory.packaged) {
     assert.equal(
       bundle.packages.find((pkg) => pkg.path === "package.json").license,
@@ -76,7 +72,7 @@ function stage(platform) {
       );
     }
   }
-  const names = verifyMetadata("dist", platform);
+  const names = [...verifyMetadata("dist", platform), ...macCompatibility.verify("dist")];
   fs.mkdirSync("release-ready"); // Exclusive: never combine with an earlier attempt.
   for (const name of names)
     fs.copyFileSync(path.join("dist", name), path.join("release-ready", name));
@@ -96,6 +92,7 @@ function stage(platform) {
         schema: 1,
         version: VERSION,
         platform,
+        signing: "unsigned",
         app,
         tooling,
         run,
@@ -108,7 +105,7 @@ function stage(platform) {
 }
 function verifyPromotion(directory, app, tooling, run) {
   const expectedAll = [];
-  for (const platform of ["windows", "macos"]) {
+  for (const platform of ["windows"]) {
     const provenanceName = `provenance-${platform}.json`;
     const provenance = JSON.parse(fs.readFileSync(path.join(directory, provenanceName)));
     assert.deepEqual(
@@ -122,14 +119,17 @@ function verifyPromotion(directory, app, tooling, run) {
       ],
       [1, VERSION, platform, app, tooling, run]
     );
+    assert.equal(provenance.signing, "unsigned");
     const expected = [
       ...assets(platform).files,
+      ...macCompatibility.names,
       `source-notices-${platform}-${VERSION}.tar.gz`
     ].sort();
     assert.deepEqual(provenance.files.map((file) => file.name).sort(), expected);
     for (const file of provenance.files)
       assert.deepEqual(record(directory, file.name), file, "accepted artifact bytes changed");
     verifyMetadata(directory, platform);
+    macCompatibility.verify(directory);
     expectedAll.push(...expected, provenanceName);
   }
   assert.deepEqual(

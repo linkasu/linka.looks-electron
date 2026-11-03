@@ -8,7 +8,7 @@
     <notes-button edit />
     <set-settings />
     <save-button
-      :title="title"
+      :path="path"
       :disabled="ui_disabled"
       @save="save"
       @saveAndExit="save(true)"
@@ -83,10 +83,10 @@ async function saveAs(title: string) {
   saveError.value = false;
   saveSuccess.value = false;
   try {
-    const newLink = await store.dispatch("editor_save_as", title);
-    savedWithChanges.value = hasChanges.value;
+    const result = await store.dispatch("editor_save_as", title);
+    savedWithChanges.value = result.hasChanges;
     if (savedWithChanges.value) saveSuccess.value = true;
-    else router.push("/set/" + newLink);
+    else router.push("/set/" + result.current);
   } catch (error) {
     console.error(error);
     saveError.value = true;

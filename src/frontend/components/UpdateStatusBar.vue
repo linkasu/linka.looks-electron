@@ -33,68 +33,100 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, reactive, toRefs, watch, onMounted, onUnmounted } from "vue";
+import { useStore } from "vuex";
 import { ipcRenderer } from "electron";
 import { ProgressInfo } from "electron-updater";
 import { Telemetry } from "@/frontend/utils/Telemetry";
 
-const percent = ref(0);
+const store = useStore();
+const state = reactive({ percent: 0, available: false, downloaded: false, error: "" });
+const { percent, available, downloaded, error: errorMessage } = toRefs(state);
 const version = ref("");
-const available = ref(false);
-const downloaded = ref(false);
 const installDialog = ref(false);
 const errorDialog = ref(false);
-const errorMessage = ref("");
+let pendingUpdates: Partial<typeof state> | null = {};
+let unmounted = false;
+let restartRequested = false;
 
-onMounted(async (): Promise<void> => {
-  const appVersion = await ipcRenderer.invoke("app_version");
-  version.value = appVersion.version;
+const stopModalWatch = watch(
+  () => installDialog.value || errorDialog.value,
+  (open) => {
+    store.commit("ui_gazeSuspended", { owner: "updater", suspended: open });
+  },
+  { flush: "sync" }
+);
 
-  const state = await ipcRenderer.invoke("updater:getState");
-  available.value = state.available;
-  downloaded.value = state.downloaded;
-  errorMessage.value = state.error;
-  percent.value = state.percent;
-
+onMounted((): void => {
   ipcRenderer.on("update_info", onUpdateInfo);
   ipcRenderer.on("update_available", onUpdateAvailable);
   ipcRenderer.on("update_downloaded", onUpdateDownloaded);
   ipcRenderer.on("update_error", onUpdateError);
+  void loadVersion();
+  void loadState();
 });
 
 onUnmounted((): void => {
+  unmounted = true;
+  pendingUpdates = null;
+  stopModalWatch();
+  store.commit("ui_gazeSuspended", { owner: "updater", suspended: false });
   ipcRenderer.off("update_info", onUpdateInfo);
   ipcRenderer.off("update_available", onUpdateAvailable);
   ipcRenderer.off("update_downloaded", onUpdateDownloaded);
   ipcRenderer.off("update_error", onUpdateError);
 });
 
+async function loadVersion() {
+  try {
+    const appVersion = await ipcRenderer.invoke("app_version");
+    if (!unmounted) version.value = appVersion.version;
+  } catch {
+    if (!unmounted) version.value = "неизвестна";
+  }
+}
+
+async function loadState() {
+  try {
+    const snapshot = await ipcRenderer.invoke("updater:getState");
+    if (!unmounted) Object.assign(state, snapshot, pendingUpdates);
+  } catch {
+    if (!unmounted && !Object.keys(pendingUpdates ?? {}).length) {
+      errorMessage.value = "Не удалось получить состояние обновления. Попробуйте позже.";
+    }
+  } finally {
+    pendingUpdates = null;
+  }
+}
+
+function applyLiveState(update: Partial<typeof state>) {
+  if (pendingUpdates) Object.assign(pendingUpdates, update);
+  Object.assign(state, update);
+}
+
 function onUpdateInfo(event: unknown, data: ProgressInfo) {
-  percent.value = data.percent;
+  applyLiveState({ percent: data.percent });
 }
 
 function onUpdateAvailable() {
-  available.value = true;
-  errorMessage.value = "";
+  applyLiveState({ available: true, downloaded: false, error: "" });
   trackUpdateTelemetry("updateAvailable");
 }
 
 function onUpdateDownloaded() {
-  available.value = false;
-  downloaded.value = true;
-  errorMessage.value = "";
+  applyLiveState({ available: false, downloaded: true, error: "" });
   trackUpdateTelemetry("updateDownloaded");
 }
 
 function onUpdateError(event: unknown, message: string) {
-  errorMessage.value = message;
-  available.value = false;
-  downloaded.value = false;
+  applyLiveState({ error: message, available: false, downloaded: false });
   installDialog.value = false;
   trackUpdateTelemetry("updateError");
 }
 
 function update() {
+  if (restartRequested || !downloaded.value) return;
+  restartRequested = true;
   trackUpdateTelemetry("updateInstallConfirmed");
   ipcRenderer.send("restart_app");
 }

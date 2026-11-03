@@ -42,14 +42,14 @@ test("USB runtime resources retain bindings and notices, not compiler intermedia
     assert(filter(path.join(root, name), { isDirectory: () => true }), "runtime parent omitted");
 });
 
-test("3.3.1 builds once, main-gates accepted artifact retention and never publishes", () => {
+test("4.0.0 builds once, main-gates accepted artifact retention and never publishes", () => {
   const source = fs.readFileSync(".github/workflows/release-331-preflight.yml", "utf8");
   const workflow = yaml.parse(source);
   assert.deepEqual(workflow.permissions, { contents: "read" });
   assert.equal(workflow.on.push, undefined);
   assert.equal(workflow.on.release, undefined);
   assert.match(
-    workflow.jobs["signed-macos"].if,
+    workflow.jobs["release-windows"].if,
     /workflow_dispatch.*refs\/heads\/main.*linkasu\/linka\.looks-electron/
   );
   assert.match(workflow.jobs.unsigned.if, /pull_request/);
@@ -68,10 +68,7 @@ test("3.3.1 builds once, main-gates accepted artifact retention and never publis
           assert.equal(step.with.path, "app/release-ready/");
         }
       }
-      if (JSON.stringify(step).includes("secrets.")) {
-        assert.equal(jobName, "signed-macos");
-        assert.match(step.run, /-p never/);
-      }
+      assert.doesNotMatch(JSON.stringify(step), /secrets\./);
       if (step.run?.includes("npm run electron:build")) {
         assert.match(step.run, /-p never/);
         assert.doesNotMatch(step.run, /--dir|prepackaged/);
@@ -80,28 +77,16 @@ test("3.3.1 builds once, main-gates accepted artifact retention and never publis
   }
   assert.doesNotMatch(source, /-p always|GH_TOKEN|backport-keychain|gh release|git tag/);
   for (const gate of [
-    "shasum -a 256 -c",
-    "asar-evidence.py diff",
-    "verify-macos-payload.py evidence app",
-    "codesign --verify --deep --strict",
-    "xcrun stapler validate",
-    "spctl --assess",
-    "hdiutil attach -quiet -readonly",
-    "verify-macos-payload.py bundle-equal",
-    "release-artifacts.cjs stage macos",
+    "release-artifacts-mac-compat.cjs dist",
     "release-artifacts.cjs stage windows",
     "release-source-bundle.cjs"
   ]) {
     assert(source.includes(gate), `missing strict gate: ${gate}`);
   }
   assert.equal(builderRequire("app-builder-lib/package.json").version, "26.16.1");
-  const integration = workflow.jobs.unsigned.steps.find((step) =>
-    step.run?.includes("MACOS_BUILDER_INTEGRATION=")
-  );
-  assert.match(
-    integration.run,
-    /node node_modules\/electron\/install\.js[\s\S]+MACOS_BUILDER_INTEGRATION=/
-  );
+  assert.equal(workflow.jobs.unsigned["runs-on"], "windows-2022");
+  assert.equal(workflow.jobs["signed-macos"], undefined);
+  assert.doesNotMatch(source, /--mac|notarization|CSC_LINK|APPLE_ID/);
   assert.equal(workflow.jobs["release-windows"]["runs-on"], "windows-2022");
   assert.match(source, /test "\$GITHUB_SHA" = "\$EXPECTED_TOOLING_SHA"/);
   const promotion = yaml.parse(fs.readFileSync(".github/workflows/electron.yml", "utf8"));
@@ -113,7 +98,6 @@ test("3.3.1 builds once, main-gates accepted artifact retention and never publis
   );
   for (const gate of [
     "release-artifacts.cjs verify",
-    "signed-macos",
     "release-windows",
     "--draft",
     "Release collision"
@@ -133,7 +117,7 @@ test("inventory uses actual ASAR metadata/notices and extra resources; missing a
   fs.mkdirSync(resources);
   fs.writeFileSync(
     path.join(input, "package.json"),
-    JSON.stringify({ name: "fixture", version: "3.3.1" })
+    JSON.stringify({ name: "fixture", version: "4.0.0" })
   );
   fs.writeFileSync(path.join(input, "LICENSE"), "existing notice, not a new grant");
   const dependency = path.join(input, "node_modules/@fixture/nested");
@@ -167,7 +151,18 @@ test("inventory uses actual ASAR metadata/notices and extra resources; missing a
   assert.throws(() => inspect(archive, resources, notices), /EEXIST/);
   assert(result.resources.some((item) => item.path === "vendor.dll"));
   fs.unlinkSync(path.join(input, "package.json"));
-  await asar.createPackage(input, archive);
-  asar.uncacheAll();
-  assert.throws(() => inspect(archive, resources), /metadata missing/);
+  const missingMetadataArchive = path.join(resources, "missing-app.asar");
+  await asar.createPackage(input, missingMetadataArchive);
+  assert.equal(
+    JSON.parse(
+      asar
+        .extractFile(
+          missingMetadataArchive,
+          path.join("node_modules", "@fixture", "nested", "package.json")
+        )
+        .toString("utf8")
+    ).name,
+    "nested"
+  );
+  assert.throws(() => inspect(missingMetadataArchive, resources), /metadata missing/);
 });

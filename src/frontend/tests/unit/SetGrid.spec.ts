@@ -306,6 +306,63 @@ describe("SetGrid", () => {
       "grid-column: 1 / span 2"
     );
   });
+
+  it("preserves original card indices for two-dimensional merges and clips edge spans", async () => {
+    const wrapper = mountSetGrid({
+      config: createConfig([
+        {
+          id: "merged-page",
+          mode: "standard",
+          columns: 3,
+          rows: 2,
+          cards: [
+            { id: "merged", cardType: CardType.AudioCard, width: 2, height: 2 },
+            { id: "covered-1", cardType: CardType.NewCard },
+            { id: "top-right", cardType: CardType.AudioCard },
+            { id: "covered-3", cardType: CardType.NewCard },
+            { id: "covered-4", cardType: CardType.NewCard },
+            { id: "edge", cardType: CardType.AudioCard, width: 2, height: 2 }
+          ]
+        }
+      ])
+    });
+    try {
+      expect(cardButtons(wrapper).map((button) => button.attributes("data-id"))).to.deep.equal([
+        "merged",
+        "top-right",
+        "edge"
+      ]);
+      const mergedStyle = wrapper.find('[data-id="merged"]').attributes("style");
+      expect(mergedStyle).to.contain("grid-column: 1 / span 2");
+      expect(mergedStyle).to.contain("grid-row: 1 / span 2");
+      const edge = wrapper.find('[data-id="edge"]');
+      expect(edge.attributes("style")).to.contain("grid-column: 3 / span 1");
+      expect(edge.attributes("style")).to.contain("grid-row: 2 / span 1");
+      await edge.trigger("click");
+      expect(wrapper.emitted("card")?.[0][1]).to.equal(5);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  for (const page of [-10, 10]) {
+    it(`clamps an external page index ${page} before selecting cards and storing the page`, () => {
+      const store = createVuexStore();
+      const pages = [0, 1].map((index) => ({
+        ...createConfig().pages[0],
+        id: `page-${index}`,
+        cards: [{ id: `card-${index}`, cardType: CardType.AudioCard }]
+      }));
+      const wrapper = mountSetGrid({ config: createConfig(pages), page, store });
+      try {
+        const expected = page < 0 ? 0 : 1;
+        expect(cardButtons(wrapper)[0].attributes("data-id")).to.equal(`card-${expected}`);
+        expect(store.state.explorer.page).to.equal(expected);
+      } finally {
+        wrapper.unmount();
+      }
+    });
+  }
 });
 
 function mountSetGrid({

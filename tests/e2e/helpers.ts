@@ -80,6 +80,8 @@ export async function launchTestElectron(context: E2EContext): Promise<ElectronA
     args: [
       "-r",
       resolve("scripts/ci/startup-diagnostics.cjs"),
+      "-r",
+      resolve("tests/e2e/typing-tracker-fixture.cjs"),
       `--remote-debugging-port=${testElectronRemoteDebuggingPort}`,
       "dist-electron/main.js"
     ],

@@ -4,7 +4,7 @@ import RegisterForm from "@/frontend/views/RegisterForm.vue";
 import { activationService } from "@/frontend/services/ActivationService";
 
 describe("RegisterForm", () => {
-  it("keeps code submission visible and disabled until six characters are entered", async () => {
+  it("accepts only six digits through both the button and form submission", async () => {
     vi.spyOn(activationService, "sendEmail").mockResolvedValue();
     const activate = vi.spyOn(activationService, "activate").mockResolvedValue("hash");
     const store = createStore({ state: {}, mutations: { pcHash: vi.fn() } });
@@ -39,10 +39,18 @@ describe("RegisterForm", () => {
     expect(wrapper.get("input").attributes("autocomplete")).toBe("one-time-code");
     await wrapper.get("input").setValue("12345");
     expect(submit.attributes()).toHaveProperty("disabled");
+    for (const invalid of ["abcdef", "12345a", "１２３４５６", "1234567"]) {
+      await wrapper.get("input").setValue(invalid);
+      await wrapper.get("form").trigger("submit");
+      await flushPromises();
+      expect(activate).not.toHaveBeenCalled();
+      expect(submit.attributes()).toHaveProperty("disabled");
+    }
     await wrapper.get("input").setValue("123456");
     expect(submit.attributes()).not.toHaveProperty("disabled");
     await submit.trigger("click");
     await flushPromises();
     expect(activate).toHaveBeenCalledWith("test@example.com", "123456");
+    wrapper.unmount();
   });
 });

@@ -1,7 +1,13 @@
 import { createStore } from "vuex";
 import { normalizeTypingLayout } from "@/common/typingLayout";
 
-import { LINKaStore, PageTurnMode, Side, type DwellIndicatorMode } from "./LINKaStore";
+import {
+  LINKaStore,
+  PageTurnMode,
+  Side,
+  type DwellIndicatorMode,
+  type SetLoadRequest
+} from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
 import { eStore } from "./eStore";
 import { DEFAULT_COLORS } from "@/frontend/plugins/visualDefaults";
@@ -59,6 +65,7 @@ const fields = [
 
 const store = createStore<LINKaStore>({
   state: {
+    setLoadRevision: 0,
     popupVersion: 0,
     defaultSetsDownloaded: 0,
     pcHash: "unknow",
@@ -85,6 +92,7 @@ const store = createStore<LINKaStore>({
     },
     ui: {
       gazeSuspended: false,
+      gazeSuspensions: { tools: false, updater: false },
       disabled: false,
       outputLine: true,
       exitButton: true
@@ -135,13 +143,42 @@ const store = createStore<LINKaStore>({
   },
 
   mutations: {
+    set_load_invalidate(state, owner?: number) {
+      if (owner === undefined || owner === state.setLoadRevision) state.setLoadRevision++;
+    },
+    editor_loaded(
+      state,
+      { current, temp, config }: { current: string; temp: string; config: ConfigFile }
+    ) {
+      Object.assign(state.editor, {
+        current,
+        temp,
+        pages: config.pages ?? [createEditorPage()],
+        description: config.description,
+        isWithoutSpace: !!config.withoutSpace,
+        isDirectSet: !!config.directSet,
+        quizAutoNext: config.quizAutoNext ?? true,
+        quizReadQuestion: config.quizReadQuestion ?? false,
+        page: 0
+      });
+      state.editor.cleanSnapshot = serializeEditorConfig(buildEditorConfig(state));
+    },
+    explorer_loaded(state, config: ConfigFile) {
+      state.explorer.config = config;
+      state.explorer.page = 0;
+      state.ui.outputLine = !config.directSet;
+    },
     typingLayout(state, value: unknown) {
       const layout = normalizeTypingLayout(value);
       eStore.set("typingLayout", layout);
       state.typingLayout = layout;
     },
-    ui_gazeSuspended(state, value: boolean) {
-      state.ui.gazeSuspended = value;
+    ui_gazeSuspended(
+      state,
+      { owner, suspended }: { owner: "tools" | "updater"; suspended: boolean }
+    ) {
+      state.ui.gazeSuspensions[owner] = suspended;
+      state.ui.gazeSuspended = state.ui.gazeSuspensions.tools || state.ui.gazeSuspensions.updater;
     },
     enable_ui(state) {
       state.ui.disabled = false;
@@ -365,40 +402,64 @@ const store = createStore<LINKaStore>({
       commit("layoutSettings_isOpened", !state.layoutSettings.isOpened);
     },
 
-    async editor_new_file({ state, dispatch }, file: string) {
-      file += ".linka";
-      state.editor.current = file;
-      state.editor.temp = await storageService.defaultToTemp(file);
-      await dispatch("editor_load_set");
+    async editor_new_file({ state, commit, dispatch }, file: string) {
+      commit("set_load_invalidate");
+      const owner = state.setLoadRevision;
+      const current = file + ".linka";
+      try {
+        const temp = await storageService.defaultToTemp(current);
+        if (owner !== state.setLoadRevision) return false;
+        return await dispatch("editor_load_set", { current, temp, owner });
+      } catch (error) {
+        if (owner !== state.setLoadRevision) return false;
+        throw error;
+      }
     },
 
-    async editor_current({ state, dispatch }, file: string) {
-      state.editor.current = file;
-      state.editor.temp = await storageService.copyToTemp(file);
-      await dispatch("editor_load_set");
+    async editor_current({ state, commit, dispatch }, request: SetLoadRequest) {
+      if (typeof request === "string") commit("set_load_invalidate");
+      const { file, owner } =
+        typeof request === "string" ? { file: request, owner: state.setLoadRevision } : request;
+      if (owner !== state.setLoadRevision) return false;
+      try {
+        const temp = await storageService.copyToTemp(file);
+        if (owner !== state.setLoadRevision) return false;
+        return await dispatch("editor_load_set", { current: file, temp, owner });
+      } catch (error) {
+        if (owner !== state.setLoadRevision) return false;
+        throw error;
+      }
     },
 
-    editor_current_default({ commit }) {
-      commit("editor_current", "");
-      commit("editor_temp", "");
-      commit("editor_pages", [createEditorPage()]);
-      commit("editor_page", 0);
-      commit("editor_mark_clean");
+    editor_current_default({ state, commit }) {
+      commit("set_load_invalidate");
+      commit("editor_loaded", {
+        current: "",
+        temp: "",
+        config: { ...buildEditorConfig(state), pages: [createEditorPage()] }
+      });
     },
 
-    async editor_load_set({ state, commit }) {
-      const config = await storageService.getConfigFile(state.editor.temp);
-      const normalized = normalizeConfigFile(config);
-      if (!normalized) return;
-
-      commit("editor_pages", normalized.pages ?? [createEditorPage()]);
-      commit("editor_description", normalized.description);
-      commit("editor_isWithoutSpace", !!normalized.withoutSpace);
-      commit("editor_isDirectSet", !!normalized.directSet);
-      commit("editor_quizAutoNext", normalized.quizAutoNext ?? true);
-      commit("editor_quizReadQuestion", normalized.quizReadQuestion ?? false);
-      commit("editor_page", 0);
-      commit("editor_mark_clean");
+    async editor_load_set(
+      { state, commit },
+      request?: { current: string; temp: string; owner: number }
+    ) {
+      if (!request) commit("set_load_invalidate");
+      const { current, temp, owner } = request ?? {
+        current: state.editor.current,
+        temp: state.editor.temp,
+        owner: state.setLoadRevision
+      };
+      if (owner !== state.setLoadRevision) return false;
+      try {
+        const normalized = normalizeConfigFile(await storageService.getConfigFile(temp));
+        if (owner !== state.setLoadRevision || !normalized) return false;
+        commit("editor_loaded", { current, temp, config: normalized });
+        return true;
+      } catch (error) {
+        if (owner !== state.setLoadRevision) return false;
+        throw error;
+      }
     },
 
     async editor_save({ state, commit }) {
@@ -414,21 +475,26 @@ const store = createStore<LINKaStore>({
       });
     },
 
-    async editor_save_as({ state, commit }, title) {
+    async editor_save_as({ state }, title: string) {
       const parts = state.editor.current.split("§");
       parts[parts.length - 1] = title;
       const current = parts.join("§");
+      if (current === state.editor.current) {
+        throw new Error("Название копии должно отличаться от исходного");
+      }
       const config = buildEditorConfig(state);
       const snapshot = serializeEditorConfig(config);
-      await storageService.saveSet(state.editor.temp, current, config);
-      commit("editor_mark_clean", snapshot);
+      await storageService.saveSet(state.editor.temp, current, config, true);
       Telemetry.outcome({
         kind: "set_saved",
         result: "completed",
         source: "created",
         count_bucket: countBucket(state.editor.pages)
       });
-      return current;
+      return {
+        current,
+        hasChanges: serializeEditorConfig(buildEditorConfig(state)) !== snapshot
+      };
     },
 
     editor_copy_page({ state, commit }) {
@@ -468,13 +534,24 @@ const store = createStore<LINKaStore>({
       commit("editor_page", Math.max(0, Math.min(pageIndex, pages.length - 1)));
     },
 
-    async open_file({ commit }, filename) {
-      const config = normalizeConfigFile(await storageService.getConfigFile(filename));
-      if (!config) return;
-
-      commit("explorer_config", config);
-      commit("explorer_page", 0);
-      commit("interface_outputLine", !config.directSet);
+    async open_file({ state, commit, dispatch }, request: SetLoadRequest) {
+      if (typeof request === "string") commit("set_load_invalidate");
+      const { file, owner } =
+        typeof request === "string" ? { file: request, owner: state.setLoadRevision } : request;
+      if (owner !== state.setLoadRevision) return false;
+      try {
+        const config = normalizeConfigFile(await storageService.getConfigFile(file));
+        if (owner !== state.setLoadRevision || !config) return false;
+        if (typeof request !== "string" && request.withEditor) {
+          const loaded = await dispatch("editor_current", { file, owner });
+          if (owner !== state.setLoadRevision || !loaded) return false;
+        }
+        commit("explorer_loaded", config);
+        return true;
+      } catch (error) {
+        if (owner !== state.setLoadRevision) return false;
+        throw error;
+      }
     }
   },
   plugins: [

@@ -76,8 +76,6 @@ jobs:
             revision: candidate
           - os: windows-latest
             revision: baseline
-          - os: macos-latest
-            revision: candidate
           - os: windows-latest
             revision: pr121
     runs-on: ${{ matrix.os }}
@@ -110,6 +108,7 @@ jobs:
           git -C app rev-parse HEAD
           git -C harness rev-parse HEAD
           cp harness/tests/e2e/helpers.ts app/tests/e2e/helpers.ts
+          cp harness/tests/e2e/typing-tracker-fixture.cjs app/tests/e2e/typing-tracker-fixture.cjs
           cp harness/playwright.config.ts app/playwright.config.ts
           cp harness/vite.config.ts app/vite.config.ts
           cp harness/playwright.packaged.config.ts app/playwright.packaged.config.ts

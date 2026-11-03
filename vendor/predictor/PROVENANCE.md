@@ -1,7 +1,7 @@
 # Predictor source snapshot
 
 Upstream: https://github.com/linkasu/linka.predictor-rust/pull/1
-Commit: `a83c727b4497471740b4ee31ad0ba0a46ea39633`.
+Commit: `ec07b2cd49c1c2c684e6643f0dab75cf5895ebca`.
 The unpublished `@linkasu/predictor-electron` TypeScript entry is vendored because
 there is no immutable published npm artifact. Only formatting is changed.
 `LICENSE` and `docs/electron-api.md` are copied from that same commit. No upstream

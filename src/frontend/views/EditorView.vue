@@ -198,6 +198,7 @@
                       </v-row>
                       <v-row>
                         <create-from-text-dialog
+                          :key="selected.id"
                           block
                           :file="filename"
                           :get-image-size="getSelectedImageSize"

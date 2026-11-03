@@ -41,6 +41,10 @@ class StorageService extends ICloudStorage {
     return ipcRenderer.invoke("storage:duplicateItem", path);
   }
 
+  getSuggestedCopyName(path: string): Promise<string> {
+    return ipcRenderer.invoke("storage:getSuggestedCopyName", path);
+  }
+
   renameItem(path: string, newName: string): Promise<string> {
     return ipcRenderer.invoke("storage:renameItem", path, newName);
   }
@@ -53,12 +57,13 @@ class StorageService extends ICloudStorage {
     return ipcRenderer.invoke("storage:defaultToTemp", file);
   }
 
-  saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
+  saveSet(path: string, location: string, config: ConfigFile, createOnly = false): Promise<void> {
     return ipcRenderer.invoke(
       "storage:saveSet",
       path,
       location,
-      JSON.parse(JSON.stringify(config))
+      JSON.parse(JSON.stringify(config)),
+      createOnly
     );
   }
 

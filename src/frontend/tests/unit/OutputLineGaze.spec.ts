@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 import { PageWatcher } from "@linkasu/tobii-electron/renderer";
 import OutputLine from "@/frontend/components/OutputLine.vue";
@@ -85,6 +85,59 @@ describe("OutputLine lock with the real EyeButton and PageWatcher", () => {
         expect(output.disabled).toBe(!enabled);
       }
     } finally {
+      watcher.destroy();
+      wrapper.unmount();
+    }
+  });
+
+  it("resumes by gaze even when both eye toggles are off", async () => {
+    const { wrapper, watcher, store, ipc, send } = mountOutputLine(false);
+    try {
+      store.state.button.enabled = false;
+      store.state.button.eyeSelect = false;
+      store.state.button.eyeActivation = false;
+      await wrapper.vm.$nextTick();
+      watcher.watchElementsChange(true);
+      const lock = wrapper.get("button.lock");
+      expect(lock.attributes("aria-label")).toBe("Возобновить управление");
+      expect(lock.attributes("aria-pressed")).toBe("true");
+      expect(lock.classes()).toContain("eye");
+      const data = { id: send.mock.calls.at(-1)?.[1].id, elementIndex: 0, count: 1 };
+      ipc.on.mock.calls.find(([name]) => name === "eye-enter")?.[1]({}, data);
+      await wrapper.vm.$nextTick();
+      expect(lock.find(".progress-bar").exists()).toBe(true);
+      ipc.on.mock.calls.find(([name]) => name === "eye-click")?.[1]({}, data);
+      await wrapper.vm.$nextTick();
+      expect(store.state.button.enabled).toBe(true);
+      expect(lock.attributes("aria-pressed")).toBe("false");
+      expect(lock.find(".progress-bar").exists()).toBe(false);
+    } finally {
+      watcher.destroy();
+      wrapper.unmount();
+    }
+  });
+
+  it("pauses input without interrupting speech already in progress", async () => {
+    let finishSpeech = () => {};
+    vi.mocked(TTS.instance.playCards).mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSpeech = resolve;
+      })
+    );
+    const { wrapper, watcher, store } = mountOutputLine(false);
+    try {
+      await wrapper.get("button.output-block").trigger("click");
+      expect(wrapper.get("button.output-block").attributes("aria-busy")).toBe("true");
+      await wrapper.get("button.lock").trigger("click");
+      expect(store.state.button.enabled).toBe(false);
+      expect(wrapper.get("button.output-block").attributes("aria-busy")).toBe("true");
+      finishSpeech();
+      await flushPromises();
+      expect(wrapper.get("button.output-block").attributes("aria-busy")).toBe("false");
+      expect(store.state.button.enabled).toBe(false);
+      expect(TTS.instance.playCards).toHaveBeenCalledTimes(1);
+    } finally {
+      finishSpeech();
       watcher.destroy();
       wrapper.unmount();
     }

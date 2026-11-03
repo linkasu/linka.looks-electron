@@ -13,7 +13,10 @@ export default tseslint.config(
       "test-results/**",
       "playwright-report/**",
       "packaged-results/**",
-      "packaged-report/**"
+      "packaged-report/**",
+      // Generated evidence/toolchains and fetched test resources are not app source.
+      "release-evidence/**",
+      "predictor-resources/**"
     ]
   },
 
