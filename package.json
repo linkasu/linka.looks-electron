@@ -14,6 +14,7 @@
     "url": "https://github.com/linkasu/linka.looks-electron.git"
   },
   "scripts": {
+    "prototype:keyboard": "vite --config vite.typing.config.ts --host 127.0.0.1 --port 5193 --strictPort",
     "serve": "vite",
     "build": "vite build",
     "lint-fix": "eslint . --fix",
@@ -78,6 +79,7 @@
       "node_modules/@linkasu/tobii-electron/**/*",
       "LICENSE",
       "THIRD_PARTY_NOTICES.md",
+      "vendor/predictor/**/*",
       "package.json"
     ],
     "fileAssociations": [
@@ -131,6 +133,17 @@
       "perMachine": true
     },
     "extraResources": [
+      {
+        "from": "./predictor-resources/",
+        "to": "predictor-resources",
+        "filter": [
+          "lp-electron",
+          "lp-electron.exe",
+          "model.lpk",
+          "LICENSE",
+          "MODEL_NOTICE.md"
+        ]
+      },
       {
         "from": "./extraResources/",
         "to": "extraResources",

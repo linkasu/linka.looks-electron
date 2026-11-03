@@ -1,4 +1,5 @@
 import { createStore } from "vuex";
+import { normalizeTypingLayout } from "@/common/typingLayout";
 
 import { LINKaStore, PageTurnMode, Side, type DwellIndicatorMode } from "./LINKaStore";
 import { storageService } from "@/frontend/services/card-storage-service";
@@ -66,6 +67,7 @@ const store = createStore<LINKaStore>({
     colors: { ...DEFAULT_COLORS },
     voiceRu: "alena",
     voiceEn: "john",
+    typingLayout: normalizeTypingLayout(eStore.get("typingLayout")),
     button: {
       timeout: 1000,
       dwellIndicator: "inward",
@@ -133,6 +135,11 @@ const store = createStore<LINKaStore>({
   },
 
   mutations: {
+    typingLayout(state, value: unknown) {
+      const layout = normalizeTypingLayout(value);
+      eStore.set("typingLayout", layout);
+      state.typingLayout = layout;
+    },
     ui_gazeSuspended(state, value: boolean) {
       state.ui.gazeSuspended = value;
     },

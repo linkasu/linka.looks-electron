@@ -7,12 +7,14 @@ import { autoUpdater } from "electron-updater";
 import Store from "electron-store";
 import { appendFileSync } from "fs";
 import { join } from "path";
+import { pathToFileURL } from "node:url";
 import { resolveExtraResource } from "./utils/resolveExtraResource";
 import { TelemetryController } from "./telemetry/controller";
 import { createLooksTelemetry } from "./telemetry";
 import { registerTelemetryIpc } from "./telemetry/ipc";
 import { TelemetryPreferenceStore } from "./telemetry/preference";
 import { registerTtsIpc } from "./tts";
+import { registerTypingIpc } from "./typingIpc";
 
 if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
   app.setPath("userData", process.env.TEST_USER_DATA_DIR);
@@ -218,14 +220,18 @@ async function createWindow() {
     resolveExtraResource,
     socketName: "su.linka.looks.tobiifree"
   });
-  void backWatch;
+  // Moving the native window changes screen-space targets without changing the DOM.
+  const refreshGeometry = () => {
+    if (backWatch.data) ipcMain.emit("eye-elements", undefined, backWatch.data);
+  };
+  win.on("move", refreshGeometry);
+  win.on("resize", refreshGeometry);
+  const rendererUrl =
+    process.env.VITE_DEV_SERVER_URL || pathToFileURL(join(__dirname, "../dist/index.html")).href;
+  registerTypingIpc(win, rendererUrl);
   win.maximize();
-  if (process.env.VITE_DEV_SERVER_URL) {
-    await win.loadURL(process.env.VITE_DEV_SERVER_URL);
-    if (!process.env.IS_TEST) win.webContents.openDevTools();
-  } else {
-    await win.loadFile(join(__dirname, "../dist/index.html"));
-  }
+  await win.loadURL(rendererUrl);
+  if (process.env.VITE_DEV_SERVER_URL && !process.env.IS_TEST) win.webContents.openDevTools();
   setupAutoUpdater();
 }
 

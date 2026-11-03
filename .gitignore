@@ -39,3 +39,4 @@ pnpm-debug.log*
 /.playwright-mcp
 /release-evidence/
 __pycache__/
+predictor-resources/

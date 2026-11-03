@@ -7,7 +7,7 @@ import vuetify from "./plugins/vuetify";
 import platformPlugin from "./plugins/platform";
 import "./store/eStore";
 import { watchGazeGeometry } from "./utils/watchGazeGeometry";
-const pageWatcher = new PageWatcher({
+const watcherOptions = {
   getSettings: () => ({
     timeout: store.state.button.timeout,
     enabled: store.state.button.enabled,
@@ -17,8 +17,9 @@ const pageWatcher = new PageWatcher({
     joystickActivation: store.state.button.joystickActivation
   }),
   getKeyMapping: () => store.state.keyMapping
-});
-void pageWatcher;
+};
+const pageWatcher = new PageWatcher(watcherOptions);
+const stopGeometry = watchGazeGeometry(pageWatcher);
 
 watch(
   () => [store.state.button.enabled, store.state.ui.gazeSuspended],
@@ -29,5 +30,8 @@ watch(
 );
 
 const app = createApp(App).use(router).use(store).use(platformPlugin).use(vuetify);
-app.onUnmount(watchGazeGeometry(pageWatcher));
+app.onUnmount(() => {
+  stopGeometry();
+  pageWatcher.destroy();
+});
 app.mount("#app");

@@ -9,8 +9,14 @@
     :aria-pressed="!enabled"
     @click="store.dispatch('button_enabled')"
   >
-    <v-icon>{{ enabled ? "mdi-pause" : "mdi-play" }}</v-icon>
-    <span>{{ enabled ? "Пауза" : "Продолжить" }}</span>
+    <template v-if="compact">
+      <typing-icon :name="enabled ? 'pause' : 'resume'" />
+      <small>{{ enabled ? "Пауза" : "Продолжить" }}</small>
+    </template>
+    <template v-else>
+      <v-icon>{{ enabled ? "mdi-pause" : "mdi-play" }}</v-icon>
+      <span>{{ enabled ? "Пауза" : "Продолжить" }}</span>
+    </template>
     <strong v-if="!enabled" role="status">На паузе</strong>
   </eye-button>
 </template>
@@ -19,8 +25,9 @@
 import { computed } from "vue";
 import { useStore } from "vuex";
 import EyeButton from "./EyeButton.vue";
+import TypingIcon from "./TypingIcon.vue";
 
-defineProps<{ disabled?: boolean }>();
+defineProps<{ disabled?: boolean; compact?: boolean }>();
 const store = useStore();
 const enabled = computed(() => store.state.button.enabled);
 </script>

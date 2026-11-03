@@ -17,6 +17,8 @@ process.env.E2E_REMOTE_DEBUGGING_PORT = e2eRemoteDebuggingPort;
 
 export default defineConfig({
   testDir: "tests/e2e",
+  // Checks runs these browser-only suites with their own Vite server and baseURL.
+  testIgnore: ["**/keyboard-prototype.spec.ts", "**/typing-caret.spec.ts"],
   timeout: 30000,
   fullyParallel: false,
   workers: 1,

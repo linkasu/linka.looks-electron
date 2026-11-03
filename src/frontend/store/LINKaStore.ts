@@ -1,5 +1,6 @@
 import { ConfigFile, SetPage } from "@/common/interfaces/ConfigFile";
 import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
+import type { TypingLayout } from "@/common/typingLayout";
 
 interface KeyMap {
   up: string[];
@@ -24,6 +25,7 @@ export interface LINKaStore {
   };
   voiceRu: string;
   voiceEn: string;
+  typingLayout: TypingLayout;
 
   keyMapping: KeyMap;
   selectedKey?: Side;

@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { ipcRenderer, type IpcRendererEvent } from "electron";
 import HomeView from "@/frontend/views/HomeView.vue";
+import EyeTypingView from "@/frontend/views/EyeTypingView.vue";
 import HomeViewAppBar from "@/frontend/views/HomeView.appbar.vue";
 import SetExplorerView from "@/frontend/views/SetExplorerView.vue";
 import SetExplorerViewAppBar from "@/frontend/views/SetExplorerView.appbar.vue";
@@ -25,6 +26,12 @@ declare module "vue-router" {
 }
 
 const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/eye-typing",
+    name: "EyeTyping",
+    meta: { interactionMode: "gaze" },
+    component: EyeTypingView
+  },
   {
     path: "/",
     redirect: "/§",

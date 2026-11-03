@@ -57,9 +57,10 @@ export default defineConfig(({ command }) => ({
           }
         }
       },
-      renderer: {}
+      renderer: process.env.VITEST ? undefined : {}
     }),
-    renderer()
+    // Vitest runs in Node; Electron's require shims break native imports in integration specs.
+    process.env.VITEST ? undefined : renderer()
   ],
   build: {
     outDir: "dist",
