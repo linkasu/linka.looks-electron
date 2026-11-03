@@ -12,6 +12,7 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { Predictor } from "../../../../vendor/predictor/packages/electron/src/index";
 import { TypingSession } from "../../../electron/services/typingSession";
+import { ipcRenderer } from "electron";
 
 const executablePath = resolve(
   "predictor-resources",
@@ -92,15 +93,20 @@ describe("eye typing UI", () => {
           modelPath: resolve("predictor-resources/model.lpk")
         })
       );
-      const previous = Object.getOwnPropertyDescriptor(window, "typingBridge");
       // Only IPC transport is substituted; no live Electron, tracker, store or TTS.
-      Object.defineProperty(window, "typingBridge", {
-        configurable: true,
-        value: {
-          predict: (id: number, input: Parameters<TypingSession["predict"]>[1]) =>
-            session.predict(id, input),
-          cancel: (id: number) => session.cancel(id)
-        }
+      const invoke = vi
+        .spyOn(ipcRenderer, "invoke")
+        .mockImplementation(async (channel, ...args) => {
+          if (channel === "typing:release") {
+            await session.dispose();
+            return { ok: true };
+          }
+          if (channel === "typing:predict")
+            return { ok: true, value: await session.predict(args[0], args[1]) };
+          throw new Error("INVALID_CHANNEL");
+        });
+      const send = vi.spyOn(ipcRenderer, "send").mockImplementation((channel, id: number) => {
+        if (channel === "typing:cancel") session.cancel(id);
       });
       const draft = { text: "😀 я хо хвост!", caret: Array.from("😀 я хо").length };
       saveTypingDraft(draft);
@@ -126,8 +132,8 @@ describe("eye typing UI", () => {
       } finally {
         wrapper?.unmount();
         await session.dispose();
-        if (previous) Object.defineProperty(window, "typingBridge", previous);
-        else Reflect.deleteProperty(window, "typingBridge");
+        invoke.mockRestore();
+        send.mockRestore();
       }
     }
   );

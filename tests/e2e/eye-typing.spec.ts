@@ -19,17 +19,16 @@ test("eye typing: full layout, sticky screens, undo, navigation and restart pers
   let app = await launchTestElectron(context);
   try {
     let page = await firstTestWindow(app);
-    let owner = page;
     async function openTyping() {
-      const created = app.waitForEvent("window");
-      await owner.getByRole("button", { name: "Печать глазами", exact: true }).click();
-      const typing = await created;
-      await expect(typing.getByRole("textbox", { name: "Черновик" })).toBeVisible();
-      return typing;
+      await page.getByRole("button", { name: "Печать глазами", exact: true }).click();
+      await expect(page).toHaveURL(/#\/eye-typing$/);
+      await expect(page.getByRole("textbox", { name: "Черновик" })).toBeVisible();
+      expect(app.windows()).toEqual([page]);
+      return page;
     }
     page = await openTyping();
-    expect(await page.evaluate(() => typeof Reflect.get(window, "require"))).toBe("undefined");
-    expect(await page.evaluate(() => typeof Reflect.get(window, "process"))).toBe("undefined");
+    expect(await page.evaluate(() => typeof Reflect.get(window, "require"))).toBe("function");
+    expect(await page.evaluate(() => typeof Reflect.get(window, "process"))).toBe("object");
     const draft = () => page.getByRole("textbox", { name: "Черновик" });
     for (const size of [
       { width: 800, height: 600 },
@@ -119,7 +118,6 @@ test("eye typing: full layout, sticky screens, undo, navigation and restart pers
     await app.close();
     app = await launchTestElectron(context);
     page = await firstTestWindow(app);
-    owner = page;
     page = await openTyping();
     await expect(draft()).toHaveText("абhi12!?");
     expect(JSON.parse(readFileSync(configPath, "utf8")).eyeTypingDraftV1).toEqual({

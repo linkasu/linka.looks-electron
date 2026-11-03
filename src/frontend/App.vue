@@ -6,7 +6,13 @@
       <notification-popup v-if="telemetryConsent !== 'unknown'" />
       <router-view name="appbar" />
       <audio src="./assets/sounds/button.wav" id="button_audio"></audio>
-      <v-main class="app-main" :class="`app-main--${interactionMode}`">
+      <v-main
+        class="app-main"
+        :class="[
+          `app-main--${interactionMode}`,
+          { 'app-main--typing': route.name === 'EyeTyping' }
+        ]"
+      >
         <router-view />
       </v-main>
       <v-footer class="footer">
@@ -65,6 +71,13 @@ watch(
 
 .app-main--gaze {
   overflow: hidden;
+}
+
+.app-main.app-main--typing {
+  --typing-height: calc(100dvh - 40px);
+  flex: none;
+  height: var(--typing-height);
+  transition: none;
 }
 
 .app-main--assistant {

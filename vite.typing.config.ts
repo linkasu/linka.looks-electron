@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "node:path";
 
-// The isolated renderer never includes the legacy Node-backed store or TTS modules.
+// Browser-only keyboard demos substitute storage, speech and Electron IPC.
 export default defineConfig({
   base: "./",
   plugins: [vue()],

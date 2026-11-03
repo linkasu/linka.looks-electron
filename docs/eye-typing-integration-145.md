@@ -1,6 +1,48 @@
 # Issue145: predictor integration handoff
 
-Local integration implemented; **not release-qualified and not published**.
+## Current integration: Vue Router
+
+The keyboard now renders at `/eye-typing` inside the existing main window. Entering
+and leaving the route never creates, hides, resizes or replaces a BrowserWindow.
+It shares the application's store, TTS, settings and gaze watcher; native move and
+resize events refresh the main window's cached gaze geometry.
+
+Prediction remains main-process-only through `typing:predict`, `typing:cancel`
+and `typing:release`. Main checks the owner webContents, main frame and renderer
+document URL. Route exit cancels and disposes owned work; reentry waits for cleanup.
+Renderer reload/crash and application quit also release the session.
+
+`eyeTypingDraftV1` keeps its existing text/code-point-caret format and atomic
+record write. No migration is needed; rollback preserves the draft. Save limits
+and caret validation now live in the shared draft service. Provider failure keeps
+manual input available. The standalone browser demo remains development/test-only
+and is no longer part of the production build.
+
+**Security tradeoff:** the keyboard now shares the legacy Node-enabled renderer;
+its former separate sandbox/CSP boundary no longer exists. Main-window Electron
+preferences are unchanged. The historical sandbox assertions below do not apply
+to the router implementation. No production model or packaged release is qualified
+by this change. Restart Electron after changing the main-process integration.
+
+Verification on Node 22.22.2:
+
+- Typecheck, formatting and production renderer/main build passed. ESLint has no
+  errors and one pre-existing unused-variable warning in `typingLayout.ts`.
+- Renderer unit tests: 281 passed, 1 skipped. Main unit tests: 134 passed,
+  2 failed in the same historical updater credential-redirect cases recorded below.
+  The five new typing IPC tests passed; updater tests were not weakened or changed.
+- Built-file Electron typing scenarios: 6 passed, including same-window bounds,
+  real tiny-model inference, foreign-sender denial, gaze-geometry refresh and restart.
+- Development Electron typing scenario: 1 passed. Browser demo: 15 passed; caret
+  scenarios: 3 passed. Vite servers were run sequentially because they share the
+  dependency-optimization cache.
+- Physical gaze, production-model quality and packaged cross-platform builds were
+  not requalified.
+
+## Historical isolated-window integration
+
+The following records the previous local integration, which was **not
+release-qualified and not published**.
 
 ## Inputs and ownership
 

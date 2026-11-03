@@ -23,7 +23,10 @@ const app = createApp({
   render: () =>
     h(VApp, {}, () => [
       h("audio", { id: "button_audio", src: "./assets/sounds/button.wav" }),
-      h(EyeTypingView, { exit: () => window.typingBridge.close() })
+      h(EyeTypingView, {
+        exit: () => window.typingBridge.close(),
+        style: "height: 100dvh"
+      })
     ])
 });
 app

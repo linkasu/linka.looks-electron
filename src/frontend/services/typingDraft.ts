@@ -23,5 +23,13 @@ export function loadTypingDraft(): TypingDraft {
 }
 
 export function saveTypingDraft(draft: TypingDraft) {
+  if (
+    typeof draft.text !== "string" ||
+    draft.text.length > 1024 * 1024 ||
+    !Number.isSafeInteger(draft.caret) ||
+    draft.caret < 0 ||
+    draft.caret > Array.from(draft.text).length
+  )
+    throw new Error("Invalid typing draft");
   eStore.set(key, { text: draft.text, caret: draft.caret });
 }

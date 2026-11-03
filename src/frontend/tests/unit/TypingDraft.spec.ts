@@ -18,6 +18,14 @@ describe("typing draft persistence", () => {
     expect(loadTypingDraft()).toEqual({ text: "привет\nhello🙂", caret: 4 });
   });
 
+  it("rejects invalid or oversized drafts without overwriting the saved text", () => {
+    saveTypingDraft({ text: "🙂а", caret: 2 });
+    for (const caret of [-1, 0.5, 3, NaN, Infinity])
+      expect(() => saveTypingDraft({ text: "🙂а", caret })).toThrow();
+    expect(() => saveTypingDraft({ text: "а".repeat(1024 * 1024 + 1), caret: 0 })).toThrow();
+    expect(loadTypingDraft()).toEqual({ text: "🙂а", caret: 2 });
+  });
+
   it("validates stored data and clamps caret without rewriting the record", () => {
     for (const value of [null, "text", {}, { text: 123, caret: 0 }, { text: "a", caret: 0.5 }]) {
       eStore.set("eyeTypingDraftV1", value);

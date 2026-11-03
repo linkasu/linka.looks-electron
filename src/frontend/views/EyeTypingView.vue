@@ -178,7 +178,11 @@ import GazePauseButton from "@/frontend/components/GazePauseButton.vue";
 import TypingIcon from "@/frontend/components/TypingIcon.vue";
 import { EyeTyping } from "@/frontend/utils/eyeTyping";
 import { loadTypingDraft, saveTypingDraft } from "@/frontend/services/typingDraft";
-import { typingPredictor, type TypingPredictor } from "@/frontend/services/typingPredictor";
+import {
+  typingPredictor,
+  releaseTypingPredictor,
+  type TypingPredictor
+} from "@/frontend/services/typingPredictor";
 import { TTS } from "@/frontend/utils/TTS";
 import type { TypingEdit } from "@/common/typing";
 
@@ -288,6 +292,8 @@ function stop() {
 
 onBeforeUnmount(() => {
   if (speaking.value) TTS.instance.stop();
+  if (!props.predictor)
+    void releaseTypingPredictor().catch((error) => console.error("Typing cleanup failed", error));
 });
 </script>
 
@@ -295,9 +301,9 @@ onBeforeUnmount(() => {
 .typing {
   --key-row: 2;
   --edit-row: 5;
-  --output-height: clamp(96px, calc(100dvh / 6), 180px);
+  --output-height: clamp(96px, calc(var(--typing-height, 100dvh) / 6), 180px);
   box-sizing: border-box;
-  height: 100dvh;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(18, minmax(0, 1fr));
   grid-template-rows: var(--output-height) repeat(4, minmax(0, 1fr));

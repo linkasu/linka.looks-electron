@@ -3,6 +3,52 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
 
+test("eye typing route preserves the main BrowserWindow on enter, back and reenter", async () => {
+  const context = createE2EContext();
+  const app = await electron.launch({
+    args: ["-r", resolve("tests/e2e/typing-tracker-fixture.cjs"), resolve(".")],
+    env: {
+      ...process.env,
+      IS_TEST: "1",
+      NODE_ENV: "production",
+      VITE_DEV_SERVER_URL: "",
+      TEST_USER_DATA_DIR: context.userDataDir,
+      LINKA_HOME_DIR: context.homeDir,
+      UPDATE_FEED_URL: "http://127.0.0.1:1/"
+    }
+  });
+  try {
+    const page = await app.firstWindow();
+    await mockExternalServices(page);
+    await expect(page.locator(".root")).toBeVisible();
+    const windowState = () =>
+      app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().map((window) => ({
+          id: window.id,
+          bounds: window.getBounds(),
+          maximized: window.isMaximized(),
+          fullscreen: window.isFullScreen()
+        }))
+      );
+    const original = await windowState();
+    expect(original).toHaveLength(1);
+    for (let entry = 0; entry < 2; entry++) {
+      await page.getByRole("button", { name: "Печать глазами", exact: true }).click();
+      await expect(page).toHaveURL(/#\/eye-typing$/, { timeout: 3000 });
+      await expect(page.getByRole("textbox", { name: "Черновик" })).toBeVisible();
+      expect(await windowState()).toEqual(original);
+      expect(app.windows()).toEqual([page]);
+      await page.getByRole("button", { name: "К наборам", exact: true }).click();
+      await expect(page).toHaveURL(/#\/(?:%C2%A7|§)$/);
+      expect(await windowState()).toEqual(original);
+      expect(app.windows()).toEqual([page]);
+    }
+  } finally {
+    await app.close();
+    cleanupE2EContext(context);
+  }
+});
+
 for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
   test(`saved layout ${layout}: settings, built Electron, compact RU/EN and restart`, async () => {
     const context = createE2EContext();
@@ -45,11 +91,11 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
         location.hash = "/§";
       });
       async function open() {
-        const next = app.waitForEvent("window");
         await owner.getByRole("button", { name: "Печать глазами", exact: true }).click();
-        const page = await next;
-        await expect(page.locator(".typing")).toHaveClass("typing variant-C");
-        return page;
+        await expect(owner).toHaveURL(/#\/eye-typing$/);
+        await expect(owner.locator(".typing")).toHaveClass("typing variant-C");
+        expect(app.windows()).toEqual([owner]);
+        return owner;
       }
       let page = await open();
       await expect(page.getByRole("textbox")).toHaveText("привет");
@@ -59,11 +105,11 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
         caret: 3
       });
       const measurements = [];
-      expect(await page.evaluate(() => typeof Reflect.get(window, "require"))).toBe("undefined");
+      expect(await page.evaluate(() => typeof Reflect.get(window, "require"))).toBe("function");
       expect(
         await app.evaluate(({ BrowserWindow }) => {
           const prefs = BrowserWindow.getAllWindows()
-            .find((w) => w.webContents.getURL().endsWith("/typing.html"))!
+            .find((w) => w.webContents.getURL().endsWith("#/eye-typing"))!
             .webContents.getLastWebPreferences();
           return {
             sandbox: prefs.sandbox,
@@ -71,7 +117,7 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
             nodeIntegration: prefs.nodeIntegration
           };
         })
-      ).toEqual({ sandbox: true, contextIsolation: true, nodeIntegration: false });
+      ).toEqual({ sandbox: false, contextIsolation: false, nodeIntegration: true });
       for (const [width, height] of [
         [1024, 600],
         [1366, 768],
@@ -82,6 +128,9 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
           if (language === "en")
             await page.getByRole("button", { name: "RU → EN", exact: true }).click();
           await expect(page.locator(".keys button")).toHaveCount(language === "ru" ? 33 : 26);
+          const keyboard = (await page.locator(".typing").boundingBox())!;
+          expect(keyboard.height).toBeLessThanOrEqual(height - 40);
+          expect(keyboard.y + keyboard.height).toBeLessThanOrEqual(height - 40);
           expect(
             await page.locator(".typing button").evaluateAll((buttons) =>
               buttons.every((b) => {
@@ -105,7 +154,9 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
               .evaluateAll((buttons) =>
                 Math.min(...buttons.map((b) => b.getBoundingClientRect().height))
               )
-          ).toBeGreaterThanOrEqual((height - Math.min(180, height / 6) - 40) / 4 - 0.1);
+          ).toBeGreaterThanOrEqual(
+            (keyboard.height - Math.max(96, Math.min(180, keyboard.height / 6)) - 40) / 4 - 0.1
+          );
           const space = await page
             .getByRole("button", { name: "Пробел", exact: true })
             .boundingBox();

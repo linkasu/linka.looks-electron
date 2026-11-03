@@ -16,7 +16,7 @@
   "scripts": {
     "prototype:keyboard": "vite --config vite.typing.config.ts --host 127.0.0.1 --port 5193 --strictPort",
     "serve": "vite",
-    "build": "vite build && vite build --config vite.typing.config.ts",
+    "build": "vite build",
     "lint-fix": "eslint . --fix",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,cjs,mjs,ts,vue,json,yml,yaml,md}\"",

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
 
-test("isolated keyboard uses the real sidecar, denies Node and persists across restart", async () => {
+test("main-window keyboard uses the real sidecar, denies foreign senders and persists", async () => {
   test.skip(
     !process.env.TYPING_ELECTRON_EXECUTABLE &&
       (!existsSync(
@@ -54,9 +54,10 @@ test("isolated keyboard uses the real sidecar, denies Node and persists across r
     await mockExternalServices(owner);
     await expect(owner.locator(".root")).toBeVisible();
     async function open() {
-      const next = app.waitForEvent("window");
       await owner.getByRole("button", { name: "Печать глазами", exact: true }).click();
-      const page = await next;
+      const page = owner;
+      await expect(page).toHaveURL(/#\/eye-typing$/);
+      expect(app.windows()).toEqual([page]);
       page.on("pageerror", (error) => console.error("TYPING_PAGE_ERROR", error.message));
       page.on("console", (message) => {
         if (message.type() === "error") console.error("TYPING_CONSOLE", message.text());
@@ -71,15 +72,14 @@ test("isolated keyboard uses the real sidecar, denies Node and persists across r
     expect(
       await page.evaluate(() => ({
         require: typeof Reflect.get(window, "require"),
-        process: typeof Reflect.get(window, "process"),
-        ipc: typeof Reflect.get(window.typingBridge, "ipcRenderer")
+        process: typeof Reflect.get(window, "process")
       }))
-    ).toEqual({ require: "undefined", process: "undefined", ipc: "undefined" });
+    ).toEqual({ require: "function", process: "object" });
     const preferences = await app.evaluate(async ({ BrowserWindow }) => {
       // Root the Inspector evaluation in the Node loop; otherwise Electron can collect its Promise.
       await new Promise<void>((resolve) => setImmediate(resolve));
       const window = BrowserWindow.getAllWindows().find((win) =>
-        win.webContents.getURL().endsWith("/typing.html")
+        win.webContents.getURL().endsWith("#/eye-typing")
       );
       const preferences = window!.webContents.getLastWebPreferences();
       return {
@@ -88,28 +88,32 @@ test("isolated keyboard uses the real sidecar, denies Node and persists across r
         nodeIntegration: preferences.nodeIntegration
       };
     });
-    expect(preferences).toEqual({ sandbox: true, contextIsolation: true, nodeIntegration: false });
-    const denied = await owner.evaluate(async () => {
-      const { ipcRenderer } = Reflect.get(window, "require")("electron");
-      return ipcRenderer.invoke("typing:predict", 999, { text: "хо", caret: 2, language: "ru" });
+    expect(preferences).toEqual({ sandbox: false, contextIsolation: false, nodeIntegration: true });
+    const denied = await app.evaluate(async ({ BrowserWindow }) => {
+      const owner = BrowserWindow.getAllWindows().find((window) =>
+        window.webContents.getURL().endsWith("#/eye-typing")
+      )!;
+      const foreign = new BrowserWindow({
+        show: false,
+        webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false }
+      });
+      try {
+        await foreign.loadURL("about:blank");
+        return await foreign.webContents.executeJavaScript(`
+          (async () => {
+            const { ipcRenderer } = require("electron");
+            return ipcRenderer.invoke("typing:predict", 999, {
+              text: "хо", caret: 2, language: "ru"
+            });
+          })()
+        `);
+      } finally {
+        foreign.destroy();
+        owner.focus();
+      }
     });
     expect(denied).toEqual({ ok: false, code: "UNAUTHORIZED" });
-    const deniedSave = await owner.evaluate(() => {
-      const { ipcRenderer } = Reflect.get(window, "require")("electron");
-      return ipcRenderer.sendSync("typing:sync", "save", { text: "untrusted overwrite", caret: 0 });
-    });
-    expect(deniedSave).toEqual({ ok: false });
     expect(JSON.parse(readFileSync(configPath, "utf8")).eyeTypingDraftV1).toEqual(original);
-    expect(
-      await page.evaluate(() => {
-        try {
-          window.typingBridge.onEye("arbitrary-channel", () => {});
-          return "allowed";
-        } catch {
-          return "denied";
-        }
-      })
-    ).toBe("denied");
     const suggestions = page.locator('[aria-label="Подсказки слов"] button');
     await expect(suggestions.first()).toBeVisible();
     await expect(suggestions.first()).toBeEnabled();
@@ -118,7 +122,7 @@ test("isolated keyboard uses the real sidecar, denies Node and persists across r
     expect(
       await app.evaluate(async ({ BrowserWindow, ipcMain }) => {
         const window = BrowserWindow.getAllWindows().find((win) =>
-          win.webContents.getURL().endsWith("/typing.html")
+          win.webContents.getURL().endsWith("#/eye-typing")
         )!;
         const [x, y] = window.getPosition();
         const changed = new Promise<boolean>((resolve) =>
@@ -188,7 +192,7 @@ test("isolated keyboard uses the real sidecar, denies Node and persists across r
     await page.getByRole("button", { name: "Приостановить управление", exact: true }).click();
     await expect(page.getByRole("button", { name: "h", exact: true })).toBeDisabled();
     await page.getByRole("button", { name: "Возобновить управление", exact: true }).click();
-    await page.screenshot({ path: test.info().outputPath("isolated-keyboard.png") });
+    await page.screenshot({ path: test.info().outputPath("main-window-keyboard.png") });
     await page.getByRole("button", { name: "К наборам", exact: true }).click();
     page = await open();
     await expect(page.getByRole("textbox", { name: "Черновик" })).toHaveText("😀я хо*№h суффикс😀");
