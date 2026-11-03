@@ -642,13 +642,24 @@ async function main() {
   const tempRoot = process.env.RUNNER_TEMP;
   assert(tempRoot && process.version === "v22.22.2");
   const context = await checkedContext(sourceRoot, tempRoot);
+  return runPreparedEvaluation(context, {
+    sourceRoot,
+    tempRoot,
+    preflightOnly: process.argv[2] === "preflight"
+  });
+}
+
+export async function runPreparedEvaluation(
+  context,
+  { sourceRoot, tempRoot, preflightOnly = false }
+) {
   const work = await mkdtemp(join(tempRoot, "ui-eval-"));
   let candidate;
   let frequency;
   try {
     const { freeze, input, manifest, rows } = context;
     await extractArtifact(join(tempRoot, "eval-candidate.zip"), work, freeze, input.mode);
-    if (process.argv[2] === "preflight") {
+    if (preflightOnly) {
       console.log("FINAL_PREFLIGHT_VALID_NO_INFERENCE");
       return;
     }
@@ -780,6 +791,7 @@ async function main() {
           : "UI_KSR_V1_NOT_QUALIFIED_NO_RETUNING"
     );
     if (input.mode === "final" && !qualified) process.exitCode = 2;
+    return report;
   } finally {
     await Promise.allSettled([candidate?.abort(), frequency?.abort()]);
     await rm(work, { recursive: true, force: true });
