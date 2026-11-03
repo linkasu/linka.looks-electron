@@ -164,7 +164,10 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
             .getByRole("button", { name: "Отменить", exact: true })
             .boundingBox();
           expect(space!.width).toBeGreaterThanOrEqual(command!.width * 2);
-          expect(Math.abs(space!.x + space!.width / 2 - width / 2)).toBeLessThanOrEqual(0.1);
+          // Native scrollbars can narrow the keyboard without changing the outer viewport.
+          expect(
+            Math.abs(space!.x + space!.width / 2 - (keyboard.x + keyboard.width / 2))
+          ).toBeLessThanOrEqual(0.1);
           const caretGeometry = await page.locator(".caret").evaluate((marker) => {
             const before = document.createRange(),
               after = document.createRange();
