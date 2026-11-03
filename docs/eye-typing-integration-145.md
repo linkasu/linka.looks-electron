@@ -39,6 +39,12 @@ Verification on Node 22.22.2:
 - Physical gaze, production-model quality and packaged cross-platform builds were
   not requalified.
 
+The demo's HTML-loaded modules and Vite alias adapters are explicit entry points
+in `knip.json`; they remain analyzed rather than ignored. The two local updater
+failures above used a shared stale `node_modules`: updater 6.8.3 / runtime 9.5.1 /
+builder 26.8.1, versus lockfile 6.8.9 / 9.7.0 / 26.16.1. Runtime 9.7.0 already
+contains the credential-redirect fix; clean CI installs from the lockfile.
+
 ## Historical isolated-window integration
 
 The following records the previous local integration, which was **not
