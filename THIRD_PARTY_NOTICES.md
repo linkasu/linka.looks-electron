@@ -1,5 +1,14 @@
 # Уведомления о лицензиях и сторонних правах
 
+## Предиктор issue145
+
+`@linkasu/predictor-electron` и Rust sidecar: GPL-3.0-or-later, исходники
+https://github.com/linkasu/linka.predictor-rust/tree/a83c727b4497471740b4ee31ad0ba0a46ea39633.
+Копия TypeScript API, лицензия и provenance включены в `vendor/predictor/`.
+Для sidecar и модели упаковка сохраняет `predictor-resources/LICENSE` и
+`predictor-resources/MODEL_NOTICE.md`. Tiny-модель synthetic CC0 предназначена
+только для тестов; права и notices production-модели должны быть проверены отдельно.
+
 - Используемый архив `@linkasu/tobii-electron` версии 0.2.16 имеет собственные
   условия, не изменяемые GPL этого приложения. В проверенной копии этого архива
   из `linka.plays-electron` манифест содержит `UNLICENSED`, текста лицензии нет,

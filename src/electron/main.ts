@@ -13,6 +13,7 @@ import { createLooksTelemetry } from "./telemetry";
 import { registerTelemetryIpc } from "./telemetry/ipc";
 import { TelemetryPreferenceStore } from "./telemetry/preference";
 import { registerTtsIpc } from "./tts";
+import { registerTypingWindow } from "./typingWindow";
 
 if (process.env.IS_TEST === "1" && process.env.TEST_USER_DATA_DIR) {
   app.setPath("userData", process.env.TEST_USER_DATA_DIR);
@@ -219,6 +220,7 @@ async function createWindow() {
     socketName: "su.linka.looks.tobiifree"
   });
   void backWatch;
+  registerTypingWindow(win, backWatch);
   win.maximize();
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);

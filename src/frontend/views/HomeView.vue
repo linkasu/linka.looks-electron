@@ -13,6 +13,9 @@
       <p>Создайте набор кнопкой «+» или выберите другую папку.</p>
     </div>
     <div class="folder-grid">
+      <eye-button v-if="isHome" :disabled="assistantActionOpen" @click="router.push('/eye-typing')">
+        <span class="typing-entry">Печать глазами</span>
+      </eye-button>
       <explorer-grid-button
         v-if="!isHome"
         :back="true"
@@ -165,6 +168,7 @@ import { useRoute, useRouter } from "vue-router";
 import { validateStorageName } from "@/common/utils/storageName";
 
 import ExplorerGridButton from "@/frontend/components/HomeView/ExplorerGridButton.vue";
+import EyeButton from "@/frontend/components/EyeButton.vue";
 import { Directory, DirectoryFile } from "@/common/interfaces/Directory";
 import pathModule from "path";
 import { storageService } from "@/frontend/services/card-storage-service";
@@ -457,6 +461,10 @@ async function applyMerge() {
 .folder-item {
   position: relative;
   min-width: 0;
+}
+.typing-entry {
+  font-size: 28px;
+  padding: 12px;
 }
 .folder-item :deep(.eyebtn) {
   width: 100%;

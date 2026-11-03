@@ -23,6 +23,7 @@ const Slider = defineComponent({
 describe("settings task flow follow-up", () => {
   it("keeps mixed saved inputs and dwell timing while the safe trial only reports activation", async () => {
     const state = {
+      typingLayout: "A",
       button: {
         enabled: true,
         eyeSelect: true,
@@ -42,6 +43,9 @@ describe("settings task flow follow-up", () => {
     const store = createStore({
       state,
       mutations: {
+        typingLayout: (state, value) => {
+          state.typingLayout = value;
+        },
         button_timeout: (state, value) => {
           state.button.timeout = value;
         },
@@ -99,6 +103,8 @@ describe("settings task flow follow-up", () => {
       keyboardActivation: true,
       timeout: 2300
     });
+    expect(wrapper.find(".keyboard-options").exists()).toBe(false);
+    expect(store.state.typingLayout).toBe("A");
     wrapper.unmount();
   });
 });

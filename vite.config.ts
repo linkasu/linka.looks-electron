@@ -57,9 +57,19 @@ export default defineConfig(({ command }) => ({
           }
         }
       },
-      renderer: {}
+      preload: {
+        input: "src/electron/typingPreload.ts",
+        vite: {
+          build: {
+            outDir: "dist-electron",
+            rollupOptions: { output: { entryFileNames: "typingPreload.js" } }
+          }
+        }
+      },
+      renderer: process.env.VITEST ? undefined : {}
     }),
-    renderer()
+    // Vitest runs in Node; Electron's require shims break native imports in integration specs.
+    process.env.VITEST ? undefined : renderer()
   ],
   build: {
     outDir: "dist",
