@@ -1,53 +1,179 @@
 import { test, expect, _electron as electron } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
 
-test("eye typing route preserves the main BrowserWindow on enter, back and reenter", async () => {
-  const context = createE2EContext();
-  const app = await electron.launch({
-    args: ["-r", resolve("tests/e2e/typing-tracker-fixture.cjs"), resolve(".")],
-    env: {
-      ...process.env,
-      IS_TEST: "1",
-      NODE_ENV: "production",
-      VITE_DEV_SERVER_URL: "",
-      TEST_USER_DATA_DIR: context.userDataDir,
-      LINKA_HOME_DIR: context.homeDir,
-      UPDATE_FEED_URL: "http://127.0.0.1:1/"
+for (const cycles of [2, 50]) {
+  test(`eye typing route preserves the main BrowserWindow on enter, back and reenter (${cycles} cycles)`, async () => {
+    test.setTimeout(240000);
+    const started = performance.now();
+    const context = createE2EContext();
+    if (cycles === 50) {
+      const configPath = join(context.userDataDir, "config.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          ...JSON.parse(readFileSync(configPath, "utf8")),
+          button_clickSound: false,
+          eyeTypingDraftV1: { text: "хо", caret: 2 }
+        })
+      );
+    }
+    const app = await electron.launch({
+      args: ["-r", resolve("tests/e2e/typing-tracker-fixture.cjs"), resolve(".")],
+      env: {
+        ...process.env,
+        IS_TEST: "1",
+        NODE_ENV: "production",
+        VITE_DEV_SERVER_URL: "",
+        TEST_USER_DATA_DIR: context.userDataDir,
+        LINKA_HOME_DIR: context.homeDir,
+        UPDATE_FEED_URL: "http://127.0.0.1:1/"
+      }
+    });
+    const ownedPids = new Set<number>([app.process().pid!]);
+    const measurements = [];
+    const dialogs: string[] = [];
+    function recordProcesses() {
+      const rows = execFileSync("ps", ["-axo", "pid=,ppid="], { encoding: "utf8" })
+        .trim()
+        .split("\n")
+        .map((line) => line.trim().split(/\s+/).map(Number));
+      const liveOwned = new Set<number>([app.process().pid!]);
+      let previousSize = 0;
+      while (previousSize !== liveOwned.size) {
+        previousSize = liveOwned.size;
+        for (const [pid, parent] of rows) if (liveOwned.has(parent)) liveOwned.add(pid);
+      }
+      for (const pid of liveOwned) ownedPids.add(pid);
+      return [...liveOwned];
+    }
+    try {
+      const page = await app.firstWindow();
+      page.on("dialog", (dialog) => {
+        dialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+      });
+      await mockExternalServices(page);
+      await expect(page.locator(".root")).toBeVisible();
+      const windowState = () =>
+        app.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows().map((window) => ({
+            id: window.id,
+            bounds: window.getBounds(),
+            maximized: window.isMaximized(),
+            fullscreen: window.isFullScreen()
+          }))
+        );
+      const original = await windowState();
+      expect(original).toHaveLength(1);
+      const mainState = () =>
+        app.evaluate(({ ipcMain, app }) => {
+          const handlers = Reflect.get(ipcMain, "_invokeHandlers");
+          if (!(handlers instanceof Map))
+            throw new Error("Electron invoke-handler registry unavailable");
+          return {
+            listeners: Object.fromEntries(
+              ipcMain.eventNames().map((name) => [String(name), ipcMain.listenerCount(name)])
+            ),
+            typingHandlers: [...handlers.keys()]
+              .filter((name) => String(name).startsWith("typing:"))
+              .sort(),
+            beforeQuit: app.listenerCount("before-quit")
+          };
+        });
+      const rendererState = () =>
+        page.evaluate(() => {
+          const { ipcRenderer } = Reflect.get(window, "require")("electron");
+          return Object.fromEntries(
+            ipcRenderer.eventNames().map((name: string) => [name, ipcRenderer.listenerCount(name)])
+          );
+        });
+      const originalMain = await mainState();
+      expect(originalMain.typingHandlers).toEqual(["typing:predict", "typing:release"]);
+      expect(originalMain.listeners["typing:cancel"]).toBe(1);
+      const originalRenderer = await rendererState();
+      let typingRenderer: Record<string, number> | undefined;
+      for (let entry = 0; entry < (cycles === 50 ? cycles * 2 : cycles); entry++) {
+        await page.getByRole("button", { name: "Печать глазами", exact: true }).click();
+        await expect(page).toHaveURL(/#\/eye-typing$/, { timeout: 3000 });
+        await expect(page.getByRole("textbox", { name: "Черновик" })).toBeVisible();
+        expect(await windowState()).toEqual(original);
+        expect(app.windows()).toEqual([page]);
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        if (cycles === 50) await expect(page.locator(".predictions button").first()).toBeEnabled();
+        const activeRenderer = await rendererState();
+        if (!typingRenderer) typingRenderer = activeRenderer;
+        expect(activeRenderer).toEqual(typingRenderer);
+        expect(await mainState()).toEqual(originalMain);
+        const activePids = recordProcesses();
+        await page.getByRole("button", { name: "К наборам", exact: true }).click();
+        await expect(page).toHaveURL(/#\/(?:%C2%A7|§)$/);
+        await expect(
+          page.getByRole("button", { name: "Печать глазами", exact: true })
+        ).toBeVisible();
+        expect(await windowState()).toEqual(original);
+        expect(app.windows()).toEqual([page]);
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect.poll(rendererState).toEqual(originalRenderer);
+        expect(await mainState()).toEqual(originalMain);
+        expect(dialogs).toEqual([]);
+        measurements.push({
+          entry: entry + 1,
+          elapsedMs: performance.now() - started,
+          activePids,
+          main: await mainState(),
+          rendererTyping: activeRenderer,
+          rendererAfterBack: await rendererState(),
+          memory: await app.evaluate(({ app }) => ({
+            main: process.memoryUsage(),
+            processes: app.getAppMetrics()
+          }))
+        });
+      }
+      await page.screenshot({ path: test.info().outputPath("after-lifecycle-stress.png") });
+    } finally {
+      try {
+        await app.close();
+        await expect
+          .poll(
+            () =>
+              [...ownedPids].filter((pid) => {
+                try {
+                  process.kill(pid, 0);
+                  return true;
+                } catch (error) {
+                  if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+                  throw error;
+                }
+              }),
+            { timeout: 10000 }
+          )
+          .toEqual([]);
+      } finally {
+        writeFileSync(
+          test.info().outputPath("lifecycle-measurements.json"),
+          JSON.stringify(
+            {
+              cycles,
+              entries: measurements.length,
+              elapsedMs: performance.now() - started,
+              scope:
+                "built-file Electron, single process, tracker fixture, tiny predictor model; memory recorded without threshold",
+              ownedPids: [...ownedPids],
+              dialogs,
+              measurements
+            },
+            null,
+            2
+          )
+        );
+        cleanupE2EContext(context);
+      }
     }
   });
-  try {
-    const page = await app.firstWindow();
-    await mockExternalServices(page);
-    await expect(page.locator(".root")).toBeVisible();
-    const windowState = () =>
-      app.evaluate(({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows().map((window) => ({
-          id: window.id,
-          bounds: window.getBounds(),
-          maximized: window.isMaximized(),
-          fullscreen: window.isFullScreen()
-        }))
-      );
-    const original = await windowState();
-    expect(original).toHaveLength(1);
-    for (let entry = 0; entry < 2; entry++) {
-      await page.getByRole("button", { name: "Печать глазами", exact: true }).click();
-      await expect(page).toHaveURL(/#\/eye-typing$/, { timeout: 3000 });
-      await expect(page.getByRole("textbox", { name: "Черновик" })).toBeVisible();
-      expect(await windowState()).toEqual(original);
-      expect(app.windows()).toEqual([page]);
-      await page.getByRole("button", { name: "К наборам", exact: true }).click();
-      await expect(page).toHaveURL(/#\/(?:%C2%A7|§)$/);
-      expect(await windowState()).toEqual(original);
-      expect(app.windows()).toEqual([page]);
-    }
-  } finally {
-    await app.close();
-    cleanupE2EContext(context);
-  }
-});
+}
 
 for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
   test(`saved layout ${layout}: settings, built Electron, compact RU/EN and restart`, async () => {

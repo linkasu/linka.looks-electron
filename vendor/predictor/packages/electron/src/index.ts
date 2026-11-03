@@ -61,6 +61,12 @@ function validate(input: Input): void {
   if (/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(input.text)) {
     throw new PredictorError("INVALID_INPUT");
   }
+  if (
+    input.language === "ru" &&
+    Buffer.byteLength(input.text.slice(0, input.caret), "utf8") > 16384
+  ) {
+    throw new PredictorError("INVALID_INPUT");
+  }
 }
 
 function validResponse(value: unknown, input: Input): value is Omit<Prediction, "input"> {

@@ -258,6 +258,26 @@ it.each([
   }
 });
 
+it("rejects oversized RU byte prefixes before spawning while retaining manual EN", async () => {
+  const predictor = new Predictor({
+    executablePath: resolve("unused-executable"),
+    modelPath: resolve("unused-model")
+  });
+  const text = "я".repeat(8193);
+  try {
+    await expect(
+      predictor.predict({ text, caret: text.length, language: "ru" })
+    ).rejects.toMatchObject({
+      code: "INVALID_INPUT"
+    });
+    expect((await predictor.predict({ text, caret: text.length, language: "en" })).text).toEqual(
+      []
+    );
+  } finally {
+    await predictor.dispose();
+  }
+});
+
 it("EN needs neither a model nor an executable", async () => {
   const session = new TypingSession(
     new Predictor({

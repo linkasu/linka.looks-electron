@@ -1,7 +1,7 @@
 {
   "license": "GPL-3.0-or-later",
   "name": "linka.looks",
-  "version": "3.3.1",
+  "version": "4.0.0",
   "author": "ibakaidov",
   "private": true,
   "engines": {
@@ -30,7 +30,7 @@
     "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",
     "native:test-load": "npm --prefix node_modules/@linkasu/tobii-electron run native:test-load",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
-    "preelectron:build": "node scripts/ci/provision-eyelog.cjs",
+    "preelectron:build": "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run electron:build -- --win -p never",
     "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
@@ -41,7 +41,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@linkasu/tobii-electron": "https://github.com/linkasu/linka-tobii-electron/releases/download/v0.2.16/linkasu-tobii-electron-0.2.16.tgz",
+    "@linkasu/tobii-electron": "https://github.com/linkasu/linka-tobii-electron/releases/download/v0.2.17/linkasu-tobii-electron-0.2.17.tgz",
     "@mdi/font": "7.3.67",
     "adm-zip": "^0.6.1",
     "archiver": "^5.3.1",
@@ -51,7 +51,7 @@
     "electron-updater": "^6.8.9",
     "pictures.bank-api": "https://github.com/linkasu/pictures.bank-client.git",
     "uuid": "^14.0.0",
-    "vue": "^3.5.34",
+    "vue": "^3.5.44",
     "vue-router": "^4.6.4",
     "vuedraggable": "^4.1.0",
     "vuetify": "^3.12.5",

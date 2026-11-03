@@ -17,6 +17,7 @@
       borderWidth
     }"
     :disabled="preview ? undefined : nativeDisabled"
+    @click.capture="guardMouseClick"
     @click="click()"
   >
     <slot />
@@ -113,13 +114,25 @@ function onExit() {
 function onEnter(eye: boolean) {
   if (eye && props.eyeDisabled) return;
   if (eye && !store.state.button.eyeSelect && !props.lock) return;
-  if (!eye && !store.state.button.keyboardActivation) return;
-  if (!eye && !store.state.button.joystickActivation) return;
+  if (!eye && !store.state.button.keyboardActivation && !store.state.button.joystickActivation)
+    return;
   if (!isInside.value) {
     activeIndicator.value = store.state.button.dwellIndicator === "circle" ? "circle" : "inward";
   }
   isInside.value = true;
   showProgress.value = (store.state.button.eyeActivation || props.lock) && eye;
+}
+
+function guardMouseClick(event: Event) {
+  // PageWatcher emits CustomEvent; zero-detail clicks preserve keyboard/assistive activation.
+  if (
+    event instanceof MouseEvent &&
+    event.detail > 0 &&
+    store.state.button.mouseActivation === false
+  ) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
 }
 
 function click() {

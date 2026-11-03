@@ -48,12 +48,15 @@
         />
         <v-alert v-if="errorMessage" type="error" variant="tonal" role="alert">
           {{ errorMessage }}
-          <v-btn v-if="categoryError" variant="text" @click="loadCategories"
-            >Повторить загрузку категорий</v-btn
-          >
+        </v-alert>
+        <v-alert v-if="categoryError" type="error" variant="tonal" role="alert">
+          Не удалось загрузить категории. Можно повторить загрузку или найти картинку по названию.
+          <v-btn variant="text" @click="loadCategories">Повторить загрузку категорий</v-btn>
         </v-alert>
         <p
-          v-if="!loading && !categoriesLoading && !pictures.length && !errorMessage"
+          v-if="
+            !loading && !categoriesLoading && !pictures.length && !errorMessage && !categoryError
+          "
           class="results-hint"
         >
           {{
@@ -134,14 +137,11 @@ async function loadCategories() {
   if (categoriesLoading.value) return;
   categoriesLoading.value = true;
   categoryError.value = false;
-  errorMessage.value = "";
   try {
     categories.value = await api.categories.getCategories();
   } catch (error) {
     console.error(error);
     categoryError.value = true;
-    errorMessage.value =
-      "Не удалось загрузить категории. Можно повторить загрузку или найти картинку по названию.";
   } finally {
     categoriesLoading.value = false;
   }

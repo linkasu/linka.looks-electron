@@ -12,7 +12,9 @@ interface KeyMap {
 export type Side = keyof KeyMap;
 export type PageTurnMode = "hidden" | "mouseOnly" | "mouseAndEyes";
 export type DwellIndicatorMode = "inward" | "circle";
+export type SetLoadRequest = string | { file: string; owner: number; withEditor?: boolean };
 export interface LINKaStore {
+  setLoadRevision: number;
   pcHash: string;
   telemetryConsent: TelemetryConsent;
   popupVersion: number;
@@ -46,6 +48,7 @@ export interface LINKaStore {
   };
   ui: {
     gazeSuspended: boolean;
+    gazeSuspensions: { tools: boolean; updater: boolean };
     disabled: boolean;
     outputLine: boolean;
     exitButton: boolean;

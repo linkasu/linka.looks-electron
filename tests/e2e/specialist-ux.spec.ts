@@ -15,8 +15,10 @@ import {
 test("specialist preparation: sets, card editing, settings and communication", async () => {
   test.setTimeout(90000);
   const context = createE2EContext();
-  const stage = process.env.UX_EVIDENCE_STAGE || "after";
-  const evidence = resolve(`docs/issue-143/${stage}`);
+  const stage = process.env.UX_EVIDENCE_STAGE;
+  const evidence = stage
+    ? resolve(`docs/issue-143/${stage}`)
+    : test.info().outputPath("screenshots");
   mkdirSync(evidence, { recursive: true });
   const name = "Занятие.linka";
   const setsRoot = resolve("extraResources/defaultSets");

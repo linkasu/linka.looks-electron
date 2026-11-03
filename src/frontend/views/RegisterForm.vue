@@ -51,7 +51,7 @@
             autocomplete="one-time-code"
             :disabled="loading"
             required
-            :rules="[(s) => s.length === 6 || 'Код должен содержать 6 символов']"
+            :rules="[(s) => isValidCode(s) || 'Код должен содержать 6 цифр']"
           />
         </v-form>
       </v-card-text>
@@ -61,7 +61,7 @@
         <v-btn
           color="primary"
           variant="flat"
-          :disabled="loading || code.length !== 6"
+          :disabled="loading || !isValidCode(code)"
           :loading="loading"
           @click="checkCode()"
         >
@@ -106,7 +106,7 @@ async function getCode() {
 }
 
 async function checkCode() {
-  if (code.value.length !== 6) return;
+  if (!isValidCode(code.value)) return;
   if (loading.value) return;
   loading.value = true;
   try {
@@ -123,6 +123,10 @@ async function checkCode() {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isValidCode(value: string) {
+  return /^\d{6}$/.test(value);
 }
 </script>
 

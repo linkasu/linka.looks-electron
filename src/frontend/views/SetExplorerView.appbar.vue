@@ -45,6 +45,7 @@
       icon
       title="Настройки отображения"
       aria-label="Настройки отображения"
+      :disabled="operationBusy || !config"
       @click="toggleSettingsOpen"
     >
       <v-icon> mdi-view-dashboard-edit-outline </v-icon>
@@ -53,7 +54,7 @@
       variant="text"
       prepend-icon="mdi-pencil"
       :to="editLink"
-      :disabled="!config || isSettingsOpened"
+      :disabled="!config || isSettingsOpened || operationBusy"
       aria-label="Редактировать набор"
       title="Редактировать набор"
     >
@@ -73,10 +74,19 @@
       </template>
       <template #default="{ isActive }">
         <v-card title="Инструменты помощника">
-          <v-card-text class="assistant-actions">
+          <p v-if="operationError && !mergeDialog" role="alert">{{ operationError }}</p>
+          <v-card-text
+            class="assistant-actions"
+            :inert="operationBusy || undefined"
+            :aria-busy="operationBusy"
+          >
             <share-button text="Показать файл для отправки" />
-            <v-btn prepend-icon="mdi-content-copy" @click="duplicateSet">Копировать набор</v-btn>
-            <v-btn prepend-icon="mdi-merge" @click="startMerge">Объединить наборы</v-btn>
+            <v-btn :disabled="operationBusy" prepend-icon="mdi-content-copy" @click="duplicateSet"
+              >Копировать набор</v-btn
+            >
+            <v-btn :disabled="operationBusy" prepend-icon="mdi-merge" @click="startMerge"
+              >Объединить наборы</v-btn
+            >
             <folder-button :file="file" text="Переместить набор" @move="move" />
             <delete-button :file="title" text="Удалить набор" @delete="del" />
           </v-card-text>
@@ -90,6 +100,7 @@
       <v-card>
         <v-card-title primary-title> Объединить наборы </v-card-title>
         <v-card-text>
+          <p v-if="operationError" role="alert">{{ operationError }}</p>
           <div class="merge-subtitle">Основной: {{ title }}</div>
           <v-text-field
             v-model="mergeName"
@@ -106,13 +117,19 @@
           <p v-if="!mergeOptions.length">В этой папке нет других наборов для объединения.</p>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" variant="flat" :disabled="!mergeTarget" @click="applyMerge">
+          <v-btn
+            color="primary"
+            variant="flat"
+            :disabled="!mergeTarget || operationBusy"
+            @click="applyMerge"
+          >
             Создать объединённый набор
           </v-btn>
           <v-btn @click="mergeDialog = false"> Отмена </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <p v-if="operationError && !toolsDialog && !mergeDialog" role="alert">{{ operationError }}</p>
   </v-app-bar>
 </template>
 
@@ -137,9 +154,11 @@ const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const toolsDialog = ref(false);
+const operationBusy = ref(false);
+const operationError = ref("");
 let previousToolsEnabled: boolean | null = null;
 watch(toolsDialog, (open) => {
-  store.commit("ui_gazeSuspended", open);
+  store.commit("ui_gazeSuspended", { owner: "tools", suspended: open });
   if (open) {
     previousToolsEnabled = store.state.button.enabled;
     store.commit("button_enabled", false);
@@ -209,45 +228,49 @@ const isSettingsOpened = computed(() => {
 });
 
 async function toggleSettingsOpen() {
-  if (isSettingsOpened.value) {
-    await save();
-  }
-  store.dispatch("toggle_settings_opened");
-}
-
-async function save() {
-  await store.dispatch("editor_save");
+  await runOperation(async () => {
+    if (isSettingsOpened.value) await store.dispatch("editor_save");
+    await store.dispatch("toggle_settings_opened");
+  });
 }
 
 async function del() {
-  await storageService.moveToTrash(file.value);
-  back();
-  Telemetry.product("trash");
+  await runOperation(async () => {
+    await storageService.moveToTrash(file.value);
+    back();
+    Telemetry.product("trash");
+  });
 }
 
 async function move(location: string) {
-  const target = await storageService.moveSet(file.value, location);
-  router.push("/set/" + toRoutePath(target));
-  Telemetry.product("move");
+  await runOperation(async () => {
+    const target = await storageService.moveSet(file.value, location);
+    await router.push("/set/" + toRoutePath(target));
+    Telemetry.product("move");
+  });
 }
 
 async function duplicateSet() {
-  const target = await storageService.duplicateItem(file.value);
-  router.push("/set/" + toRoutePath(target));
+  await runOperation(async () => {
+    const target = await storageService.duplicateItem(file.value);
+    await router.push("/set/" + toRoutePath(target));
+  });
 }
 
 async function startMerge() {
-  const parentPath = file.value.split("§").slice(0, -1).join("§");
-  const files = (await storageService.getFiles(parentPath)) as Directory;
-  mergeOptions.value = (files ?? [])
-    .filter((item) => !item.directory && pathModule.basename(item.file) !== title.value)
-    .map((item) => ({
-      title: pathModule.basename(item.file, ".linka"),
-      value: item.file
-    }));
-  mergeTarget.value = "";
-  mergeName.value = "";
-  mergeDialog.value = true;
+  await runOperation(async () => {
+    const parentPath = file.value.split("§").slice(0, -1).join("§");
+    const files = (await storageService.getFiles(parentPath)) as Directory;
+    mergeOptions.value = (files ?? [])
+      .filter((item) => !item.directory && pathModule.basename(item.file) !== title.value)
+      .map((item) => ({
+        title: pathModule.basename(item.file, ".linka"),
+        value: item.file
+      }));
+    mergeTarget.value = "";
+    mergeName.value = "";
+    mergeDialog.value = true;
+  });
 }
 
 const mergeDefaultName = computed(() => {
@@ -256,13 +279,29 @@ const mergeDefaultName = computed(() => {
 });
 
 async function applyMerge() {
-  const target = await storageService.mergeSets(
-    file.value,
-    mergeTarget.value,
-    mergeName.value.trim() || mergeDefaultName.value
-  );
-  mergeDialog.value = false;
-  router.push("/set/" + toRoutePath(target));
+  if (!mergeTarget.value) return;
+  await runOperation(async () => {
+    const target = await storageService.mergeSets(
+      file.value,
+      mergeTarget.value,
+      mergeName.value.trim() || mergeDefaultName.value
+    );
+    mergeDialog.value = false;
+    await router.push("/set/" + toRoutePath(target));
+  });
+}
+
+async function runOperation(action: () => Promise<void>) {
+  if (operationBusy.value || !config.value) return;
+  operationBusy.value = true;
+  operationError.value = "";
+  try {
+    await action();
+  } catch {
+    operationError.value = "Не удалось выполнить действие. Попробуйте снова.";
+  } finally {
+    operationBusy.value = false;
+  }
 }
 
 function toRoutePath(absolutePath: string) {
@@ -270,10 +309,16 @@ function toRoutePath(absolutePath: string) {
 }
 
 onUnmounted(async () => {
-  store.commit("ui_gazeSuspended", false);
+  store.commit("ui_gazeSuspended", { owner: "tools", suspended: false });
   if (previousToolsEnabled !== null) store.commit("button_enabled", previousToolsEnabled);
   if (isSettingsOpened.value) {
-    await toggleSettingsOpen();
+    // Pending assistant work must not suppress the settings save on exit.
+    try {
+      await store.dispatch("editor_save");
+      await store.dispatch("toggle_settings_opened");
+    } catch (error) {
+      console.error(error);
+    }
   }
 });
 </script>

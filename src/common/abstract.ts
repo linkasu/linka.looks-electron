@@ -20,6 +20,7 @@ export abstract class ICloudStorage {
       "saveSet",
       "moveSet",
       "duplicateItem",
+      "getSuggestedCopyName",
       "renameItem",
       "mergeSets",
       "mkdir",
@@ -48,9 +49,15 @@ export abstract class ICloudStorage {
   ): Promise<string | null>;
   abstract createAudioFromText(path: string, text: string, voice: string): Promise<string | null>;
   abstract defaultToTemp(file: string): string | Promise<string>;
-  abstract saveSet(path: string, location: string, config: ConfigFile): Promise<void>;
+  abstract saveSet(
+    path: string,
+    location: string,
+    config: ConfigFile,
+    createOnly?: boolean
+  ): Promise<void>;
   abstract moveSet(file: string, location: string): Promise<string>;
   abstract duplicateItem(path: string): Promise<string>;
+  abstract getSuggestedCopyName(path: string): Promise<string>;
   abstract renameItem(path: string, newName: string): Promise<string>;
   abstract mergeSets(basePath: string, otherPath: string, targetName?: string): Promise<string>;
 

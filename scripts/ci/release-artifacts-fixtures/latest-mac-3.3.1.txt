@@ -1,0 +1,17 @@
+version: 3.3.1
+files:
+  - url: linka.looks-3.3.1-mac-x64.zip
+    sha512: yO5jBS4NrrGC9jZFhOjniExpJBCEmZfsXHKacbQSJk1GOYYKa3Dh0bbEgrR9UAQi1+UR413LWlskDi6BwT4/rw==
+    size: 160967612
+  - url: linka.looks-3.3.1-mac-arm64.zip
+    sha512: Denvc/JdwWFa3V7qTnn02pqQ26XzSboWG3mhhawxs3/c2697kznn4vFN7Hu6PSIASzymc6z1DfPt9VDR11Uytg==
+    size: 153722792
+  - url: linka.looks-3.3.1-mac-x64.dmg
+    sha512: 7IjPB/lXGq+URceLStscKtQJps+2MxfB8ISMth+kiKtfNNM7mEmYHnXDT1hWN+TIEzdq49XLV8oDrwnuxJU1Cw==
+    size: 166798249
+  - url: linka.looks-3.3.1-mac-arm64.dmg
+    sha512: xcQygJfRhhPMxSS/98wpKPVZq1hhQFbAR4wRXdN01rtEqlZCP67jJUJYNH8gA177HsdfvLrqlOwpKjnLdNJC3Q==
+    size: 159521373
+path: linka.looks-3.3.1-mac-x64.zip
+sha512: yO5jBS4NrrGC9jZFhOjniExpJBCEmZfsXHKacbQSJk1GOYYKa3Dh0bbEgrR9UAQi1+UR413LWlskDi6BwT4/rw==
+releaseDate: '2026-10-30T15:44:13.922Z'

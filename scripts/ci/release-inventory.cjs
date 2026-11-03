@@ -87,7 +87,7 @@ function main() {
     execFileSync("git", ["rev-parse", "HEAD"], { cwd: toolingRoot, encoding: "utf8" }).trim(),
     tooling
   );
-  assert.equal(require(path.resolve("package.json")).version, "3.3.1");
+  assert.equal(require(path.resolve("package.json")).version, "4.0.0");
   const bundles =
     process.platform === "win32"
       ? ["dist/win-unpacked/resources"]

@@ -116,6 +116,39 @@ describe("eye button", () => {
     expect(wrapper.find(".overlay").exists()).to.equal(false);
   });
 
+  it.each(["inward", "circle"] as const)(
+    "resets %s progress on exit, activation and pause",
+    async (dwellIndicator) => {
+      const store = createVuexStore({ dwellIndicator });
+      const wrapper = mount(EyeButton, { global: { plugins: [store] } });
+      try {
+        for (const reset of ["exit", "click", "pause"]) {
+          dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+          await wrapper.vm.$nextTick();
+          const progress = wrapper.get(".progress-bar").element;
+          expect(
+            wrapper.find(dwellIndicator === "circle" ? ".dwell-circle" : ".dwell-fill").exists()
+          ).to.equal(true);
+          if (reset === "exit") dispatchEyeEvent(wrapper, "eye-exit");
+          else if (reset === "click") await wrapper.trigger("click");
+          else store.state.button.enabled = false;
+          await wrapper.vm.$nextTick();
+          expect(wrapper.find(".progress-bar").exists()).to.equal(false);
+          expect(wrapper.classes()).not.to.include("isInside");
+          store.state.button.enabled = true;
+          await wrapper.vm.$nextTick();
+          dispatchEyeEvent(wrapper, "eye-enter", { eye: true });
+          await wrapper.vm.$nextTick();
+          expect(wrapper.get(".progress-bar").element).not.to.equal(progress);
+          dispatchEyeEvent(wrapper, "eye-exit");
+          await wrapper.vm.$nextTick();
+        }
+      } finally {
+        wrapper.unmount();
+      }
+    }
+  );
+
   it("clears completed dwell after activation even if the target list is rebuilt", async () => {
     const wrapper = mount(EyeButton, {
       props: { lock: true },

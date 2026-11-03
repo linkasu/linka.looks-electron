@@ -3,13 +3,14 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
   lstatSync,
   copyFileSync,
   createWriteStream,
   WriteStream
 } from "fs";
 import { join, basename, extname, normalize, dirname, resolve, sep, isAbsolute } from "path";
-import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp } from "fs/promises";
+import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp, link } from "fs/promises";
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 import AdmZip from "adm-zip";
@@ -273,7 +274,12 @@ export class CardsStorage extends ICloudStorage {
     return tmp;
   }
 
-  async saveSet(path: string, location: string, config: ConfigFile): Promise<void> {
+  async saveSet(
+    path: string,
+    location: string,
+    config: ConfigFile,
+    createOnly = false
+  ): Promise<void> {
     path = this.checkPath(path);
     location = this.checkPath(location);
     assertValidStorageName(basename(location));
@@ -303,7 +309,8 @@ export class CardsStorage extends ICloudStorage {
     try {
       await zip.writeZipPromise(staged);
       openLinkaZip(staged);
-      await rename(staged, location);
+      if (createOnly) await link(staged, location);
+      else await rename(staged, location);
     } finally {
       await rm(staged, { force: true });
     }
@@ -434,15 +441,28 @@ export class CardsStorage extends ICloudStorage {
     return file;
   }
 
-  private getDuplicatePath(source: string): string {
-    const isDir = lstatSync(source).isDirectory();
-    const ext = isDir ? "" : extname(source);
+  async getSuggestedCopyName(path: string): Promise<string> {
+    const source = this.checkPath(path);
+    assertValidStorageName(basename(source));
+    const ext = extname(source);
+    if (ext.toLowerCase() !== ".linka") throw new Error("Можно копировать только .linka файл");
+    const home = realpathSync(HOME_DIR);
+    const dir = realpathSync(dirname(source));
+    if (dir !== home && !dir.startsWith(home + sep)) throw new Error("Путь вне папки LINKa");
+    return basename(this.getDuplicatePath(source, ext));
+  }
+
+  private getDuplicatePath(
+    source: string,
+    ext = lstatSync(source).isDirectory() ? "" : extname(source)
+  ): string {
     const base = basename(source, ext);
     const dir = dirname(source);
     const suffix = " копия";
+    const occupied = new Set(readdirSync(dir).map((name) => name.toLowerCase()));
     let candidate = join(dir, `${base}${suffix}${ext}`);
     let index = 2;
-    while (existsSync(candidate)) {
+    while (existsSync(candidate) || occupied.has(basename(candidate).toLowerCase())) {
       candidate = join(dir, `${base}${suffix} ${index}${ext}`);
       index++;
     }
