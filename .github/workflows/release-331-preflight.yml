@@ -86,7 +86,7 @@ jobs:
           npm rebuild pictures.bank-api esbuild electron
           node scripts/ci/provision-eyelog.cjs
       - name: Strict release contract negative controls (no credentials)
-        run: node --test scripts/ci/release-331-preflight.test.cjs scripts/ci/release-artifacts.test.cjs scripts/ci/verify-predictor-resources.test.cjs
+        run: node --test scripts/ci/release-331-preflight.test.cjs scripts/ci/release-artifacts.test.cjs scripts/ci/verify-predictor-resources.test.cjs scripts/ci/real-upgrade-contract.test.cjs
       - name: Build unsigned Windows x64 installer once (never publish)
         run: npm run electron:build -- --win --x64 -p never
       - name: Packaged resources and real component inventory
