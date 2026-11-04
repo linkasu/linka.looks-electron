@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { once } = require("node:events");
 
 const OLD = Object.freeze({
   version: "3.3.1",
@@ -56,7 +57,13 @@ function verifyCandidate(directory, expected) {
   return { installer, metadata: metadata(bytes), provenance };
 }
 
-module.exports = { OLD, INSTALLER, digest, metadata, verifyCandidate };
+async function waitForProcessExit(child, timeout) {
+  if (child.exitCode === null && child.signalCode === null)
+    await once(child, "exit", { signal: AbortSignal.timeout(timeout) });
+  return { pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode };
+}
+
+module.exports = { OLD, INSTALLER, digest, metadata, verifyCandidate, waitForProcessExit };
 
 if (require.main === module) {
   verifyCandidate(process.argv[2], {
