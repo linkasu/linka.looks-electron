@@ -103,6 +103,17 @@ async function waitForProcessExit(child, timeout) {
   return { pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode };
 }
 
+function updateConfirmation(version) {
+  assert(typeof version === "string" && /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version));
+  return Number(version.split(".")[0]) >= 4
+    ? {
+        open: "Обновление готово — установить",
+        prompt: "Установка перезапустит приложение.",
+        confirm: "Установить и перезапустить"
+      }
+    : { open: null, prompt: "установить сейчас?", confirm: "Да" };
+}
+
 module.exports = {
   UPGRADE_STAGES,
   OLD,
@@ -111,7 +122,8 @@ module.exports = {
   metadata,
   verifyCandidate,
   waitForProcessExit,
-  candidateConfiguration
+  candidateConfiguration,
+  updateConfirmation
 };
 
 if (require.main === module) {

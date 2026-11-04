@@ -1,4 +1,4 @@
-// CI-only real 3.3.1 updater exercise. No production flags or installed-code modifications.
+// CI-only pinned-baseline updater exercise. No production flags or installed-code modifications.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -11,7 +11,8 @@ const {
   digest,
   metadata,
   verifyCandidate,
-  waitForProcessExit
+  waitForProcessExit,
+  updateConfirmation
 } = require("./real-upgrade-contract.cjs");
 
 assert.equal(process.platform, "win32", "Never run the installer qualification locally");
@@ -314,10 +315,13 @@ async function run() {
   assert(
     !fs.readFileSync(path.join(evidence, "upgrade-updater.log"), "utf8").includes("restart_app")
   );
-  await expect(page.getByText("установить сейчас?", { exact: false })).toBeVisible();
+  const confirmation = updateConfirmation(OLD.version);
+  if (confirmation.open)
+    await page.getByRole("button", { name: confirmation.open, exact: true }).click();
+  await expect(page.getByText(confirmation.prompt, { exact: false })).toBeVisible();
   await page.screenshot({ path: path.join(evidence, "upgrade-explicit-confirmation.png") });
   const oldProcess = application.process();
-  await page.getByRole("button", { name: "Да", exact: true }).click();
+  await page.getByRole("button", { name: confirmation.confirm, exact: true }).click();
   // Playwright close also waits for inherited stdio held by NSIS/restarted children.
   result.oldProcessExit = await waitForProcessExit(oldProcess, 180000);
   assert.equal(result.oldProcessExit.exitCode, 0, "historical app must exit normally");

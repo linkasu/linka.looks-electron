@@ -13,8 +13,27 @@ const {
   metadata,
   verifyCandidate,
   waitForProcessExit,
-  candidateConfiguration
+  candidateConfiguration,
+  updateConfirmation
 } = require("./real-upgrade-contract.cjs");
+
+test("pinned baseline keeps explicit confirmation for both historical and current updater UI", () => {
+  assert.deepEqual(updateConfirmation("3.3.1"), {
+    open: null,
+    prompt: "установить сейчас?",
+    confirm: "Да"
+  });
+  const current = updateConfirmation("4.0.0");
+  assert.deepEqual(current, {
+    open: "Обновление готово — установить",
+    prompt: "Установка перезапустит приложение.",
+    confirm: "Установить и перезапустить"
+  });
+  const component = fs.readFileSync("src/frontend/components/UpdateStatusBar.vue", "utf8");
+  for (const text of Object.values(current)) assert(component.includes(text));
+  for (const version of [undefined, "", "latest", "4.0.0-beta.1"])
+    assert.throws(() => updateConfirmation(version));
+});
 
 test("root process exit does not wait for an inherited descendant stdio pipe", async (t) => {
   const parent = spawn(process.execPath, [
