@@ -476,7 +476,10 @@ book_job_id 32 lowercase hex, attempt positive integer, image_digest, source_sha
 limits {memory_bytes:6442450944,cpus:2,tasks:128}. Никаких aliases profile/pids и
 никакого receipt_sha256 внутри самого receipt. Execution context — весь receipt
 плюс kind book-local-linux-container и receipt_sha256. Shared house validator из
-`import-book-candidate.cjs` проверяет canonical sorted ASCII JSON+LF receipt SHA.
+`book-execution-receipt.cjs` проверяет canonical sorted ASCII JSON+LF receipt SHA.
+Это pure seam: Book связывает bytes receipt-validator, а не полный network importer.
+Транспорт кандидата независимо проверяется по origin/owner/asset/hash; его смена
+не меняет receipt schema, targets, UI cost или threshold и не даёт permission на публикацию.
 Base Rust image pinned:
 `sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e`.
 Это trusted primary execution attestation, не утверждение, что CI выполнял Book job.
@@ -505,7 +508,7 @@ source/app checkouts остаются на frozen code refs. Approval checkout �
 добавляет только execution и source_code_hashes. Этот полный JSON pin фиксируется
 до targets; прежний pure validator получает projection без этих двух route полей.
 Manifest дополнительно требует bookEvaluationBindings с hash реального Book executor
-и используемого `scripts/ci/import-book-candidate.cjs` (опционально Book test).
+и используемого `scripts/ci/book-execution-receipt.cjs` (опционально Book test).
 source_code_hashes — точное объединение старых bindings и bookEvaluationBindings.
 Новый seal/index формируются куратором только после primary approval стабильных
 tracked bytes; этот документ не инициирует reseal или запуск.

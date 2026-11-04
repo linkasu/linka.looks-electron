@@ -4,6 +4,7 @@ const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { validateExecution } = require("./book-execution-receipt.cjs");
 
 const ARCHIVE_LIMIT = 300 * 1024 ** 2;
 function validateInputs(i) {
@@ -22,6 +23,7 @@ function validateInputs(i) {
 function validateRelease(r, i) {
   validateInputs(i);
   const base = `https://api.github.com/repos/${i.repository}/releases`;
+  assert(Number.isSafeInteger(r.id) && r.id > 0, "release ID");
   assert.equal(String(r.id), i.releaseId);
   assert.equal(r.url, `${base}/${i.releaseId}`);
   assert.equal(r.draft, true, "candidate release must remain unpublished");
@@ -36,49 +38,95 @@ function validateRelease(r, i) {
   assert.equal(a.url, `${base}/assets/${a.id}`, "own-repository asset API only");
   return a;
 }
-function validateExecution(e, sourceSha, tag) {
-  assert(e && /^[0-9a-f]{32}$/.test(e.book_job_id), "book job ID");
-  assert(
-    typeof e.image_digest === "string" && /^sha256:[0-9a-f]{64}$/.test(e.image_digest),
-    "image digest"
-  );
-  assert(
-    typeof e.receipt_sha256 === "string" && /^[0-9a-f]{64}$/.test(e.receipt_sha256),
-    "operational receipt SHA256"
-  );
-  assert(Number.isSafeInteger(e.attempt) && e.attempt > 0, "book attempt");
-  assert.deepEqual(e, {
-    schema: "linka-book-execution-v1",
-    attempt: e.attempt,
-    receipt_sha256: e.receipt_sha256,
-    kind: "book-local-linux-container",
-    book_job_id: tag.slice("book-candidate-".length),
-    host: "book.local",
-    colima_profile: "linka-model-400",
-    image_digest: e.image_digest,
-    source_sha: sourceSha,
-    limits: { memory_bytes: 6442450944, cpus: 2, tasks: 128 }
-  });
-  const receipt = { ...e };
-  delete receipt.kind;
-  delete receipt.receipt_sha256;
-  const sorted = (value) =>
-    value && typeof value === "object"
-      ? Object.fromEntries(
-          Object.keys(value)
-            .sort()
-            .map((key) => [key, sorted(value[key])])
-        )
-      : value;
-  // Validated receipt fields are ASCII; this matches Python ensure_ascii=True plus LF.
-  const canonicalBytes = JSON.stringify(sorted(receipt)) + "\n";
-  assert.equal(
-    createHash("sha256").update(canonicalBytes, "utf8").digest("hex"),
-    e.receipt_sha256,
-    "canonical operational receipt SHA256 mismatch"
-  );
+function validateTransport(t, i, repositoryId, now = Date.now()) {
+  try {
+    const keys = (value, expected) => assert.deepEqual(Object.keys(value).sort(), expected.sort());
+    keys(t, ["schema", "release", "download_url"]);
+    assert.equal(t.schema, "linka-book-candidate-read-capability-v1");
+    keys(t.release, [
+      "id",
+      "url",
+      "tag_name",
+      "target_commitish",
+      "draft",
+      "assets",
+      ...("prerelease" in t.release ? ["prerelease"] : [])
+    ]);
+    if ("prerelease" in t.release) assert.equal(typeof t.release.prerelease, "boolean");
+    const asset = validateRelease(t.release, i);
+    keys(asset, ["id", "name", "size", "state", "url"]);
+    assert(typeof repositoryId === "string" && /^[1-9][0-9]*$/.test(repositoryId));
+    assert(typeof t.download_url === "string" && t.download_url.length <= 16000);
+    assert(t.download_url.startsWith("https://release-assets.githubusercontent.com/"));
+    const url = new URL(t.download_url);
+    assert.equal(url.hostname, "release-assets.githubusercontent.com");
+    assert(!url.username && !url.password && !url.port && !t.download_url.includes("#"));
+    assert.equal(url.href, t.download_url);
+    assert(
+      new RegExp(`^/github-production-release-asset/${repositoryId}/[A-Za-z0-9-]{1,128}$`).test(
+        url.pathname
+      )
+    );
+    const query = url.searchParams;
+    const names = [...query.keys()];
+    assert.equal(names.length, new Set(names).size);
+    assert.equal(query.get("sp"), "r");
+    assert.equal(query.get("sr"), "b");
+    assert.equal(query.get("spr"), "https");
+    assert(query.get("sig"));
+    assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(query.get("se")));
+    const expiry = Date.parse(query.get("se"));
+    assert(Number.isFinite(expiry) && expiry > now && expiry <= now + 3600000);
+    return { release: t.release, asset, downloadUrl: t.download_url };
+  } catch {
+    throw new Error("BOOK_TRANSPORT_INVALID");
+  }
 }
-
+function readTransport(file, runnerTemp) {
+  try {
+    assert(
+      runnerTemp &&
+        path.resolve(file) === path.join(path.resolve(runnerTemp), "book-candidate-transport.json")
+    );
+    const fd = fs.openSync(
+      file,
+      fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK
+    );
+    let bytes;
+    try {
+      const stat = fs.fstatSync(fd);
+      assert(stat.isFile() && stat.size > 0 && stat.size <= 65000 && (stat.mode & 0o777) === 0o600);
+      const buffer = Buffer.alloc(65001);
+      const count = fs.readSync(fd, buffer, 0, buffer.length, 0);
+      assert(count === stat.size);
+      bytes = buffer.subarray(0, count);
+    } finally {
+      fs.closeSync(fd);
+    }
+    // Reject duplicate JSON keys without adding a parser dependency; secrets stay in pipes/files.
+    return JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-c",
+          String.raw`
+import json, sys
+def unique(pairs):
+    result = {}
+    for k, v in pairs:
+        if k in result: raise ValueError('duplicate transport key')
+        result[k] = v
+    return result
+print(json.dumps(json.load(sys.stdin, object_pairs_hook=unique)))
+`
+        ],
+        { input: bytes, encoding: "utf8", maxBuffer: 512 * 1024, stdio: ["pipe", "pipe", "pipe"] }
+      )
+    );
+  } catch {
+    throw new Error("BOOK_TRANSPORT_INVALID");
+  }
+}
 // Python's ZIP reader supplies decompression/CRC checks without npm installation.
 const verifier = String.raw`
 import importlib.util, json, os, pathlib, re, shutil, stat, struct, subprocess, sys, zipfile
@@ -233,54 +281,49 @@ async function api(url, token, accept = "application/vnd.github+json") {
     signal: AbortSignal.timeout(120000)
   });
 }
-async function main() {
-  const e = process.env;
-  assert.equal(e.GITHUB_EVENT_NAME, "workflow_dispatch");
-  assert.equal(e.GITHUB_REF, "refs/heads/main", "main-only import");
-  const i = {
-    repository: e.GITHUB_REPOSITORY,
-    sourceSha: e.GITHUB_SHA,
-    releaseId: e.BOOK_RELEASE_ID,
-    archiveSha256: e.BOOK_ARCHIVE_SHA256,
-    archiveBytes: e.BOOK_ARCHIVE_BYTES,
-    appToolingSha: e.APP_TOOLING_SHA
-  };
+async function downloadCandidate(i, options, archive) {
   validateInputs(i);
-  assert(e.GH_TOKEN, "read-only GitHub token required");
-  const root = process.cwd();
-  assert.equal(
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
-    i.sourceSha
-  );
-  const app = path.resolve(__dirname, "../..");
-  assert.equal(
-    execFileSync("git", ["rev-parse", "HEAD"], { cwd: app, encoding: "utf8" }).trim(),
-    i.appToolingSha
-  );
-  execFileSync("git", ["merge-base", "--is-ancestor", i.appToolingSha, "origin/main"], {
-    cwd: app
-  });
-  const response = await api(
-    `https://api.github.com/repos/${i.repository}/releases/${i.releaseId}`,
-    e.GH_TOKEN
-  );
-  assert(response.ok, "draft release API failed");
-  const release = await response.json();
-  const asset = validateRelease(release, i);
-  let bytesResponse = await api(asset.url, e.GH_TOKEN, "application/octet-stream");
-  if (bytesResponse.status === 302) {
-    const location = new URL(bytesResponse.headers.get("location"));
-    assert.equal(location.protocol, "https:");
-    assert.equal(location.hostname, "release-assets.githubusercontent.com");
-    assert(!location.username && !location.password && !location.port);
-    bytesResponse = await fetch(location, {
+  let release, asset, bytesResponse, transport;
+  if (options.transportFile) {
+    const capability = validateTransport(
+      readTransport(options.transportFile, options.runnerTemp),
+      i,
+      options.repositoryId
+    );
+    ({ release, asset } = capability);
+    bytesResponse = await fetch(capability.downloadUrl, {
       redirect: "error",
       signal: AbortSignal.timeout(120000)
     });
+    transport = {
+      kind: "operator-granted-one-asset-read-capability",
+      draft_metadata_source: "operator-owner-api-snapshot",
+      independent_draft_api_read: false,
+      repository_id: options.repositoryId
+    };
+  } else {
+    assert(options.token, "read-only GitHub token required");
+    const response = await api(
+      `https://api.github.com/repos/${i.repository}/releases/${i.releaseId}`,
+      options.token
+    );
+    assert(response.ok, "draft release API failed");
+    release = await response.json();
+    asset = validateRelease(release, i);
+    bytesResponse = await api(asset.url, options.token, "application/octet-stream");
+    if (bytesResponse.status === 302) {
+      const location = new URL(bytesResponse.headers.get("location"));
+      assert.equal(location.protocol, "https:");
+      assert.equal(location.hostname, "release-assets.githubusercontent.com");
+      assert(!location.username && !location.password && !location.port);
+      bytesResponse = await fetch(location, {
+        redirect: "error",
+        signal: AbortSignal.timeout(120000)
+      });
+    }
+    transport = { kind: "github-draft-api-read", independent_draft_api_read: true };
   }
   assert(bytesResponse.ok, "asset download failed");
-  fs.mkdirSync(".local", { recursive: true });
-  const archive = path.resolve(".local/book-candidates.zip");
   const fd = fs.openSync(archive, "wx");
   let count = 0;
   const hash = createHash("sha256");
@@ -296,6 +339,47 @@ async function main() {
   }
   assert.equal(count, Number(i.archiveBytes));
   assert.equal(hash.digest("hex"), i.archiveSha256, "archive SHA256 mismatch");
+  return { release, transport: { ...transport, release_id: release.id, asset_id: asset.id } };
+}
+async function main() {
+  const e = process.env;
+  assert.equal(e.GITHUB_EVENT_NAME, "workflow_dispatch");
+  assert.equal(e.GITHUB_REF, "refs/heads/main", "main-only import");
+  assert.equal(e.GITHUB_REPOSITORY, "linkasu/linka.predictor-rust", "owned repository only");
+  const i = {
+    repository: e.GITHUB_REPOSITORY,
+    sourceSha: e.GITHUB_SHA,
+    releaseId: e.BOOK_RELEASE_ID,
+    archiveSha256: e.BOOK_ARCHIVE_SHA256,
+    archiveBytes: e.BOOK_ARCHIVE_BYTES,
+    appToolingSha: e.APP_TOOLING_SHA
+  };
+  validateInputs(i);
+  const root = process.cwd();
+  assert.equal(
+    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    i.sourceSha
+  );
+  const app = path.resolve(__dirname, "../..");
+  assert.equal(
+    execFileSync("git", ["rev-parse", "HEAD"], { cwd: app, encoding: "utf8" }).trim(),
+    i.appToolingSha
+  );
+  execFileSync("git", ["merge-base", "--is-ancestor", i.appToolingSha, "origin/main"], {
+    cwd: app
+  });
+  fs.mkdirSync(".local", { recursive: true });
+  const archive = path.resolve(".local/book-candidates.zip");
+  const { release, transport } = await downloadCandidate(
+    i,
+    {
+      token: e.GH_TOKEN,
+      transportFile: e.BOOK_TRANSPORT_FILE,
+      repositoryId: e.GITHUB_REPOSITORY_ID,
+      runnerTemp: e.RUNNER_TEMP
+    },
+    archive
+  );
   verifyArchive(
     archive,
     ".local/model-400/bundle",
@@ -309,15 +393,25 @@ async function main() {
     null,
     i.sourceSha
   );
-  const execution = JSON.parse(
-    fs.readFileSync(".local/model-400/bundle/provenance.json", "utf8")
-  ).execution;
-  validateExecution(execution, i.sourceSha, release.tag_name);
+  const provenanceFile = ".local/model-400/bundle/provenance.json";
+  const provenance = JSON.parse(fs.readFileSync(provenanceFile, "utf8"));
+  validateExecution(provenance.execution, i.sourceSha, release.tag_name);
+  provenance.transport = transport;
+  fs.writeFileSync(provenanceFile, JSON.stringify(provenance, null, 2) + "\n");
   console.log("Verified book-local candidate import; no CI training or publication performed.");
 }
-module.exports = { validateInputs, validateRelease, validateExecution, verifyArchive, verifier };
+module.exports = {
+  validateInputs,
+  validateRelease,
+  validateExecution,
+  validateTransport,
+  readTransport,
+  downloadCandidate,
+  verifyArchive,
+  verifier
+};
 if (require.main === module)
-  main().catch((error) => {
-    console.error(error.message);
+  main().catch(() => {
+    console.error("Book candidate import blocked; no transport details logged.");
     process.exitCode = 1;
   });

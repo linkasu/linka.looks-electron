@@ -220,7 +220,7 @@ function fixture(variant = "U") {
           : kind === "runtime"
             ? `windows-runtime-manual-reviewed-${RUNTIME}`
             : kind === "final"
-              ? "final-ui-aggregate-13-1"
+              ? "ui-final-aggregate-13-1"
               : "windows-model-candidate-14-1";
       const artifact = {
         id: 21 + index,
@@ -406,6 +406,15 @@ test("synthetic U and T qualify without mistaking candidate false flags for rele
     assert.equal(files["source-review.json"], undefined);
     assert.equal(files["requests.json"], undefined);
   }
+});
+
+test("FINAL uses the producer's ui-final-aggregate name, never the former alias", () => {
+  const f = fixture();
+  assert.equal(f.approval.runs.final.artifact_name, "ui-final-aggregate-13-1");
+  validateEvidence(f.approval, f.evidence);
+  f.approval.runs.final.artifact_name = "final-ui-aggregate-13-1";
+  f.evidence.final.artifact.name = f.evidence.final.member.name = "final-ui-aggregate-13-1";
+  assert.throws(() => validateEvidence(f.approval, f.evidence));
 });
 
 for (const mutation of [
