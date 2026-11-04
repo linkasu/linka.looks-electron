@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const yaml = require("yaml");
 const { createRequire } = require("node:module");
 const builderRequire = createRequire(require.resolve("electron-builder"));
@@ -65,7 +66,9 @@ test("4.0.0 builds once, main-gates accepted artifact retention and never publis
             job.if,
             /workflow_dispatch.*refs\/heads\/main.*linkasu\/linka\.looks-electron/
           );
-          assert.equal(step.with.path, "app/release-ready/");
+          if (step.with.name.startsWith("accepted-"))
+            assert.equal(step.with.path, "app/release-ready/");
+          else assert.equal(step.with.name, "security-evidence-400-${{ github.run_id }}");
         }
       }
       assert.doesNotMatch(JSON.stringify(step), /secrets\./);
@@ -106,6 +109,94 @@ test("4.0.0 builds once, main-gates accepted artifact retention and never publis
   const pkg = JSON.parse(fs.readFileSync("package.json"));
   for (const notice of ["LICENSE", "THIRD_PARTY_NOTICES.md"])
     assert(pkg.build.files.includes(notice));
+});
+
+test("fresh production audit blocks accepted upload and preserves separate failure evidence", async (t) => {
+  const workflow = yaml.parse(
+    fs.readFileSync(".github/workflows/release-331-preflight.yml", "utf8")
+  );
+  const steps = workflow.jobs["release-windows"].steps;
+  const gateIndex = steps.findIndex((step) => step.run?.includes("npm audit"));
+  const gate = steps[gateIndex];
+  const acceptedIndex = steps.findIndex((step) => step.with?.name?.startsWith("accepted-"));
+  const evidence = steps.find((step) => step.with?.name?.startsWith("security-evidence-"));
+  assert(gateIndex > steps.findIndex((step) => step.run?.includes("stage windows")));
+  assert(acceptedIndex > gateIndex);
+  assert.equal(gate["working-directory"], "app");
+  assert.equal(gate.shell, "bash");
+  assert.equal(gate.if, undefined);
+  assert.equal(gate["continue-on-error"], undefined);
+  assert.equal(steps[acceptedIndex].if, undefined);
+  assert.equal(evidence.if, "always()");
+  assert.equal(evidence.with["if-no-files-found"], "warn");
+  assert.deepEqual(evidence.with.path.trim().split("\n"), [
+    "app/release-evidence/inventory.json",
+    "app/release-evidence/audit-production.json",
+    "app/release-evidence/security-signoff.json",
+    "app/release-evidence/package-lock.json"
+  ]);
+  for (const [auditStatus, helperStatus] of [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [1, 1]
+  ]) {
+    await t.test(`audit exit ${auditStatus}, helper exit ${helperStatus}`, (t) => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "release-audit-gate-"));
+      t.after(() => fs.rmSync(root, { recursive: true }));
+      fs.mkdirSync(path.join(root, "release-evidence"));
+      fs.writeFileSync(path.join(root, "package-lock.json"), "exact lock bytes\n");
+      const result = spawnSync(
+        "bash",
+        [
+          "-c",
+          `
+        npm() {
+          test "$*" = 'audit --omit=dev --json' || return 99
+          printf '{"fixture":"audit diagnostics"}\\n'
+          return ${auditStatus}
+        }
+        node() {
+          printf '%s\\n' "$@" > helper-arguments.txt
+          if [ ${helperStatus} -ne 0 ]; then return ${helperStatus}; fi
+          printf '{"status":"REVIEWED_SOURCE_ONLY"}\\n'
+        }
+        ${gate.run}
+      `
+        ],
+        { cwd: root, encoding: "utf8" }
+      );
+      assert.equal(result.status, auditStatus > 1 ? auditStatus : helperStatus, result.stderr);
+      assert.equal(
+        fs.readFileSync(path.join(root, "release-evidence/package-lock.json"), "utf8"),
+        "exact lock bytes\n"
+      );
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(path.join(root, "release-evidence/audit-production.json"))),
+        { fixture: "audit diagnostics" }
+      );
+      const helperCalled = fs.existsSync(path.join(root, "helper-arguments.txt"));
+      assert.equal(helperCalled, auditStatus <= 1);
+      if (helperCalled) {
+        assert.deepEqual(
+          fs.readFileSync(path.join(root, "helper-arguments.txt"), "utf8").trim().split("\n"),
+          [
+            "../tooling/scripts/ci/release-security-audit.cjs",
+            "release-evidence/inventory.json",
+            "release-evidence/audit-production.json",
+            "release-ready/provenance-windows.json",
+            "package-lock.json"
+          ]
+        );
+        const signoff = fs.readFileSync(
+          path.join(root, "release-evidence/security-signoff.json"),
+          "utf8"
+        );
+        if (helperStatus) assert.equal(signoff, "");
+        else assert.equal(JSON.parse(signoff).status, "REVIEWED_SOURCE_ONLY");
+      } else assert(!fs.existsSync(path.join(root, "release-evidence/security-signoff.json")));
+    });
+  }
 });
 
 test("inventory uses actual ASAR metadata/notices and extra resources; missing app fails closed", async (t) => {
