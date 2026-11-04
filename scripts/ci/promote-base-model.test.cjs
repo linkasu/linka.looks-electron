@@ -7,6 +7,7 @@ const { spawnSync } = require("node:child_process");
 const Zip = require("adm-zip");
 const {
   hash,
+  codePath,
   validateApproval,
   validateEvidence,
   inspectArchive,
@@ -23,6 +24,33 @@ const RUNTIME = "ec07b2cd49c1c2c684e6643f0dab75cf5895ebca";
 const h = hash(Buffer.from("synthetic fixture only"));
 const metadata = (data) => ({ sha256: hash(data), bytes: data.length });
 const json = (value) => Buffer.from(JSON.stringify(value));
+
+test("corresponding source includes only explicit Book/build recipes, never broad Python or private/evaluation data", () => {
+  for (const name of [
+    "scripts/model_recipe.py",
+    "scripts/book_model.py",
+    ".github/workflows/model-candidates.yml",
+    ".github/workflows/windows-runtime.yml",
+    "crates/predictor-cli/examples/prepare_source.rs",
+    "Cargo.lock",
+    "crates/predictor-core/Cargo.toml"
+  ])
+    assert.equal(codePath(name), true, name);
+  for (const name of [
+    "scripts/other.py",
+    ".github/workflows/model-final.yml",
+    "provenance/reviews/approval.json",
+    "private/main.rs",
+    "crates/FINAL/example.rs",
+    "corpus/data.rs",
+    "profiles/main.rs",
+    "sealed/Cargo.toml",
+    "train.txt",
+    "model.lpk",
+    "../scripts/book_model.py"
+  ])
+    assert.equal(codePath(name), false, name);
+});
 
 function fixture(variant = "U") {
   const model = Buffer.from("SYNTHETIC MODEL, NOT PRODUCTION"),
@@ -706,11 +734,22 @@ test("source archive contains exact reviewed tracked code/recipes; rejects edite
     "Cargo.toml": Buffer.from("[workspace]"),
     LICENSE: Buffer.from("fixture GPL"),
     "src/lib.rs": Buffer.from("pub fn fixture() {}"),
-    "scripts/model_recipe.py": Buffer.from("# fixture")
+    "scripts/model_recipe.py": Buffer.from("# fixture"),
+    "scripts/book_model.py": Buffer.from("# synthetic Book entry point"),
+    ".github/workflows/model-candidates.yml": Buffer.from("name: synthetic build recipe")
   };
   for (const [name, data] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), data);
+  }
+  for (const name of [
+    "scripts/other.py",
+    "private/data.rs",
+    "corpus/raw.txt",
+    "profiles/example.json"
+  ]) {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    fs.writeFileSync(path.join(root, name), "SYNTHETIC EXCLUDED FIXTURE");
   }
   git("add", ".");
   git("commit", "-m", "synthetic fixture");
@@ -720,6 +759,16 @@ test("source archive contains exact reviewed tracked code/recipes; rejects edite
   };
   const archive = sourceArchive(root, spec, "model");
   assert.ok(archive.length > 0);
+  const listing = spawnSync("tar", ["-tf", "-"], { input: archive, encoding: "utf8" });
+  assert.equal(listing.status, 0, listing.stderr);
+  assert.deepEqual(
+    listing.stdout
+      .trim()
+      .split("\n")
+      .filter((name) => !name.endsWith("/"))
+      .sort(),
+    Object.keys(files).sort()
+  );
   fs.writeFileSync(path.join(root, "src/lib.rs"), "changed");
   assert.throws(() => sourceArchive(root, spec, "model"));
   fs.writeFileSync(path.join(root, "src/lib.rs"), files["src/lib.rs"]);

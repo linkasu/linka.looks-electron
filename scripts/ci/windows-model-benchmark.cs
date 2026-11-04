@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 public static class WindowsModelJob
@@ -96,11 +97,17 @@ public static class WindowsModelJob
             if (!Task.WaitAll(new Task[] { output, error }, 5000)) throw new InvalidOperationException("Pipe drain timed out");
             watch.Stop();
             Check(QueryLimits(job, 9, out limits, (uint)Marshal.SizeOf(typeof(ExtendedLimits)), IntPtr.Zero));
-            Accounting accounting;
-            Check(QueryAccounting(job, 1, out accounting, (uint)Marshal.SizeOf(typeof(Accounting)), IntPtr.Zero));
+            Accounting accounting = new Accounting();
+            // Process exit can precede the Job Object's active-process accounting update.
+            if (!SpinWait.SpinUntil(() => {
+                Check(QueryAccounting(job, 1, out accounting, (uint)Marshal.SizeOf(typeof(Accounting)), IntPtr.Zero));
+                return accounting.ActiveProcesses == 0;
+            }, 2000)) throw new InvalidOperationException("Owned job processes did not drain: active=" + accounting.ActiveProcesses);
             ulong peak = limits.PeakProcessMemoryUsed.ToUInt64();
             if (p.ExitCode != expectedExit || peak == 0 || peak > limit || accounting.ActiveProcesses != 0)
-                throw new InvalidOperationException("Owned child exit, private-commit peak or leak check failed");
+                throw new InvalidOperationException("Owned child check failed: exit=" + p.ExitCode +
+                    "; expected=" + expectedExit + "; peak=" + peak + "; limit=" + limit +
+                    "; active=" + accounting.ActiveProcesses);
             if (error.Result.Length != 0) throw new InvalidOperationException("Unexpected owned child stderr");
             return new Result { ExitCode = p.ExitCode, PeakPrivateCommitBytes = peak,
                 ActiveProcessesAfterExit = accounting.ActiveProcesses, Output = output.Result,
