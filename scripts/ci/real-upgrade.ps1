@@ -63,12 +63,19 @@ try {
   $start.ArgumentList.Add("/D=$install")
   $start.Environment.Clear()
   foreach ($item in [Environment]::GetEnvironmentVariables().GetEnumerator()) {
-    if ($item.Key -match '^(PATH|SYSTEMROOT|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMFILES(?:\(X86\))?|PROGRAMDATA|NUMBER_OF_PROCESSORS|PROCESSOR_ARCHITECTURE|OS|USERNAME|USERDOMAIN|PUBLIC|ALLUSERSPROFILE)$') {
+    if ($item.Key -match '^(PATH|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMFILES(?:\(X86\))?|PROGRAMW6432|COMMONPROGRAMFILES(?:\(X86\))?|COMMONPROGRAMW6432|PROGRAMDATA|NUMBER_OF_PROCESSORS|PROCESSOR_ARCHITECTURE|OS|USERNAME|USERDOMAIN|PUBLIC|ALLUSERSPROFILE)$') {
       $start.Environment[$item.Key] = $item.Value
     }
   }
+  $installStarted = Get-Date
   $installer = [System.Diagnostics.Process]::Start($start)
-  if (-not $installer.WaitForExit(180000)) {
+  $installerExited = $installer.WaitForExit(180000)
+  Get-ChildItem -LiteralPath $env:TEMP -Filter "dd_vcredist_x86_*.log" -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.LastWriteTime -ge $installStarted -and $_.Length -le 8MB } |
+    Select-Object -First 8 | ForEach-Object {
+      Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $evidence "upgrade-prerequisite-$($_.Name)")
+    }
+  if (-not $installerExited) {
     $processes = @(Get-CimInstance Win32_Process)
     $owned = [System.Collections.Generic.HashSet[uint32]]::new()
     [void]$owned.Add([uint32]$installer.Id)

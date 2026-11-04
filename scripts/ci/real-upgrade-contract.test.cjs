@@ -126,6 +126,32 @@ test("trusted main harness identity is separate from immutable candidate tooling
   assert(harness.includes("harnessSha: process.env.GITHUB_SHA"));
 });
 
+test("sanitized installer and app environments retain Windows known-folder paths, not credentials", () => {
+  const launcher = fs.readFileSync(path.join(__dirname, "real-upgrade.ps1"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
+  const patterns = [
+    new RegExp(launcher.match(/\$item.Key -match '([^']+)'/)[1], "i"),
+    new RegExp(app.match(/const allowed\s*=\s*\/([^\n]+)\/i;/)[1], "i")
+  ];
+  for (const pattern of patterns) {
+    for (const name of [
+      "SystemDrive",
+      "SystemRoot",
+      "ProgramFiles",
+      "ProgramFiles(x86)",
+      "ProgramW6432",
+      "CommonProgramFiles",
+      "CommonProgramFiles(x86)",
+      "CommonProgramW6432",
+      "TEMP",
+      "TMP"
+    ])
+      assert(pattern.test(name), `Missing standard Windows path: ${name}`);
+    for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "NODE_OPTIONS", "SYSTEMROOT_TOKEN", "API_KEY"])
+      assert(!pattern.test(name), `Unexpected inherited credential/override: ${name}`);
+  }
+});
+
 test("execution guard rejects untrusted provenance, ambiguous records and corrupted bytes", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "upgrade-contract-"));
   try {
