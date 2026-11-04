@@ -117,6 +117,12 @@ jobs may reuse successful job outputs only with their original IDs/attempts, exa
 candidate binding and eventual successful complete workflow; no cancelled producer
 or lone partial artifact becomes an eligible qualification.
 
+GitHub's latest-jobs view may project a reused successful execution into the current
+attempt with a new job ID. A reused report is checked against the explicit original
+attempt-jobs endpoint and linked to the current successful projection by source,
+job name and execution timestamps. Missing origin proof fails closed; the report's
+producing attempt is never rewritten to make equality pass.
+
 `scripts/ci/qualification-contract.cjs` owns receipt/origin validation.
 The harness retains required Windows folder paths while excluding tokens and
 arbitrary overrides, observes actual old PID exit, checks actual new version and

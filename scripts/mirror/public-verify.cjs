@@ -4,6 +4,28 @@ const fs = require("node:fs");
 const { createHash } = require("node:crypto");
 
 const PUBLIC_ROOT = "https://linka.su/dist/linka.looks/";
+const NETWORK_CODES = new Set([
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENETUNREACH",
+  "EHOSTUNREACH",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "CERT_HAS_EXPIRED",
+  "CERT_NOT_YET_VALID",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "ERR_TLS_HANDSHAKE_TIMEOUT"
+]);
 function installerPath(value, version, sha256) {
   assert.equal(
     value,
@@ -100,6 +122,11 @@ async function publicVerify({
     result.error =
       error.protocol ||
       (error.infra ? "NETWORK_OR_STREAM_FAILURE" : "PUBLIC_CONTENT_OR_PROTOCOL_MISMATCH");
+    if (error.infra && !error.protocol)
+      result.networkCode =
+        [error.code, error.cause?.code].find(
+          (code) => typeof code === "string" && NETWORK_CODES.has(code)
+        ) || "UNKNOWN_NETWORK_ERROR";
   }
   return result;
 }

@@ -65,6 +65,11 @@ gh run rerun QUALIFICATION_RUN_ID --failed
 historical installer. Не увеличивать timeout, не заполнять registry за installer и
 не менять старую version ради зелёного результата.
 
+`latest jobs` GitHub может выдавать для сохранённого успешного job новый ID и номер
+текущей попытки. Pipeline отдельно проверяет исходную producing attempt через API;
+не исправляйте сохранённые report IDs/attempts вручную и не считайте такую проекцию
+новым исполнением тестов.
+
 ## Публикация
 
 Нормальный запуск: successful qualification → read-only validation → один approve

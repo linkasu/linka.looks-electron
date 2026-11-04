@@ -221,12 +221,27 @@ async function prepare(runId, directory, options = {}) {
   const c = resolved.candidate;
   qualification.requireReleaseQualification(q, resolved);
   qualification.verifyQualificationFiles(q, receiptDirectory, resolved);
+  const producingAttempts = new Map();
   for (const record of q.reports) {
     const report = JSON.parse(fs.readFileSync(path.join(receiptDirectory, record.name)));
+    if (report.runAttempt < q.runAttempt && !producingAttempts.has(report.runAttempt))
+      producingAttempts.set(
+        report.runAttempt,
+        await list(
+          `${prefix}/actions/runs/${runId}/attempts/${report.runAttempt}/jobs`,
+          "jobs",
+          read
+        )
+      );
+    const producer = qualification.validateProducingJob(
+      q,
+      { job: report.job, runAttempt: report.runAttempt },
+      { jobs, producingJobs: producingAttempts.get(report.runAttempt) || [] }
+    );
     assert.equal(
-      jobs.find((job) => job.name === report.job)?.run_attempt,
-      report.runAttempt,
-      "report must come from the actual successful job attempt"
+      producer.conclusion,
+      "success",
+      "passed report must come from a successful original producing job"
     );
   }
   for (const kind of ["windows", "sources", "security"])

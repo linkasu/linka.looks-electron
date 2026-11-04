@@ -9,6 +9,52 @@ const { publicVerify, installerPath } = require("./public-verify.cjs");
 const body = Buffer.from("exact installer");
 const sha256 = createHash("sha256").update(body).digest("hex");
 const version = "4.1.0";
+for (const [name, code, causeCode, expected] of [
+  ["DNS cause", undefined, "ENOTFOUND", "ENOTFOUND"],
+  ["DNS retry cause", undefined, "EAI_AGAIN", "EAI_AGAIN"],
+  ["TLS cause", undefined, "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UNABLE_TO_VERIFY_LEAF_SIGNATURE"],
+  ["TLS direct code", "ERR_TLS_CERT_ALTNAME_INVALID", undefined, "ERR_TLS_CERT_ALTNAME_INVALID"],
+  ["connection refused", "ECONNREFUSED", undefined, "ECONNREFUSED"],
+  [
+    "unknown direct with known cause",
+    "UNSAFE_SECRET",
+    "UND_ERR_CONNECT_TIMEOUT",
+    "UND_ERR_CONNECT_TIMEOUT"
+  ],
+  ["unknown code", "https://secret:password@proxy.invalid", undefined, "UNKNOWN_NETWORK_ERROR"],
+  ["non-string code", 123, { secret: "password" }, "UNKNOWN_NETWORK_ERROR"],
+  ["no code", undefined, undefined, "UNKNOWN_NETWORK_ERROR"]
+])
+  test(`network diagnosis safely retains ${name}`, async () => {
+    let calls = 0;
+    const result = await publicVerify({
+      version,
+      sha256,
+      size: body.length,
+      fetchImpl: async () => {
+        calls++;
+        const error = new TypeError("https://secret:password@proxy.invalid certificate details", {
+          cause: { code: causeCode, secret: "password" }
+        });
+        error.code = code;
+        throw error;
+      }
+    });
+    assert.equal(calls, 2);
+    assert.equal(result.publication, "PUBLISHED");
+    assert.equal(result.status, "INFRA_ERROR");
+    assert.equal(result.stage, "version");
+    assert.equal(result.networkCode, expected);
+    const serialized = JSON.stringify(result);
+    for (const secret of [
+      "secret",
+      "password",
+      "proxy.invalid",
+      "certificate details",
+      "UNSAFE_SECRET"
+    ])
+      assert(!serialized.includes(secret));
+  });
 async function fixture(t, change = {}) {
   const requests = [];
   const server = http.createServer((req, res) => {
