@@ -30,6 +30,8 @@ const codePath = (name) =>
       "rust-toolchain.toml",
       ".cargo/config.toml",
       "scripts/model_recipe.py",
+      "scripts/book_model.py",
+      ".github/workflows/model-candidates.yml",
       ".github/workflows/windows-runtime.yml"
     ].includes(name));
 const workflows = {
@@ -925,6 +927,7 @@ if (require.main === module) {
 }
 module.exports = {
   hash,
+  codePath,
   validateApproval,
   validateEvidence,
   inspectArchive,
