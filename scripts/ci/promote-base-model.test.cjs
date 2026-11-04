@@ -13,6 +13,7 @@ const {
   qualify,
   sourceArchive,
   prepare,
+  verifyModelBuildInputs,
   verifyPublicSource
 } = require("./promote-base-model.cjs");
 const REPO = "linkasu/linka.predictor-rust";
@@ -246,7 +247,7 @@ function fixture(variant = "U") {
   return { approval, evidence, archives, maps, refresh, final, source, memory, ui };
 }
 
-function bookFixture() {
+function bookFixture(large = false) {
   const f = fixture();
   f.maps.model["source-manifest.json"] = json({ source: { synthetic: true } });
   f.approval.source_manifest_sha256 = hash(f.maps.model["source-manifest.json"]);
@@ -283,6 +284,43 @@ function bookFixture() {
     schema: "linka-book-completion-v1",
     recipe: { state: "COMPLETED", mode: "train", run_id: `book:${receipt.book_job_id}:1` }
   };
+  const arpa = large
+    ? require("node:crypto").randomBytes(1024 ** 2 + 1024)
+    : Buffer.from("SYNTHETIC MODEL WEIGHTS ONLY\n");
+  const frequencies = Buffer.from("synthetic\t1\n");
+  f.maps.model["frequencies.tsv"] = frequencies;
+  provenance.frequencies_sha256 = provenance.files_sha256["frequencies.tsv"] = hash(frequencies);
+  provenance.arpa_sha256 = { U: hash(arpa) };
+  const reproduction = {
+    schema: "linka-model-build-inputs-v1",
+    variant: "U",
+    source_sha: SOURCE,
+    model_sha256: f.approval.model.sha256,
+    model_bytes: f.approval.model.bytes,
+    arpa_sha256: hash(arpa),
+    frequencies_sha256: hash(frequencies),
+    model_reproduction: "EXACT_BYTE_REPRODUCED_ON_BOOK",
+    licenses: f.approval.licenses,
+    original_corpus_included: false,
+    evaluation_data_included: false,
+    scope:
+      "Exact production LPK generation from model weights and sufficient statistics; not an archive of original source records."
+  };
+  const capsuleFiles = {
+    "model.arpa": arpa,
+    "frequencies.tsv": frequencies,
+    "BUILD.md": Buffer.from("SYNTHETIC REVIEWED BUILD METADATA ONLY; NEVER EXECUTED"),
+    "reproduction.json": json(reproduction)
+  };
+  const zip = new Zip();
+  for (const [name, bytes] of Object.entries(capsuleFiles)) zip.addFile(name, bytes);
+  const capsule = zip.toBuffer();
+  f.approval.publication.model_build_inputs = {
+    path: "provenance/releases/SYNTHETIC-build-inputs.zip",
+    ...metadata(capsule)
+  };
+  f.approval.review.model_reproduction = "APPROVED";
+  f.approval.review.scope.push("model-build-inputs");
   f.maps.model["provenance.json"] = json(provenance);
   const original = {
     ...f.final,
@@ -310,8 +348,146 @@ function bookFixture() {
   f.maps.final["final-book-original-aggregate.json"] = json(original);
   f.approval.final.report_sha256 = hash(json(wrapped));
   f.refresh();
-  return { ...f, original, wrapped, provenance };
+  return { ...f, original, wrapped, provenance, reproduction, capsuleFiles, capsule };
 }
+
+test("Book release requires a separately reviewed capsule; legacy approval is unchanged", async () => {
+  const { assertImportedSemantics } = await import("./book-model-evaluation.mjs");
+  for (const mutate of [
+    (f) => {
+      delete f.approval.publication.model_build_inputs;
+      f.approval.review.scope = f.approval.review.scope.filter((s) => s !== "model-build-inputs");
+    },
+    (f) => (f.approval.review.model_reproduction = "PENDING"),
+    (f) => f.approval.review.scope.pop(),
+    (f) => (f.approval.publication.model_build_inputs.path = "../private.zip"),
+    (f) => (f.approval.publication.model_build_inputs.bytes = 32 * 1024 ** 2 + 1)
+  ]) {
+    const f = bookFixture();
+    mutate(f);
+    assert.throws(() => qualify(f.approval, f.evidence, f.archives, assertImportedSemantics));
+  }
+  const legacy = fixture();
+  assert.doesNotThrow(() => qualify(legacy.approval, legacy.evidence, legacy.archives));
+});
+
+test("tracked model-input capsule is byte-exact and rejects unreviewed bytes, wrong model/source/stats and raw extras", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "model-build-inputs-synthetic-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const git = (...args) => {
+    const result = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  git("init", "-q");
+  git("config", "user.name", "Synthetic Test");
+  git("config", "user.email", "fixture@example.invalid");
+  function track(f, bytes = f.capsule) {
+    const file = path.join(root, f.approval.publication.model_build_inputs.path);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, bytes);
+    git("add", ".");
+    git("commit", "--allow-empty", "-qm", "synthetic capsule fixture");
+  }
+  const f = bookFixture();
+  track(f);
+  const verified = verifyModelBuildInputs(root, f.approval, f.provenance);
+  assert.deepEqual(verified.bytes, f.capsule);
+  assert.equal(verified.reproduction.status, "ARCHIVED_EXACT_MODEL_INPUTS");
+  assert.equal(verified.reproduction.source_sha, SOURCE);
+  assert.equal(verified.reproduction.model_sha256, f.approval.model.sha256);
+  assert.equal(verified.reproduction.original_corpus_included, false);
+  assert.equal(verified.reproduction.evaluation_data_included, false);
+  assert.equal(verified.reproduction.all_inputs_reproducible, undefined);
+  for (const change of [
+    (v) => (v.source_sha = "f".repeat(40)),
+    (v) => (v.model_sha256 = "0".repeat(64)),
+    (v) => v.model_bytes++,
+    (v) => (v.variant = "T"),
+    (v) => (v.arpa_sha256 = "0".repeat(64)),
+    (v) => (v.frequencies_sha256 = "0".repeat(64)),
+    (v) => (v.original_corpus_included = true),
+    (v) => (v.evaluation_data_included = true),
+    (v) => (v.model_reproduction = "NOT_REPRODUCED")
+  ]) {
+    const bad = bookFixture();
+    change(bad.reproduction);
+    bad.capsuleFiles["reproduction.json"] = json(bad.reproduction);
+    const zip = new Zip();
+    for (const [name, bytes] of Object.entries(bad.capsuleFiles)) zip.addFile(name, bytes);
+    const bytes = zip.toBuffer();
+    Object.assign(bad.approval.publication.model_build_inputs, metadata(bytes));
+    track(bad, bytes);
+    assert.throws(() => verifyModelBuildInputs(root, bad.approval, bad.provenance));
+  }
+  for (const name of ["source.tsv.bz2", "FINAL.jsonl", "../raw", "train.txt"]) {
+    const bad = bookFixture(),
+      zip = new Zip();
+    for (const [name, bytes] of Object.entries(bad.capsuleFiles)) zip.addFile(name, bytes);
+    zip.addFile(name, Buffer.from("SYNTHETIC FORBIDDEN EXTRA"));
+    const bytes = zip.toBuffer();
+    Object.assign(bad.approval.publication.model_build_inputs, metadata(bytes));
+    track(bad, bytes);
+    assert.throws(() => verifyModelBuildInputs(root, bad.approval, bad.provenance));
+  }
+  for (const name of ["model.arpa", "frequencies.tsv"]) {
+    const bad = bookFixture(),
+      zip = new Zip();
+    bad.capsuleFiles[name] = Buffer.from("SYNTHETIC MISMATCHED INPUT BYTES");
+    for (const [name, bytes] of Object.entries(bad.capsuleFiles)) zip.addFile(name, bytes);
+    const bytes = zip.toBuffer();
+    Object.assign(bad.approval.publication.model_build_inputs, metadata(bytes));
+    track(bad, bytes);
+    assert.throws(() => verifyModelBuildInputs(root, bad.approval, bad.provenance));
+  }
+  track(f);
+  const edited = Buffer.concat([f.capsule, Buffer.from("UNCOMMITTED SYNTHETIC EDIT")]);
+  fs.writeFileSync(path.join(root, f.approval.publication.model_build_inputs.path), edited);
+  Object.assign(f.approval.publication.model_build_inputs, metadata(edited));
+  assert.throws(() => verifyModelBuildInputs(root, f.approval, f.provenance));
+  Object.assign(f.approval.publication.model_build_inputs, metadata(f.capsule));
+  track(f);
+  f.approval.publication.model_build_inputs.sha256 = "0".repeat(64);
+  assert.throws(() => verifyModelBuildInputs(root, f.approval, f.provenance));
+});
+
+test("model-input ZIP rejects duplicate names, symlinks, directories, ZIP64, multi-disk and expansion abuse", () => {
+  const f = bookFixture();
+  const inspect = (bytes) =>
+    inspectArchive(bytes, "buildInputs", {
+      archive_bytes: bytes.length,
+      archive_sha256: hash(bytes)
+    });
+  for (const mutate of [
+    (bytes) => bytes.writeUInt16LE(1, bytes.length - 18),
+    (bytes) => bytes.writeUInt16LE(1, bytes.length - 2),
+    (bytes) => bytes.writeUInt16LE(0xffff, bytes.length - 12),
+    (bytes) => bytes.writeUInt16LE(45, bytes.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 6),
+    (bytes) => bytes.writeUInt16LE(45, 4),
+    (bytes) =>
+      bytes.writeUInt32LE(
+        64 * 1024 ** 2 + 1,
+        bytes.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 24
+      )
+  ]) {
+    const bytes = Buffer.from(f.capsule);
+    mutate(bytes);
+    assert.throws(() => inspect(bytes));
+  }
+  const symlink = new Zip(f.capsule);
+  symlink.getEntry("BUILD.md").header.attr = 0xa1ff0000;
+  assert.throws(() => inspect(symlink.toBuffer()));
+  const directory = new Zip(f.capsule);
+  directory.deleteFile("BUILD.md");
+  directory.addFile("BUILD.md/", Buffer.alloc(0));
+  assert.throws(() => inspect(directory.toBuffer()));
+  const duplicated = spawnSync("python3", [
+    "-c",
+    "import io,sys,warnings,zipfile; warnings.simplefilter('ignore'); b=io.BytesIO(); z=zipfile.ZipFile(b,'w'); [z.writestr(n,b'SYNTHETIC') for n in ['model.arpa','model.arpa','frequencies.tsv','reproduction.json']]; z.close(); sys.stdout.buffer.write(b.getvalue())"
+  ]);
+  assert.equal(duplicated.status, 0);
+  assert.throws(() => inspect(duplicated.stdout));
+  assert.throws(() => inspect(Buffer.alloc(32 * 1024 ** 2 + 1)));
+});
 
 test("Book FINAL accepts the pinned original through the shared immutable-semantics validator", async () => {
   const { assertImportedSemantics } = await import("./book-model-evaluation.mjs");
@@ -772,135 +948,162 @@ test(
     });
     process.chdir(root);
     fs.mkdirSync("publication");
-    const f = fixture(),
-      files = qualify(f.approval, f.evidence, f.archives);
-    for (const name of [
-      "MODEL_NOTICE.md",
-      "model-source.tar",
-      "runtime-source.tar",
-      "provenance.json",
-      "REPRODUCTION.json"
-    ])
-      files[name] = Buffer.from("synthetic publication fixture only");
-    for (const [name, data] of Object.entries(files))
-      fs.writeFileSync(path.join("publication", name), data);
-    const inventory = {
-      schema: "linka-base-model-publication-v1",
-      repository: REPO,
-      tag: "base-ru-v1",
-      source_sha: SOURCE,
-      files: Object.fromEntries(Object.entries(files).map(([name, data]) => [name, metadata(data)]))
-    };
-    const inventoryBytes = json(inventory);
-    fs.writeFileSync("publication/publication.json", inventoryBytes);
-    process.env.INVENTORY_SHA256 = hash(inventoryBytes);
-    process.env.SOURCE_SHA = SOURCE;
-    const context = {
-      eventName: "workflow_dispatch",
-      ref: "refs/heads/main",
-      repo: { owner: "linkasu", repo: "linka.predictor-rust" }
-    };
-    for (const { failure, serverImmutable } of [
-      ...[
-        "changed-file",
-        "extra-file",
-        "tag-collision",
-        "tag-race",
-        "release-collision",
-        "asset-digest",
-        null
-      ].map((failure) => ({ failure, serverImmutable: true })),
-      { failure: null, serverImmutable: false },
-      { failure: null, serverImmutable: undefined }
-    ]) {
-      let writes = 0,
-        published = false,
-        refCreated = false;
-      const assets = [];
-      const missing = () => {
-        const error = new Error("synthetic missing");
-        error.status = 404;
-        throw error;
+    const { assertImportedSemantics } = await import("./book-model-evaluation.mjs");
+    for (const f of [fixture(), bookFixture(true)]) {
+      if (f.capsule) assert(f.capsule.length > 1024 ** 2);
+      const files = qualify(f.approval, f.evidence, f.archives, assertImportedSemantics);
+      if (f.capsule) files["MODEL_BUILD_INPUTS.zip"] = f.capsule;
+      for (const name of [
+        "MODEL_NOTICE.md",
+        "model-source.tar",
+        "runtime-source.tar",
+        "provenance.json",
+        "REPRODUCTION.json"
+      ])
+        files[name] = Buffer.from("synthetic publication fixture only");
+      for (const [name, data] of Object.entries(files))
+        fs.writeFileSync(path.join("publication", name), data);
+      const inventory = {
+        schema: "linka-base-model-publication-v1",
+        repository: REPO,
+        tag: "base-ru-v1",
+        source_sha: SOURCE,
+        ...(f.capsule ? { model_build_inputs: f.approval.publication.model_build_inputs } : {}),
+        files: Object.fromEntries(
+          Object.entries(files).map(([name, data]) => [name, metadata(data)])
+        )
       };
-      const github = {
-        request: async () => {
-          throw new Error("repository settings API must never be called");
-        },
-        paginate: async () => assets,
-        rest: {
-          git: {
-            getRef: async () =>
-              refCreated
-                ? { data: { object: { type: "commit", sha: SOURCE } } }
-                : failure === "tag-collision"
-                  ? { data: {} }
-                  : missing(),
-            createRef: async () => {
-              if (failure === "tag-race") throw new Error("synthetic exclusive create collision");
-              writes++;
-              refCreated = true;
-            }
+      const inventoryBytes = json(inventory);
+      fs.writeFileSync("publication/publication.json", inventoryBytes);
+      process.env.INVENTORY_SHA256 = hash(inventoryBytes);
+      process.env.SOURCE_SHA = SOURCE;
+      const context = {
+        eventName: "workflow_dispatch",
+        ref: "refs/heads/main",
+        repo: { owner: "linkasu", repo: "linka.predictor-rust" }
+      };
+      for (const { failure, serverImmutable } of [
+        ...[
+          "changed-file",
+          "extra-file",
+          "tag-collision",
+          "tag-race",
+          "release-collision",
+          "asset-digest",
+          ...(f.capsule
+            ? [
+                "capsule-no-approval",
+                "capsule-reviewed-hash",
+                "capsule-reviewed-size",
+                "capsule-limit"
+              ]
+            : []),
+          null
+        ].map((failure) => ({ failure, serverImmutable: true })),
+        { failure: null, serverImmutable: false },
+        { failure: null, serverImmutable: undefined }
+      ]) {
+        let writes = 0,
+          published = false,
+          refCreated = false;
+        const assets = [];
+        const missing = () => {
+          const error = new Error("synthetic missing");
+          error.status = 404;
+          throw error;
+        };
+        const github = {
+          request: async () => {
+            throw new Error("repository settings API must never be called");
           },
-          repos: {
-            getReleaseByTag: async () =>
-              failure === "release-collision" ? { data: {} } : missing(),
-            get: async () => ({ data: { private: false } }),
-            compareCommitsWithBasehead: async () => ({ data: { status: "ahead" } }),
-            createRelease: async (args) => {
-              assert.equal(args.draft, true);
-              assert.equal(args.make_latest, "false");
-              writes++;
-              return { data: { id: 123 } };
+          paginate: async () => assets,
+          rest: {
+            git: {
+              getRef: async () =>
+                refCreated
+                  ? { data: { object: { type: "commit", sha: SOURCE } } }
+                  : failure === "tag-collision"
+                    ? { data: {} }
+                    : missing(),
+              createRef: async () => {
+                if (failure === "tag-race") throw new Error("synthetic exclusive create collision");
+                writes++;
+                refCreated = true;
+              }
             },
-            uploadReleaseAsset: async ({ name, data }) => {
-              writes++;
-              assets.push({
-                name,
-                size: data.length,
-                digest: `sha256:${failure === "asset-digest" ? "0".repeat(64) : hash(data)}`
-              });
-            },
-            listReleaseAssets: () => {},
-            updateRelease: async (args) => {
-              assert.equal(args.make_latest, "false");
-              assert.equal(args.draft, false);
-              writes++;
-              published = true;
-              return {
-                data: {
-                  immutable: serverImmutable,
-                  draft: false,
-                  html_url: "https://example.invalid/synthetic"
-                }
-              };
+            repos: {
+              getReleaseByTag: async () =>
+                failure === "release-collision" ? { data: {} } : missing(),
+              get: async () => ({ data: { private: false } }),
+              compareCommitsWithBasehead: async () => ({ data: { status: "ahead" } }),
+              createRelease: async (args) => {
+                assert.equal(args.draft, true);
+                assert.equal(args.make_latest, "false");
+                writes++;
+                return { data: { id: 123 } };
+              },
+              uploadReleaseAsset: async ({ name, data }) => {
+                if (name === "MODEL_BUILD_INPUTS.zip") assert.deepEqual(data, f.capsule);
+                writes++;
+                assets.push({
+                  name,
+                  size: data.length,
+                  digest: `sha256:${failure === "asset-digest" ? "0".repeat(64) : hash(data)}`
+                });
+              },
+              listReleaseAssets: () => {},
+              updateRelease: async (args) => {
+                assert.equal(args.make_latest, "false");
+                assert.equal(args.draft, false);
+                writes++;
+                published = true;
+                return {
+                  data: {
+                    immutable: serverImmutable,
+                    draft: false,
+                    html_url: "https://example.invalid/synthetic"
+                  }
+                };
+              }
             }
           }
-        }
-      };
-      const summaryText = [];
-      const summary = {
-        addHeading: () => summary,
-        addRaw: (value) => {
-          summaryText.push(value);
-          return summary;
-        },
-        write: async () => {}
-      };
-      if (failure === "changed-file") fs.writeFileSync("publication/model.lpk", "changed");
-      if (failure === "extra-file") fs.writeFileSync("publication/raw-final.txt", "DO NOT PUBLISH");
-      if (failure) await assert.rejects(publish(github, { summary }, context, require));
-      else await publish(github, { summary }, context, require);
-      assert.equal(published, !failure);
-      if (!failure)
-        assert.match(
-          summaryText.join("\n"),
-          new RegExp(
-            `"server_enforced_immutable": ${serverImmutable === undefined ? "null" : serverImmutable}`
-          )
-        );
-      if (failure && failure !== "asset-digest") assert.equal(writes, 0);
-      fs.writeFileSync("publication/model.lpk", files["model.lpk"]);
-      if (failure === "extra-file") fs.unlinkSync("publication/raw-final.txt");
+        };
+        const summaryText = [];
+        const summary = {
+          addHeading: () => summary,
+          addRaw: (value) => {
+            summaryText.push(value);
+            return summary;
+          },
+          write: async () => {}
+        };
+        if (failure === "changed-file") fs.writeFileSync("publication/model.lpk", "changed");
+        if (failure === "extra-file")
+          fs.writeFileSync("publication/raw-final.txt", "DO NOT PUBLISH");
+        const sealedInventory = structuredClone(inventory);
+        if (failure === "capsule-no-approval") delete sealedInventory.model_build_inputs;
+        if (failure === "capsule-reviewed-hash")
+          sealedInventory.model_build_inputs.sha256 = "0".repeat(64);
+        if (failure === "capsule-reviewed-size") sealedInventory.model_build_inputs.bytes++;
+        if (failure === "capsule-limit")
+          sealedInventory.model_build_inputs.bytes = 32 * 1024 ** 2 + 1;
+        const sealedBytes = json(sealedInventory);
+        fs.writeFileSync("publication/publication.json", sealedBytes);
+        process.env.INVENTORY_SHA256 = hash(sealedBytes);
+        if (failure) await assert.rejects(publish(github, { summary }, context, require));
+        else await publish(github, { summary }, context, require);
+        assert.equal(published, !failure);
+        if (!failure)
+          assert.match(
+            summaryText.join("\n"),
+            new RegExp(
+              `"server_enforced_immutable": ${serverImmutable === undefined ? "null" : serverImmutable}`
+            )
+          );
+        if (failure && failure !== "asset-digest") assert.equal(writes, 0);
+        fs.writeFileSync("publication/model.lpk", files["model.lpk"]);
+        if (failure === "extra-file") fs.unlinkSync("publication/raw-final.txt");
+      }
     }
   }
 );
