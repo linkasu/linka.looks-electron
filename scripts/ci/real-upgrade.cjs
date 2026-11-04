@@ -32,6 +32,7 @@ const result = {
   status: "RUNNING",
   old: OLD,
   candidate: accepted.provenance,
+  harnessSha: process.env.GITHUB_SHA,
   feed: accepted.metadata,
   scope: "unsigned Windows x64, Microsoft-hosted disposable CI, software/no-device only",
   hardware: "NOT TESTED",
