@@ -70,7 +70,7 @@ const allowed = {
     "sha256.txt",
     "smoke.txt"
   ],
-  final: ["final-aggregate.json"],
+  final: ["final-aggregate.json", "final-book-original-aggregate.json"],
   windows: ["source.json", "memory.json", "ui.json", "requests.json"]
 };
 function fileSpec(spec, maximum) {
@@ -253,7 +253,7 @@ function inspectArchive(bytes, kind, spec) {
     total += e.header.size;
     assert(total <= 512 * MiB, "ZIP expansion budget exceeded");
   }
-  return (name, expectedHash) => {
+  const member = (name, expectedHash) => {
     const entry = zip.getEntry(name);
     assert(entry && entry.header.size > 0, `missing resource: ${name}`);
     const data = entry.getData();
@@ -261,6 +261,12 @@ function inspectArchive(bytes, kind, spec) {
     if (expectedHash) assert.equal(hash(data), expectedHash, `resource hash mismatch: ${name}`);
     return data;
   };
+  if (kind === "final" && seen.has("final-book-original-aggregate.json")) {
+    const report = parse(member("final-aggregate.json"));
+    assert.equal(report.kind, "book-local-linux-container", "original aggregate is Book-only");
+    assert.equal(report.inferenceLocation, "book.local");
+  }
+  return member;
 }
 function parse(bytes) {
   return JSON.parse(bytes.toString("utf8").replace(/^\uFEFF/, ""));
@@ -268,7 +274,7 @@ function parse(bytes) {
 function json(value) {
   return Buffer.from(JSON.stringify(value, null, 2) + "\n");
 }
-function qualify(a, evidence, archives) {
+function qualify(a, evidence, archives, assertImportedSemantics) {
   validateApproval(a, a.source_sha);
   validateEvidence(a, evidence);
   // Check all run/artifact metadata before decoding even the first model byte.
@@ -339,6 +345,29 @@ function qualify(a, evidence, archives) {
   assert.equal(final.manifestSha256, a.final.seal_sha256);
   assert.equal(final.protocolSha256, a.final.protocol_sha256);
   assert.equal(final.runFreezeSha256, a.final.freeze_sha256);
+  if (final.kind === "book-local-linux-container") {
+    assert.equal(final.inferenceLocation, "book.local");
+    assert.equal(typeof assertImportedSemantics, "function", "Book semantics validator required");
+    sha(final.originalBookReportSha256);
+    const original = parse(
+      get.final("final-book-original-aggregate.json", final.originalBookReportSha256)
+    );
+    assertImportedSemantics(original, final);
+    assert.equal(final.ciImport.runId, String(a.runs.final.run_id));
+    assert.equal(final.ciImport.runAttempt, String(a.runs.final.run_attempt));
+    assert.equal(final.execution?.kind, "book-local-linux-container");
+    assert.equal(final.execution.source_sha, a.source_sha);
+    const { validateExecution } = require("./import-book-candidate.cjs");
+    validateExecution(final.execution, a.source_sha, `book-candidate-${final.ciImport.bookJobId}`);
+    const execution = provenance.execution;
+    assert.equal(execution?.kind, "book-local-linux-container", "Book-trained candidate required");
+    validateExecution(execution, a.source_sha, `book-candidate-${execution.book_job_id}`);
+    assert.equal(provenance.book_completion?.schema, "linka-book-completion-v1");
+    const completed = provenance.book_completion.recipe;
+    assert.equal(completed?.state, "COMPLETED", "completed Book training receipt required");
+    assert.equal(completed.mode, "train");
+    assert.equal(completed.run_id, `book:${execution.book_job_id}:${execution.attempt}`);
+  }
   const source = parse(get.windows("source.json", a.windows.source_sha256));
   assert.equal(source.schema, "windows-model-candidate-v1");
   assert.equal(source.production_approved, false);
@@ -618,7 +647,19 @@ async function prepare(options) {
   const archives = {};
   for (const [kind, spec] of Object.entries(a.runs))
     archives[kind] = await (options.download || downloadArtifact)(spec);
-  const files = qualify(a, evidence, archives);
+  const final = parse(
+    inspectArchive(
+      archives.final,
+      "final",
+      a.runs.final
+    )("final-aggregate.json", a.final.report_sha256)
+  );
+  // Keep legacy synchronous qualification; load the shared ESM validator only for Book imports.
+  const bookSemantics =
+    final.kind === "book-local-linux-container"
+      ? (await import("./book-model-evaluation.mjs")).assertImportedSemantics
+      : undefined;
+  const files = qualify(a, evidence, archives, bookSemantics);
   const modelMember = inspectArchive(archives.model, "model", a.runs.model);
   const rawSource = await verifyPublicSource(
     a,

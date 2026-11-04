@@ -246,6 +246,154 @@ function fixture(variant = "U") {
   return { approval, evidence, archives, maps, refresh, final, source, memory, ui };
 }
 
+function bookFixture() {
+  const f = fixture();
+  f.maps.model["source-manifest.json"] = json({ source: { synthetic: true } });
+  f.approval.source_manifest_sha256 = hash(f.maps.model["source-manifest.json"]);
+  f.maps.model["U.dev.json"] = json({ state: "NOT_RUN", reason: "book_defer_core_dev" });
+  const receipt = {
+    schema: "linka-book-execution-v1",
+    host: "book.local",
+    colima_profile: "linka-model-400",
+    book_job_id: "a".repeat(32),
+    attempt: 1,
+    source_sha: SOURCE,
+    image_digest: `sha256:${"e".repeat(64)}`,
+    limits: { memory_bytes: 6442450944, cpus: 2, tasks: 128 }
+  };
+  const sorted = (value) =>
+    value && typeof value === "object"
+      ? Object.fromEntries(
+          Object.keys(value)
+            .sort()
+            .map((key) => [key, sorted(value[key])])
+        )
+      : value;
+  const execution = {
+    ...receipt,
+    kind: "book-local-linux-container",
+    receipt_sha256: hash(Buffer.from(JSON.stringify(sorted(receipt)) + "\n"))
+  };
+  const provenance = JSON.parse(f.maps.model["provenance.json"]);
+  provenance.source_manifest_sha256 = f.approval.source_manifest_sha256;
+  for (const name of ["source-manifest.json", "U.dev.json"])
+    provenance.files_sha256[name] = hash(f.maps.model[name]);
+  provenance.execution = execution;
+  provenance.book_completion = {
+    schema: "linka-book-completion-v1",
+    recipe: { state: "COMPLETED", mode: "train", run_id: `book:${receipt.book_job_id}:1` }
+  };
+  f.maps.model["provenance.json"] = json(provenance);
+  const original = {
+    ...f.final,
+    kind: "book-local-linux-container",
+    inferenceLocation: "book.local",
+    execution,
+    evaluationRunId: null,
+    evaluationRunAttempt: null
+  };
+  const wrapped = {
+    ...original,
+    evaluationRunId: "13",
+    evaluationRunAttempt: "1",
+    originalBookReportSha256: hash(json(original)),
+    ciImport: {
+      kind: "book-result-import",
+      runId: "13",
+      runAttempt: "1",
+      bookJobId: receipt.book_job_id,
+      inferencePerformed: false,
+      inferenceLocation: "book.local"
+    }
+  };
+  f.maps.final["final-aggregate.json"] = json(wrapped);
+  f.maps.final["final-book-original-aggregate.json"] = json(original);
+  f.approval.final.report_sha256 = hash(json(wrapped));
+  f.refresh();
+  return { ...f, original, wrapped, provenance };
+}
+
+test("Book FINAL accepts the pinned original through the shared immutable-semantics validator", async () => {
+  const { assertImportedSemantics } = await import("./book-model-evaluation.mjs");
+  const f = bookFixture();
+  const files = qualify(f.approval, f.evidence, f.archives, assertImportedSemantics);
+  assert.deepEqual(files["model.lpk"], f.maps.model["U.lpk"]);
+  assert.equal(files["final-book-original-aggregate.json"], undefined);
+  assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+});
+
+test("legacy FINAL cannot smuggle the new original filename", () => {
+  const f = fixture();
+  f.maps.final["final-book-original-aggregate.json"] = json(f.final);
+  f.refresh();
+  assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+});
+
+test("async preparation loads the shared Book validator before source/output preparation", async () => {
+  const f = bookFixture();
+  let prepared = 0;
+  const options = {
+    approval: f.approval,
+    sourceSha: SOURCE,
+    roots: {
+      get approval() {
+        prepared++;
+        throw new Error("BOOK_PREPARATION_VERIFIED");
+      }
+    },
+    api: async (route) => {
+      for (const value of Object.values(f.evidence)) {
+        if (route === `actions/runs/${value.run.id}`) return value.run;
+        if (route === `actions/artifacts/${value.artifact.id}`) return value.artifact;
+        if (route === `actions/runs/${value.run.id}/artifacts?per_page=100&page=1`)
+          return { artifacts: [value.member] };
+      }
+      throw new Error("unexpected synthetic API request");
+    },
+    download: async (spec) =>
+      f.archives[
+        Object.keys(f.approval.runs).find(
+          (kind) => f.approval.runs[kind].artifact_id === spec.artifact_id
+        )
+      ]
+  };
+  await assert.rejects(prepare(options), /BOOK_PREPARATION_VERIFIED/);
+  assert.equal(prepared, 1);
+  f.wrapped.delta += 0.1;
+  f.maps.final["final-aggregate.json"] = json(f.wrapped);
+  f.approval.final.report_sha256 = hash(json(f.wrapped));
+  f.refresh();
+  await assert.rejects(prepare(options), /import must not alter Book semantics/);
+  assert.equal(prepared, 1);
+});
+
+test("Book original digest, immutable semantics, CI identity and completed training context are required", async () => {
+  const { assertImportedSemantics } = await import("./book-model-evaluation.mjs");
+  for (const mutate of [
+    (f) => delete f.maps.final["final-book-original-aggregate.json"],
+    (f) => (f.wrapped.originalBookReportSha256 = "0".repeat(64)),
+    (f) => (f.wrapped.delta += 0.1),
+    (f) => (f.wrapped.ciImport.runId = f.wrapped.evaluationRunId = "999"),
+    (f) => (f.wrapped.ciImport.runAttempt = f.wrapped.evaluationRunAttempt = "2"),
+    (f) => (f.wrapped.ciImport.bookJobId = "b".repeat(32)),
+    (f) => (f.wrapped.inferenceLocation = "ci"),
+    (f) => (f.provenance.execution.kind = "github-linux"),
+    (f) => delete f.provenance.execution,
+    (f) => (f.provenance.book_completion.recipe.state = "CANCELLED"),
+    (f) => (f.provenance.book_completion.recipe.mode = "review"),
+    (f) => (f.provenance.book_completion.recipe.run_id = "book:wrong:1"),
+    (f) => delete f.provenance.book_completion
+  ]) {
+    const f = bookFixture();
+    mutate(f);
+    f.maps.final["final-aggregate.json"] = json(f.wrapped);
+    f.maps.model["provenance.json"] = json(f.provenance);
+    f.approval.final.report_sha256 = hash(json(f.wrapped));
+    f.refresh();
+    assert.throws(() => qualify(f.approval, f.evidence, f.archives, assertImportedSemantics));
+  }
+});
+
 test("synthetic U and T qualify without mistaking candidate false flags for release approval", () => {
   for (const variant of ["U", "T"]) {
     const f = fixture(variant);
