@@ -281,8 +281,10 @@ for (const prerelease of [false, true]) {
     const publishRelease = remote.api.publish;
     const api = releaseApi(async (_, options) => {
       bodies.push(options.body);
-      if (options.method === "POST") await createDraft();
-      else await publishRelease();
+      if (options.method === "POST") {
+        await createDraft();
+        return remote.release;
+      } else await publishRelease();
     });
     remote.api.createDraft = api.createDraft;
     remote.api.publish = api.publish;
@@ -664,6 +666,151 @@ test("release API resolves annotated tag and independently lists assets", async 
   assert.equal(state.release.assets[0].name, "actual");
   assert.equal(calls.length, 4);
 });
+function laggingReleaseApi(f, change = {}) {
+  let release = null;
+  let assets = [];
+  let staleAssets = false;
+  const calls = [];
+  const api = releaseApi((endpoint, options = {}) =>
+    request(endpoint, {
+      ...options,
+      fetchImpl: async (url, init) => {
+        const route = new URL(url).pathname;
+        calls.push({ route, method: init.method });
+        let result;
+        if (init.method === "POST" && route.endsWith("/releases")) {
+          release = { id: 45, ...JSON.parse(init.body) };
+          result = { ...release, ...change.created };
+        } else if (init.method === "POST") {
+          const file = f.manifest.files[0];
+          assets = [{ name: file.name, size: file.bytes, digest: `sha256:${file.sha256}` }];
+          staleAssets = true;
+          result = assets[0];
+        } else if (init.method === "PATCH") {
+          release.draft = false;
+          result = release;
+        } else if (route.includes("/git/ref/")) {
+          if (!release || release.draft) return new Response(null, { status: 404 });
+          result = { object: { type: "commit", sha: f.manifest.appSha } };
+        } else if (route.endsWith("/releases")) {
+          result = release ? change.listed || [] : [];
+        } else if (route.endsWith("/assets")) {
+          result = staleAssets ? [] : assets;
+          staleAssets = false;
+        } else if (route.endsWith("/releases/45")) {
+          if (change.missing) return new Response(null, { status: 404 });
+          result = { ...release, ...change.verified };
+        } else assert.fail(`unexpected mock route: ${route}`);
+        return Response.json(result, { status: init.method === "POST" ? 201 : 200 });
+      }
+    })
+  );
+  return { api, calls };
+}
+for (const prerelease of [false, true])
+  test(`acknowledged create prerelease=${prerelease} anchors GET despite stale LIST; stale assets never reupload`, async (t) => {
+    const f = fixture(t);
+    f.manifest.prerelease = prerelease;
+    fs.writeFileSync(path.join(f.directory, "publication.json"), JSON.stringify(f.manifest));
+    const remote = laggingReleaseApi(f);
+    assert.equal((await publish(f.directory, remote.api)).status, "PUBLISHED");
+    assert.deepEqual(
+      remote.calls.filter((c) => c.method !== "GET").map((c) => c.method),
+      ["POST", "POST", "PATCH"]
+    );
+    assert(remote.calls.some((c) => c.route.endsWith("/releases/45") && c.method === "GET"));
+    const before = remote.calls.length;
+    assert.equal((await remote.api.read({ tag: "v9.9.9" })).release, null);
+    assert(!remote.calls.slice(before).some((c) => c.route.endsWith("/releases/45")));
+  });
+test("startup discovery rejects duplicate drafts without any write", async () => {
+  const api = releaseApi(async (endpoint) => {
+    if (endpoint.includes("/git/ref/")) return null;
+    assert(endpoint.includes("/releases?"));
+    return [
+      { id: 45, tag_name: "v4.1.0" },
+      { id: 46, tag_name: "v4.1.0" }
+    ];
+  });
+  await assert.rejects(api.read({ tag: "v4.1.0" }), /ambiguous existing/);
+});
+for (const [name, change] of [
+  ["malformed response ID", { created: { id: "01" } }],
+  ["wrong verified ID", { verified: { id: 46 } }],
+  ["wrong verified tag", { verified: { tag_name: "v9.9.9" } }],
+  ["wrong verified mode", { verified: { prerelease: true } }],
+  ["wrong verified body", { verified: { body: "other" } }],
+  ["wrong verified target", { verified: { target_commitish: "d".repeat(40) } }],
+  ["conflicting listed ID", { listed: [{ id: 46, tag_name: "v4.1.0" }] }],
+  [
+    "duplicate listed releases",
+    {
+      listed: [
+        { id: 45, tag_name: "v4.1.0" },
+        { id: 46, tag_name: "v4.1.0" }
+      ]
+    }
+  ],
+  ["missing GET verification", { missing: true }]
+])
+  test(`acknowledged create rejects ${name} without another write`, async (t) => {
+    const f = fixture(t);
+    const remote = laggingReleaseApi(f, change);
+    await assert.rejects(publish(f.directory, remote.api));
+    assert.equal(remote.calls.filter((c) => c.method !== "GET").length, 1);
+  });
+test("acknowledged write stops at convergence deadline without retrying the write", async (t) => {
+  const f = fixture(t);
+  const remote = fakeApi(f.manifest);
+  await remote.api.createDraft();
+  remote.writes.length = 0;
+  t.mock.timers.enable({ apis: ["Date"], now: 1000 });
+  let reads = 0;
+  const read = remote.api.read;
+  remote.api.read = async () => {
+    reads++;
+    if (reads > 1) t.mock.timers.tick(15000);
+    return read();
+  };
+  remote.api.upload = async () => remote.writes.push("upload:installer.exe");
+  await assert.rejects(publish(f.directory, remote.api), /expected verified state/);
+  assert.equal(reads, 3);
+  assert.deepEqual(remote.writes, ["upload:installer.exe"]);
+});
+for (const [name, mutate] of [
+  [
+    "unknown asset",
+    (asset) => {
+      asset.name = "unknown";
+    }
+  ],
+  [
+    "wrong digest",
+    (asset) => {
+      asset.digest = `sha256:${"d".repeat(64)}`;
+    }
+  ]
+])
+  test(`acknowledged upload rejects ${name} immediately rather than polling it away`, async (t) => {
+    const f = fixture(t);
+    const remote = fakeApi(f.manifest);
+    await remote.api.createDraft();
+    remote.writes.length = 0;
+    const upload = remote.api.upload;
+    remote.api.upload = async (...args) => {
+      await upload(...args);
+      mutate(remote.release.assets[0]);
+    };
+    let reads = 0;
+    const read = remote.api.read;
+    remote.api.read = () => {
+      reads++;
+      return read();
+    };
+    await assert.rejects(publish(f.directory, remote.api), /unknown existing|digest mismatch/);
+    assert.equal(reads, 2);
+    assert.deepEqual(remote.writes, ["upload:installer.exe"]);
+  });
 test("GitHub artifact ZIP requests negotiate JSON media type but return exact bytes", async () => {
   const endpoint = "/repos/linkasu/linka.looks-electron/actions/artifacts/13344045411/zip";
   const bytes = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]);
@@ -673,6 +820,7 @@ test("GitHub artifact ZIP requests negotiate JSON media type but return exact by
       assert.equal(String(url), `https://api.github.com${endpoint}`);
       if (headers.Accept === "application/octet-stream") return new Response(null, { status: 415 });
       assert.equal(headers.Accept, "application/vnd.github+json");
+      assert.equal(headers["Cache-Control"], "no-cache");
       return new Response(bytes);
     }
   });

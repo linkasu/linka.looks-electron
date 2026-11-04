@@ -40,6 +40,7 @@ async function request(
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28"
     };
+    if (method === "GET") headers["Cache-Control"] = "no-cache";
     if (["api.github.com", "uploads.github.com"].includes(url.hostname)) {
       const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -125,6 +126,7 @@ async function list(endpoint, key, read = request) {
   throw new Error("GitHub listing exceeds bounded pagination");
 }
 function releaseApi(read = request) {
+  let created = null;
   return {
     async read(m) {
       let tag = await read(`${prefix}/git/ref/tags/${m.tag}`, { missing: true });
@@ -136,13 +138,21 @@ function releaseApi(read = request) {
         (r) => r.tag_name === m.tag
       );
       assert(matching.length <= 1, "ambiguous existing drafts/releases for target tag");
-      const release = matching[0] || null;
+      let release = matching[0] || null;
+      if (created?.tag === m.tag) {
+        if (release)
+          assert.equal(apiId(release.id), created.id, "conflicting release ID for target tag");
+        // A successful CREATE can precede LIST visibility; verify via its bounded ID, not its body.
+        release = await read(`${prefix}/releases/${created.id}`);
+        assert.equal(apiId(release?.id), created.id, "release verification ID mismatch");
+        assert.equal(release.tag_name, m.tag, "release verification tag mismatch");
+      }
       if (release)
         release.assets = await list(`${prefix}/releases/${apiId(release.id)}/assets`, null, read);
       return { tagSha: tag?.object.sha || null, release };
     },
-    createDraft: (m, notes) =>
-      read(`${prefix}/releases`, {
+    createDraft: async (m, notes) => {
+      const release = await read(`${prefix}/releases`, {
         method: "POST",
         body: {
           tag_name: m.tag,
@@ -153,7 +163,10 @@ function releaseApi(read = request) {
           prerelease: m.prerelease,
           make_latest: "false"
         }
-      }),
+      });
+      created = { tag: m.tag, id: apiId(release?.id) };
+      return release;
+    },
     upload: (id, file, directory) =>
       read(`${prefix}/releases/${apiId(id)}/assets?name=${encodeURIComponent(file.name)}`, {
         method: "POST",
