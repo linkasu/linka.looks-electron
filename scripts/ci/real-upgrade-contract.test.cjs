@@ -12,7 +12,8 @@ const {
   digest,
   metadata,
   verifyCandidate,
-  waitForProcessExit
+  waitForProcessExit,
+  candidateConfiguration
 } = require("./real-upgrade-contract.cjs");
 
 test("root process exit does not wait for an inherited descendant stdio pipe", async (t) => {
@@ -158,17 +159,38 @@ test("historical installer timeout retains bounded owned-process and desktop evi
 
 test("trusted main harness identity is separate from immutable candidate tooling identity", () => {
   const workflow = fs.readFileSync(
-    path.join(__dirname, "../../.github/workflows/windows-upgrade.yml"),
+    path.join(__dirname, "../../.github/workflows/windows-qualification.yml"),
     "utf8"
   );
-  assert(workflow.includes("context.ref, 'refs/heads/main'"));
-  assert(workflow.includes("source.head_sha, tooling"));
-  assert(workflow.includes("item.workflow_run.head_sha, tooling"));
-  assert(workflow.includes("git rev-parse HEAD) -cne $env:GITHUB_SHA"));
-  assert(workflow.includes("$env:ACCEPTANCE_SHA = $env:UPGRADE_TOOLING_SHA"));
-  assert(!workflow.includes("context.sha, tooling"));
+  assert(workflow.includes("ref: ${{ needs.prepare.outputs.harness_sha }}"));
+  assert(workflow.includes("checks: read"));
+  assert(!workflow.includes("contents: write"));
+  const runner = fs.readFileSync(path.join(__dirname, "qualification-runner.cjs"), "utf8");
+  assert(runner.includes("assert.equal(harness, process.env.GITHUB_SHA)"));
+  assert(runner.includes('"merge-base", "--is-ancestor", sha, "origin/main"'));
   const harness = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
   assert(harness.includes("harnessSha: process.env.GITHUB_SHA"));
+});
+
+test("dynamic updater feed never substitutes a hardcoded installer", () => {
+  const feed = metadata(Buffer.from("fixture"), "5.2.1");
+  assert.equal(feed.path, "linka.looks-5.2.1-win-x64.exe");
+  assert.equal(feed.version, "5.2.1");
+  const app = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
+  assert(app.includes("assert(process.env.UPGRADE_DESCRIPTOR"));
+  assert(!app.includes('version: "4.0.0"'));
+});
+
+test("production upgrade takes baseline and target from a fully validated pinned descriptor", () => {
+  const { candidate } = require("./candidate-contract.test.cjs").fixture();
+  const configuration = candidateConfiguration(candidate);
+  assert.equal(configuration.old.version, "4.0.0");
+  assert.equal(configuration.old.sha256, candidate.baseline.installer.sha256);
+  assert.equal(configuration.expected.version, "4.1.0");
+  assert.equal(configuration.expected.sha256, candidate.installer.sha256);
+  assert.deepEqual(configuration.resources, candidate.resources);
+  delete candidate.baseline.assetId;
+  assert.throws(() => candidateConfiguration(candidate));
 });
 
 test("sanitized installer and app environments retain Windows known-folder paths, not credentials", () => {

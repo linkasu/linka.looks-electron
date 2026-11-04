@@ -7,8 +7,7 @@ const { execFileSync } = require("node:child_process");
 const { _electron: electron, expect } = require("@playwright/test");
 const AdmZip = require("adm-zip");
 const {
-  OLD,
-  INSTALLER,
+  candidateConfiguration,
   digest,
   metadata,
   verifyCandidate,
@@ -22,17 +21,19 @@ assert.equal(process.env.ImageOS, "win22");
 const exe = process.env.UPGRADE_EXECUTABLE;
 const work = process.env.UPGRADE_WORK;
 const evidence = process.env.UPGRADE_EVIDENCE;
-const accepted = verifyCandidate(process.env.UPGRADE_CANDIDATE, {
-  app: process.env.UPGRADE_APP_SHA,
-  tooling: process.env.UPGRADE_TOOLING_SHA,
-  run: process.env.UPGRADE_RUN_ID,
-  sha256: process.env.UPGRADE_INSTALLER_SHA256
-});
+assert(process.env.UPGRADE_DESCRIPTOR, "Verified candidate descriptor is mandatory");
+const configuration = candidateConfiguration(
+  JSON.parse(fs.readFileSync(process.env.UPGRADE_DESCRIPTOR, "utf8"))
+);
+const OLD = configuration.old;
+const INSTALLER = `linka.looks-${configuration.expected.version}-win-x64.exe`;
+const accepted = verifyCandidate(process.env.UPGRADE_CANDIDATE, configuration.expected);
 const bytes = fs.readFileSync(accepted.installer);
 const result = {
   status: "RUNNING",
   old: OLD,
   candidate: accepted.provenance,
+  resources: configuration.resources,
   harnessSha: process.env.GITHUB_SHA,
   feed: accepted.metadata,
   scope: "unsigned Windows x64, Microsoft-hosted disposable CI, software/no-device only",
@@ -76,6 +77,8 @@ const assets = {
 };
 
 async function until(label, predicate, milliseconds = 90000) {
+  result.currentStage = label;
+  saveResult();
   const deadline = Date.now() + milliseconds;
   while (Date.now() < deadline) {
     const value = await predicate();
@@ -132,7 +135,7 @@ const server = http.createServer((request, response) => {
   result.requests.push({ mode, path: url.pathname, range: request.headers.range || null });
   if (url.pathname === "/latest.yml") {
     // JSON is a YAML subset, avoiding quoting ambiguity in filenames and digests.
-    const feed = mode === "idle" ? metadata(bytes, OLD.version) : accepted.metadata;
+    const feed = mode === "idle" ? metadata(bytes, OLD.version, INSTALLER) : accepted.metadata;
     response.writeHead(200, { "Content-Type": "application/yaml", "Cache-Control": "no-store" });
     response.end(JSON.stringify(feed));
   } else if (url.pathname === `/${INSTALLER}` && mode !== "idle") {
@@ -322,7 +325,7 @@ async function run() {
   saveResult();
   application = undefined;
   const restarted = await until(
-    "NSIS installed and force-ran responsive 4.0.0 window",
+    "NSIS installed and force-ran responsive candidate window",
     () =>
       ownedProcesses().find(
         (item) =>
@@ -330,7 +333,8 @@ async function run() {
           item.window &&
           item.title === "LINKa. смотри" &&
           item.responding &&
-          /^4\.0\.0(?:\.|$)/.test(item.version)
+          (item.version === configuration.expected.version ||
+            item.version.startsWith(`${configuration.expected.version}.`))
       ),
     240000
   );
@@ -346,7 +350,11 @@ async function run() {
   mode = "idle";
 
   page = await launch();
-  assert.deepEqual(await version(page), { version: "4.0.0", platform: "win32", isPackaged: true });
+  assert.deepEqual(await version(page), {
+    version: configuration.expected.version,
+    platform: "win32",
+    isPackaged: true
+  });
   assert.equal(await application.evaluate(({ app }) => app.getPath("userData")), profile);
   await expect(page.locator(".root")).toBeVisible();
   await expect(page.getByText("Техническая статистика", { exact: true })).toHaveCount(0);
@@ -390,6 +398,16 @@ async function run() {
     const file = path.join(path.dirname(exe), "resources", "predictor-resources", name);
     result.model[name] = { size: fs.statSync(file).size, sha256: digest(fs.readFileSync(file)) };
   }
+  assert.equal(
+    result.model["model.lpk"].sha256,
+    configuration.resources.modelSha256,
+    "Installed model must match this candidate's approved model pin"
+  );
+  assert.equal(
+    result.model["lp-electron.exe"].sha256,
+    configuration.resources.runtimeSha256,
+    "Installed runtime must match this candidate's approved runtime pin"
+  );
   page = await launch();
   await expect(page.locator(".root")).toBeVisible();
   await page.evaluate(() => {
@@ -409,15 +427,24 @@ async function run() {
   const rolledBack = snapshot("historical-reader-rollback-probe");
   assert.equal(rolledBack.archive, saved.archive);
   assert.deepEqual(rolledBack.config.eyeTypingDraftV1, newConfig.eyeTypingDraftV1);
-  result.rollback =
-    "Authentic installed 3.3.1 binary copy reads new profile/set without modifying unknown draft; installer downgrade NOT TESTED";
+  result.rollback = `Authentic installed ${OLD.version} binary copy reads new profile/set without modifying unknown draft; installer downgrade NOT TESTED`;
   result.status = "PASS";
 }
 
 run()
-  .catch((error) => {
+  .catch(async (error) => {
     result.status = "FAIL";
-    result.error = error.stack;
+    result.error = String(error.stack || error).slice(0, 8192);
+    try {
+      const page = application?.windows()[0];
+      if (page)
+        await page.screenshot({
+          path: path.join(evidence, "upgrade-first-failure.png"),
+          timeout: 10000
+        });
+    } catch (screenshotError) {
+      result.screenshotError = String(screenshotError).slice(0, 1000);
+    }
     try {
       result.ownedProcessesAtFailure = ownedProcesses();
     } catch (inspectionError) {

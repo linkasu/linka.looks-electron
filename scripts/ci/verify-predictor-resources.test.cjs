@@ -276,20 +276,17 @@ test("release gate uses pinned tooling approval on final production packages onl
   const yaml = require("yaml");
   const root = path.resolve(__dirname, "../..");
   const workflow = yaml.parse(
-    fs.readFileSync(path.join(root, ".github/workflows/release-331-preflight.yml"), "utf8")
+    fs.readFileSync(path.join(root, ".github/workflows/windows-candidate.yml"), "utf8")
   );
   const calls = (job) => workflow.jobs[job].steps.map((step) => step.run || "").join("\n");
-  assert.doesNotMatch(calls("unsigned"), /verify-predictor-resources\.cjs/);
   assert.equal(workflow.jobs["signed-macos"], undefined);
   assert.match(
-    calls("release-windows"),
-    /electron:build[\s\S]*node \.\.\/tooling\/scripts\/ci\/verify-predictor-resources\.cjs dist\/win-unpacked\/resources win32 x64 \.\.\/tooling\/build\/predictor-approval\.json[\s\S]*release-artifacts\.cjs stage/
+    calls("build"),
+    /electron:build[\s\S]*node \.\.\/tooling\/scripts\/ci\/verify-predictor-resources\.cjs dist\/win-unpacked\/resources win32 x64 build\/predictor-approval\.json[\s\S]*candidate-stage\.cjs stage/
   );
-  const checks = yaml.parse(
-    fs.readFileSync(path.join(root, ".github/workflows/checks.yml"), "utf8")
-  );
+  const checks = yaml.parse(fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"));
   assert(
-    checks.jobs.checks.steps.some(
+    checks.jobs.fast.steps.some(
       (step) =>
         step.run?.includes("node --test") &&
         step.run.includes("scripts/ci/verify-predictor-resources.test.cjs")

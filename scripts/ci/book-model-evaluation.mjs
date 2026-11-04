@@ -423,7 +423,15 @@ async function codeBindings(manifest, freeze) {
   assert.deepEqual(freeze.source_code_hashes, { ...manifest.bindings, ...extra });
 }
 
-async function preparedContext(payload, inputs, metadata, sourceRoot, execution, withTargets) {
+async function preparedContext(
+  payload,
+  inputs,
+  metadata,
+  sourceRoot,
+  execution,
+  withTargets,
+  archiveBytes
+) {
   assert.equal(hash(payload.manifest_json), inputs.final_seal_sha256);
   assert.equal(hash(payload.run_freeze_json), inputs.run_freeze_sha256);
   const manifest = JSON.parse(payload.manifest_json);
@@ -435,7 +443,7 @@ async function preparedContext(payload, inputs, metadata, sourceRoot, execution,
   const freeze = { ...frozen };
   delete freeze.execution;
   delete freeze.source_code_hashes;
-  validateMetadata(inputs, metadata);
+  validateMetadata(inputs, metadata, archiveBytes);
   validateFreeze(inputs, freeze, manifest, metadata, inputs.mode);
   const head = (root) =>
     execFileSync("git", ["rev-parse", "HEAD"], {
@@ -583,6 +591,7 @@ async function book(configPath, receiptSha) {
   ]);
   assert(["dev", "final"].includes(inputs.mode));
   const metadata = parse(await bounded(config.metadataPath));
+  const archiveBytes = await bounded(join(tempRoot, "eval-candidate.zip"), 300 * 1024 ** 2);
   const control = {
     manifest_json: (await bounded(config.manifestPath)).toString("utf8"),
     run_freeze_json: (await trackedPlan(config.planPath)).toString("utf8")
@@ -596,7 +605,8 @@ async function book(configPath, receiptSha) {
     metadata,
     sourceRoot,
     execution,
-    false
+    false,
+    archiveBytes
   );
   const binary = await bounded(
     join(sourceRoot, "target/release/examples/model_final_stream"),
@@ -625,7 +635,15 @@ async function book(configPath, receiptSha) {
   );
   for (const [field, bytes] of Object.entries(control))
     assert.equal(payload[field], bytes, "target transport must use the prechecked control bytes");
-  const context = await preparedContext(payload, inputs, metadata, sourceRoot, execution, true);
+  const context = await preparedContext(
+    payload,
+    inputs,
+    metadata,
+    sourceRoot,
+    execution,
+    true,
+    archiveBytes
+  );
   const report = await runPreparedEvaluation(context, { sourceRoot, tempRoot });
   assert.equal(report.evaluationRunId, null);
   assert.equal(report.evaluationRunAttempt, null);
@@ -696,7 +714,16 @@ async function importEvidence(sourceRoot) {
   );
   const tempRoot = process.env.RUNNER_TEMP,
     metadata = parse(await bounded(join(tempRoot, "eval-candidate-meta.json")));
-  const context = await preparedContext(payload, inputs, metadata, sourceRoot, execution, false);
+  const archiveBytes = await bounded(join(tempRoot, "eval-candidate.zip"), 300 * 1024 ** 2);
+  const context = await preparedContext(
+    payload,
+    inputs,
+    metadata,
+    sourceRoot,
+    execution,
+    false,
+    archiveBytes
+  );
   const work = await mkdtemp(join(tempRoot, "book-import-origin-"));
   try {
     await extractArtifact(join(tempRoot, "eval-candidate.zip"), work, context.freeze, phase);

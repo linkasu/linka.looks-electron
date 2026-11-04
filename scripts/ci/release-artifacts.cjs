@@ -9,24 +9,25 @@ const macCompatibility = require("./release-artifacts-mac-compat.cjs");
 const VERSION = "4.0.0";
 const digest = (bytes, algorithm = "sha256", encoding = "hex") =>
   nodeCrypto.createHash(algorithm).update(bytes).digest(encoding);
-function assets(platform) {
+function assets(platform, version = VERSION) {
   assert.equal(platform, "windows", "4.0.0 releases Windows x64 only");
-  const installers = [`linka.looks-${VERSION}-win-x64.exe`];
+  assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version), "stable version required");
+  const installers = [`linka.looks-${version}-win-x64.exe`];
   return {
     installers,
     metadata: "latest.yml",
     files: [...installers.flatMap((name) => [name, `${name}.blockmap`]), "latest.yml"]
   };
 }
-function verifyMetadata(directory, platform) {
-  const yaml = require("node:module").createRequire(path.resolve("package.json"))("yaml");
-  const expected = assets(platform);
+function verifyMetadata(directory, platform, version = VERSION) {
+  const yaml = require("yaml");
+  const expected = assets(platform, version);
   for (const name of expected.files) {
     const stat = fs.lstatSync(path.join(directory, name));
     assert(stat.isFile() && stat.size > 0, "expected regular release asset");
   }
   const metadata = yaml.parse(fs.readFileSync(path.join(directory, expected.metadata), "utf8"));
-  assert.equal(metadata.version, VERSION, "updater version mismatch");
+  assert.equal(metadata.version, version, "updater version mismatch");
   assert(Array.isArray(metadata.files) && metadata.files.length > 0, "empty updater asset set");
   assert.deepEqual(
     metadata.files.map((file) => file.url).sort(),

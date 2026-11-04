@@ -1,0 +1,289 @@
+name: CI
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.route.outputs.required }}
+      contracts: ${{ steps.route.outputs.contracts }}
+      static: ${{ steps.route.outputs.static }}
+      unit: ${{ steps.route.outputs.unit }}
+      windows: ${{ steps.route.outputs.windows }}
+      packaging: ${{ steps.route.outputs.packaging }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Route complete changed range (both rename sides and deletions)
+        id: route
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          elif [[ "$EVENT_NAME" == workflow_dispatch || "$BASE_SHA" =~ ^0+$ ]]; then
+            base=$(git hash-object -t tree -w /dev/null)
+          else
+            git cat-file -e "$BASE_SHA^{commit}"
+            base="$BASE_SHA"
+          fi
+          git diff --name-status -z --find-renames "$base" "$HEAD_SHA" > changed-paths.bin
+          node scripts/ci/ci-routing.cjs < changed-paths.bin
+
+  fast:
+    needs: route
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-app
+      - run: npm run format:check
+      - name: Build dependency declarations for static imports (TypeScript only)
+        if: needs.route.outputs.static == 'true'
+        run: npm rebuild pictures.bank-api
+      - name: Checkout pinned public source fixture (no Rust or model compute)
+        if: needs.route.outputs.contracts == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.predictor-rust
+          ref: 85135083c1d640ecaf24fa2418b88022d74564ae
+          path: predictor-resources/source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pure CI and artifact contracts (synthetic fixtures, no app/model builds)
+        if: needs.route.outputs.contracts == 'true'
+        env:
+          CANDIDATE_BUILDER: "1"
+          BOOK_SOURCE_ROOT: ${{ github.workspace }}/predictor-resources/source
+          BOOK_CANDIDATES_WORKFLOW: ${{ github.workspace }}/predictor-resources/source/.github/workflows/model-candidates.yml
+          BASE_MODEL_SOURCE_REPO: ${{ github.workspace }}/predictor-resources/source
+          BASE_MODEL_WORKFLOW: ${{ github.workspace }}/predictor-resources/source/.github/workflows/promote-base-model.yml
+        run: >-
+          node --test scripts/ci/*contract.test.cjs
+          scripts/ci/ci-routing.test.cjs
+          scripts/ci/candidate-io.test.cjs
+          scripts/ci/candidate-stage.test.cjs
+          scripts/ci/import-book-candidate.test.cjs
+          scripts/ci/model-import-origin.test.cjs
+          scripts/ci/promote-base-model.test.cjs
+          scripts/ci/windows-model-benchmark.test.cjs
+          scripts/ci/predictor-evaluation*.test.mjs
+          scripts/ci/book-model-evaluation.test.mjs
+          scripts/ci/qualification-runner.test.cjs
+          scripts/ci/release-publication.test.cjs
+          scripts/ci/candidate-keychain-password.test.cjs
+          scripts/ci/candidate-mac-sign.test.cjs
+          scripts/ci/macos-single-build.test.cjs
+          scripts/ci/provision-eyelog.test.cjs
+          scripts/ci/stage-approved-predictor.test.cjs
+          scripts/ci/candidate-eyelog-api.test.cjs
+          scripts/ci/packaged-eyelog.test.cjs
+          scripts/ci/release-artifacts.test.cjs
+          scripts/ci/release-inventory.test.cjs
+          scripts/ci/windows-candidate-workflow.test.cjs
+          scripts/ci/release-security-audit.test.cjs
+          scripts/ci/verify-predictor-resources.test.cjs
+          scripts/ci/windows-sdk-launch.test.cjs
+          scripts/mirror/update.test.cjs
+          scripts/mirror/public-verify.test.cjs
+      - name: Strict payload negative controls
+        if: needs.route.outputs.contracts == 'true'
+        run: |
+          python3 scripts/ci/test-asar-evidence.py
+          python3 scripts/ci/test-report-asar-evidence.py
+          python3 scripts/ci/test-verify-macos-payload.py
+          node scripts/ci/check-baseline-result.mjs --self-test
+
+      - run: npm run lint
+        if: needs.route.outputs.static == 'true'
+      - run: npm run typecheck
+        if: needs.route.outputs.static == 'true'
+      - run: npm run knip
+        if: needs.route.outputs.static == 'true'
+
+  windows-contracts:
+    needs: route
+    if: needs.route.outputs.contracts == 'true' && needs.route.outputs.windows != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-app
+      - name: Assert native probes cannot silently skip on this runner
+        run: node -e 'const a=require("node:assert/strict");a.equal(process.platform,"win32");for(const [k,v] of Object.entries({GITHUB_ACTIONS:"true",RUNNER_ENVIRONMENT:"github-hosted",ImageOS:"win22",GITHUB_REPOSITORY:"linkasu/linka.looks-electron"}))a.equal(process.env[k],v,k)'
+      - name: Windows native and candidate contracts (no app/model build)
+        run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
+      - name: Hosted PR SDK process self-checks (no app or device)
+        if: github.event_name == 'pull_request'
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: Explain PR-only SDK process scope
+        if: github.event_name != 'pull_request'
+        run: Add-Content $env:GITHUB_STEP_SUMMARY 'SDK process self-checks NOT_APPLICABLE for non-PR events; existing sandbox guard permits PR events only. Native upgrade firewall contracts still execute.'
+
+  unit:
+    needs: route
+    if: needs.route.outputs.unit == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-app
+      - name: Build dependency needed by unit imports (TypeScript only)
+        run: npm rebuild pictures.bank-api
+      - name: Checkout pinned synthetic test runtime source
+        uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.predictor-rust
+          ref: ec07b2cd49c1c2c684e6643f0dab75cf5895ebca
+          path: predictor-resources/source
+          persist-credentials: false
+      - name: Cache pinned Cargo downloads and compiled runtime
+        id: runtime-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            predictor-resources/source/target
+          key: predictor-ec07b2cd49c1c2c684e6643f0dab75cf5895ebca-${{ runner.os }}-rust-1.98.1-${{ hashFiles('predictor-resources/source/Cargo.lock') }}
+      - name: Compile synthetic test runtime on source/cache miss only
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          cargo +1.98.1 build --locked --release --manifest-path predictor-resources/source/Cargo.toml -p predictor-cli --no-default-features --bin lp-electron
+      - name: Stage synthetic CC0 runtime fixture (not a production model)
+        run: |
+          install -m 755 predictor-resources/source/target/release/lp-electron predictor-resources/lp-electron
+          cp predictor-resources/source/artifacts/tiny/runtime-v1.lpk predictor-resources/model.lpk
+      - run: npm run test:unit
+
+  windows:
+    needs: route
+    if: needs.route.outputs.windows == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-app
+        with:
+          native: "true"
+      - name: Assert native probes cannot silently skip on this runner
+        run: node -e 'const a=require("node:assert/strict");a.equal(process.platform,"win32");for(const [k,v] of Object.entries({GITHUB_ACTIONS:"true",RUNNER_ENVIRONMENT:"github-hosted",ImageOS:"win22",GITHUB_REPOSITORY:"linkasu/linka.looks-electron"}))a.equal(process.env[k],v,k)'
+      - name: Windows native and candidate contracts (no app/model build)
+        run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
+      - name: Windows SDK process negative controls (no device)
+        id: sdk-controls
+        if: github.event_name == 'pull_request'
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: node --test scripts/ci/windows-sdk-process.test.cjs scripts/ci/windows-sdk-launch.test.cjs
+      - name: One Windows build (installer only for packaging inputs)
+        shell: bash
+        env:
+          PACKAGING: ${{ needs.route.outputs.packaging }}
+        run: |
+          args=(--win --x64 -p never)
+          if [[ "$PACKAGING" != true ]]; then args+=(--dir); fi
+          npm run electron:build -- "${args[@]}"
+      - name: Explain PR-only SDK process scope
+        if: github.event_name != 'pull_request'
+        run: Add-Content $env:GITHUB_STEP_SUMMARY 'SDK process and sandboxed packaged launch NOT_APPLICABLE for non-PR events; existing sandbox guard permits PR events only. Native upgrade firewall contracts still execute.'
+      - name: Verify approved packaged Windows predictor (not hardware qualification)
+        run: node scripts/ci/verify-predictor-resources.cjs dist/win-unpacked/resources win32 x64 build/predictor-approval.json
+      - name: Packaged resource smoke test
+        id: packaged
+        run: npm run test:packaged-resources
+      - name: Load native modules with packaged Windows Electron (no hardware access)
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        run: |
+          & "dist/win-unpacked/LINKa. смотри.exe" node_modules/@linkasu/tobii-electron/native/tobiifree-native/scripts/smoke-test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "dist/win-unpacked/LINKa. смотри.exe" -e 'const assert=require("node:assert/strict"); assert.equal(typeof require("usb").getDeviceList,"function");'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Plain executable startup
+        timeout-minutes: 2
+        run: node scripts/ci/plain-app-startup.mjs
+      - name: Electron E2E
+        timeout-minutes: 8
+        run: npx playwright test --trace retain-on-failure
+      - name: Browser-only keyboard and caret regressions
+        run: |
+          npx playwright install chrome
+          npx playwright test --config=playwright.keyboard-prototype.config.ts
+          npx playwright test --config=playwright.caret.config.ts
+      - name: Packaged startup, storage and editor paths
+        timeout-minutes: 5
+        run: npx playwright test --config playwright.packaged.config.ts
+      - name: Production text image generation smoke test
+        timeout-minutes: 5
+        run: node scripts/ci/run-text-image-smoke.mjs
+      - name: Sandboxed packaged Windows SDK launch
+        if: ${{ !cancelled() && steps.packaged.outcome == 'success' && steps.sdk-controls.outcome == 'success' }}
+        env:
+          EYELOG_SANDBOX_GATE: "1"
+        run: npm run test:packaged-resources
+      - name: Windows evidence (NOT_TESTED for physical hardware)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results/
+            packaged-results/
+            packaged-report/
+            plain-startup*.png
+
+  ci-required:
+    if: ${{ always() }}
+    needs: [route, fast, windows-contracts, unit, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Require exact success for every routed job
+        env:
+          REQUIRED: ${{ needs.route.outputs.required }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: node -e 'require("./scripts/ci/ci-routing.cjs").assertRequired(JSON.parse(process.env.REQUIRED), JSON.parse(process.env.NEEDS))'

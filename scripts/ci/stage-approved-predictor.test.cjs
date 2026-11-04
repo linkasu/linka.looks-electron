@@ -207,13 +207,12 @@ test("single central prebuild hook and Windows-only unsigned PR profile", () => 
     "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs"
   );
   const yaml = require("yaml");
-  const workflow = yaml.parse(
-    fs.readFileSync(path.join(root, ".github/workflows/pr-test.yaml"), "utf8")
-  );
-  assert.deepEqual(Object.keys(workflow.jobs), ["build-windows"]);
-  assert.equal(workflow.jobs["build-windows"].env.CSC_IDENTITY_AUTO_DISCOVERY, "false");
-  const runs = workflow.jobs["build-windows"].steps.map((s) => s.run || "").join("\n");
-  assert.match(runs, /npm run electron:build -- --win --x64 --dir -p never/);
+  const workflow = yaml.parse(fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"));
+  assert.equal(workflow.jobs.windows["runs-on"], "windows-2022");
+  assert.equal(workflow.jobs.windows.env.CSC_IDENTITY_AUTO_DISCOVERY, "false");
+  const runs = workflow.jobs.windows.steps.map((s) => s.run || "").join("\n");
+  assert.match(runs, /args=\(--win --x64 -p never\)/);
+  assert.match(runs, /args\+=\(--dir\)/);
   assert.match(runs, /verify-predictor-resources\.cjs/);
   assert.doesNotMatch(runs, /stage-approved-predictor\.cjs/);
 });

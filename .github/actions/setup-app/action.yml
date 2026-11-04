@@ -1,0 +1,41 @@
+name: Locked app dependencies
+description: Install the lock without lifecycle scripts; rebuild only approved tools.
+inputs:
+  node-version:
+    description: Node version
+    default: "22.22.2"
+  native:
+    description: "Native application setup: false or true"
+    default: "false"
+  working-directory:
+    description: Checked-out app root
+    default: "."
+runs:
+  using: composite
+  steps:
+    - name: Validate setup mode
+      shell: bash
+      env:
+        NATIVE: ${{ inputs.native }}
+      run: 'case "$NATIVE" in true|false) ;; *) echo "native must be true or false" >&2; exit 1;; esac'
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+    - name: Install locked dependencies without lifecycle scripts
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci --ignore-scripts
+    - name: Rebuild test tooling only
+      if: inputs.native == 'false'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm rebuild esbuild
+    - name: Rebuild approved application dependencies
+      if: inputs.native == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        npm rebuild pictures.bank-api esbuild electron
+        node scripts/ci/provision-eyelog.cjs

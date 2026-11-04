@@ -5,6 +5,7 @@ const nodeCrypto = require("node:crypto");
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
 const { createRequire } = require("node:module");
+const { stable } = require("./candidate-contract.cjs");
 const appRequire = createRequire(path.resolve("package.json"));
 const builderRequire = createRequire(appRequire.resolve("electron-builder"));
 const asar = builderRequire("@electron/asar");
@@ -76,6 +77,20 @@ function inspect(archive, resources, noticeDirectory, bundle = resources) {
   return { asarSha256: hash(fs.readFileSync(archive)), packages, notices, resources: files };
 }
 
+function validateVersions(version, lock, packaged) {
+  assert(stable(version), "stable selected application version required");
+  assert.equal(lock.version, version, "lock/application version mismatch");
+  assert.equal(lock.packages[""].version, version, "lock root/application version mismatch");
+  assert(packaged.length > 0, "actual packaged inventory required");
+  for (const bundle of packaged)
+    assert.equal(
+      bundle.packages.find((pkg) => pkg.path === "package.json")?.version,
+      version,
+      "packaged/application version mismatch"
+    );
+  return version;
+}
+
 function main() {
   const app = process.env.APP_SHA;
   const tooling = process.env.TOOLING_SHA;
@@ -87,7 +102,7 @@ function main() {
     execFileSync("git", ["rev-parse", "HEAD"], { cwd: toolingRoot, encoding: "utf8" }).trim(),
     tooling
   );
-  assert.equal(require(path.resolve("package.json")).version, "4.0.0");
+  const version = require(path.resolve("package.json")).version;
   const bundles =
     process.platform === "win32"
       ? ["dist/win-unpacked/resources"]
@@ -114,6 +129,7 @@ function main() {
       process.platform === "win32" ? path.dirname(root) : path.resolve(root, "../..")
     )
   }));
+  validateVersions(version, lock, packaged);
   const source = execFileSync("git", ["archive", "--format=tar", app], {
     maxBuffer: 128 * 1024 * 1024
   });
@@ -132,6 +148,7 @@ function main() {
     JSON.stringify(
       {
         schema: 1,
+        version,
         app,
         tooling,
         builder: builderRequire("app-builder-lib/package.json").version,
@@ -157,5 +174,5 @@ function main() {
   );
 }
 
-module.exports = { inspect };
+module.exports = { inspect, validateVersions };
 if (require.main === module) main();

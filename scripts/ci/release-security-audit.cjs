@@ -57,7 +57,11 @@ function verify({ inventory, audit, provenance, lock }) {
   assert.equal(inventory.schema, 1);
   assert.equal(inventory.builder, "26.16.1", "unreviewed builder");
   assert.equal(provenance.schema, 1);
-  assert.equal(provenance.version, "4.0.0");
+  assert(
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(provenance.version),
+    "stable root version required"
+  );
+  assert.equal(packages[""].version, provenance.version, "lock root version mismatch");
   assert.equal(provenance.platform, "windows");
   assert(/^\d+$/.test(provenance.run), "missing candidate run");
   for (const field of ["app", "tooling"]) {
@@ -125,7 +129,10 @@ function verify({ inventory, audit, provenance, lock }) {
   for (const bundle of inventory.packaged) {
     assert.equal(bundle.target.replaceAll("\\", "/"), "dist/win-unpacked/resources");
     assert(/^[a-f0-9]{64}$/.test(bundle.asarSha256), "ASAR digest required");
-    assert.equal(bundle.packages.find((pkg) => pkg.path === "package.json")?.version, "4.0.0");
+    assert.equal(
+      bundle.packages.find((pkg) => pkg.path === "package.json")?.version,
+      provenance.version
+    );
     for (const pkg of bundle.packages) {
       const sourcePath = pkg.path
         .replaceAll("\\", "/")
@@ -157,7 +164,7 @@ function verify({ inventory, audit, provenance, lock }) {
         assert(versions[pkg.name].includes(pkg.version), `unreviewed shipped version: ${pkg.path}`);
     }
   }
-  const name = "linka.looks-4.0.0-win-x64.exe";
+  const name = `linka.looks-${provenance.version}-win-x64.exe`;
   const installers = inventory.installers.filter((item) => item.name === name);
   const accepted = provenance.files.filter((item) => item.name === name);
   assert.equal(installers.length, 1);

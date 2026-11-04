@@ -7,6 +7,7 @@ import { readFile, writeFile, mkdtemp, rm, lstat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
+import modelImportOrigin from "./model-import-origin.cjs";
 import {
   verifySeal,
   verifySealMetadata,
@@ -73,7 +74,7 @@ export function decodeBundle(encoded, mode = "final") {
   }
 }
 
-export function validateMetadata(input, metadata) {
+export function validateMetadata(input, metadata, archiveBytes) {
   assert.equal(metadata.repository, repository);
   const { run, artifact } = metadata;
   assert.equal(String(run.id), input.candidate_run_id);
@@ -81,11 +82,10 @@ export function validateMetadata(input, metadata) {
   assert.equal(run.status, "completed");
   assert.equal(run.conclusion, "success");
   assert.equal(run.event, "workflow_dispatch");
-  assert.equal(run.head_sha, input.source_sha);
   assert.equal(metadata.candidate_workflow.path, ".github/workflows/model-candidates.yml");
   assert.equal(String(artifact.id), input.candidate_artifact_id);
   assert.equal(String(artifact.workflow_run.id), input.candidate_run_id);
-  assert.equal(artifact.workflow_run.head_sha, input.source_sha);
+  assert.equal(artifact.workflow_run.head_sha, run.head_sha);
   assert.equal(artifact.expired, false);
   assert(Number.isSafeInteger(run.run_attempt) && run.run_attempt > 0);
   assert.equal(artifact.name, `model-candidates-${input.candidate_run_id}-${run.run_attempt}`);
@@ -94,6 +94,12 @@ export function validateMetadata(input, metadata) {
       artifact.size_in_bytes > 0 &&
       artifact.size_in_bytes <= 300 * 1024 * 1024
   );
+  if (archiveBytes !== undefined)
+    modelImportOrigin.validateModelArchiveOrigin(input, metadata, archiveBytes);
+  else {
+    assert(!Object.hasOwn(metadata, "model_import"), "archive bytes required for import metadata");
+    assert.equal(run.head_sha, input.source_sha, "legacy source origin");
+  }
 }
 
 export function validateConfig(config) {
@@ -473,7 +479,7 @@ async function checkedContext(sourceRoot, tempRoot) {
   assert.equal(head(sourceRoot), input.source_sha);
   assert.equal(head(appRoot), input.app_tooling_sha);
   const metadata = json(await readFile(join(tempRoot, "eval-candidate-meta.json")));
-  validateMetadata(input, metadata);
+  validateMetadata(input, metadata, await readFile(join(tempRoot, "eval-candidate.zip")));
   const bundle = decodeBundle(input.sealed_bundle, input.mode);
   assert.equal(hash(bundle.manifest_json), input.final_seal_sha256);
   assert.equal(hash(bundle.run_freeze_json), input.run_freeze_sha256);

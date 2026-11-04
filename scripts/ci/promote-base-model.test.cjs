@@ -275,6 +275,86 @@ function fixture(variant = "U") {
   return { approval, evidence, archives, maps, refresh, final, source, memory, ui };
 }
 
+test("publisher keeps model Git source independent from actual import workflow, requiring verified origin context", async () => {
+  const { createHash } = require("node:crypto");
+  const { resolveModelImportOrigin } = require("./model-import-origin.cjs");
+  const f = fixture();
+  const workflowSha = "b".repeat(40);
+  const manifest = {
+    schema: "linka-book-candidate-import-v1",
+    model_source_sha: SOURCE,
+    app_tooling_sha: "c".repeat(40),
+    source_manifest: "source.json",
+    source_review: "review.json",
+    review_report: "report.json",
+    exclusion_file: "exclusions.json",
+    book_release_id: "1",
+    book_archive_sha256: "d".repeat(64),
+    book_archive_bytes: 200,
+    book_transport: "repository-secret"
+  };
+  const raw = json(manifest);
+  const p = JSON.parse(f.maps.model["provenance.json"]);
+  p.execution = { source_sha: SOURCE };
+  p.ci_import = {
+    schema: "linka-model-ci-import-v1",
+    run_id: "11",
+    run_attempt: 1,
+    workflow_sha: workflowSha,
+    manifest_path: "provenance/import.json",
+    manifest_sha256: hash(raw),
+    model_source_sha: SOURCE
+  };
+  f.maps.model["provenance.json"] = json(p);
+  f.source.model.workflow_sha = workflowSha;
+  f.source.model.import_manifest_sha256 = hash(raw);
+  f.maps.windows["source.json"] = json(f.source);
+  f.approval.windows.source_sha256 = hash(f.maps.windows["source.json"]);
+  f.refresh();
+  f.approval.runs.model.head_sha = workflowSha;
+  f.evidence.model.run.head_sha = workflowSha;
+  for (const item of [f.evidence.model.artifact, f.evidence.model.member])
+    item.workflow_run.head_sha = workflowSha;
+  assert.throws(
+    () => qualify(f.approval, f.evidence, f.archives),
+    /validated model import manifest/
+  );
+  f.evidence.model.origin = await resolveModelImportOrigin({
+    run: f.evidence.model.run,
+    provenance: p,
+    api: async (route) => {
+      assert.equal(route, `contents/provenance/import.json?ref=${workflowSha}`);
+      return {
+        type: "file",
+        path: "provenance/import.json",
+        encoding: "base64",
+        content: raw.toString("base64"),
+        size: raw.length,
+        sha: createHash("sha1").update(`blob ${raw.length}\0`).update(raw).digest("hex")
+      };
+    }
+  });
+  const before = Buffer.from(f.archives.model);
+  qualify(f.approval, f.evidence, f.archives);
+  assert.deepEqual(f.archives.model, before);
+  assert.equal(f.approval.sources.model.sha, SOURCE);
+  assert.equal(f.final.sourceSha, SOURCE);
+  f.evidence.model.origin.manifestSha256 = "f".repeat(64);
+  assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+  f.evidence.model.origin.manifestSha256 = hash(raw);
+  f.source.model.workflow_sha = SOURCE;
+  f.maps.windows["source.json"] = json(f.source);
+  f.approval.windows.source_sha256 = hash(f.maps.windows["source.json"]);
+  const originContext = f.evidence.model.origin;
+  f.refresh();
+  f.approval.runs.model.head_sha = workflowSha;
+  f.evidence.model.run.head_sha = workflowSha;
+  for (const item of [f.evidence.model.artifact, f.evidence.model.member])
+    item.workflow_run.head_sha = workflowSha;
+  f.evidence.model.origin = originContext;
+  assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+});
+
 function bookFixture(large = false) {
   const f = fixture();
   f.maps.model["source-manifest.json"] = json({ source: { synthetic: true } });

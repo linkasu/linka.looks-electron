@@ -1,6 +1,21 @@
 name: Publish linka.looks updater
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      verify_only:
+        type: boolean
+        default: false
+    secrets:
+      LINKA_SU_SSH_KEY:
+        required: true
+      LINKA_SU_HOST:
+        required: true
+      LINKA_SU_USER:
+        required: true
   release:
     types: [published]
   workflow_dispatch:
@@ -8,6 +23,10 @@ on:
       version:
         description: "Release version to publish, with or without v prefix"
         required: true
+      verify_only:
+        description: "Verify published public downloads without SSH or mirror writes"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -18,11 +37,25 @@ concurrency:
 
 jobs:
   publish-updater:
+    if: github.repository == 'linkasu/linka.looks-electron' && (github.event_name == 'release' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Verify exact mirror workflow implementation
+        env:
+          EXPECTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_WORKFLOW_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Initialize sanitized distribution result
+        run: echo '{"publication":"PUBLICATION_STATE_UNVERIFIED","status":"DISTRIBUTION_NOT_VERIFIED","stage":"release-resolution"}' > public-distribution-summary.json
       - name: Resolve exact published installer digest
         shell: bash
         env:
@@ -39,11 +72,14 @@ jobs:
           const assets = release.assets.filter(a => a.name === `linka.looks-${version}-win-x64.exe`);
           if (release.tag_name !== `v${version}` || release.draft || release.prerelease || assets.length !== 1 ||
               !/^sha256:[a-f0-9]{64}$/.test(assets[0].digest)) throw new Error('Published installer digest missing/mismatched; stop for review');
-          fs.appendFileSync(process.env.GITHUB_ENV, `MIRROR_VERSION=${version}\nMIRROR_SHA256=${assets[0].digest.slice(7)}\n`);
+           if (!Number.isSafeInteger(assets[0].size) || assets[0].size <= 0 || assets[0].size > 512 * 1024 ** 2) throw new Error('Installer size out of bounds');
+           fs.writeFileSync('public-distribution-summary.json', JSON.stringify({ publication: 'PUBLISHED', status: 'PUBLISHED_DISTRIBUTION_UNVERIFIED', stage: 'mirror-update', version, sha256: assets[0].digest.slice(7), size: assets[0].size }) + '\n');
+           fs.appendFileSync(process.env.GITHUB_ENV, `MIRROR_VERSION=${version}\nMIRROR_SHA256=${assets[0].digest.slice(7)}\nMIRROR_BYTES=${assets[0].size}\n`);
           const metadata = { tag_name: release.tag_name, draft: release.draft, prerelease: release.prerelease, assets };
           fs.appendFileSync(process.env.GITHUB_ENV, `MIRROR_RELEASE_B64=${Buffer.from(JSON.stringify(metadata)).toString('base64')}\n`);
           NODE
       - name: Configure SSH
+        if: inputs.verify_only != true
         shell: bash
         run: |
           set -euo pipefail
@@ -53,12 +89,38 @@ jobs:
           ssh-keyscan -H "${{ secrets.LINKA_SU_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Update public installer mirror
+        if: inputs.verify_only != true
         shell: bash
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/linka_su \
-            -o BatchMode=yes \
+             -o BatchMode=yes \
+             -o ConnectTimeout=30 \
             -o StrictHostKeyChecking=yes \
             "${{ secrets.LINKA_SU_USER }}@${{ secrets.LINKA_SU_HOST }}" \
             "MIRROR_RELEASE_B64='$MIRROR_RELEASE_B64' node - update /home/aacidov/linka-docker/wordpress/dist/linka.looks '$MIRROR_VERSION' '$MIRROR_SHA256'" \
-            < scripts/mirror/update.cjs
+             < scripts/mirror/update.cjs
+      - name: Verify actual public downloads from hosted CI
+        if: always() && env.MIRROR_VERSION != ''
+        run: node scripts/mirror/public-verify.cjs "$MIRROR_VERSION" "$MIRROR_SHA256" "$MIRROR_BYTES" public-distribution-summary.json
+      - name: Summarize independent publication and distribution states
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'public-distribution-summary.json';
+          if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ publication: 'PUBLICATION_STATE_UNVERIFIED', status: 'DISTRIBUTION_NOT_VERIFIED', stage: 'release-resolution' }) + '\n');
+          const result = JSON.parse(fs.readFileSync(file));
+          const publication = result.publication === 'PUBLISHED' ? 'PUBLISHED' : 'PUBLICATION_STATE_UNVERIFIED';
+          const statuses = ['PUBLISHED_DISTRIBUTION_VERIFIED', 'PUBLISHED_DISTRIBUTION_UNVERIFIED', 'INFRA_ERROR'];
+          const distribution = statuses.includes(result.status) ? result.status : 'DISTRIBUTION_NOT_VERIFIED';
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Publication and distribution\n\n- GitHub publication: **${publication}**\n- Public distribution: **${distribution}**\n\n` + (publication === 'PUBLISHED' && distribution !== 'PUBLISHED_DISTRIBUTION_VERIFIED' ? 'Distribution verification failed or remains incomplete; the GitHub release is still published and was not rolled back.\n' : ''));
+          NODE
+      - name: Retain sanitized distribution result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-distribution-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: public-distribution-summary.json
+          if-no-files-found: warn

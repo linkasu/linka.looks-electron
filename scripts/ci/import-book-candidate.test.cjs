@@ -5,6 +5,10 @@ const fs = require("node:fs");
 const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 const { createHash } = require("node:crypto");
+const sourceRoot = process.env.BOOK_SOURCE_ROOT;
+const workflowPath =
+  process.env.BOOK_CANDIDATES_WORKFLOW ||
+  (sourceRoot && path.join(sourceRoot, ".github/workflows/model-candidates.yml"));
 const {
   validateInputs,
   validateRelease,
@@ -178,130 +182,167 @@ test("default transport retains authenticated own-draft API lookup and fails clo
   );
   assert.equal(calls, 1);
 });
-test("workflow masks both secrets before file export, keeps ten inputs/read-only permissions and removes capability last", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-gate-synthetic-"));
-  const oldTemp = process.env.RUNNER_TEMP;
-  const oldCapability = process.env.BOOK_READ_CAPABILITY;
-  process.env.RUNNER_TEMP = root;
-  t.after(() => {
-    if (oldTemp === undefined) delete process.env.RUNNER_TEMP;
-    else process.env.RUNNER_TEMP = oldTemp;
-    if (oldCapability === undefined) delete process.env.BOOK_READ_CAPABILITY;
-    else process.env.BOOK_READ_CAPABILITY = oldCapability;
-    fs.rmSync(root, { recursive: true, force: true });
-  });
-  const workflow = require("yaml").parse(
-    fs.readFileSync(
-      process.env.BOOK_CANDIDATES_WORKFLOW ||
-        path.resolve(
-          __dirname,
-          "../../../predictor-model-400/.github/workflows/model-candidates.yml"
-        ),
-      "utf8"
-    )
-  );
-  assert.equal(Object.keys(workflow.on.workflow_dispatch.inputs).length, 10);
-  assert.deepEqual(workflow.permissions, { contents: "read", actions: "read" });
-  const steps = workflow.jobs.candidates.steps;
-  assert.equal(
-    steps[0].env.BOOK_READ_CAPABILITY,
-    "${{ inputs.book_transport == 'repository-secret' && secrets.LINKA_BOOK_CANDIDATE_READ_CAPABILITY || '' }}"
-  );
-  assert(
-    !steps
-      .slice(1)
-      .some((step) =>
-        /BOOK_READ_CAPABILITY|LINKA_BOOK_CANDIDATE_READ_CAPABILITY/.test(
-          JSON.stringify(step.env || {})
-        )
-      )
-  );
-  assert.match(steps[0].uses, /^actions\/github-script@/);
-  assert.match(steps.at(-1).if, /always\(\)/);
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  const gate = new AsyncFunction("context", "core", "require", steps[0].with.script);
-  const cleanup = new AsyncFunction("require", steps.at(-1).with.script);
-  const raw = JSON.stringify(capability());
-  process.env.BOOK_READ_CAPABILITY = raw;
-  const context = {
-    eventName: "workflow_dispatch",
-    ref: "refs/heads/main",
-    repo: { owner: "linkasu", repo: "linka.predictor-rust" },
-    payload: { inputs: { mode: "book-import", book_transport: "repository-secret" } }
-  };
-  assert.doesNotMatch(
-    JSON.stringify(context.payload.inputs),
-    /download_url|https:|SYNTHETIC_SIGNATURE/
-  );
-  const events = [];
-  const core = {
-    setSecret: (value) => events.push(["mask", value]),
-    exportVariable: (name, value) => events.push(["env", name, value]),
-    setFailed: (value) => events.push(["failed", value])
-  };
-  await gate(context, core, require);
-  assert.deepEqual(events.slice(0, 2), [
-    ["mask", raw],
-    ["mask", capability().download_url]
-  ]);
-  assert.deepEqual(events[2], [
-    "env",
-    "BOOK_TRANSPORT_FILE",
-    path.join(root, "book-candidate-transport.json")
-  ]);
-  assert.equal(fs.statSync(events[2][2]).mode & 0o777, 0o600);
-  assert.deepEqual(readTransport(events[2][2], root), capability());
-  await cleanup(require);
-  assert(!fs.existsSync(events[2][2]));
-  for (const patch of [
-    { ref: "refs/heads/other" },
-    { eventName: "push" },
-    { repo: { owner: "other", repo: "repo" } }
-  ]) {
-    events.length = 0;
-    await gate({ ...context, ...patch }, core, require);
-    assert.equal(events[0][0], "mask");
-    assert.equal(events[1][0], "mask");
-    assert.equal(events[2][0], "failed");
-    assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
-  }
-  events.length = 0;
-  process.env.BOOK_READ_CAPABILITY = "SYNTHETIC_INVALID_JSON";
-  await gate(context, core, require);
-  assert.deepEqual(events[0], ["mask", "SYNTHETIC_INVALID_JSON"]);
-  assert.equal(events[1][0], "failed");
-  assert.doesNotMatch(events[1][1], /SYNTHETIC_INVALID_JSON/);
-  for (const secret of [undefined, "", "x".repeat(65001)]) {
-    if (secret === undefined) delete process.env.BOOK_READ_CAPABILITY;
-    else process.env.BOOK_READ_CAPABILITY = secret;
-    events.length = 0;
-    await gate(context, core, require);
-    assert.equal(events.at(-1)[0], "failed");
-    assert(!events.some(([kind]) => kind === "env"));
-    assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
-  }
-  process.env.BOOK_READ_CAPABILITY = raw;
-  for (const selector of ["other-secret", raw]) {
-    events.length = 0;
-    await gate(
-      { ...context, payload: { inputs: { mode: "book-import", book_transport: selector } } },
-      core,
-      require
+test(
+  "workflow masks both secrets before file export, keeps one manifest input/read-only permissions and removes capability last",
+  {
+    skip:
+      !workflowPath &&
+      "set BOOK_CANDIDATES_WORKFLOW or BOOK_SOURCE_ROOT to an explicit predictor checkout"
+  },
+  async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-gate-synthetic-"));
+    const oldTemp = process.env.RUNNER_TEMP;
+    const oldCapability = process.env.BOOK_READ_CAPABILITY;
+    process.env.RUNNER_TEMP = root;
+    t.after(() => {
+      if (oldTemp === undefined) delete process.env.RUNNER_TEMP;
+      else process.env.RUNNER_TEMP = oldTemp;
+      if (oldCapability === undefined) delete process.env.BOOK_READ_CAPABILITY;
+      else process.env.BOOK_READ_CAPABILITY = oldCapability;
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+    const workflow = require("yaml").parse(fs.readFileSync(workflowPath, "utf8"));
+    assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), ["import_manifest"]);
+    assert.deepEqual(workflow.permissions, { contents: "read", actions: "read" });
+    const steps = workflow.jobs.candidates.steps;
+    const capabilityStep = steps.find((step) => step.env?.BOOK_READ_CAPABILITY);
+    assert.equal(
+      capabilityStep.env.BOOK_READ_CAPABILITY,
+      "${{ secrets.LINKA_BOOK_CANDIDATE_READ_CAPABILITY }}"
     );
-    assert.equal(events.at(-1)[0], "failed");
-    assert(!events.some(([kind]) => kind === "env"));
+    assert(
+      !steps
+        .filter((step) => step !== capabilityStep)
+        .some((step) =>
+          /BOOK_READ_CAPABILITY|LINKA_BOOK_CANDIDATE_READ_CAPABILITY/.test(
+            JSON.stringify(step.env || {})
+          )
+        )
+    );
+    assert.match(capabilityStep.uses, /^actions\/github-script@/);
+    assert.match(steps.at(-1).if, /always\(\)/);
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const gate = new AsyncFunction("context", "core", "require", capabilityStep.with.script);
+    const cleanup = new AsyncFunction("require", steps.at(-1).with.script);
+    const raw = JSON.stringify(capability());
+    process.env.BOOK_READ_CAPABILITY = raw;
+    const context = {
+      eventName: "workflow_dispatch",
+      ref: "refs/heads/main",
+      repo: { owner: "linkasu", repo: "linka.predictor-rust" },
+      payload: { inputs: { import_manifest: "provenance/synthetic-import.json" } }
+    };
+    assert.doesNotMatch(
+      JSON.stringify(context.payload.inputs),
+      /download_url|https:|SYNTHETIC_SIGNATURE/
+    );
+    const events = [];
+    const core = {
+      setSecret: (value) => events.push(["mask", value]),
+      exportVariable: (name, value) => events.push(["env", name, value]),
+      setFailed: (value) => events.push(["failed", value])
+    };
+    await gate(context, core, require);
+    assert.deepEqual(events.slice(0, 2), [
+      ["mask", raw],
+      ["mask", capability().download_url]
+    ]);
+    assert.deepEqual(events[2], [
+      "env",
+      "BOOK_TRANSPORT_FILE",
+      path.join(root, "book-candidate-transport.json")
+    ]);
+    assert.equal(fs.statSync(events[2][2]).mode & 0o777, 0o600);
+    assert.deepEqual(readTransport(events[2][2], root), capability());
+    await cleanup(require);
+    assert(!fs.existsSync(events[2][2]));
+    for (const patch of [
+      { ref: "refs/heads/other" },
+      { eventName: "push" },
+      { repo: { owner: "other", repo: "repo" } }
+    ]) {
+      events.length = 0;
+      await gate({ ...context, ...patch }, core, require);
+      assert.equal(events[0][0], "mask");
+      assert.equal(events[1][0], "mask");
+      assert.equal(events[2][0], "failed");
+      assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
+    }
+    events.length = 0;
+    process.env.BOOK_READ_CAPABILITY = "SYNTHETIC_INVALID_JSON";
+    await gate(context, core, require);
+    assert.deepEqual(events[0], ["mask", "SYNTHETIC_INVALID_JSON"]);
+    assert.equal(events[1][0], "failed");
+    assert.doesNotMatch(events[1][1], /SYNTHETIC_INVALID_JSON/);
+    for (const secret of [undefined, "", "x".repeat(65001)]) {
+      if (secret === undefined) delete process.env.BOOK_READ_CAPABILITY;
+      else process.env.BOOK_READ_CAPABILITY = secret;
+      events.length = 0;
+      await gate(context, core, require);
+      assert.equal(events.at(-1)[0], "failed");
+      assert(!events.some(([kind]) => kind === "env"));
+      assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
+    }
   }
-  delete process.env.BOOK_READ_CAPABILITY;
-  events.length = 0;
-  await gate(
-    { ...context, payload: { inputs: { mode: "book-import", book_transport: "" } } },
-    core,
-    require
-  );
-  assert.deepEqual(events, []);
-  await gate({ ...context, payload: { inputs: { mode: "book-import" } } }, core, require);
-  assert.deepEqual(events, []);
-});
+);
+test(
+  "candidate and aggregate pipelines contain no Book compute; source checkout is independent of workflow SHA",
+  { skip: !sourceRoot && "set BOOK_SOURCE_ROOT to an explicit predictor checkout" },
+  () => {
+    const source = sourceRoot;
+    const yaml = require("yaml");
+    const candidate = yaml.parse(
+      fs.readFileSync(path.join(source, ".github/workflows/model-candidates.yml"), "utf8")
+    );
+    const steps = candidate.jobs.candidates.steps;
+    const modelCheckout = steps.find((step) => step.with?.path === ".local/model-source");
+    assert.equal(modelCheckout.with.ref, "${{ steps.manifest.outputs.model_source_sha }}");
+    assert.equal(steps[0].with.ref, "${{ github.workflow_sha }}");
+    const gate = steps.findIndex((step) => step.id === "manifest");
+    assert(gate < steps.findIndex((step) => step.env?.BOOK_READ_CAPABILITY));
+    assert.match(steps[gate].run, /readImportManifest/);
+    assert.match(steps[gate].run, /m\.model_source_sha, 'origin\/main'/);
+    assert.match(steps[gate].run, /m\.app_tooling_sha, 'origin\/main'/);
+    assert(!steps.some((step) => step.env?.GH_TOKEN || step.env?.BOOK_RELEASE_ID));
+    const upload = steps.find((step) => step.uses?.startsWith("actions/upload-artifact@"));
+    assert.equal(upload.if, "success()");
+    assert.equal(upload.with["retention-days"], 90);
+    assert.equal(
+      upload.with.name,
+      "model-candidates-${{ github.run_id }}-${{ github.run_attempt }}"
+    );
+    const final = yaml.parse(
+      fs.readFileSync(path.join(source, ".github/workflows/model-final.yml"), "utf8")
+    );
+    assert.deepEqual(final.on.workflow_dispatch.inputs.mode.options, [
+      "import-dev",
+      "import-final"
+    ]);
+    assert.deepEqual(final.permissions, { contents: "read", actions: "read" });
+    for (const name of ["model-final", "windows-model-qualification", "windows-runtime"]) {
+      const workflow = yaml.parse(
+        fs.readFileSync(path.join(source, `.github/workflows/${name}.yml`), "utf8")
+      );
+      for (const job of Object.values(workflow.jobs))
+        for (const step of job.steps || [])
+          if (step.uses?.startsWith("actions/upload-artifact@"))
+            assert.equal(step.with["retention-days"], 90, `${name} evidence retention`);
+    }
+    for (const workflow of [candidate, final]) {
+      const commands = Object.values(workflow.jobs)
+        .flatMap((job) => job.steps.map((step) => step.run || ""))
+        .join("\n");
+      assert.doesNotMatch(
+        commands,
+        /\bcargo\b|model_recipe\.py|systemd-run|predictor-evaluation-runner|--mode\s+train/
+      );
+    }
+    const script = final.jobs.evaluate.steps[0].with.script;
+    assert.match(script, /linka-book-ui-import-v1/);
+    assert.doesNotMatch(script, /dev_jsonl|final_jsonl|linka-final-bundle-v1/);
+    assert.match(script, /run\.status !== 'completed' \|\| run\.conclusion !== 'success'/);
+  }
+);
 const execution = {
   schema: "linka-book-execution-v1",
   attempt: 1,
@@ -360,14 +401,15 @@ test("receipt hash matches canonical Python bytes regardless of recursive key or
     assert.throws(() => validateExecution({ ...execution, ...patch }, sha, release.tag_name));
   }
 });
-test("synthetic ZIP and tracked approval integration with trusted canonical validator", () => {
-  const sourceRoot =
-    process.env.BOOK_SOURCE_ROOT || path.resolve(__dirname, "../../../predictor-model-400");
-  execFileSync(
-    "python3",
-    [
-      "-c",
-      String.raw`
+test(
+  "synthetic ZIP and tracked approval integration with trusted canonical validator",
+  { skip: !sourceRoot && "set BOOK_SOURCE_ROOT to an explicit predictor checkout" },
+  () => {
+    execFileSync(
+      "python3",
+      [
+        "-c",
+        String.raw`
 import ast, copy, hashlib, importlib.util, json, os, pathlib, shutil, stat, struct, subprocess, sys, tempfile, zipfile
 source, verifier = pathlib.Path(sys.argv[1]), sys.argv[2]
 with tempfile.TemporaryDirectory(prefix='book-import-synthetic-') as temp:
@@ -569,12 +611,13 @@ with tempfile.TemporaryDirectory(prefix='book-import-synthetic-') as temp:
     (root / 'exclusions.json').write_text('{"tampered":true}')
     check(False)
 `,
-      sourceRoot,
-      verifier
-    ],
-    { stdio: "pipe" }
-  );
-});
+        sourceRoot,
+        verifier
+      ],
+      { stdio: "pipe" }
+    );
+  }
+);
 test("reject wrong trust bindings and numeric overflow", () => {
   for (const patch of [
     { releaseId: "latest" },
