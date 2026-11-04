@@ -183,7 +183,7 @@ function expectedName(kind, run) {
     : kind === "runtime"
       ? `windows-runtime-${run.event === "pull_request" ? "pr-unreviewed" : "manual-reviewed"}-${run.head_sha}`
       : kind === "final"
-        ? `final-ui-aggregate-${run.id}-${run.run_attempt}`
+        ? `ui-final-aggregate-${run.id}-${run.run_attempt}`
         : `windows-model-candidate-${run.id}-${run.run_attempt}`;
 }
 function validateEvidence(a, evidence) {
@@ -357,7 +357,7 @@ function qualify(a, evidence, archives, assertImportedSemantics) {
     assert.equal(final.ciImport.runAttempt, String(a.runs.final.run_attempt));
     assert.equal(final.execution?.kind, "book-local-linux-container");
     assert.equal(final.execution.source_sha, a.source_sha);
-    const { validateExecution } = require("./import-book-candidate.cjs");
+    const { validateExecution } = require("./book-execution-receipt.cjs");
     validateExecution(final.execution, a.source_sha, `book-candidate-${final.ciImport.bookJobId}`);
     const execution = provenance.execution;
     assert.equal(execution?.kind, "book-local-linux-container", "Book-trained candidate required");

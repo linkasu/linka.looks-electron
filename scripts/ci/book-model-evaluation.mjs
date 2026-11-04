@@ -24,7 +24,7 @@ import {
   verifyAppBindings
 } from "./predictor-evaluation.mjs";
 import { qualifiesUI, recommendDev } from "./predictor-evaluation-ui.mjs";
-import candidateImporter from "./import-book-candidate.cjs";
+import executionReceipt from "./book-execution-receipt.cjs";
 
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const hex = (value, n = 64) =>
@@ -47,7 +47,7 @@ const bookPaths = [
   "scripts/ci/book-model-evaluation.mjs",
   "scripts/ci/book-model-evaluation.test.mjs"
 ];
-const executionValidatorPath = "scripts/ci/import-book-candidate.cjs";
+const executionValidatorPath = "scripts/ci/book-execution-receipt.cjs";
 const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 const bounded = async (path, maximum = 2 * 1024 * 1024) => {
   const info = await lstat(path);
@@ -81,7 +81,7 @@ function executionShape(execution) {
   delete receipt.kind;
   delete receipt.receipt_sha256;
   receiptShape(receipt);
-  candidateImporter.validateExecution(
+  executionReceipt.validateExecution(
     execution,
     execution.source_sha,
     `book-candidate-${execution.book_job_id}`

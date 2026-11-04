@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
+import { readFileSync } from "node:fs";
 import {
   parseBookReceipt,
   assertBookRuntime,
@@ -22,6 +23,14 @@ const receipt = () => ({
   image_digest: "sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e",
   source_sha: "b".repeat(40),
   limits: { memory_bytes: 6442450944, cpus: 2, tasks: 128 }
+});
+
+test("Book receipt dependency/binding is pure, independent of the candidate network importer", () => {
+  const source = readFileSync(new URL("./book-model-evaluation.mjs", import.meta.url), "utf8");
+  assert(source.includes('from "./book-execution-receipt.cjs"'));
+  assert(source.includes('const executionValidatorPath = "scripts/ci/book-execution-receipt.cjs"'));
+  assert.equal(source.includes('from "./import-book-candidate.cjs"'), false);
+  assert.equal(source.includes('"scripts/ci/import-book-candidate.cjs"'), false);
 });
 const canonical = (value) =>
   value && typeof value === "object"

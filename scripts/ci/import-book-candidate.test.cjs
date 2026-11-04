@@ -1,12 +1,17 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const path = require("node:path");
+const fs = require("node:fs");
+const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 const { createHash } = require("node:crypto");
 const {
   validateInputs,
   validateRelease,
   validateExecution,
+  validateTransport,
+  readTransport,
+  downloadCandidate,
   verifier
 } = require("./import-book-candidate.cjs");
 
@@ -19,6 +24,284 @@ const input = {
   archiveBytes: "200",
   appToolingSha: "c".repeat(40)
 };
+const now = Date.parse("2026-11-04T12:00:00Z");
+function capability() {
+  return {
+    schema: "linka-book-candidate-read-capability-v1",
+    release: structuredClone(release),
+    download_url:
+      "https://release-assets.githubusercontent.com/github-production-release-asset/789/abc-def?sp=r&sr=b&spr=https&se=2026-11-04T12%3A30%3A00Z&sig=SYNTHETIC_SIGNATURE"
+  };
+}
+test("pure execution validator is the same backward-compatible export", () => {
+  assert.equal(validateExecution, require("./book-execution-receipt.cjs").validateExecution);
+});
+test("one-asset operator capability requires exact private draft, repository, bounded read-only expiry and pins", () => {
+  const transport = capability();
+  assert.equal(validateTransport(transport, input, "789", now).asset.id, 456);
+  assert.equal(
+    validateTransport(
+      { ...transport, release: { ...transport.release, prerelease: true } },
+      input,
+      "789",
+      now
+    ).asset.id,
+    456
+  );
+  for (const mutate of [
+    (t) => (t.extra = true),
+    (t) => (t.schema = "unknown"),
+    (t) => (t.release.draft = false),
+    (t) => (t.release.target_commitish = "main"),
+    (t) => (t.release.body = "unknown payload"),
+    (t) => (t.release.assets[0].name = "other.zip"),
+    (t) => t.release.assets[0].size++,
+    (t) => (t.release.assets[0].extra = true),
+    (t) => (t.download_url = "not a URL"),
+    (t) =>
+      (t.download_url = t.download_url.replace(
+        "release-assets.githubusercontent.com",
+        "evil.invalid"
+      )),
+    (t) => (t.download_url = t.download_url.replace("/789/", "/790/")),
+    (t) => (t.download_url = t.download_url.replace("https://", "http://")),
+    (t) => (t.download_url = t.download_url.replace("https://", "https://user:password@")),
+    (t) => (t.download_url = t.download_url.replace(".com/", ".com:443/")),
+    (t) => (t.download_url += "#fragment"),
+    (t) => (t.download_url += "#"),
+    (t) => (t.download_url += "&sp=r"),
+    (t) => (t.download_url = t.download_url.replace("sp=r", "sp=rw")),
+    (t) => (t.download_url = t.download_url.replace("sr=b", "sr=c")),
+    (t) => (t.download_url = t.download_url.replace("spr=https", "spr=http")),
+    (t) => (t.download_url = t.download_url.replace("12%3A30", "12%3A00")),
+    (t) => (t.download_url = t.download_url.replace("12%3A30", "13%3A01")),
+    (t) => (t.download_url = t.download_url.replace("2026-11-04T12%3A30%3A00Z", "never")),
+    (t) => (t.download_url = t.download_url.replace("&sig=SYNTHETIC_SIGNATURE", ""))
+  ]) {
+    const invalid = capability();
+    mutate(invalid);
+    assert.throws(
+      () => validateTransport(invalid, input, "789", now),
+      /^Error: BOOK_TRANSPORT_INVALID$/
+    );
+  }
+  assert.throws(() =>
+    validateTransport(transport, { ...input, archiveSha256: undefined }, "789", now)
+  );
+  assert.throws(() => validateTransport(transport, input, undefined, now));
+});
+test("transport file is private, bounded and strict JSON with no duplicate keys", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-capability-synthetic-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "book-candidate-transport.json");
+  fs.writeFileSync(file, JSON.stringify(capability()), { mode: 0o600 });
+  assert.deepEqual(readTransport(file, root), capability());
+  for (const text of [
+    "{",
+    '{"schema":"first","schema":"second"}',
+    '{"release":{"id":123,"id":456}}',
+    "x".repeat(65001)
+  ]) {
+    fs.writeFileSync(file, text);
+    assert.throws(() => readTransport(file, root), /^Error: BOOK_TRANSPORT_INVALID$/);
+  }
+  fs.chmodSync(file, 0o644);
+  assert.throws(() => readTransport(file, root));
+  fs.unlinkSync(file);
+  fs.symlinkSync(path.join(root, "missing"), file);
+  assert.throws(() => readTransport(file, root));
+  assert.throws(() => readTransport(path.join(root, "other.json"), root));
+});
+test("operator capability downloads only the selected URL anonymously without redirects, then checks SHA and size", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-capability-synthetic-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "book-candidate-transport.json");
+  const bytes = Buffer.alloc(200, 7);
+  const i = { ...input, archiveSha256: createHash("sha256").update(bytes).digest("hex") };
+  const cap = capability();
+  const url = new URL(cap.download_url);
+  url.searchParams.set(
+    "se",
+    new Date(Date.now() + 1800000).toISOString().replace(/\.\d{3}Z$/, "Z")
+  );
+  cap.download_url = url.href;
+  fs.writeFileSync(file, JSON.stringify(cap), { mode: 0o600 });
+  const options = {
+    transportFile: file,
+    repositoryId: "789",
+    runnerTemp: root,
+    token: "SYNTHETIC_NEVER_SENT"
+  };
+  let calls = 0,
+    body = [bytes],
+    ok = true;
+  t.mock.method(globalThis, "fetch", async (target, init) => {
+    calls++;
+    assert.equal(target, cap.download_url);
+    assert.equal(init.redirect, "error");
+    assert.equal(init.headers, undefined);
+    return { ok, status: ok ? 200 : 302, body };
+  });
+  const result = await downloadCandidate(i, options, path.join(root, "valid.zip"));
+  assert.equal(result.release.id, 123);
+  assert.equal(result.transport.independent_draft_api_read, false);
+  assert.equal(result.transport.kind, "operator-granted-one-asset-read-capability");
+  assert.doesNotMatch(JSON.stringify(result.transport), /SYNTHETIC_SIGNATURE|download_url|https:/);
+  assert.equal(calls, 1);
+  ok = false;
+  await assert.rejects(downloadCandidate(i, options, path.join(root, "redirect.zip")));
+  ok = true;
+  body = [bytes.subarray(1)];
+  await assert.rejects(downloadCandidate(i, options, path.join(root, "short.zip")));
+  body = [bytes, Buffer.from("extra")];
+  await assert.rejects(downloadCandidate(i, options, path.join(root, "oversize.zip")));
+  body = [Buffer.alloc(200, 8)];
+  await assert.rejects(downloadCandidate(i, options, path.join(root, "wrong-hash.zip")));
+  const before = calls;
+  await assert.rejects(
+    downloadCandidate({ ...i, archiveSha256: undefined }, options, path.join(root, "unpinned.zip"))
+  );
+  assert.equal(calls, before);
+});
+test("default transport retains authenticated own-draft API lookup and fails closed on denied read", async (t) => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls++;
+    assert.equal(url, "https://api.github.com/repos/linkasu/predictor/releases/123");
+    assert.equal(options.headers.Authorization, "Bearer SYNTHETIC_TOKEN");
+    assert.equal(options.redirect, "manual");
+    return { ok: false, status: 404 };
+  });
+  await assert.rejects(
+    downloadCandidate(input, { token: "SYNTHETIC_TOKEN" }, "unused.zip"),
+    /draft release API failed/
+  );
+  assert.equal(calls, 1);
+});
+test("workflow masks both secrets before file export, keeps ten inputs/read-only permissions and removes capability last", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-gate-synthetic-"));
+  const oldTemp = process.env.RUNNER_TEMP;
+  const oldCapability = process.env.BOOK_READ_CAPABILITY;
+  process.env.RUNNER_TEMP = root;
+  t.after(() => {
+    if (oldTemp === undefined) delete process.env.RUNNER_TEMP;
+    else process.env.RUNNER_TEMP = oldTemp;
+    if (oldCapability === undefined) delete process.env.BOOK_READ_CAPABILITY;
+    else process.env.BOOK_READ_CAPABILITY = oldCapability;
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  const workflow = require("yaml").parse(
+    fs.readFileSync(
+      process.env.BOOK_CANDIDATES_WORKFLOW ||
+        path.resolve(
+          __dirname,
+          "../../../predictor-model-400/.github/workflows/model-candidates.yml"
+        ),
+      "utf8"
+    )
+  );
+  assert.equal(Object.keys(workflow.on.workflow_dispatch.inputs).length, 10);
+  assert.deepEqual(workflow.permissions, { contents: "read", actions: "read" });
+  const steps = workflow.jobs.candidates.steps;
+  assert.equal(
+    steps[0].env.BOOK_READ_CAPABILITY,
+    "${{ inputs.book_transport == 'repository-secret' && secrets.LINKA_BOOK_CANDIDATE_READ_CAPABILITY || '' }}"
+  );
+  assert(
+    !steps
+      .slice(1)
+      .some((step) =>
+        /BOOK_READ_CAPABILITY|LINKA_BOOK_CANDIDATE_READ_CAPABILITY/.test(
+          JSON.stringify(step.env || {})
+        )
+      )
+  );
+  assert.match(steps[0].uses, /^actions\/github-script@/);
+  assert.match(steps.at(-1).if, /always\(\)/);
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const gate = new AsyncFunction("context", "core", "require", steps[0].with.script);
+  const cleanup = new AsyncFunction("require", steps.at(-1).with.script);
+  const raw = JSON.stringify(capability());
+  process.env.BOOK_READ_CAPABILITY = raw;
+  const context = {
+    eventName: "workflow_dispatch",
+    ref: "refs/heads/main",
+    repo: { owner: "linkasu", repo: "linka.predictor-rust" },
+    payload: { inputs: { mode: "book-import", book_transport: "repository-secret" } }
+  };
+  assert.doesNotMatch(
+    JSON.stringify(context.payload.inputs),
+    /download_url|https:|SYNTHETIC_SIGNATURE/
+  );
+  const events = [];
+  const core = {
+    setSecret: (value) => events.push(["mask", value]),
+    exportVariable: (name, value) => events.push(["env", name, value]),
+    setFailed: (value) => events.push(["failed", value])
+  };
+  await gate(context, core, require);
+  assert.deepEqual(events.slice(0, 2), [
+    ["mask", raw],
+    ["mask", capability().download_url]
+  ]);
+  assert.deepEqual(events[2], [
+    "env",
+    "BOOK_TRANSPORT_FILE",
+    path.join(root, "book-candidate-transport.json")
+  ]);
+  assert.equal(fs.statSync(events[2][2]).mode & 0o777, 0o600);
+  assert.deepEqual(readTransport(events[2][2], root), capability());
+  await cleanup(require);
+  assert(!fs.existsSync(events[2][2]));
+  for (const patch of [
+    { ref: "refs/heads/other" },
+    { eventName: "push" },
+    { repo: { owner: "other", repo: "repo" } }
+  ]) {
+    events.length = 0;
+    await gate({ ...context, ...patch }, core, require);
+    assert.equal(events[0][0], "mask");
+    assert.equal(events[1][0], "mask");
+    assert.equal(events[2][0], "failed");
+    assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
+  }
+  events.length = 0;
+  process.env.BOOK_READ_CAPABILITY = "SYNTHETIC_INVALID_JSON";
+  await gate(context, core, require);
+  assert.deepEqual(events[0], ["mask", "SYNTHETIC_INVALID_JSON"]);
+  assert.equal(events[1][0], "failed");
+  assert.doesNotMatch(events[1][1], /SYNTHETIC_INVALID_JSON/);
+  for (const secret of [undefined, "", "x".repeat(65001)]) {
+    if (secret === undefined) delete process.env.BOOK_READ_CAPABILITY;
+    else process.env.BOOK_READ_CAPABILITY = secret;
+    events.length = 0;
+    await gate(context, core, require);
+    assert.equal(events.at(-1)[0], "failed");
+    assert(!events.some(([kind]) => kind === "env"));
+    assert(!fs.existsSync(path.join(root, "book-candidate-transport.json")));
+  }
+  process.env.BOOK_READ_CAPABILITY = raw;
+  for (const selector of ["other-secret", raw]) {
+    events.length = 0;
+    await gate(
+      { ...context, payload: { inputs: { mode: "book-import", book_transport: selector } } },
+      core,
+      require
+    );
+    assert.equal(events.at(-1)[0], "failed");
+    assert(!events.some(([kind]) => kind === "env"));
+  }
+  delete process.env.BOOK_READ_CAPABILITY;
+  events.length = 0;
+  await gate(
+    { ...context, payload: { inputs: { mode: "book-import", book_transport: "" } } },
+    core,
+    require
+  );
+  assert.deepEqual(events, []);
+  await gate({ ...context, payload: { inputs: { mode: "book-import" } } }, core, require);
+  assert.deepEqual(events, []);
+});
 const execution = {
   schema: "linka-book-execution-v1",
   attempt: 1,
