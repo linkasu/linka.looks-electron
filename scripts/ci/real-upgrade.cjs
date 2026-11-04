@@ -11,7 +11,8 @@ const {
   INSTALLER,
   digest,
   metadata,
-  verifyCandidate
+  verifyCandidate,
+  waitForProcessExit
 } = require("./real-upgrade-contract.cjs");
 
 assert.equal(process.platform, "win32", "Never run the installer qualification locally");
@@ -171,6 +172,19 @@ async function launch(executable = exe) {
     env,
     timeout: 45000
   });
+  const child = application.process();
+  for (const name of ["stdout", "stderr"]) {
+    let remaining = 65536;
+    child[name].on("data", (chunk) => {
+      const retained = chunk.subarray(0, remaining);
+      if (retained.length)
+        fs.appendFileSync(
+          path.join(evidence, `upgrade-process-${child.pid}-${name}.log`),
+          retained
+        );
+      remaining -= retained.length;
+    });
+  }
   const page = await application.firstWindow({ timeout: 45000 });
   page.setDefaultTimeout(30000);
   return page;
@@ -299,9 +313,13 @@ async function run() {
   );
   await expect(page.getByText("установить сейчас?", { exact: false })).toBeVisible();
   await page.screenshot({ path: path.join(evidence, "upgrade-explicit-confirmation.png") });
-  const oldExit = application.waitForEvent("close", { timeout: 180000 });
+  const oldProcess = application.process();
   await page.getByRole("button", { name: "Да", exact: true }).click();
-  await oldExit;
+  // Playwright close also waits for inherited stdio held by NSIS/restarted children.
+  result.oldProcessExit = await waitForProcessExit(oldProcess, 180000);
+  assert.equal(result.oldProcessExit.exitCode, 0, "historical app must exit normally");
+  assert.equal(result.oldProcessExit.signalCode, null);
+  saveResult();
   application = undefined;
   const restarted = await until(
     "NSIS installed and force-ran responsive 4.0.0 window",
@@ -400,6 +418,11 @@ run()
   .catch((error) => {
     result.status = "FAIL";
     result.error = error.stack;
+    try {
+      result.ownedProcessesAtFailure = ownedProcesses();
+    } catch (inspectionError) {
+      result.processInspectionError = String(inspectionError);
+    }
     if (setFile && fs.existsSync(setFile)) {
       try {
         snapshot("failure-current-data");

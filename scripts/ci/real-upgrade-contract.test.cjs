@@ -3,15 +3,59 @@ const { test } = require("node:test");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawnSync, spawn } = require("node:child_process");
+const { once } = require("node:events");
 const { randomUUID } = require("node:crypto");
 const {
   OLD,
   INSTALLER,
   digest,
   metadata,
-  verifyCandidate
+  verifyCandidate,
+  waitForProcessExit
 } = require("./real-upgrade-contract.cjs");
+
+test("root process exit does not wait for an inherited descendant stdio pipe", async (t) => {
+  const parent = spawn(process.execPath, [
+    "-e",
+    `const { spawn } = require('node:child_process');
+     const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'inherit' });
+     child.unref(); console.log(child.pid);`
+  ]);
+  const closed = once(parent, "close");
+  let stdioClosed = false;
+  parent.once("close", () => {
+    stdioClosed = true;
+  });
+  const [data] = await once(parent.stdout, "data");
+  const descendant = Number(data.toString().trim());
+  assert(Number.isSafeInteger(descendant) && descendant > 0);
+  t.after(async () => {
+    try {
+      process.kill(descendant);
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+    parent.kill();
+    await closed;
+  });
+  const result = await waitForProcessExit(parent, 5000);
+  assert.deepEqual(result, { pid: parent.pid, exitCode: 0, signalCode: null });
+  assert.equal(stdioClosed, false);
+  assert.deepEqual(await waitForProcessExit(parent, 5000), result);
+});
+
+test("owned process exit remains bounded when the process is still alive", async () => {
+  const child = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30000)"]);
+  const closed = once(child, "close");
+  try {
+    await assert.rejects(waitForProcessExit(child, 50), { name: "AbortError" });
+    assert.equal(child.exitCode, null);
+  } finally {
+    child.kill();
+    await closed;
+  }
+});
 
 test("native firewall prefixes cover all IPv4 except loopback and all IPv6 before installation", () => {
   const script = fs.readFileSync(path.join(__dirname, "real-upgrade.ps1"), "utf8");
