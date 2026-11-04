@@ -50,7 +50,9 @@ $rule = "LINKa-U01-$env:GITHUB_RUN_ID"
 $rollbackExe = Join-Path $work "historical-reader/LINKa. смотри.exe"
 foreach ($program in @($exe, $rollbackExe)) {
   New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $program -Action Block -RemoteAddress @(
-    "0.0.0.0-126.255.255.255", "128.0.0.0-255.255.255.255", "::/0"
+    "0.0.0.0/2", "64.0.0.0/3", "96.0.0.0/4", "112.0.0.0/5",
+    "120.0.0.0/6", "124.0.0.0/7", "126.0.0.0/8", "128.0.0.0/1",
+    "::/1", "8000::/1"
   ) | Out-Null
 }
 $succeeded = $false
