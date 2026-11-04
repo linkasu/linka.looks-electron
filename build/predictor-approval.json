@@ -1,0 +1,29 @@
+{
+  "releaseTag": "base-ru-v1",
+  "modelSha256": "b3e736c8b42f6b75f39c26076d13ac99a65e6d10ef43b92de13ac288953b430a",
+  "binaries": {
+    "win32-x64": "ca6bce73b7ecf95b79bc5606b2807bac55fd0c8eebdaf24f5491f058ba5db63c"
+  },
+  "downloads": {
+    "model.lpk": {
+      "url": "https://github.com/linkasu/linka.predictor-rust/releases/download/base-ru-v1/model.lpk",
+      "sha256": "b3e736c8b42f6b75f39c26076d13ac99a65e6d10ef43b92de13ac288953b430a",
+      "bytes": 13330710
+    },
+    "lp-electron.exe": {
+      "url": "https://github.com/linkasu/linka.predictor-rust/releases/download/base-ru-v1/lp-electron.exe",
+      "sha256": "ca6bce73b7ecf95b79bc5606b2807bac55fd0c8eebdaf24f5491f058ba5db63c",
+      "bytes": 717312
+    },
+    "LICENSE": {
+      "url": "https://github.com/linkasu/linka.predictor-rust/releases/download/base-ru-v1/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149
+    },
+    "MODEL_NOTICE.md": {
+      "url": "https://github.com/linkasu/linka.predictor-rust/releases/download/base-ru-v1/MODEL_NOTICE.md",
+      "sha256": "7852c8ecbf6a86ccb581a42d50741b61798dd5df433dfcbd9db3c7192b7c6233",
+      "bytes": 3256
+    }
+  }
+}
