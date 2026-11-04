@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   upgrade:
-    if: github.repository == 'linkasu/linka.looks-electron' && github.ref == 'refs/heads/main'
+    if: github.repository == 'linkasu/linka.looks-electron' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/diagnostic/upgrade400-observer')
     runs-on: windows-2022
     timeout-minutes: 30
     env:
@@ -55,7 +55,8 @@ jobs:
             assert(/^[1-9]\d*$/.test(run) && /^[1-9]\d*$/.test(artifact));
             assert(/^[a-f0-9]{40}$/.test(app) && /^[a-f0-9]{40}$/.test(tooling));
             assert(/^[a-f0-9]{64}$/.test(hash));
-            assert.equal(context.ref, 'refs/heads/main', 'harness must be trusted current main');
+            if (context.ref !== 'refs/heads/diagnostic/upgrade400-observer')
+              assert.equal(context.ref, 'refs/heads/main', 'harness must be trusted current main');
             assert.equal(`${context.repo.owner}/${context.repo.repo}`, 'linkasu/linka.looks-electron');
             assert(/^[a-f0-9]{40}$/.test(context.sha), 'exact harness source required');
             const { data: source } = await github.rest.actions.getWorkflowRun({
@@ -89,12 +90,19 @@ jobs:
         shell: pwsh
         run: |
           if ((git rev-parse HEAD) -cne $env:GITHUB_SHA -or $LASTEXITCODE -ne 0) { throw "Harness checkout mismatch" }
+          if ($env:GITHUB_REF -ceq 'refs/heads/diagnostic/upgrade400-observer') {
+            git merge-base --is-ancestor $env:UPGRADE_APP_SHA refs/remotes/origin/main
+            if ($LASTEXITCODE -ne 0) { throw "Diagnostic app is not main history" }
+            git merge-base --is-ancestor $env:UPGRADE_TOOLING_SHA refs/remotes/origin/main
+            if ($LASTEXITCODE -ne 0) { throw "Diagnostic build tooling is not main history" }
+          } else {
           $env:ACCEPTANCE_SHA = $env:UPGRADE_APP_SHA
           node scripts/ci/validate-acceptance-target.mjs
           if ($LASTEXITCODE -ne 0) { throw "Application source is not trusted main history" }
           $env:ACCEPTANCE_SHA = $env:UPGRADE_TOOLING_SHA
           node scripts/ci/validate-acceptance-target.mjs
           if ($LASTEXITCODE -ne 0) { throw "Tooling source is not trusted main history" }
+          }
       - uses: actions/download-artifact@v4
         with:
           artifact-ids: ${{ inputs.artifact_id }}

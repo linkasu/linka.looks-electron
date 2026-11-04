@@ -34,6 +34,7 @@ const result = {
   old: OLD,
   candidate: accepted.provenance,
   harnessSha: process.env.GITHUB_SHA,
+  harnessRef: process.env.GITHUB_REF,
   feed: accepted.metadata,
   scope: "unsigned Windows x64, Microsoft-hosted disposable CI, software/no-device only",
   hardware: "NOT TESTED",
@@ -411,7 +412,7 @@ async function run() {
   assert.deepEqual(rolledBack.config.eyeTypingDraftV1, newConfig.eyeTypingDraftV1);
   result.rollback =
     "Authentic installed 3.3.1 binary copy reads new profile/set without modifying unknown draft; installer downgrade NOT TESTED";
-  result.status = "PASS";
+  result.status = process.env.GITHUB_REF === "refs/heads/main" ? "PASS" : "DIAGNOSTIC_PASS_NOT_RELEASE";
 }
 
 run()
