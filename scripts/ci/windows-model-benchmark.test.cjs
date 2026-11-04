@@ -13,6 +13,8 @@ const {
 const sha = "a".repeat(40);
 const run = {
   id: 12,
+  run_attempt: 1,
+  head_branch: "main",
   status: "completed",
   conclusion: "success",
   head_sha: sha,
@@ -112,6 +114,148 @@ test("actual producer seam: required U qualifies despite failed optional T; comp
   t.seal();
   assert.throws(() => validateModelBundle(t.get, run, "T.lpk", hash(t.get("T.lpk"))));
   validateModelBundle(t.get, run, "U.lpk", hash(t.get("U.lpk")));
+});
+test("metadata-only staging preserves training and import workflow identity in source.json", async (t) => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const os = require("node:os");
+  const Zip = require("adm-zip");
+  const { createHash } = require("node:crypto");
+  const { prepare } = require("./windows-model-benchmark.cjs");
+  const f = producerFixture();
+  const modelRun = { ...run, head_sha: "c".repeat(40) };
+  const manifest = {
+    schema: "linka-book-candidate-import-v1",
+    model_source_sha: sha,
+    app_tooling_sha: "d".repeat(40),
+    source_manifest: "source.json",
+    source_review: "review.json",
+    review_report: "report.json",
+    exclusion_file: "exclusions.json",
+    book_release_id: "1",
+    book_archive_sha256: "e".repeat(64),
+    book_archive_bytes: 200,
+    book_transport: "repository-secret"
+  };
+  const manifestBytes = Buffer.from(JSON.stringify(manifest));
+  f.provenance.execution = { source_sha: sha };
+  f.provenance.ci_import = {
+    schema: "linka-model-ci-import-v1",
+    run_id: "12",
+    run_attempt: 1,
+    workflow_sha: modelRun.head_sha,
+    manifest_path: "provenance/import.json",
+    manifest_sha256: hash(manifestBytes),
+    model_source_sha: sha
+  };
+  f.seal();
+  assert.throws(() => validateModelBundle(f.get, modelRun, "U.lpk", hash(f.get("U.lpk"))));
+  const context = {
+    manifest,
+    manifestSha256: hash(manifestBytes),
+    manifest_json: manifestBytes.toString()
+  };
+  validateModelBundle(f.get, modelRun, "U.lpk", hash(f.get("U.lpk")), context);
+  const runtimeRun = { ...run, id: 13, path: ".github/workflows/windows-runtime.yml" };
+  const runtimeFiles = {
+    "lp-electron.exe": Buffer.from("synthetic-not-executable"),
+    "source.txt": Buffer.from(sha),
+    "toolchain.txt": Buffer.from("rustc 1.98.1 crt-static=true"),
+    "smoke.txt": Buffer.from("PASS: native RU JSON"),
+    "dll-imports.txt": Buffer.from("KERNEL32.dll"),
+    "dependencies.txt": Buffer.from("synthetic"),
+    "sha256.txt": Buffer.from("synthetic")
+  };
+  const zip = (files) => {
+    const z = new Zip();
+    for (const [name, data] of files) z.addFile(name, data);
+    return z.toBuffer();
+  };
+  const modelZip = zip(f.files),
+    runtimeZip = zip(Object.entries(runtimeFiles));
+  const artifact = (r, id, bytes, name) => ({
+    id,
+    name,
+    expired: false,
+    digest: `sha256:${hash(bytes)}`,
+    size_in_bytes: bytes.length,
+    workflow_run: { id: r.id, head_sha: r.head_sha }
+  });
+  const modelArtifact = artifact(modelRun, 21, modelZip, "model-candidates-12-1");
+  const runtimeArtifact = artifact(
+    runtimeRun,
+    22,
+    runtimeZip,
+    `windows-runtime-manual-reviewed-${sha}`
+  );
+  const routes = {
+    "actions/runs/12": modelRun,
+    "actions/runs/13": runtimeRun,
+    "actions/artifacts/21": modelArtifact,
+    "actions/artifacts/22": runtimeArtifact,
+    "actions/runs/12/artifacts?per_page=100&page=1": { artifacts: [modelArtifact] },
+    "actions/runs/13/artifacts?per_page=100&page=1": { artifacts: [runtimeArtifact] },
+    [`contents/provenance/import.json?ref=${modelRun.head_sha}`]: {
+      type: "file",
+      path: "provenance/import.json",
+      encoding: "base64",
+      content: manifestBytes.toString("base64"),
+      size: manifestBytes.length,
+      sha: createHash("sha1")
+        .update(`blob ${manifestBytes.length}\0`)
+        .update(manifestBytes)
+        .digest("hex")
+    }
+  };
+  t.mock.method(globalThis, "fetch", async (url) => {
+    const prefix = "https://api.github.com/repos/linkasu/linka.predictor-rust/";
+    assert(url.startsWith(prefix));
+    const route = url.slice(prefix.length);
+    const bytes =
+      route === "actions/artifacts/21/zip"
+        ? modelZip
+        : route === "actions/artifacts/22/zip"
+          ? runtimeZip
+          : Buffer.from(JSON.stringify(routes[route]));
+    assert(bytes, "unexpected network request");
+    return { ok: true, body: [bytes] };
+  });
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "windows-origin-synthetic-"));
+  const cwd = process.cwd(),
+    platform = Object.getOwnPropertyDescriptor(process, "platform");
+  const env = {
+    GITHUB_ACTIONS: "true",
+    MODEL_VARIANT: "U",
+    MODEL_SHA256: hash(f.get("U.lpk")),
+    EXE_SHA256: hash(runtimeFiles["lp-electron.exe"]),
+    APP_TOOLING_SHA: manifest.app_tooling_sha,
+    MODEL_RUN_ID: "12",
+    MODEL_ARTIFACT_ID: "21",
+    RUNTIME_RUN_ID: "13",
+    RUNTIME_ARTIFACT_ID: "22",
+    GH_TOKEN: "SYNTHETIC"
+  };
+  const previous = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]));
+  t.after(() => {
+    process.chdir(cwd);
+    Object.defineProperty(process, "platform", platform);
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  process.chdir(root);
+  Object.defineProperty(process, "platform", { ...platform, value: "win32" });
+  Object.assign(process.env, env);
+  await prepare();
+  const receipt = JSON.parse(fs.readFileSync("qualification/source.json"));
+  assert.equal(receipt.model.source_sha, sha);
+  assert.equal(receipt.model.workflow_sha, modelRun.head_sha);
+  assert.equal(receipt.model.import_manifest_sha256, hash(manifestBytes));
+  assert.equal(receipt.runtime.source_sha, sha);
+  assert.equal(receipt.runtime.workflow_sha, undefined);
+  assert.equal(receipt.production_approved, false);
 });
 test("receipt state, code, reaping, size and hash cannot masquerade as completed training", () => {
   for (const change of [

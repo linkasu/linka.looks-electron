@@ -5,6 +5,53 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { validateExecution } = require("./book-execution-receipt.cjs");
+const { validateImportManifest, repositoryPath } = require("./model-import-contract.cjs");
+
+function parseUniqueJson(bytes) {
+  // Both manifest and capability pins must have one unambiguous value per field.
+  return JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-c",
+        String.raw`
+import json, sys
+def unique(pairs):
+    result = {}
+    for k, v in pairs:
+        if k in result: raise ValueError('duplicate JSON key')
+        result[k] = v
+    return result
+print(json.dumps(json.load(sys.stdin, object_pairs_hook=unique)))
+`
+      ],
+      { input: bytes, encoding: "utf8", maxBuffer: 512 * 1024, stdio: ["pipe", "pipe", "pipe"] }
+    )
+  );
+}
+
+function readImportManifest(root, name, workflowSha) {
+  repositoryPath(name);
+  assert.equal(
+    execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
+    workflowSha
+  );
+  const entry = execFileSync("git", ["ls-tree", "HEAD", "--", name], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert(/^100644 blob [a-f0-9]{40}\t/.test(entry), "tracked regular manifest required");
+  let current = root;
+  for (const part of name.split("/")) {
+    current = path.join(current, part);
+    assert(!fs.lstatSync(current).isSymbolicLink(), "manifest symlink forbidden");
+  }
+  const bytes = execFileSync("git", ["show", `HEAD:${name}`], { cwd: root, maxBuffer: 65536 });
+  assert(bytes.length > 0 && bytes.length <= 16384, "bounded manifest");
+  assert.deepEqual(fs.readFileSync(current), bytes, "manifest must match trusted tree");
+  const manifest = validateImportManifest(parseUniqueJson(bytes));
+  return { manifest, sha256: createHash("sha256").update(bytes).digest("hex") };
+}
 
 const ARCHIVE_LIMIT = 300 * 1024 ** 2;
 function validateInputs(i) {
@@ -103,26 +150,7 @@ function readTransport(file, runnerTemp) {
     } finally {
       fs.closeSync(fd);
     }
-    // Reject duplicate JSON keys without adding a parser dependency; secrets stay in pipes/files.
-    return JSON.parse(
-      execFileSync(
-        "python3",
-        [
-          "-c",
-          String.raw`
-import json, sys
-def unique(pairs):
-    result = {}
-    for k, v in pairs:
-        if k in result: raise ValueError('duplicate transport key')
-        result[k] = v
-    return result
-print(json.dumps(json.load(sys.stdin, object_pairs_hook=unique)))
-`
-        ],
-        { input: bytes, encoding: "utf8", maxBuffer: 512 * 1024, stdio: ["pipe", "pipe", "pipe"] }
-      )
-    );
+    return parseUniqueJson(bytes);
   } catch {
     throw new Error("BOOK_TRANSPORT_INVALID");
   }
@@ -346,20 +374,33 @@ async function main() {
   assert.equal(e.GITHUB_EVENT_NAME, "workflow_dispatch");
   assert.equal(e.GITHUB_REF, "refs/heads/main", "main-only import");
   assert.equal(e.GITHUB_REPOSITORY, "linkasu/linka.predictor-rust", "owned repository only");
+  assert.equal(e.GITHUB_SHA, e.GITHUB_WORKFLOW_SHA, "workflow must execute selected main tree");
+  const trustedRoot = path.resolve(e.GITHUB_WORKSPACE);
+  const { manifest: m, sha256: manifestSha256 } = readImportManifest(
+    trustedRoot,
+    e.IMPORT_MANIFEST,
+    e.GITHUB_WORKFLOW_SHA
+  );
+  process.chdir(trustedRoot);
+  assert(/^[1-9][0-9]*$/.test(e.GITHUB_RUN_ID) && Number.isSafeInteger(Number(e.GITHUB_RUN_ID)));
+  assert(
+    /^[1-9][0-9]*$/.test(e.GITHUB_RUN_ATTEMPT) && Number.isSafeInteger(Number(e.GITHUB_RUN_ATTEMPT))
+  );
   const i = {
     repository: e.GITHUB_REPOSITORY,
-    sourceSha: e.GITHUB_SHA,
-    releaseId: e.BOOK_RELEASE_ID,
-    archiveSha256: e.BOOK_ARCHIVE_SHA256,
-    archiveBytes: e.BOOK_ARCHIVE_BYTES,
-    appToolingSha: e.APP_TOOLING_SHA
+    sourceSha: m.model_source_sha,
+    releaseId: m.book_release_id,
+    archiveSha256: m.book_archive_sha256,
+    archiveBytes: String(m.book_archive_bytes),
+    appToolingSha: m.app_tooling_sha
   };
   validateInputs(i);
-  const root = process.cwd();
+  const root = path.join(trustedRoot, ".local/model-source");
   assert.equal(
-    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
     i.sourceSha
   );
+  execFileSync("git", ["merge-base", "--is-ancestor", i.sourceSha, "origin/main"], { cwd: root });
   const app = path.resolve(__dirname, "../..");
   assert.equal(
     execFileSync("git", ["rev-parse", "HEAD"], { cwd: app, encoding: "utf8" }).trim(),
@@ -368,12 +409,12 @@ async function main() {
   execFileSync("git", ["merge-base", "--is-ancestor", i.appToolingSha, "origin/main"], {
     cwd: app
   });
+  assert(e.BOOK_TRANSPORT_FILE, "repository-secret capability required");
   fs.mkdirSync(".local", { recursive: true });
   const archive = path.resolve(".local/book-candidates.zip");
   const { release, transport } = await downloadCandidate(
     i,
     {
-      token: e.GH_TOKEN,
       transportFile: e.BOOK_TRANSPORT_FILE,
       repositoryId: e.GITHUB_REPOSITORY_ID,
       runnerTemp: e.RUNNER_TEMP
@@ -385,10 +426,10 @@ async function main() {
     ".local/model-400/bundle",
     root,
     {
-      sourceManifest: e.SOURCE_MANIFEST,
-      sourceReview: e.SOURCE_REVIEW,
-      reviewReport: e.REVIEW_REPORT,
-      exclusionFile: e.EXCLUSION_FILE
+      sourceManifest: m.source_manifest,
+      sourceReview: m.source_review,
+      reviewReport: m.review_report,
+      exclusionFile: m.exclusion_file
     },
     null,
     i.sourceSha
@@ -397,10 +438,21 @@ async function main() {
   const provenance = JSON.parse(fs.readFileSync(provenanceFile, "utf8"));
   validateExecution(provenance.execution, i.sourceSha, release.tag_name);
   provenance.transport = transport;
+  assert(!Object.hasOwn(provenance, "ci_import"), "Book archive cannot assert CI import origin");
+  provenance.ci_import = {
+    schema: "linka-model-ci-import-v1",
+    run_id: e.GITHUB_RUN_ID,
+    run_attempt: Number(e.GITHUB_RUN_ATTEMPT),
+    workflow_sha: e.GITHUB_WORKFLOW_SHA,
+    manifest_path: e.IMPORT_MANIFEST,
+    manifest_sha256: manifestSha256,
+    model_source_sha: i.sourceSha
+  };
   fs.writeFileSync(provenanceFile, JSON.stringify(provenance, null, 2) + "\n");
   console.log("Verified book-local candidate import; no CI training or publication performed.");
 }
 module.exports = {
+  readImportManifest,
   validateInputs,
   validateRelease,
   validateExecution,

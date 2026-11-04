@@ -104,19 +104,11 @@ test("exact observed exception needs independent x86 VC110 evidence; no broad ex
   }
 });
 
-test("both candidate Windows workflows require launch, not only equality", () => {
-  const pr = fs.readFileSync(join(__dirname, "../../.github/workflows/pr-test.yaml"), "utf8");
-  const acceptance = fs.readFileSync(
-    join(__dirname, "../../.github/workflows/release-gates.yml"),
-    "utf8"
-  );
+test("Windows CI requires sandboxed SDK launch, not only file equality", () => {
+  const pr = fs.readFileSync(join(__dirname, "../../.github/workflows/ci.yml"), "utf8");
   assert.match(pr, /persist-credentials: false/);
   assert.match(
     pr,
     /name: Sandboxed packaged Windows SDK launch\s+if:.*steps.packaged.outcome == 'success'.*\s+env:\s+EYELOG_SANDBOX_GATE: "1"\s+run: npm run test:packaged-resources/
-  );
-  assert.match(
-    acceptance,
-    /name: Sandboxed packaged Windows SDK launch\s+if:.*matrix.revision == 'candidate'.*runner.os == 'Windows'.*\s+working-directory: app\s+env:\s+EYELOG_SANDBOX_GATE: "1"/
   );
 });

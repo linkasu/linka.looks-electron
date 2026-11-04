@@ -1,5 +1,6 @@
 param(
-  [Parameter(Mandatory = $true)][string]$CandidateDirectory
+  [Parameter(Mandatory = $true)][string]$CandidateDirectory,
+  [Parameter(Mandatory = $true)][string]$Descriptor
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,7 @@ foreach ($name in @("TEST_USER_DATA_DIR", "LINKA_HOME_DIR", "UPDATE_TEST_MODE", 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 if ((Get-Location).Path -ne $repoRoot) { throw "Run this harness from the repository root" }
 $candidate = (Resolve-Path $CandidateDirectory).Path
+$env:UPGRADE_DESCRIPTOR = (Resolve-Path $Descriptor).Path
 & node (Join-Path $PSScriptRoot "real-upgrade-contract.cjs") $candidate
 if ($LASTEXITCODE -ne 0) { throw "Candidate execution guard failed" }
 
@@ -30,10 +32,18 @@ if (Test-Path -LiteralPath $homeDir) { throw "Runner already contains LINKa docu
 $work = Join-Path $env:RUNNER_TEMP "linka-real-upgrade"
 if (Test-Path -LiteralPath $work) { throw "Qualification work directory is not fresh" }
 New-Item -ItemType Directory -Path $work | Out-Null
-$evidence = Join-Path $repoRoot "release-evidence/400"
+$evidence = Join-Path $repoRoot "release-evidence/qualification"
 New-Item -ItemType Directory -Force -Path $evidence | Out-Null
-$old = Join-Path $work "linka.looks-3.3.1-win-x64.exe"
-$oldJson = & node -e "process.stdout.write(JSON.stringify(require(process.argv[1]).OLD))" (Join-Path $PSScriptRoot "real-upgrade-contract.cjs")
+trap {
+  $evidenceVariable = Get-Variable -Name evidence -ErrorAction SilentlyContinue
+  if ($null -ne $evidenceVariable -and (Test-Path -LiteralPath $evidenceVariable.Value)) {
+    $message = $_ | Out-String
+    $message.Substring(0, [Math]::Min(8192, $message.Length)) | Set-Content -LiteralPath (Join-Path $evidenceVariable.Value "upgrade-launcher-error.txt")
+  }
+  break
+}
+$old = Join-Path $work "baseline-installer.exe"
+$oldJson = & node -e "const fs=require('node:fs');process.stdout.write(JSON.stringify(require(process.argv[1]).candidateConfiguration(JSON.parse(fs.readFileSync(process.env.UPGRADE_DESCRIPTOR,'utf8'))).old))" (Join-Path $PSScriptRoot "real-upgrade-contract.cjs")
 if ($LASTEXITCODE -ne 0) { throw "Historical release contract missing" }
 $oldRelease = $oldJson | ConvertFrom-Json
 Invoke-WebRequest -Uri $oldRelease.url -OutFile $old
@@ -105,8 +115,8 @@ try {
   }
   if ($installer.ExitCode -ne 0) { throw "Old installer failed: $($installer.ExitCode)" }
   if (-not (Test-Path -LiteralPath $exe)) { throw "Exact installed executable missing" }
-  if ((Get-Item -LiteralPath $exe).VersionInfo.ProductVersion -notmatch '^3\.3\.1(?:\.|$)') {
-    throw "Historical installed version is not 3.3.1"
+  if ((Get-Item -LiteralPath $exe).VersionInfo.ProductVersion -notmatch ('^' + [regex]::Escape($oldRelease.version) + '(?:\.|$)')) {
+    throw "Historical installed version does not match pinned baseline"
   }
   if (Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $exe }) {
     throw "Old silent installer unexpectedly auto-launched the app; refusing uninstrumented bootstrap"
@@ -119,7 +129,8 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "Real upgrade qualification failed; see upgrade-result.json" }
   $succeeded = $true
 } catch {
-  $_ | Out-String | Set-Content -LiteralPath (Join-Path $evidence "upgrade-launcher-error.txt")
+  $message = $_ | Out-String
+  $message.Substring(0, [Math]::Min(8192, $message.Length)) | Set-Content -LiteralPath (Join-Path $evidence "upgrade-launcher-error.txt")
   throw
 } finally {
   $remaining = @(Get-CimInstance Win32_Process | Where-Object { @($exe, $rollbackExe) -contains $_.ExecutablePath })

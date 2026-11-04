@@ -11,10 +11,17 @@ function modelName(variant) {
   assert.ok(["U", "T"].includes(variant), "variant must be U or T");
   return `${variant}.lpk`;
 }
-function validateProvenance(provenance, run, name, digest) {
+function validateProvenance(provenance, run, name, digest, origin) {
   assert.ok(["U.lpk", "T.lpk"].includes(name));
   assert.equal(provenance.schema, "linka-model-candidates-v1");
-  assert.equal(provenance.source_revision, run.head_sha);
+  if (Object.hasOwn(provenance, "ci_import")) {
+    assert(origin, "validated import manifest required");
+    require("./model-import-contract.cjs").validateModelImportOrigin({
+      ...origin,
+      run,
+      provenance
+    });
+  } else assert.equal(provenance.source_revision, run.head_sha);
   assert.match(provenance.source_manifest_sha256 || "", /^[a-f0-9]{64}$/);
   assert.match(provenance.exclusions_sha256 || "", /^[a-f0-9]{64}$/);
   assert.equal(provenance.quality_approved, false);
@@ -22,9 +29,9 @@ function validateProvenance(provenance, run, name, digest) {
   assert.equal(provenance.final_evaluated, false);
   assert.equal(provenance.files_sha256?.[name], digest);
 }
-function validateModelBundle(get, run, name, digest) {
+function validateModelBundle(get, run, name, digest, origin) {
   const provenance = JSON.parse(get("provenance.json"));
-  validateProvenance(provenance, run, name, digest);
+  validateProvenance(provenance, run, name, digest, origin);
   const verified = (file) => {
     const bytes = get(file);
     assert.equal(hash(bytes), provenance.files_sha256?.[file], "bundle file hash mismatch");
@@ -132,7 +139,12 @@ function validateEntries(entries, kind) {
       "unexpected or duplicate ZIP path"
     );
     seen.add(e.entryName);
-    assert.notEqual((e.header.attr >>> 16) & 0xf000, 0xa000, "ZIP symlink forbidden");
+    assert(
+      !e.isDirectory &&
+        [0, 0x8000].includes((e.header.attr >>> 16) & 0xf000) &&
+        !(e.header.flags & 1),
+      "ZIP must contain unencrypted regular files only"
+    );
     const size = e.header.size;
     assert.ok(
       Number.isSafeInteger(size) &&
@@ -217,6 +229,7 @@ async function prepare() {
               Authorization: `Bearer ${env.GH_TOKEN}`,
               Accept: "application/vnd.github+json"
             },
+            redirect: "error",
             signal: AbortSignal.timeout(60000)
           }),
           4 * 1024 ** 2
@@ -261,8 +274,13 @@ async function prepare() {
       assert.equal(data.length, e.header.size);
       return data;
     };
+    let modelSourceSha, modelOrigin;
     if (kind === "model") {
-      const { model } = validateModelBundle(get, run, name, env.MODEL_SHA256);
+      const { archiveProvenance, resolveModelImportOrigin } = require("./model-import-origin.cjs");
+      const provenance = JSON.parse(archiveProvenance(bytes, artifact));
+      modelOrigin = await resolveModelImportOrigin({ run, provenance, api });
+      modelSourceSha = provenance.source_revision;
+      const { model } = validateModelBundle(get, run, name, env.MODEL_SHA256, modelOrigin);
       for (const f of [
         "source-manifest.json",
         "source-review.json",
@@ -306,7 +324,15 @@ async function prepare() {
       run_id: run.id,
       artifact_id: artifact.id,
       archive_digest: artifact.digest,
-      source_sha: run.head_sha,
+      source_sha: kind === "model" ? modelSourceSha : run.head_sha,
+      ...(kind === "model"
+        ? {
+            workflow_sha: run.head_sha,
+            ...(modelOrigin.manifestSha256
+              ? { import_manifest_sha256: modelOrigin.manifestSha256 }
+              : {})
+          }
+        : {}),
       workflow_path: run.path,
       event: run.event,
       trust_scope: run.event === "pull_request" ? "pr-unreviewed" : "manual-candidate-only"
@@ -330,6 +356,7 @@ function stage() {
   }
 }
 module.exports = {
+  prepare,
   validateRun,
   validateArtifact,
   validateEntries,

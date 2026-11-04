@@ -1,0 +1,185 @@
+name: Windows candidate build
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_sha:
+        description: "Exact main-history app SHA (empty = this main dispatch SHA)"
+        required: false
+        type: string
+      baseline_tag:
+        description: "Optional assertion of highest published stable tag below target"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: windows-candidate-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'linkasu/linka.looks-electron' && github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      TOOLING_SHA: ${{ github.sha }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          ref: ${{ github.sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Validate exact main-history app target before execution
+        id: target
+        working-directory: tooling
+        env:
+          SELECTED_APP_SHA: ${{ inputs.app_sha }}
+        run: |
+          test "$GITHUB_REPOSITORY" = linkasu/linka.looks-electron
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          app_sha="${SELECTED_APP_SHA:-$GITHUB_SHA}"
+          [[ "$app_sha" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse "$app_sha^{commit}")" = "$app_sha"
+          git merge-base --is-ancestor "$app_sha" "$GITHUB_SHA"
+          echo "sha=$app_sha" >> "$GITHUB_OUTPUT"
+          echo "APP_SHA=$app_sha" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: linkasu/linka.looks-electron
+          ref: ${{ steps.target.outputs.sha }}
+          path: app
+          persist-credentials: false
+      - name: Preflight selected version, selected-app notes and genuine pinned baseline
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_TAG: ${{ inputs.baseline_tag }}
+        run: node ../tooling/scripts/ci/candidate-stage.cjs preflight ../baseline.json
+      - uses: ./tooling/.github/actions/setup-app
+        with:
+          working-directory: app
+          native: "true"
+          node-version: 22.22.2
+      - name: Make installed app dependencies available to trusted tooling
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          fs.appendFileSync(process.env.GITHUB_ENV, `NODE_PATH=${path.resolve("app/node_modules")}\n`);
+          NODE
+      - name: Stage and validate selected-app approved public resources before build (no compute)
+        working-directory: app
+        run: node -e 'require("../tooling/scripts/ci/stage-approved-predictor.cjs").stage(process.cwd()).catch(() => { console.error("Approved resource prebuild validation failed"); process.exitCode = 1; })'
+      - name: Build the single unsigned Windows installer (never publish)
+        working-directory: app
+        run: npm run electron:build -- --win --x64 -p never
+      - name: Static packaged resource and approved predictor checks (no training)
+        working-directory: app
+        run: |
+          npm run test:packaged-resources
+          node ../tooling/scripts/ci/verify-predictor-resources.cjs dist/win-unpacked/resources win32 x64 build/predictor-approval.json
+      - name: Existing inventory, legal notices and corresponding-source recipe
+        working-directory: app
+        run: |
+          node ../tooling/scripts/ci/release-inventory.cjs
+          node ../tooling/scripts/ci/release-source-bundle.cjs
+      - name: Fresh production audit (network failures are not evidence)
+        working-directory: app
+        run: |
+          status=0
+          npm audit --omit=dev --json > release-evidence/audit.json || status=$?
+          test "$status" -le 1
+      - name: Stage exact payloads and bound security signoff
+        working-directory: app
+        run: node ../tooling/scripts/ci/candidate-stage.cjs stage ../candidate-stage
+      - name: Diagnostics are separate and never release eligibility
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          path: |
+            app/release-evidence/inventory.json
+            app/release-evidence/audit.json
+            app/dist/builder-debug.yml
+      - name: Upload immutable Windows payload
+        id: windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-stage/windows/*
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload corresponding source and selected-app release notes
+        id: sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-sources-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-stage/sources/*
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload fresh bound security evidence
+        id: security
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-security-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-stage/security/*
+          if-no-files-found: error
+      - name: Read actual upload metadata and create descriptor last
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINDOWS_ID: ${{ steps.windows.outputs.artifact-id }}
+          WINDOWS_DIGEST: ${{ steps.windows.outputs.artifact-digest }}
+          SOURCES_ID: ${{ steps.sources.outputs.artifact-id }}
+          SOURCES_DIGEST: ${{ steps.sources.outputs.artifact-digest }}
+          SECURITY_ID: ${{ steps.security.outputs.artifact-id }}
+          SECURITY_DIGEST: ${{ steps.security.outputs.artifact-digest }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const assert = require("node:assert/strict");
+          const { githubJson } = require("./tooling/scripts/ci/candidate-io.cjs");
+          (async () => {
+            const metadata = {};
+            for (const kind of ["windows", "sources", "security"]) {
+              const prefix = kind.toUpperCase();
+              const id = process.env[`${prefix}_ID`];
+              assert(/^[1-9]\d*$/.test(id));
+              const artifact = await githubJson(`/repos/linkasu/linka.looks-electron/actions/artifacts/${id}`);
+              assert.equal(String(artifact.id), id);
+              assert.equal(artifact.digest, `sha256:${process.env[`${prefix}_DIGEST`]}`);
+              metadata[kind] = artifact;
+            }
+            fs.writeFileSync("candidate-metadata.json", JSON.stringify(metadata), { flag: "wx" });
+          })().catch((error) => { console.error(error.message); process.exitCode = 1; });
+          NODE
+          mkdir descriptor
+          node tooling/scripts/ci/candidate-stage.cjs create candidate-stage candidate-metadata.json baseline.json descriptor/candidate.json
+      - name: Upload candidate descriptor only after every required build step succeeds
+        id: candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: descriptor/candidate.json
+          if-no-files-found: error
+      - name: Record immutable candidate reference (usable only after terminal success)
+        env:
+          CANDIDATE_ID: ${{ steps.candidate.outputs.artifact-id }}
+        run: |
+          echo "candidate_id=$CANDIDATE_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "Producer must finish successfully before qualification." >> "$GITHUB_STEP_SUMMARY"

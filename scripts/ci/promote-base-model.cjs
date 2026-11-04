@@ -177,7 +177,6 @@ function validateApproval(a, sourceSha) {
         spec.archive_bytes <= 300 * MiB
     );
     assert(typeof spec.artifact_name === "string" && /^[a-z0-9-]+$/.test(spec.artifact_name));
-    if (kind === "model") assert.equal(spec.head_sha, sourceSha);
     if (kind === "runtime") assert.equal(spec.head_sha, RUNTIME);
   }
   for (const kind of ["model", "runtime"]) {
@@ -358,6 +357,15 @@ function qualify(a, evidence, archives, assertImportedSemantics) {
   const provenance = parse(get.model("provenance.json"));
   assert.equal(provenance.schema, "linka-model-candidates-v1");
   assert.equal(provenance.source_revision, a.source_sha);
+  if (Object.hasOwn(provenance, "ci_import")) {
+    assert(evidence.model.origin, "validated model import manifest required");
+    require("./model-import-contract.cjs").validateModelImportOrigin({
+      ...evidence.model.origin,
+      run: evidence.model.run,
+      provenance
+    });
+  } else
+    assert.equal(provenance.source_revision, evidence.model.run.head_sha, "legacy model origin");
   assert.equal(provenance.source_manifest_sha256, a.source_manifest_sha256);
   assert.equal(provenance.exclusions_sha256, a.exclusions_sha256);
   assert.equal(provenance.exclusion_sha256, undefined);
@@ -468,8 +476,12 @@ function qualify(a, evidence, archives, assertImportedSemantics) {
   for (const kind of ["model", "runtime"]) {
     assert.equal(source[kind]?.run_id, a.runs[kind].run_id);
     assert.equal(source[kind]?.artifact_id, a.runs[kind].artifact_id);
-    assert.equal(source[kind]?.source_sha, a.runs[kind].head_sha);
+    assert.equal(source[kind]?.source_sha, kind === "model" ? a.source_sha : a.runs[kind].head_sha);
+    if (kind === "model")
+      assert.equal(source.model.workflow_sha ?? source.model.source_sha, a.runs.model.head_sha);
   }
+  if (Object.hasOwn(provenance, "ci_import"))
+    assert.equal(source.model.import_manifest_sha256, evidence.model.origin.manifestSha256);
   const memory = parse(get.windows("memory.json", a.windows.memory_sha256)),
     ui = parse(get.windows("ui.json", a.windows.ui_sha256));
   assert.equal(memory.schema, "windows-model-memory-v1");
@@ -652,7 +664,9 @@ async function bounded(res, maximum) {
   return Buffer.concat(chunks);
 }
 async function api(route) {
-  assert(/^actions\//.test(route));
+  assert(
+    /^actions\//.test(route) || /^contents\/[A-Za-z0-9_./-]+\.json\?ref=[a-f0-9]{40}$/.test(route)
+  );
   return parse(
     await bounded(
       await fetch(`https://api.github.com/repos/${REPO}/${route}`, {
@@ -786,6 +800,15 @@ async function prepare(options) {
   const archives = {};
   for (const [kind, spec] of Object.entries(a.runs))
     archives[kind] = await (options.download || downloadArtifact)(spec);
+  const { archiveProvenance, resolveModelImportOrigin } = require("./model-import-origin.cjs");
+  const candidateProvenance = parse(
+    Buffer.from(archiveProvenance(archives.model, evidence.model.artifact))
+  );
+  evidence.model.origin = await resolveModelImportOrigin({
+    run: evidence.model.run,
+    provenance: candidateProvenance,
+    api: request
+  });
   const final = parse(
     inspectArchive(
       archives.final,
@@ -800,7 +823,6 @@ async function prepare(options) {
       : undefined;
   const files = qualify(a, evidence, archives, bookSemantics);
   const modelMember = inspectArchive(archives.model, "model", a.runs.model);
-  const candidateProvenance = parse(modelMember("provenance.json"));
   let modelBuild;
   if (a.publication.model_build_inputs) {
     assert.equal(

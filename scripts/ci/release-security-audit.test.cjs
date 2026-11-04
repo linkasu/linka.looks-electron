@@ -7,6 +7,7 @@ function fixture() {
   const lock = Buffer.from(
     JSON.stringify({
       packages: {
+        "": { version: "4.0.0" },
         "node_modules/vue": { version: "3.5.44" },
         "node_modules/@vue/server-renderer": { version: "3.5.44" },
         "node_modules/@linkasu/tobii-electron": {
@@ -143,6 +144,24 @@ function changeLock(f, mutate) {
   f.inventory.pins = Object.entries(lock.packages).map(([path, pkg]) => ({ path, ...pkg }));
 }
 
+test("root application version is generic but exact across lock, ASAR and installer", () => {
+  const f = fixture();
+  f.provenance.version = "4.2.1";
+  changeLock(f, (packages) => {
+    packages[""].version = "4.2.1";
+  });
+  f.inventory.packaged[0].packages[0].version = "4.2.1";
+  f.inventory.installers[0].name = "linka.looks-4.2.1-win-x64.exe";
+  assert.equal(verify(f).remainingFindings, 6);
+  f.inventory.packaged[0].packages[0].version = "4.0.0";
+  assert.throws(() => verify(f));
+  f.inventory.packaged[0].packages[0].version = "4.2.1";
+  changeLock(f, (packages) => {
+    packages[""].version = "4.0.0";
+  });
+  assert.throws(() => verify(f));
+});
+
 for (const [name, mutate] of [
   [
     "source subpackage without packaged parent",
@@ -254,7 +273,7 @@ for (const [name, mutate] of [
   [
     "stale pin",
     (f) => {
-      f.inventory.pins[0].version = "3.5.34";
+      f.inventory.pins.find((pin) => pin.path === "node_modules/vue").version = "3.5.34";
     }
   ],
   [

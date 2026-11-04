@@ -1,0 +1,234 @@
+name: Windows candidate qualification
+
+on:
+  workflow_run:
+    workflows: [Windows candidate build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      candidate_id:
+        description: Exact immutable candidate descriptor artifact ID
+        required: true
+        type: string
+      suite:
+        description: Packaged reuses the complete genuine upgrade scenario; no separate cold-install claim
+        type: choice
+        options: [all, upgrade, packaged, security]
+        default: all
+      diagnostic:
+        description: Diagnostic receipts can never authorize publication
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+concurrency:
+  group: qualification-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'linkasu/linka.looks-electron' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      candidate_id: ${{ steps.prepare.outputs.candidate_id }}
+      mode: ${{ steps.prepare.outputs.mode }}
+      suite: ${{ steps.prepare.outputs.suite }}
+      harness_sha: ${{ steps.prepare.outputs.harness_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/qualification-runner.cjs prepare
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qualification/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  software:
+    needs: prepare
+    if: needs.prepare.outputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      manifest: ${{ steps.manifest.outputs.manifest }}
+      attempt: ${{ steps.manifest.outputs.attempt }}
+    env:
+      CANDIDATE_ID: ${{ needs.prepare.outputs.candidate_id }}
+      QUALIFICATION_MODE: ${{ needs.prepare.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.harness_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/qualification-runner.cjs software
+      - id: manifest
+        if: always()
+        run: node scripts/ci/qualification-runner.cjs manifest
+      - id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-gates-software-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gate-reports/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  windows:
+    needs: [prepare, software]
+    if: always() && needs.prepare.result == 'success' && ((needs.prepare.outputs.suite == 'all' && needs.software.result == 'success') || needs.prepare.outputs.suite == 'upgrade' || needs.prepare.outputs.suite == 'packaged')
+    runs-on: windows-2022
+    timeout-minutes: 40
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      manifest: ${{ steps.manifest.outputs.manifest }}
+      attempt: ${{ steps.manifest.outputs.attempt }}
+    env:
+      CANDIDATE_ID: ${{ needs.prepare.outputs.candidate_id }}
+      QUALIFICATION_MODE: ${{ needs.prepare.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.harness_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Contract self-checks; never rebuild app or model
+        run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/qualification-contract.test.cjs scripts/ci/qualification-runner.test.cjs
+      - name: Genuine baseline updater, confirmation, NSIS restart and installed target assertions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/qualification-runner.cjs windows
+      - id: manifest
+        if: always()
+        run: node scripts/ci/qualification-runner.cjs manifest
+      - id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-gates-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gate-reports/*.json
+          if-no-files-found: warn
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-native-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-evidence/qualification/upgrade*
+          if-no-files-found: warn
+          retention-days: 30
+
+  security:
+    needs: prepare
+    if: needs.prepare.outputs.suite == 'all' || needs.prepare.outputs.suite == 'security'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      manifest: ${{ steps.manifest.outputs.manifest }}
+      attempt: ${{ steps.manifest.outputs.attempt }}
+    env:
+      CANDIDATE_ID: ${{ needs.prepare.outputs.candidate_id }}
+      QUALIFICATION_MODE: ${{ needs.prepare.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.harness_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/qualification-runner.cjs security
+      - id: manifest
+        if: always()
+        run: node scripts/ci/qualification-runner.cjs manifest
+      - id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-gates-security-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gate-reports/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  ready:
+    needs: [prepare, software, windows, security]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CANDIDATE_ID: ${{ needs.prepare.outputs.candidate_id }}
+      QUALIFICATION_MODE: ${{ needs.prepare.outputs.mode }}
+      GATE_NEEDS: ${{ toJSON(needs) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.harness_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: artifact-ids
+        run: node scripts/ci/qualification-runner.cjs artifact-ids
+      - name: Download only original producing gate artifact IDs
+        if: steps.artifact-ids.outputs.ids != ''
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ steps.artifact-ids.outputs.ids }}
+          path: downloaded-gates
+      - id: receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/qualification-runner.cjs aggregate downloaded-gates
+      - if: steps.receipt.outputs.eligible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qualification/*.json
+          if-no-files-found: error
+          retention-days: 90
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qualification/*.json
+          if-no-files-found: warn
+          retention-days: 30

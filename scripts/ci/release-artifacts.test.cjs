@@ -13,6 +13,29 @@ const {
 } = require("./release-artifacts.cjs");
 const macCompatibility = require("./release-artifacts-mac-compat.cjs");
 
+test("explicit stable version metadata API preserves legacy defaults", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "release-version-"));
+  t.after(() => fs.rmSync(root, { recursive: true }));
+  const expected = assets("windows", "5.2.1");
+  for (const name of expected.files) fs.writeFileSync(path.join(root, name), name);
+  const url = expected.installers[0];
+  const bytes = fs.readFileSync(path.join(root, url));
+  const sha512 = digest(bytes, "sha512", "base64");
+  fs.writeFileSync(
+    path.join(root, "latest.yml"),
+    require("yaml").stringify({
+      version: "5.2.1",
+      files: [{ url, size: bytes.length, sha512 }],
+      path: url,
+      sha512
+    })
+  );
+  verifyMetadata(root, "windows", "5.2.1");
+  assert.throws(() => verifyMetadata(root, "windows"));
+  assert.throws(() => assets("windows", "5.2.1-beta"));
+  assert.deepEqual(assets("windows").installers, ["linka.looks-4.0.0-win-x64.exe"]);
+});
+
 test("legacy macOS whitelist accepts only the exact published version, hashes and set", () => {
   const records = structuredClone(macCompatibility.pins);
   macCompatibility.checkRecords(records);
@@ -119,7 +142,7 @@ test("real GitHubProvider uses common latest tag but unchanged macOS metadata, n
   );
 });
 
-test("release version, lock roots and workflow artifacts agree on 4.0.0", () => {
+test("release version and lock roots agree; workflows use version-independent immutable candidates", () => {
   const pkg = require("../../package.json");
   const lock = require("../../package-lock.json");
   assert.equal(pkg.version, "4.0.0");
@@ -127,45 +150,22 @@ test("release version, lock roots and workflow artifacts agree on 4.0.0", () => 
   assert.equal(lock.packages[""].version, pkg.version);
   assert.deepEqual(assets("windows").installers, ["linka.looks-4.0.0-win-x64.exe"]);
   assert.throws(() => assets("macos"), /Windows x64 only/);
-  const preflight = fs.readFileSync(".github/workflows/release-331-preflight.yml", "utf8");
-  const promotion = fs.readFileSync(".github/workflows/electron.yml", "utf8");
-  assert.doesNotMatch(
-    preflight + promotion,
-    /accepted-331-|accepted-400-macos-|signed-macos|secrets\./
-  );
-  assert(preflight.includes("= 4.0.0"), "candidate must reject old application versions");
-  for (const platform of ["windows"]) {
-    assert(preflight.includes(`accepted-400-${platform}-`));
-    assert(promotion.includes(`accepted-400-${platform}-`));
-  }
-  assert(promotion.includes("refs/tags/v4.0.0 refs/tags/4.0.0"));
-  assert(promotion.includes('["v4.0.0","4.0.0"]'));
-  assert(promotion.includes("gh release create v4.0.0"));
-  assert(promotion.includes("'4.0.0 build-only preflight'"));
+  const preflight = fs.readFileSync(".github/workflows/windows-candidate.yml", "utf8");
+  const promotion = fs.readFileSync(".github/workflows/release.yml", "utf8");
+  assert.doesNotMatch(preflight + promotion, /accepted-331-|accepted-400-macos-|signed-macos/);
+  assert(preflight.includes("windows-candidate-${{ github.run_id }}-${{ github.run_attempt }}"));
+  assert(preflight.includes("candidate-stage.cjs preflight"));
+  assert(promotion.includes("release-publication.cjs prepare"));
+  assert(promotion.includes("environment: release-production"));
+  assert.doesNotMatch(preflight + promotion, /v4\.0\.0|accepted-400-/);
 });
 
-test("inventory version gate accepts 4.0.0 and rejects the previous release", () => {
-  const source = fs.readFileSync("scripts/ci/release-inventory.cjs", "utf8");
-  const gate = source.match(
-    /assert\.equal\(require\(path\.resolve\("package\.json"\)\)\.version, "[^"]+"\);/
-  );
-  assert(gate, "inventory application version gate missing");
-  const check = (version) =>
-    require("node:vm").runInNewContext(gate[0], {
-      assert,
-      path,
-      require: () => ({ version })
-    });
-  check("4.0.0");
-  assert.throws(() => check("3.3.1"), { code: "ERR_ASSERTION" });
-});
-
-test("4.0.0 promotion selects its own release notes, never historical 3.3.1 notes", () => {
-  const promotion = fs.readFileSync(".github/workflows/electron.yml", "utf8");
-  const selectors = [...promotion.matchAll(/--notes-file\s+(\S+)/g)].map((match) => match[1]);
-  assert.deepEqual(selectors, ["docs/release-400-notes.md"]);
+test("promotion takes selected-app release notes from the immutable source artifact", () => {
+  const promotion = fs.readFileSync(".github/workflows/release.yml", "utf8");
+  const publication = fs.readFileSync("scripts/ci/release-publication.cjs", "utf8");
+  assert(promotion.includes("release-publication.cjs prepare"));
+  assert.match(publication, /release-notes\.md/);
   assert.doesNotMatch(promotion, /--notes-file\s+\S*release-331-notes\.md/);
-  assert.match(fs.readFileSync(selectors[0], "utf8"), /^# LINKa\.смотри 4\.0\.0\n/);
 });
 
 test("staging gives tar a local relative archive path, never a Windows drive/remote path", (t) => {

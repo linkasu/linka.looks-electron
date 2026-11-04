@@ -1,0 +1,113 @@
+name: Publish qualified Windows release
+
+on:
+  workflow_run:
+    workflows: [Windows candidate qualification]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      qualification_run_id:
+        description: "Exact successful qualification run ID (not a candidate or diagnostic run)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: qualified-windows-publication
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      vars.CI_V2_RELEASE_ENABLED == 'true' &&
+      github.repository == 'linkasu/linka.looks-electron' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+      manifest_sha256: ${{ steps.prepare.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact trusted tooling checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - name: Install locked validation dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Validate all origins, gates and exact bytes; prepare without builds
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.qualification_run_id }}
+        run: node scripts/ci/release-publication.cjs prepare "$QUALIFICATION_RUN_ID" "$RUNNER_TEMP/publication"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prepared-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publication/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: prepare
+    if: vars.CI_V2_RELEASE_ENABLED == 'true' && github.repository == 'linkasu/linka.looks-electron' && github.ref == 'refs/heads/main'
+    environment: release-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Check out only trusted publisher tooling, never candidate code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/ci/release-publication.cjs
+            /scripts/ci/release-publication-io.cjs
+      - name: Verify exact trusted tooling checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - uses: actions/download-artifact@v4
+        with:
+          name: prepared-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publication
+      - name: Verify sealed manifest and every payload file before any write
+        env:
+          EXPECTED_MANIFEST_SHA256: ${{ needs.prepare.outputs.manifest_sha256 }}
+        run: |
+          node -e 'const fs=require("node:fs"),c=require("node:crypto"),a=require("node:assert/strict");a.equal(c.createHash("sha256").update(fs.readFileSync(process.env.RUNNER_TEMP+"/publication/publication.json")).digest("hex"),process.env.EXPECTED_MANIFEST_SHA256);require("./scripts/ci/release-publication.cjs").verifyPrepared(process.env.RUNNER_TEMP+"/publication")'
+      - name: Reconcile and publish exact prepared bytes (never overwrite)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/release-publication.cjs publish "$RUNNER_TEMP/publication"
+
+  mirror:
+    needs: publish
+    if: vars.CI_V2_RELEASE_ENABLED == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/publish-linka-looks-updater.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
+    secrets:
+      LINKA_SU_SSH_KEY: ${{ secrets.LINKA_SU_SSH_KEY }}
+      LINKA_SU_HOST: ${{ secrets.LINKA_SU_HOST }}
+      LINKA_SU_USER: ${{ secrets.LINKA_SU_USER }}

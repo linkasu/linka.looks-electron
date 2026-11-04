@@ -725,6 +725,9 @@ test(
           conclusion: "success",
           event: "workflow_dispatch",
           head_sha: sourceSha,
+          head_branch: "main",
+          path: ".github/workflows/model-candidates.yml",
+          head_repository: { full_name: "linkasu/linka.predictor-rust" },
           repository: { full_name: "linkasu/linka.predictor-rust" },
           created_at: "2026-01-02T00:00:00Z",
           updated_at: "2026-01-03T00:00:00Z"
@@ -738,6 +741,7 @@ test(
           workflow_run: { id: 11, head_sha: sourceSha }
         }
       };
+      validateMetadata(input, metadata, zipBytes);
       await writeFile(join(dir, "eval-candidate-meta.json"), JSON.stringify(metadata));
       const eventPath = join(dir, "event.json");
       const event = (inputs) =>
