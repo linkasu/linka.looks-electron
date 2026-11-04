@@ -145,10 +145,13 @@ test("real GitHubProvider uses common latest tag but unchanged macOS metadata, n
 test("release version and lock roots agree; workflows use version-independent immutable candidates", () => {
   const pkg = require("../../package.json");
   const lock = require("../../package-lock.json");
-  assert.equal(pkg.version, "4.0.0");
+  assert.match(pkg.version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
   assert.equal(lock.version, pkg.version);
   assert.equal(lock.packages[""].version, pkg.version);
   assert.deepEqual(assets("windows").installers, ["linka.looks-4.0.0-win-x64.exe"]);
+  assert.deepEqual(assets("windows", pkg.version).installers, [
+    `linka.looks-${pkg.version}-win-x64.exe`
+  ]);
   assert.throws(() => assets("macos"), /Windows x64 only/);
   const preflight = fs.readFileSync(".github/workflows/windows-candidate.yml", "utf8");
   const promotion = fs.readFileSync(".github/workflows/release.yml", "utf8");

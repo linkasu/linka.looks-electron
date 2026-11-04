@@ -14,7 +14,7 @@ import { readdir, copyFile, readFile, rename, mkdir, rm, mkdtemp, link } from "f
 import { tmpdir } from "os";
 import { v4 as uuid } from "uuid";
 import AdmZip from "adm-zip";
-import { openLinkaZip } from "@/common/utils/linkaZip";
+import { openLinkaZip, readLinkaZipEntry } from "@/common/utils/linkaZip";
 import {
   CardType,
   ConfigFile,
@@ -115,8 +115,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   getConfigFile(path: string) {
-    const zip = openLinkaZip(this.checkPath(path));
-    const raw = zip.readAsText("config.json");
+    const raw = readLinkaZipEntry(this.checkPath(path), "config.json")?.toString("utf8") ?? "";
     try {
       return normalizeConfigFile(JSON.parse(raw) as ConfigFile);
     } catch (error) {
@@ -153,8 +152,7 @@ export class CardsStorage extends ICloudStorage {
   }
 
   private getBuffer(path: string, entry: string) {
-    const zip = openLinkaZip(this.checkPath(path));
-    return zip.readFile(entry);
+    return readLinkaZipEntry(this.checkPath(path), entry);
   }
 
   getAudio(path: string, entry: string) {
