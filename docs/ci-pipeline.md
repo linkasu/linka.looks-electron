@@ -139,6 +139,24 @@ manual run reference). It validates candidate and four receipts before entering
 Automatic publication remains disabled until `CI_V2_RELEASE_ENABLED=true` is
 explicitly configured after native validation and production-environment protection.
 
+The switch remains `false`. Automatic and manual stable publication both require
+it; only explicit main `workflow_dispatch` with typed `prerelease=true` may run
+while it is off. This still requires the same full `mode=release` qualification,
+four PASS gates, actual origins, candidate/source/notes/security checks, no builds,
+production approval and immutable collision/reconciliation rules. Diagnostic is
+never eligible. No skipped automatic stable run is replayed by this exception.
+
+Publication manifest v1 requires boolean `prerelease`; legacy prepare callers
+default to false, and the CLI accepts only `PUBLICATION_PRERELEASE=true|false`.
+The write job verifies the sealed value before writing; publisher and mirror routing
+use that value, never a mutable publication environment override. Drafts always use
+`make_latest=false`; stable publication uses true, prerelease publication false.
+An existing release must have the same mode, including on no-op retries.
+Prerelease 4.0.1 is a separate GitHub link, not a Latest/mirror update: v3.2.13
+remains stable Latest on GitHub and the site. No stable assets are rewritten.
+Mirror release-events skip prereleases before API/SSH; manual/call paths still
+strictly reject published prereleases. Verify-only semantics are unchanged.
+
 No hardcoded future version. Existing Mac3.3.1 assets remain exact pinned compatibility
 bytes, fetched/verified at promotion only. Draft creation/upload/verification and
 publication are separate states. On API timeout, inspect tag/release/assets before

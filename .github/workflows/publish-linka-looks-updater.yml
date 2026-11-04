@@ -37,7 +37,10 @@ concurrency:
 
 jobs:
   publish-updater:
-    if: github.repository == 'linkasu/linka.looks-electron' && (github.event_name == 'release' || github.ref == 'refs/heads/main')
+    if: >-
+      github.repository == 'linkasu/linka.looks-electron' &&
+      ((github.event_name == 'release' && github.event.release.prerelease == false) ||
+       (github.event_name != 'release' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

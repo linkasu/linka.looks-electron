@@ -150,7 +150,7 @@ function releaseApi(read = request) {
           name: `LINKa ${m.version}`,
           body: notes,
           draft: true,
-          prerelease: false,
+          prerelease: m.prerelease,
           make_latest: "false"
         }
       }),
@@ -159,10 +159,14 @@ function releaseApi(read = request) {
         method: "POST",
         body: fs.readFileSync(path.join(directory, file.name))
       }),
-    publish: (id) =>
+    publish: (id, m) =>
       read(`${prefix}/releases/${apiId(id)}`, {
         method: "PATCH",
-        body: { draft: false, make_latest: "true" }
+        body: {
+          draft: false,
+          prerelease: m.prerelease,
+          make_latest: m.prerelease ? "false" : "true"
+        }
       })
   };
 }
@@ -176,6 +180,8 @@ function sanitizedRun(run) {
 async function prepare(runId, directory, options = {}) {
   assert(positiveId(runId), "one positive qualification run ID required");
   assert(directory, "output directory required");
+  const prerelease = options.prerelease === undefined ? false : options.prerelease;
+  assert.equal(typeof prerelease, "boolean", "publication prerelease must be boolean");
   const read = options.request || request;
   const candidateIo = options.candidateIo || require("./candidate-io.cjs");
   const qualification = require("./qualification-contract.cjs");
@@ -327,6 +333,7 @@ async function prepare(runId, directory, options = {}) {
   files.push(fileRecord(directory, "release-provenance.json"));
   const manifest = {
     schema: "linka-release-publication-v1",
+    prerelease,
     repository: REPOSITORY,
     version: c.version,
     tag: `v${c.version}`,

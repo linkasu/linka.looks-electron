@@ -80,9 +80,24 @@ historical installer. Не увеличивать timeout, не заполнят
 gh workflow run release.yml --ref main -f qualification_run_id=QUALIFICATION_RUN_ID
 ```
 
-Пока `CI_V2_RELEASE_ENABLED` отсутствует или не равен `true`, write-path отключён.
-Включение допускается после проверки workflow и защиты production environment.
-Нельзя включать переменную, чтобы обойти failed qualification или collision.
+`CI_V2_RELEASE_ENABLED=false` остаётся без изменения: automatic/manual stable
+publication отключены. Единственное исключение — явный manual prerelease:
+
+```sh
+gh workflow run release.yml --ref main -f qualification_run_id=ID -F prerelease=true
+```
+
+| Режим                                 | Нужен `CI_V2_RELEASE_ENABLED=true` | Latest / public mirror       |
+| ------------------------------------- | ---------------------------------- | ---------------------------- |
+| Automatic или manual stable (default) | Да                                 | Обновляются после публикации |
+| Manual `prerelease=true`              | Нет                                | Не меняются                  |
+
+Оба режима требуют trusted main, полную qualification `mode=release` со всеми
+четырьмя PASS и actual origins, исходные candidate/source/notes/security bytes,
+`release-production` approval и no-overwrite guards. Diagnostic не допускается.
+Prerelease 4.0.1 даёт отдельную GitHub-ссылку для Насти; v3.2.13 остаётся stable
+Latest на GitHub и сайте. Stable-файлы не переписываются, Telegram не вызывается.
+Ручной prerelease не переигрывает ранее пропущенные automatic stable runs.
 
 Publisher автоматически проверяет software/packaged/security/genuine-upgrade,
 candidate digest, actual terminal producer/run/jobs и hashes всех файлов. Ни
@@ -100,6 +115,8 @@ API timeout после записи — сначала read/reconcile actual rel
 Совпадающий незаконченный draft можно безопасно продолжить; другой hash или source
 требует остановки. Matching published release возвращает ALREADY_PUBLISHED без
 изменения файлов. Никакого force/delete/reupload существующей стабильной версии.
+Режим `prerelease` закреплён в sealed manifest: существующий stable/prerelease
+нельзя превратить в другой режим, даже при совпадающих bytes.
 
 ## Public mirror
 
@@ -107,6 +124,8 @@ Mirror берёт точный published tag и digest installer, сохраня
 generation и атомарно переключает pointer. Старый server `update.js` и ручной
 параллельный writer не используются. Не удалять stale lock без отдельного осмотра
 живых процессов и фактического current target.
+Prerelease release-event пропускает весь mirror job до API/SSH; manual/workflow-call
+также отклоняет prerelease по actual GitHub metadata до SSH, включая verify-only.
 
 После SSH switch hosted CI проверяет public version, manifest и download bytes.
 Повторить только public probe, без SSH и повторного deployment:

@@ -184,6 +184,56 @@ test("mirror pins workflow tooling and manual verify-only skips both SSH writes,
   assert.equal(probe.env, undefined);
   assert.equal(w.concurrency["cancel-in-progress"], false);
 });
+test("prerelease release events skip the whole mirror job; manual inputs still reject prereleases before SSH", (t) => {
+  const job = workflow().jobs["publish-updater"];
+  for (const event_name of ["release", "workflow_dispatch", "workflow_call"])
+    for (const prerelease of [false, true]) {
+      const allowed = new Function("github", `return (${job.if});`)({
+        repository: "linkasu/linka.looks-electron",
+        ref: "refs/heads/main",
+        event_name,
+        event: { release: { prerelease } }
+      });
+      assert.equal(allowed, event_name !== "release" || !prerelease);
+    }
+  const resolution = job.steps.find(
+    (step) => step.name === "Resolve exact published installer digest"
+  );
+  assert(
+    job.steps.indexOf(resolution) < job.steps.findIndex((step) => step.name === "Configure SSH")
+  );
+  const script = resolution.run.match(/node <<'NODE'\n([\s\S]+)\nNODE/)[1];
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "mirror-prerelease-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(root, "mirror-release.json"),
+    JSON.stringify({
+      tag_name: `v${version}`,
+      draft: false,
+      prerelease: true,
+      assets: [
+        {
+          name: `linka.looks-${version}-win-x64.exe`,
+          digest: `sha256:${sha256}`,
+          size: body.length
+        }
+      ]
+    })
+  );
+  const result = require("node:child_process").spawnSync(process.execPath, ["-e", script], {
+    cwd: root,
+    env: {
+      ...process.env,
+      RUNNER_TEMP: root,
+      VERSION: version,
+      GITHUB_ENV: path.join(root, "env")
+    },
+    timeout: 10000
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr.toString(), /Published installer digest missing\/mismatched/);
+  assert(!fs.existsSync(path.join(root, "env")));
+});
 test("unresolved publication and published infra failure have independent sanitized summaries", (t) => {
   const steps = workflow().jobs["publish-updater"].steps;
   const initial = JSON.parse(

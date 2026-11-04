@@ -39,6 +39,7 @@ function verifyPrepared(directory) {
   assert.equal(m.repository, REPOSITORY);
   assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(m.version));
   assert.equal(m.tag, `v${m.version}`);
+  assert.equal(typeof m.prerelease, "boolean", "publication prerelease must be boolean");
   assert(/^[a-f0-9]{40}$/.test(m.appSha));
   for (const id of [m.candidateId, m.qualificationRunId, m.qualificationArtifactId])
     assert(positiveId(id), "bounded safe numeric ID required");
@@ -66,7 +67,7 @@ function inspectState(state, m, notes) {
   const r = state.release;
   if (!r) return { phase: "CREATE", missing: m.files };
   assert.equal(r.tag_name, m.tag);
-  assert.equal(r.prerelease, false);
+  assert.equal(r.prerelease, m.prerelease, "existing release mode mismatch");
   assert.equal(r.body, notes, "existing release notes mismatch");
   if (r.draft) {
     assert.equal(r.target_commitish, m.appSha, "draft target mismatch");
@@ -128,7 +129,7 @@ async function publish(directory, api) {
   assert.equal(current.missing.length, 0, "cannot publish incomplete asset set");
   if (current.phase !== "ALREADY_PUBLISHED")
     await mutate(
-      () => api.publish(state.release.id),
+      () => api.publish(state.release.id, m),
       () => current.phase === "ALREADY_PUBLISHED"
     );
   return { status: "PUBLISHED", version: m.version };
@@ -202,7 +203,11 @@ if (require.main === module) {
   const io = require("./release-publication-io.cjs");
   const action =
     command === "prepare"
-      ? io.prepare(reference, directory)
+      ? Promise.resolve().then(() => {
+          const value = process.env.PUBLICATION_PRERELEASE ?? "false";
+          assert(["true", "false"].includes(value), "PUBLICATION_PRERELEASE must be true or false");
+          return io.prepare(reference, directory, { prerelease: value === "true" });
+        })
       : command === "publish"
         ? publish(reference, io.releaseApi())
         : Promise.reject(

@@ -6,6 +6,7 @@ const path = require("node:path");
 const { createHash } = require("node:crypto");
 const {
   publish,
+  inspectState,
   verifyPrepared,
   extractQualification,
   verifyNotes
@@ -58,6 +59,82 @@ test("write job gets tooling from exact trusted git SHA, never a prepared code a
   ]);
   assert(!steps.some((step) => /npm|build|candidate-io/.test(step.run || "")));
 });
+test("only manual prerelease bypasses the stable switch, with trusted origins and production approval", () => {
+  const w = require("yaml").parse(
+    fs.readFileSync(path.join(__dirname, "../../.github/workflows/release.yml"), "utf8")
+  );
+  assert.equal(w.on.workflow_dispatch.inputs.prerelease.type, "boolean");
+  assert.equal(w.on.workflow_dispatch.inputs.prerelease.default, false);
+  assert.equal(w.jobs.publish.environment, "release-production");
+  assert.equal(w.jobs.publish.permissions.contents, "write");
+  assert.equal(w.permissions.contents, "read");
+  assert.equal(w.jobs.prepare.permissions?.contents, undefined);
+  assert.equal(w.jobs.publish.needs, "prepare");
+  const prepareStep = w.jobs.prepare.steps.find((step) => step.id === "prepare");
+  assert.equal(
+    prepareStep.env.PUBLICATION_PRERELEASE,
+    "${{ github.event_name == 'workflow_dispatch' && inputs.prerelease == true && 'true' || 'false' }}"
+  );
+  const verify = w.jobs.publish.steps.find((step) => step.id === "verify");
+  assert(verify.run.includes("verifyPrepared"));
+  assert(verify.run.includes('"prerelease="+m.prerelease'));
+  assert.equal(w.jobs.publish.outputs.prerelease, "${{ steps.verify.outputs.prerelease }}");
+  assert.equal(w.jobs.publish.env?.PUBLICATION_PRERELEASE, undefined);
+  for (const enabled of ["false", "true"]) {
+    for (const event of ["workflow_run", "workflow_dispatch"]) {
+      for (const prerelease of [false, true]) {
+        for (const trusted of [true, false]) {
+          for (const success of [true, false]) {
+            const github = {
+              repository: "linkasu/linka.looks-electron",
+              ref: trusted ? "refs/heads/main" : "refs/heads/other",
+              event_name: event,
+              event: {
+                workflow_run: {
+                  conclusion: success ? "success" : "failure",
+                  head_repository: { full_name: "linkasu/linka.looks-electron" }
+                }
+              }
+            };
+            for (const name of ["prepare", "publish"]) {
+              const allowed = new Function(
+                "vars",
+                "github",
+                "inputs",
+                `return (${w.jobs[name].if});`
+              )({ CI_V2_RELEASE_ENABLED: enabled }, github, { prerelease });
+              assert.equal(
+                allowed,
+                trusted &&
+                  (event === "workflow_dispatch" || success) &&
+                  (enabled === "true" || (event === "workflow_dispatch" && prerelease))
+              );
+              github.repository = "foreign/repo";
+              assert.equal(
+                new Function("vars", "github", "inputs", `return (${w.jobs[name].if});`)(
+                  { CI_V2_RELEASE_ENABLED: enabled },
+                  github,
+                  { prerelease }
+                ),
+                false
+              );
+              github.repository = "linkasu/linka.looks-electron";
+            }
+          }
+        }
+      }
+    }
+    for (const mode of ["false", "true", ""]) {
+      assert.equal(
+        new Function("vars", "needs", `return (${w.jobs.mirror.if});`)(
+          { CI_V2_RELEASE_ENABLED: enabled },
+          { publish: { outputs: { prerelease: mode } } }
+        ),
+        enabled === "true" && mode === "false"
+      );
+    }
+  }
+});
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "publication-"));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -69,6 +146,7 @@ function fixture(t) {
     repository: "linkasu/linka.looks-electron",
     version: "4.1.0",
     tag: "v4.1.0",
+    prerelease: false,
     appSha: "a".repeat(40),
     candidateId: "12",
     candidateSha256: "b".repeat(64),
@@ -102,7 +180,7 @@ function fakeApi(manifest, initial = null) {
         target_commitish: manifest.appSha,
         body: "# 4.1.0\nReviewed notes\n",
         draft: true,
-        prerelease: false,
+        prerelease: manifest.prerelease,
         assets: []
       };
     },
@@ -156,6 +234,104 @@ test("first publication creates draft, uploads exact bytes and only then publish
   assert.deepEqual(remote.writes, ["create", "upload:installer.exe", "publish"]);
   assert.equal((await publish(f.directory, remote.api)).status, "ALREADY_PUBLISHED");
   assert.equal(remote.writes.length, 3);
+});
+test("publication mode is immutable for existing drafts and published releases", async (t) => {
+  const f = fixture(t);
+  for (const prerelease of [true, false]) {
+    for (const draft of [false, true]) {
+      const manifest = { ...f.manifest, prerelease };
+      const remote = fakeApi(manifest, {
+        id: 1,
+        tag_name: manifest.tag,
+        target_commitish: manifest.appSha,
+        body: "# 4.1.0\nReviewed notes\n",
+        draft,
+        prerelease: !prerelease,
+        assets: []
+      });
+      fs.writeFileSync(path.join(f.directory, "publication.json"), JSON.stringify(manifest));
+      assert.throws(
+        () =>
+          inspectState(
+            { release: remote.release, tagSha: manifest.appSha },
+            manifest,
+            remote.release.body
+          ),
+        /release mode mismatch/
+      );
+      await assert.rejects(publish(f.directory, remote.api), /release mode mismatch/);
+      assert.deepEqual(remote.writes, []);
+    }
+  }
+});
+for (const prerelease of [false, true]) {
+  test(`sealed prerelease=${prerelease} controls draft and publish API bodies, not environment`, async (t) => {
+    const f = fixture(t);
+    f.manifest.prerelease = prerelease;
+    fs.writeFileSync(path.join(f.directory, "publication.json"), JSON.stringify(f.manifest));
+    const remote = fakeApi(f.manifest);
+    const bodies = [];
+    const previous = process.env.PUBLICATION_PRERELEASE;
+    process.env.PUBLICATION_PRERELEASE = String(!prerelease);
+    t.after(() => {
+      if (previous === undefined) delete process.env.PUBLICATION_PRERELEASE;
+      else process.env.PUBLICATION_PRERELEASE = previous;
+    });
+    const createDraft = remote.api.createDraft;
+    const publishRelease = remote.api.publish;
+    const api = releaseApi(async (_, options) => {
+      bodies.push(options.body);
+      if (options.method === "POST") await createDraft();
+      else await publishRelease();
+    });
+    remote.api.createDraft = api.createDraft;
+    remote.api.publish = api.publish;
+    assert.equal((await publish(f.directory, remote.api)).status, "PUBLISHED");
+    assert.equal(bodies[0].draft, true);
+    assert.equal(bodies[0].prerelease, prerelease);
+    assert.equal(bodies[0].make_latest, "false");
+    assert.deepEqual(bodies[1], {
+      draft: false,
+      prerelease,
+      make_latest: prerelease ? "false" : "true"
+    });
+    assert.equal((await publish(f.directory, remote.api)).status, "ALREADY_PUBLISHED");
+    assert.equal(bodies.length, 2);
+  });
+}
+test("missing or invalid sealed publication mode fails before API read or writer", async (t) => {
+  const f = fixture(t);
+  for (const prerelease of [undefined, null, "true", "false", 0, 1]) {
+    fs.writeFileSync(
+      path.join(f.directory, "publication.json"),
+      JSON.stringify({ ...f.manifest, prerelease })
+    );
+    await assert.rejects(
+      publish(f.directory, { read: () => assert.fail("invalid mode reached API") }),
+      /prerelease must be boolean/
+    );
+  }
+});
+test("prepare rejects non-boolean publication mode before API calls", async () => {
+  for (const prerelease of [null, "true", "false", 0, 1])
+    await assert.rejects(
+      prepare("34", "unused", {
+        prerelease,
+        request: () => assert.fail("invalid mode reached API")
+      }),
+      /prerelease must be boolean/
+    );
+});
+test("prepare CLI rejects invalid explicit prerelease environment before API access", () => {
+  for (const value of ["", "TRUE", "1", "null"]) {
+    const result = require("node:child_process").spawnSync(
+      process.execPath,
+      [path.join(__dirname, "release-publication.cjs"), "prepare", "34", "unused"],
+      { env: { ...process.env, PUBLICATION_PRERELEASE: value }, timeout: 10000 }
+    );
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr.toString().trim(), "PUBLICATION_PRERELEASE must be true or false");
+  }
 });
 test("matching draft resumes only missing assets without overwrites", async (t) => {
   const f = fixture(t),
@@ -419,12 +595,14 @@ for (const [name, change] of [
   ],
   ["wrong artifact ZIP hash", { artifact: { digest: `sha256:${"f".repeat(64)}` } }]
 ])
-  test(`prepare rejects ${name} before payload download or writer`, async (t) => {
-    const f = qualificationFixture(t, change);
-    await assert.rejects(prepare("34", path.join(f.directory, "out"), f.options));
-    assert(!f.calls.includes("download"));
-    assert(!fs.existsSync(path.join(f.directory, "out")));
-  });
+  for (const prerelease of [false, true])
+    test(`prepare prerelease=${prerelease} rejects ${name} before payload download or writer`, async (t) => {
+      const f = qualificationFixture(t, change);
+      f.options.prerelease = prerelease;
+      await assert.rejects(prepare("34", path.join(f.directory, "out"), f.options));
+      assert(!f.calls.includes("download"));
+      assert(!fs.existsSync(path.join(f.directory, "out")));
+    });
 test("API-confirmed missing successful job cannot be replaced by JSON PASS", async (t) => {
   const f = qualificationFixture(t);
   f.jobs.pop();
@@ -710,6 +888,7 @@ test("valid qualification seals candidate source, notes and sanitized provenance
     { output } = f;
   assert.equal((await prepare("34", output, f.options)).status, "PREPARED");
   const manifest = verifyPrepared(output);
+  assert.equal(manifest.prerelease, false);
   assert(manifest.files.some((file) => file.name === "release-provenance.json"));
   assert(
     !manifest.files.some((file) =>
@@ -720,6 +899,13 @@ test("valid qualification seals candidate source, notes and sanitized provenance
   assert.deepEqual(provenance.resources, f.c.resources);
   assert.equal(provenance.scope.hardware, "NOT_TESTED");
   assert(!provenance.files.some((file) => file.name === "release-provenance.json"));
+});
+test("full release qualification can seal a prerelease without changing qualification mode", async (t) => {
+  const f = completeFixture(t);
+  f.options.prerelease = true;
+  assert.equal((await prepare("34", f.output, f.options)).status, "PREPARED");
+  assert.equal(f.q.mode, "release");
+  assert.equal(verifyPrepared(f.output).prerelease, true);
 });
 function reusedFixture(t, reused = ["security"]) {
   const f = completeFixture(t, {
