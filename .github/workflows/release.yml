@@ -11,6 +11,10 @@ on:
         description: "Exact successful qualification run ID (not a candidate or diagnostic run)"
         required: true
         type: string
+      prerelease:
+        description: "Publish a qualified prerelease without changing Latest or the public mirror"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,7 +27,8 @@ concurrency:
 jobs:
   prepare:
     if: >-
-      vars.CI_V2_RELEASE_ENABLED == 'true' &&
+      (vars.CI_V2_RELEASE_ENABLED == 'true' ||
+       (github.event_name == 'workflow_dispatch' && inputs.prerelease == true)) &&
       github.repository == 'linkasu/linka.looks-electron' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
@@ -51,6 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           QUALIFICATION_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.qualification_run_id }}
+          PUBLICATION_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease == true && 'true' || 'false' }}
         run: node scripts/ci/release-publication.cjs prepare "$QUALIFICATION_RUN_ID" "$RUNNER_TEMP/publication"
       - uses: actions/upload-artifact@v4
         with:
@@ -61,7 +67,14 @@ jobs:
 
   publish:
     needs: prepare
-    if: vars.CI_V2_RELEASE_ENABLED == 'true' && github.repository == 'linkasu/linka.looks-electron' && github.ref == 'refs/heads/main'
+    if: >-
+      (vars.CI_V2_RELEASE_ENABLED == 'true' ||
+       (github.event_name == 'workflow_dispatch' && inputs.prerelease == true)) &&
+      github.repository == 'linkasu/linka.looks-electron' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     environment: release-production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -70,6 +83,7 @@ jobs:
       actions: read
     outputs:
       version: ${{ needs.prepare.outputs.version }}
+      prerelease: ${{ steps.verify.outputs.prerelease }}
     steps:
       - name: Check out only trusted publisher tooling, never candidate code
         uses: actions/checkout@v4
@@ -90,10 +104,11 @@ jobs:
           name: prepared-publication-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/publication
       - name: Verify sealed manifest and every payload file before any write
+        id: verify
         env:
           EXPECTED_MANIFEST_SHA256: ${{ needs.prepare.outputs.manifest_sha256 }}
         run: |
-          node -e 'const fs=require("node:fs"),c=require("node:crypto"),a=require("node:assert/strict");a.equal(c.createHash("sha256").update(fs.readFileSync(process.env.RUNNER_TEMP+"/publication/publication.json")).digest("hex"),process.env.EXPECTED_MANIFEST_SHA256);require("./scripts/ci/release-publication.cjs").verifyPrepared(process.env.RUNNER_TEMP+"/publication")'
+          node -e 'const fs=require("node:fs"),c=require("node:crypto"),a=require("node:assert/strict");a.equal(c.createHash("sha256").update(fs.readFileSync(process.env.RUNNER_TEMP+"/publication/publication.json")).digest("hex"),process.env.EXPECTED_MANIFEST_SHA256);const m=require("./scripts/ci/release-publication.cjs").verifyPrepared(process.env.RUNNER_TEMP+"/publication");fs.appendFileSync(process.env.GITHUB_OUTPUT,"prerelease="+m.prerelease+"\n")'
       - name: Reconcile and publish exact prepared bytes (never overwrite)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,7 +116,7 @@ jobs:
 
   mirror:
     needs: publish
-    if: vars.CI_V2_RELEASE_ENABLED == 'true'
+    if: vars.CI_V2_RELEASE_ENABLED == 'true' && needs.publish.outputs.prerelease == 'false'
     permissions:
       contents: read
     uses: ./.github/workflows/publish-linka-looks-updater.yml
