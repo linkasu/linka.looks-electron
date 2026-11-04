@@ -664,6 +664,21 @@ test("release API resolves annotated tag and independently lists assets", async 
   assert.equal(state.release.assets[0].name, "actual");
   assert.equal(calls.length, 4);
 });
+test("GitHub artifact ZIP requests negotiate JSON media type but return exact bytes", async () => {
+  const endpoint = "/repos/linkasu/linka.looks-electron/actions/artifacts/13344045411/zip";
+  const bytes = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]);
+  const result = await request(endpoint, {
+    binary: true,
+    fetchImpl: async (url, { headers }) => {
+      assert.equal(String(url), `https://api.github.com${endpoint}`);
+      if (headers.Accept === "application/octet-stream") return new Response(null, { status: 415 });
+      assert.equal(headers.Accept, "application/vnd.github+json");
+      return new Response(bytes);
+    }
+  });
+  assert(Buffer.isBuffer(result));
+  assert.deepEqual(result, bytes);
+});
 test("GitHub adapter never follows writes or leaks token on redirected artifact requests", async (t) => {
   const original = process.env.GH_TOKEN;
   process.env.GH_TOKEN = "test-only-token";

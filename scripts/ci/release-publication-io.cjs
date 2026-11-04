@@ -37,7 +37,7 @@ async function request(
   const signal = AbortSignal.timeout(300000);
   for (let redirect = 0; redirect <= 5; redirect++) {
     const headers = {
-      Accept: binary ? "application/octet-stream" : "application/vnd.github+json",
+      Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28"
     };
     if (["api.github.com", "uploads.github.com"].includes(url.hostname)) {

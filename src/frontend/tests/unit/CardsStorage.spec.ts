@@ -26,6 +26,42 @@ vi.mock("original-fs", async () => {
 });
 
 describe("CardsStorage", () => {
+  it("loads folder metadata and previews without inflating unrelated media on each visit", async () => {
+    const home = createHomeDir();
+    const storage = await createStorage(home);
+    const file = join(home, "preview.linka");
+    const config = baseConfig();
+    config.pages![0].cards[0].imagePath = "preview.png";
+    writeLinka(file, config, {
+      "preview.png": Buffer.from("preview bytes"),
+      "unused.mp3": Buffer.alloc(1024 * 1024, 65)
+    });
+    const bytes = readFileSync(file);
+    const central = Buffer.from("PK\x01\x02", "binary");
+    for (
+      let offset = bytes.indexOf(central);
+      offset >= 0;
+      offset = bytes.indexOf(central, offset + 1)
+    ) {
+      if (bytes.subarray(offset + 46, offset + 56).toString() === "unused.mp3") {
+        const local = bytes.readUInt32LE(offset + 42);
+        const data = local + 30 + bytes.readUInt16LE(local + 26) + bytes.readUInt16LE(local + 28);
+        bytes[data] = 0x07; // Invalid DEFLATE block: any eager decode must fail.
+      }
+    }
+    writeFileSync(file, bytes);
+    for (let visit = 0; visit < 2; visit++) {
+      const listing = await storage.getFiles();
+      expect(listing.find((item) => item.file === file)?.set?.pages?.[0].cards[0].title).to.equal(
+        "one"
+      );
+      expect(storage.getDefaultImage(file)?.toString()).to.equal("preview bytes");
+    }
+    expect(() => storage.getAudio(file, "unused.mp3")).to.throw();
+    await expectRejected(storage.importExternalSet(file));
+    expect(readFileSync(file)).to.deep.equal(bytes);
+  });
+
   it("suggests a free copy basename across corrupt archives, directories, links and case collisions without writes", async () => {
     const home = createHomeDir();
     const storage = await createStorage(home);
@@ -117,7 +153,7 @@ describe("CardsStorage", () => {
     expect(readdirSync(home).some((name) => name.endsWith(".tmp"))).to.equal(false);
   });
 
-  it("rejects a false media size at read/import/save/merge and preserves source and destination", async () => {
+  it("rejects a false media size when consumed/imported/saved/merged and preserves both files", async () => {
     const home = createHomeDir();
     const storage = await createStorage(home);
     const source = join(home, "malformed.linka");
@@ -138,7 +174,7 @@ describe("CardsStorage", () => {
     }
     writeFileSync(source, data);
     const before = readFileSync(target);
-    expect(() => storage.getConfigFile(source)).to.throw();
+    expect(storage.getConfigFile(source)?.pages?.[0].cards[0].title).to.equal("one");
     expect(() => storage.getImage(source, "asset.txt")).to.throw();
     await expectRejected(storage.importExternalSet(source));
     await expectRejected(storage.saveSet(source, target, baseConfig()));
@@ -330,7 +366,7 @@ describe("CardsStorage", () => {
     expect(readdirSync(homeDir).some((name) => name.endsWith(".tmp"))).to.equal(false);
   });
 
-  it("rejects false media sizes on open, read, import, save and merge without replacing data", async () => {
+  it("rejects false media sizes on consumption/import/save/merge without replacing data", async () => {
     const homeDir = createHomeDir();
     const storage = await createStorage(homeDir);
     const source = join(homeDir, "malformed.linka");
@@ -351,7 +387,7 @@ describe("CardsStorage", () => {
     }
     writeFileSync(source, data);
     const before = readFileSync(target);
-    expect(() => storage.getConfigFile(source)).to.throw();
+    expect(storage.getConfigFile(source)?.pages?.[0].cards[0].title).to.equal("one");
     expect(() => storage.getImage(source, "asset.txt")).to.throw();
     expect(() => storage.getAudio(source, "asset.txt")).to.throw();
     await expectRejected(storage.importExternalSet(source));
