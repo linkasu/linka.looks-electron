@@ -453,3 +453,88 @@ domain hash включает ширину; near-duplicate Jaccard >=4/5, цел�
 tests куратор может передать private FINAL+DEV через stdin `{id,group_id,text}`;
 training owner получает только hash-only index. Генерация/коммит index и передача
 bundle выполняются только по отдельному разрешению primary; до этого никакого публичного вывода.
+
+## Book execution route (execution-only change, not a metric/data amendment)
+
+Все реальные model/DEV/FINAL вычисления выполняются на `book.local`, в native
+Linux ARM64 контейнере Colima `linka-model-400`. Legacy workflow modes dev/final
+сохранены в списке, но intake блокирует их до декодирования: **не dispatch-ить**;
+default — import-dev. Windows
+qualification остаётся CI. CI modes import-dev/import-final ничего не собирают,
+не загружают Predictor, не запускают inference и не пересчитывают bootstrap.
+
+`scripts/ci/book-model-evaluation.mjs` вызывает общий
+`runPreparedEvaluation(context,{sourceRoot,tempRoot,preflightOnly})`, механически
+вынесенный из старого main. UI adapter, slot filters, costs, ratio, paired CI,
+seed40003 и выбор U/T неизменны. GHA main по-прежнему выполняет свой guard.
+Book использует явный --book context, не подделывает GITHUB_ACTIONS/EVENT/REPOSITORY.
+
+Operational receipt находится **вне Git source**:
+`/work/metadata/execution.json`, mode 0444. CLI получает явный SHA256 этого файла.
+Schema `linka-book-execution-v1`: host book.local, colima_profile linka-model-400,
+book_job_id 32 lowercase hex, attempt positive integer, image_digest, source_sha,
+limits {memory_bytes:6442450944,cpus:2,tasks:128}. Никаких aliases profile/pids и
+никакого receipt_sha256 внутри самого receipt. Execution context — весь receipt
+плюс kind book-local-linux-container и receipt_sha256. Shared house validator из
+`import-book-candidate.cjs` проверяет canonical sorted ASCII JSON+LF receipt SHA.
+Base Rust image pinned:
+`sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e`.
+Это trusted primary execution attestation, не утверждение, что CI выполнял Book job.
+
+До чтения targets Book проверяет фактические process.platform=linux/arch=arm64,
+отсутствие GHA flags, memory.max=6442450944, cpu.max="200000 100000", pids.max=128;
+receipt bytes/CLI pin; code refs/bindings; preregistered plan; модельный CI-import
+artifact/provenance/receipts. Проверяет ARM64 ELF и отдельный **Book ARM** binary SHA.
+Старый x64 CI hash не является Book pin. Ahead checksum получает primary до targets
+на точном runtime Rust subtree; evaluator его не выводит из увиденных результатов.
+Binary staging path общего executor: sourceRoot/target/release/examples/model_final_stream;
+туда допускается копия ровно тех ahead bytes, без новой сборки после открытия targets.
+
+Команда: `node scripts/ci/book-model-evaluation.mjs --book CONFIG.json RECEIPT_SHA256`.
+CONFIG содержит inputs (девять прежних metadata inputs без sealed_bundle), sourceRoot,
+tempRoot, bundlePath, metadataPath, manifestPath, planPath и только для final —
+devReportPath. inputs.mode — dev/final. Candidate metadata — настоящие данные
+**CI model import** run/artifact, не фиктивный CI train и не book_job_id. Metadata
+executing_workflow_sha256 обозначает заранее pinned verifier workflow code, не
+место inference. Artifact заранее помещён в tempRoot/eval-candidate.zip.
+
+Plan bytes должны совпасть с committed HEAD blob в своей approval checkout;
+source/app checkouts остаются на frozen code refs. Approval checkout может быть
+отдельным worktree: не создавать source/plan commit self-reference. Receipt не
+коммитится. Book freeze сохраняет прежний DEV-plan/FINAL schema/cost whitelist и
+добавляет только execution и source_code_hashes. Этот полный JSON pin фиксируется
+до targets; прежний pure validator получает projection без этих двух route полей.
+Manifest дополнительно требует bookEvaluationBindings с hash реального Book executor
+и используемого `scripts/ci/import-book-candidate.cjs` (опционально Book test).
+source_code_hashes — точное объединение старых bindings и bookEvaluationBindings.
+Новый seal/index формируются куратором только после primary approval стабильных
+tracked bytes; этот документ не инициирует reseal или запуск.
+
+Raw Book aggregate имеет null evaluationRunId/Attempt, execution, source_code_hashes,
+kind book-local-linux-container, inferenceLocation book.local. Он создаётся только
+после полного успешного сбора результатов (NOT_QUALIFIED — честный полный результат,
+не approval). Исходные bytes `{mode}-book-original-aggregate.json` неизменяемы и
+сохраняются в evidence/approval. Primary подтверждает реально выполненный Book job
+и сверяет `{mode}-book-evidence.json` (report SHA, freeze SHA, execution/code hashes);
+оба evidence файла создаются create-new и переводятся в mode 0444. Отдельное
+разрешение primary на передачу именно этих bytes обязательно, не выводится из
+identity receipt или валидного schema. Frozen code проверяется primary под SSH;
+identity receipt сам по себе не является доказательством
+измерений или production approval.
+
+CI import payload `linka-book-ui-import-v1` имеет только schema,
+aggregate_report_json, manifest_json, run_freeze_json, book_receipt_json; для final
+также dev_report_json. DEV/FINAL target keys отвергаются. 65000 ASCII base64 / 2MiB
+decompressed bounds прежние. Report schema строгая: нет произвольного текста,
+query/target/per-row каналов. CI сверяет actual candidate import provenance с
+Book execution origin, frozen plan/hash/refs/code/model pins, receipt и aggregate.
+Числовые поля/CI/статусы проверяются, но inference/bootstrap не выполняются.
+
+Canonical wrapper добавляет только реальные CI import IDs, ciImport с
+inferencePerformed=false, originalBookReportSha256; Book execution/inferenceLocation
+остаются Book. Семантика исходного JSON сравнивается с wrapper deep-equal после
+удаления только этих import metadata. Никакие числа, выбор, config или status не
+меняются. Артефакты по-прежнему ui-dev-aggregate/ui-final-aggregate и содержат
+canonical aggregate + точные original Book bytes. Book job ID и CI import run ID
+различны и записаны отдельно. Валидный импорт не даёт разрешения на публикацию;
+owner freeze и отдельное разрешение сохраняются обязательными.
