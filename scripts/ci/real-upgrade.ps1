@@ -68,7 +68,34 @@ try {
     }
   }
   $installer = [System.Diagnostics.Process]::Start($start)
-  if (-not $installer.WaitForExit(180000)) { throw "Old installer exceeded deadline" }
+  if (-not $installer.WaitForExit(180000)) {
+    $processes = @(Get-CimInstance Win32_Process)
+    $owned = [System.Collections.Generic.HashSet[uint32]]::new()
+    [void]$owned.Add([uint32]$installer.Id)
+    do {
+      $count = $owned.Count
+      foreach ($item in $processes) {
+        if ($owned.Contains([uint32]$item.ParentProcessId)) { [void]$owned.Add([uint32]$item.ProcessId) }
+      }
+    } while ($owned.Count -ne $count)
+    @($processes | Where-Object { $owned.Contains([uint32]$_.ProcessId) } | ForEach-Object {
+      $native = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+      $title = if ($native) { $native.MainWindowTitle } else { $null }
+      $responding = if ($native) { $native.Responding } else { $null }
+      [PSCustomObject]@{ pid = $_.ProcessId; parent = $_.ParentProcessId; name = $_.Name;
+        executable = $_.ExecutablePath; title = $title; responding = $responding }
+    }) | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $evidence "upgrade-installer-processes.json")
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+    $bitmap = [System.Drawing.Bitmap]::new($screen.Width, $screen.Height)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    try {
+      $graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $bitmap.Size)
+      $bitmap.Save((Join-Path $evidence "upgrade-installer-desktop.png"))
+    } finally { $graphics.Dispose(); $bitmap.Dispose() }
+    throw "Old installer exceeded deadline; owned process/window diagnostics retained"
+  }
   if ($installer.ExitCode -ne 0) { throw "Old installer failed: $($installer.ExitCode)" }
   if (-not (Test-Path -LiteralPath $exe)) { throw "Exact installed executable missing" }
   if ((Get-Item -LiteralPath $exe).VersionInfo.ProductVersion -notmatch '^3\.3\.1(?:\.|$)') {

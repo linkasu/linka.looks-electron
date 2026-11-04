@@ -97,6 +97,35 @@ test("feed metadata binds filename, size and sha512 to actual installer bytes", 
   assert.equal(OLD.size, 148213565);
 });
 
+test("historical installer timeout retains bounded owned-process and desktop evidence before failure", () => {
+  const script = fs.readFileSync(path.join(__dirname, "real-upgrade.ps1"), "utf8");
+  const timeout = script.indexOf("$installer.WaitForExit(180000)");
+  const failure = script.indexOf('throw "Old installer exceeded deadline;', timeout);
+  assert(timeout > 0 && failure > timeout);
+  for (const file of ["upgrade-installer-processes.json", "upgrade-installer-desktop.png"]) {
+    const position = script.indexOf(file, timeout);
+    assert(position > timeout && position < failure);
+  }
+  assert(script.includes("$owned.Add([uint32]$installer.Id)"));
+  assert(script.includes("$owned.Contains([uint32]$_.ProcessId)"));
+  assert(!script.includes("$_.CommandLine"));
+});
+
+test("trusted main harness identity is separate from immutable candidate tooling identity", () => {
+  const workflow = fs.readFileSync(
+    path.join(__dirname, "../../.github/workflows/windows-upgrade.yml"),
+    "utf8"
+  );
+  assert(workflow.includes("context.ref, 'refs/heads/main'"));
+  assert(workflow.includes("source.head_sha, tooling"));
+  assert(workflow.includes("item.workflow_run.head_sha, tooling"));
+  assert(workflow.includes("git rev-parse HEAD) -cne $env:GITHUB_SHA"));
+  assert(workflow.includes("$env:ACCEPTANCE_SHA = $env:UPGRADE_TOOLING_SHA"));
+  assert(!workflow.includes("context.sha, tooling"));
+  const harness = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
+  assert(harness.includes("harnessSha: process.env.GITHUB_SHA"));
+});
+
 test("execution guard rejects untrusted provenance, ambiguous records and corrupted bytes", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "upgrade-contract-"));
   try {
