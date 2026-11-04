@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
+import { ownedProcessIds } from "./process-census.cjs";
 
 for (const cycles of [2, 50]) {
   test(`eye typing route preserves the main BrowserWindow on enter, back and reenter (${cycles} cycles)`, async () => {
@@ -36,18 +37,23 @@ for (const cycles of [2, 50]) {
     const measurements = [];
     const dialogs: string[] = [];
     function recordProcesses() {
-      const rows = execFileSync("ps", ["-axo", "pid=,ppid="], { encoding: "utf8" })
-        .trim()
-        .split("\n")
-        .map((line) => line.trim().split(/\s+/).map(Number));
-      const liveOwned = new Set<number>([app.process().pid!]);
-      let previousSize = 0;
-      while (previousSize !== liveOwned.size) {
-        previousSize = liveOwned.size;
-        for (const [pid, parent] of rows) if (liveOwned.has(parent)) liveOwned.add(pid);
-      }
+      const options = { encoding: "utf8" as const, timeout: 5000, windowsHide: true };
+      const output =
+        process.platform === "win32"
+          ? execFileSync(
+              "powershell.exe",
+              [
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "$ErrorActionPreference = 'Stop'; ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId | Select-Object ProcessId,ParentProcessId)"
+              ],
+              options
+            )
+          : execFileSync("ps", ["-axo", "pid=,ppid="], options);
+      const liveOwned = ownedProcessIds(output, process.platform, app.process().pid!);
       for (const pid of liveOwned) ownedPids.add(pid);
-      return [...liveOwned];
+      return liveOwned;
     }
     try {
       const page = await app.firstWindow();
