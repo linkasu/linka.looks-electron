@@ -100,7 +100,9 @@ public static class WindowsModelJob
             Check(QueryAccounting(job, 1, out accounting, (uint)Marshal.SizeOf(typeof(Accounting)), IntPtr.Zero));
             ulong peak = limits.PeakProcessMemoryUsed.ToUInt64();
             if (p.ExitCode != expectedExit || peak == 0 || peak > limit || accounting.ActiveProcesses != 0)
-                throw new InvalidOperationException("Owned child exit, private-commit peak or leak check failed");
+                throw new InvalidOperationException("Owned child check failed: exit=" + p.ExitCode +
+                    "; expected=" + expectedExit + "; peak=" + peak + "; limit=" + limit +
+                    "; active=" + accounting.ActiveProcesses);
             if (error.Result.Length != 0) throw new InvalidOperationException("Unexpected owned child stderr");
             return new Result { ExitCode = p.ExitCode, PeakPrivateCommitBytes = peak,
                 ActiveProcessesAfterExit = accounting.ActiveProcesses, Output = output.Result,
