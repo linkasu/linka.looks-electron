@@ -3,7 +3,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { digest, verifyCandidateFiles, REPOSITORY } = require("./candidate-contract.cjs");
-const { validateQualification, verifyQualificationFiles } = require("./qualification-contract.cjs");
+const {
+  validateQualification,
+  verifyQualificationFiles,
+  validateProducingJob
+} = require("./qualification-contract.cjs");
 const read = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2));
 const root = `/repos/${REPOSITORY}`;
@@ -407,7 +411,7 @@ async function prepare() {
     `candidate_id=${resolved.candidateId}\nmode=${mode}\nsuite=${suite}\nharness_sha=${harness}\n`
   );
 }
-function verifyGateArtifact(q, job, output, { artifact, jobs }) {
+function verifyGateArtifact(q, job, output, { artifact, jobs, producingJobs }) {
   assert(positive(output.artifact_id));
   const attempt = Number(output.attempt);
   assert(Number.isSafeInteger(attempt) && attempt > 0 && attempt <= q.runAttempt);
@@ -420,19 +424,7 @@ function verifyGateArtifact(q, job, output, { artifact, jobs }) {
     artifact.digest,
     `sha256:${output.artifact_digest}`.replace("sha256:sha256:", "sha256:")
   );
-  const actual = jobs.filter((j) => j.name === job);
-  assert.equal(actual.length, 1);
-  const producing = actual[0];
-  assert.equal(String(producing.run_id), q.runId);
-  assert.equal(
-    producing.run_attempt,
-    attempt,
-    "cannot establish original producing attempt; fail closed"
-  );
-  assert.equal(producing.head_sha, q.harnessSha);
-  assert.equal(producing.status, "completed");
-  assert.notEqual(producing.conclusion, "cancelled");
-  return producing;
+  return validateProducingJob(q, { job, runAttempt: attempt }, { jobs, producingJobs });
 }
 function aggregateStatus(gates, selected) {
   const values = selected.map((s) => gates[s].status);
@@ -478,6 +470,7 @@ async function aggregate(
   const jobs = (await githubJson(`${root}/actions/runs/${q.runId}/jobs?filter=latest&per_page=100`))
     .jobs;
   assert(jobs.length < 100);
+  const producingAttempts = new Map();
   for (const suite of suites) {
     const job = { packaged: "windows", upgrade: "windows" }[suite] || suite;
     const output = needs[job]?.outputs;
@@ -516,8 +509,26 @@ async function aggregate(
       continue;
     }
     const attempt = Number(output.attempt);
+    assert(Number.isSafeInteger(attempt) && attempt > 0 && attempt <= q.runAttempt);
+    let producingJobs;
+    if (attempt < q.runAttempt) {
+      if (!producingAttempts.has(attempt)) {
+        const result = await githubJson(
+          `${root}/actions/runs/${q.runId}/attempts/${attempt}/jobs?per_page=100`
+        );
+        assert(
+          Array.isArray(result.jobs) &&
+            result.jobs.length < 100 &&
+            Number.isSafeInteger(result.total_count) &&
+            result.total_count === result.jobs.length,
+          "complete bounded producing-attempt jobs required"
+        );
+        producingAttempts.set(attempt, result.jobs);
+      }
+      producingJobs = producingAttempts.get(attempt);
+    }
     const artifact = await githubJson(`${root}/actions/artifacts/${output.artifact_id}`);
-    const producing = verifyGateArtifact(q, job, output, { artifact, jobs });
+    const producing = verifyGateArtifact(q, job, output, { artifact, jobs, producingJobs });
     const file = path.join(directory, artifact.name, `${suite}.json`);
     if (!fs.existsSync(file)) {
       retain(

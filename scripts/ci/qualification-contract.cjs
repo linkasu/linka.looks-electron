@@ -221,6 +221,49 @@ function verifyQualificationFiles(q, directory, context) {
   return q;
 }
 
+function validateProducingJob(q, { job, runAttempt }, { jobs, producingJobs }) {
+  assert(positive(q.runId) && sha(q.harnessSha));
+  assert(Number.isSafeInteger(q.runAttempt) && q.runAttempt > 0);
+  assert(Number.isSafeInteger(runAttempt) && runAttempt > 0 && runAttempt <= q.runAttempt);
+  assert(["software", "windows", "security"].includes(job));
+  const matching = (list) => {
+    assert(Array.isArray(list), "explicit producing-attempt jobs required for reused evidence");
+    const matches = list.filter((j) => j.name === job);
+    assert.equal(matches.length, 1, `missing/ambiguous producing job: ${job}`);
+    const j = matches[0];
+    assert.equal(String(j.run_id), q.runId);
+    assert.equal(j.head_sha, q.harnessSha);
+    assert(
+      Number.isSafeInteger(j.run_attempt) && j.run_attempt > 0 && j.run_attempt <= q.runAttempt
+    );
+    assert.equal(j.status, "completed");
+    assert.notEqual(j.conclusion, "cancelled");
+    return j;
+  };
+  const latest = matching(jobs);
+  if (runAttempt === q.runAttempt) {
+    assert.equal(latest.run_attempt, runAttempt);
+    return latest;
+  }
+  const producing = matching(producingJobs);
+  assert.equal(producing.run_attempt, runAttempt);
+  assert(latest.run_attempt >= runAttempt);
+  assert.equal(producing.conclusion, "success", "only successful executions may be reused");
+  assert.equal(latest.conclusion, "success");
+  for (const field of ["started_at", "completed_at"]) {
+    const timestamp = producing[field];
+    assert(
+      typeof timestamp === "string" &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(timestamp) &&
+        Number.isFinite(Date.parse(timestamp)),
+      "missing/invalid original execution timestamps"
+    );
+    assert.equal(latest[field], timestamp, "latest job must project the same original execution");
+  }
+  assert(Date.parse(producing.started_at) <= Date.parse(producing.completed_at));
+  return producing;
+}
+
 function validateQualificationOrigin(q, { run, artifact, jobs }) {
   validateQualification(q);
   assert.equal(q.mode, "release");
@@ -259,5 +302,6 @@ module.exports = {
   validateQualification,
   requireReleaseQualification,
   verifyQualificationFiles,
+  validateProducingJob,
   validateQualificationOrigin
 };

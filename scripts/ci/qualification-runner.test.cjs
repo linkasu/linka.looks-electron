@@ -202,7 +202,9 @@ test("aggregator emits honest single-suite PASS, missing-report INFRA_ERROR and 
     run_attempt: 1,
     head_sha: sha,
     status: "completed",
-    conclusion: "success"
+    conclusion: "success",
+    started_at: "2026-11-04T15:14:17Z",
+    completed_at: "2026-11-04T15:14:55Z"
   };
   const artifact = {
     id: 56,
@@ -222,10 +224,24 @@ test("aggregator emits honest single-suite PASS, missing-report INFRA_ERROR and 
       }
     });
     if (scenario === "missing-file") fs.unlinkSync(path.join(input, "security.json"));
-    const api = async (url) =>
-      url.includes("/jobs?")
-        ? { jobs: [{ ...job, conclusion: scenario === "cancelled" ? "cancelled" : "success" }] }
-        : artifact;
+    let producingReads = 0;
+    const api = async (url) => {
+      if (url.includes("/attempts/1/jobs?")) {
+        producingReads++;
+        return { total_count: 1, jobs: [job] };
+      }
+      if (url.includes("/jobs?"))
+        return {
+          jobs: [
+            {
+              ...job,
+              run_attempt: 2,
+              conclusion: scenario === "cancelled" ? "cancelled" : "success"
+            }
+          ]
+        };
+      return artifact;
+    };
     const q = await aggregate(directory, {
       githubJson: api,
       resolved,
@@ -242,7 +258,112 @@ test("aggregator emits honest single-suite PASS, missing-report INFRA_ERROR and 
       }[scenario]
     );
     assert.equal(q.gates.upgrade.status, "NOT_RUN");
+    if (scenario === "pass") {
+      assert.equal(producingReads, 1);
+      assert.deepEqual(
+        fs.readFileSync(path.join(directory, scenario, "security.json")),
+        bytes,
+        "reused report bytes and original attempt must not be rewritten"
+      );
+    }
   }
+  process.env.GATE_NEEDS = JSON.stringify({
+    prepare: { outputs: { suite: "security" } },
+    security: { result: "success", outputs }
+  });
+  await assert.rejects(
+    aggregate(directory, {
+      githubJson: async (url) => {
+        if (url.includes("/attempts/1/jobs?")) throw new Error("explicit attempt API unavailable");
+        return { jobs: [{ ...job, run_attempt: 2 }] };
+      },
+      resolved,
+      binding,
+      outputDirectory: path.join(directory, "missing-producing-api")
+    })
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(directory, "missing-producing-api/qualification.json")))
+      .status,
+    "INFRA_ERROR"
+  );
+  const nativeName = "qualification-gates-windows-34-1";
+  const nativeDirectory = path.join(directory, nativeName);
+  fs.mkdirSync(nativeDirectory);
+  const b = c.baseline;
+  const nativeData = {
+    packaged: {
+      installedExecutable: "d".repeat(64),
+      resources: c.resources,
+      model: {
+        "model.lpk": { sha256: c.resources.modelSha256, size: 1 },
+        "lp-electron.exe": { sha256: c.resources.runtimeSha256, size: 1 }
+      },
+      hardware: "NOT_TESTED",
+      assertions: ["version", "root", "editor", "model", "draft"]
+    },
+    upgrade: {
+      status: "PASS",
+      oldVersion: b.version,
+      newVersion: c.version,
+      oldProcessExited: true,
+      settingsPreserved: true,
+      archivePreserved: true,
+      mediaPreserved: true,
+      unknownFieldsPreserved: true,
+      draftPreserved: true,
+      nsisRestartResponsive: true,
+      oldProcessExit: { exitCode: 0, signalCode: null },
+      restart: { automaticNSISRestart: true, responding: true },
+      stages: require("./real-upgrade-contract.cjs").UPGRADE_STAGES,
+      baseline: {
+        version: b.version,
+        source: b.sourceSha,
+        url: b.installer.url,
+        size: b.installer.bytes,
+        sha256: b.installer.sha256
+      }
+    }
+  };
+  const nativeManifest = {};
+  for (const suite of ["packaged", "upgrade"]) {
+    const reportBytes = Buffer.from(
+      JSON.stringify({ ...r, suite, job: "windows", data: nativeData[suite] })
+    );
+    fs.writeFileSync(path.join(nativeDirectory, `${suite}.json`), reportBytes);
+    nativeManifest[`${suite}.json`] = { bytes: reportBytes.length, sha256: digest(reportBytes) };
+  }
+  const nativeOutput = { ...outputs, artifact_id: "57", manifest: JSON.stringify(nativeManifest) };
+  process.env.GATE_NEEDS = JSON.stringify({
+    prepare: { outputs: { suite: "packaged" } },
+    windows: { result: "success", outputs: nativeOutput }
+  });
+  let attemptReads = 0;
+  const nativeJob = { ...job, name: "windows" };
+  const nativeApi = async (url) => {
+    if (url.includes("/attempts/1/jobs?")) {
+      attemptReads++;
+      return { total_count: 1, jobs: [nativeJob] };
+    }
+    if (url.includes("/jobs?")) return { jobs: [{ ...nativeJob, run_attempt: 2 }] };
+    return { ...artifact, id: 57, name: nativeName };
+  };
+  const nativeQ = await aggregate(directory, {
+    githubJson: nativeApi,
+    resolved,
+    binding,
+    outputDirectory: path.join(directory, "native-pair")
+  });
+  assert.equal(nativeQ.status, "PASS");
+  assert.equal(
+    attemptReads,
+    1,
+    "packaged and upgrade share the bounded explicit-attempt API proof"
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(directory, "native-pair", "upgrade.json"))).runAttempt,
+    1
+  );
   assert(!fs.readFileSync(process.env.GITHUB_OUTPUT, "utf8").includes("eligible=true"));
 });
 
@@ -290,9 +411,16 @@ test("rerun keeps original successful artifact attempt and fails closed on missi
     run_attempt: 1,
     head_sha: sha,
     status: "completed",
-    conclusion: "success"
+    conclusion: "success",
+    started_at: "2026-11-04T15:14:17Z",
+    completed_at: "2026-11-04T15:14:55Z"
   };
-  assert.equal(verifyGateArtifact(q, "windows", output, { artifact, jobs: [job] }), job);
+  const latest = { ...job, run_attempt: 2 };
+  assert.equal(
+    verifyGateArtifact(q, "windows", output, { artifact, jobs: [latest], producingJobs: [job] }),
+    job
+  );
+  assert.throws(() => verifyGateArtifact(q, "windows", output, { artifact, jobs: [latest] }));
   for (const patch of [
     { run_attempt: undefined },
     { run_attempt: 2 },
@@ -301,12 +429,17 @@ test("rerun keeps original successful artifact attempt and fails closed on missi
     { head_sha: "c".repeat(40) }
   ])
     assert.throws(() =>
-      verifyGateArtifact(q, "windows", output, { artifact, jobs: [{ ...job, ...patch }] })
+      verifyGateArtifact(q, "windows", output, {
+        artifact,
+        jobs: [latest],
+        producingJobs: [{ ...job, ...patch }]
+      })
     );
   assert.throws(() =>
     verifyGateArtifact(q, "windows", output, {
       artifact: { ...artifact, digest: `sha256:${"e".repeat(64)}` },
-      jobs: [job]
+      jobs: [latest],
+      producingJobs: [job]
     })
   );
 });

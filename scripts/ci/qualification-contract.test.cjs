@@ -8,10 +8,85 @@ const {
   validateQualification,
   requireReleaseQualification,
   verifyQualificationFiles,
-  validateQualificationOrigin
+  validateQualificationOrigin,
+  validateProducingJob
 } = require("./qualification-contract.cjs");
 const sha = "a".repeat(40);
 const hash = "b".repeat(64);
+test("actual Actions reused security execution links original attempt to projected latest job", () => {
+  const q = {
+    runId: "41855535262",
+    runAttempt: 2,
+    harnessSha: "3e88ec6f02383b4ae7d0cf98e67cd31a189c7ea7"
+  };
+  const original = {
+    id: 126663304113,
+    name: "security",
+    run_id: 41855535262,
+    run_attempt: 1,
+    head_sha: q.harnessSha,
+    status: "completed",
+    conclusion: "success",
+    started_at: "2026-11-04T15:14:17Z",
+    completed_at: "2026-11-04T15:14:55Z"
+  };
+  const latest = { ...original, id: 126672617682, run_attempt: 2 };
+  const subject = { job: "security", runAttempt: 1 };
+  assert.equal(
+    validateProducingJob(q, subject, { jobs: [latest], producingJobs: [original] }),
+    original
+  );
+  assert.throws(() => validateProducingJob(q, subject, { jobs: [latest] }));
+  assert.throws(() => validateProducingJob(q, subject, { jobs: [latest], producingJobs: [] }));
+  for (const change of [
+    { head_sha: "e".repeat(40) },
+    { run_attempt: 2 },
+    { run_id: 41855535263 },
+    { status: "in_progress" },
+    { conclusion: "failure" },
+    { conclusion: "cancelled" },
+    { started_at: "2026-11-04T15:14:18Z" },
+    { completed_at: null }
+  ])
+    assert.throws(() =>
+      validateProducingJob(q, subject, {
+        jobs: [latest],
+        producingJobs: [{ ...original, ...change }]
+      })
+    );
+  for (const change of [
+    { head_sha: "e".repeat(40) },
+    { run_attempt: 3 },
+    { conclusion: "failure" },
+    { conclusion: "cancelled" },
+    { completed_at: "2026-11-04T15:14:56Z" },
+    { started_at: undefined }
+  ])
+    assert.throws(() =>
+      validateProducingJob(q, subject, {
+        jobs: [{ ...latest, ...change }],
+        producingJobs: [original]
+      })
+    );
+  assert.throws(() =>
+    validateProducingJob(
+      q,
+      { ...subject, runAttempt: 3 },
+      { jobs: [latest], producingJobs: [original] }
+    )
+  );
+  const software = {
+    ...latest,
+    id: 126672515212,
+    name: "software",
+    started_at: "2026-11-04T15:29:09Z",
+    completed_at: "2026-11-04T15:29:40Z"
+  };
+  assert.equal(
+    validateProducingJob(q, { job: "software", runAttempt: 2 }, { jobs: [software] }),
+    software
+  );
+});
 function fixture() {
   const q = {
     schema: "linka-windows-qualification-v1",
@@ -234,6 +309,7 @@ test("origin requires exact successful trusted workflow, artifact membership and
   }));
   validateQualificationOrigin(q, { run, artifact, jobs });
   for (const change of [
+    { conclusion: "failure" },
     { conclusion: "cancelled" },
     { head_branch: "other" },
     { head_sha: "c".repeat(40) },

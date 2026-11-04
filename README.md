@@ -37,6 +37,7 @@ Build configuration lives in `vite.config.ts` and `package.json`.
 
 - [Устройство pipeline и контракты кандидата/квалификации](docs/ci-pipeline.md).
 - [Операции: PR, candidate, диагностика, publication и mirror](docs/ci-operations.md).
+- [Проверки миграции и реальные canary runs](docs/ci-migration-verification.md).
 
 Релизный installer собирается один раз. Qualification и publication используют те
 же hash-bound bytes; diagnostic и cancelled результаты не разрешают публикацию.

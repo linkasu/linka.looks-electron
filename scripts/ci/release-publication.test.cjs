@@ -387,7 +387,7 @@ function qualificationFixture(t, change = {}) {
       }
     }
   };
-  return { ...f, q, archive, options, calls, candidate, jobs };
+  return { ...f, q, archive, options, calls, candidate, jobs, run, artifact };
 }
 for (const [name, change] of [
   ["cancelled actual producer", { run: { conclusion: "cancelled" } }],
@@ -515,7 +515,7 @@ test("GitHub adapter never follows writes or leaks token on redirected artifact 
   );
   assert.equal(calls.length, 1);
 });
-function completeFixture(t) {
+function completeFixture(t, change = {}) {
   const name = "linka.looks-4.1.0-win-x64.exe";
   const base = require("./candidate-contract.test.cjs").fixture().candidate;
   const material = (q) => {
@@ -576,6 +576,7 @@ function completeFixture(t) {
     return { lock, inventory, provenance, audit, reviewed, bindings };
   };
   const f = qualificationFixture(t, {
+    ...change,
     data(report, q) {
       if (report.suite === "software")
         report.data = {
@@ -624,6 +625,7 @@ function completeFixture(t) {
             sha256: base.baseline.installer.sha256
           }
         };
+      change.data?.(report, q);
     }
   });
   const payload = fs.readFileSync(path.join(f.directory, "installer.exe"));
@@ -718,6 +720,137 @@ test("valid qualification seals candidate source, notes and sanitized provenance
   assert.deepEqual(provenance.resources, f.c.resources);
   assert.equal(provenance.scope.hardware, "NOT_TESTED");
   assert(!provenance.files.some((file) => file.name === "release-provenance.json"));
+});
+function reusedFixture(t, reused = ["security"]) {
+  const f = completeFixture(t, {
+    q: (q) => {
+      q.runAttempt = 2;
+    },
+    run: { run_attempt: 2 },
+    artifact: { name: "qualification-34-2" },
+    data: (report) => {
+      report.runAttempt = reused.includes(report.job) ? 1 : 2;
+    }
+  });
+  for (const [index, job] of f.jobs.entries())
+    Object.assign(job, {
+      id: 126672617680 + index,
+      run_attempt: 2,
+      started_at: "2026-11-04T15:14:17Z",
+      completed_at: "2026-11-04T15:14:55Z"
+    });
+  const originalJobs = f.jobs
+    .filter((job) => reused.includes(job.name))
+    .map((job) => ({
+      ...job,
+      id: job.name === "security" ? 126663304113 : 126663304114,
+      run_attempt: 1
+    }));
+  const read = f.options.request;
+  f.options.request = async (endpoint, options) => {
+    if (endpoint.includes("/attempts/1/jobs?")) {
+      f.calls.push(endpoint);
+      return { jobs: originalJobs };
+    }
+    return read(endpoint, options);
+  };
+  return { ...f, originalJobs };
+}
+test("successful original security remains eligible when latest API projects it onto attempt two", async (t) => {
+  const f = reusedFixture(t);
+  assert.notEqual(f.jobs.find((job) => job.name === "security").id, f.originalJobs[0].id);
+  assert.equal((await prepare("34", f.output, f.options)).status, "PREPARED");
+  assert.equal(f.calls.filter((call) => call.includes("/attempts/1/jobs?")).length, 1);
+});
+test("older producing-job API is cached across reused security and two Windows gate reports", async (t) => {
+  const f = reusedFixture(t, ["security", "windows"]);
+  assert.equal((await prepare("34", f.output, f.options)).status, "PREPARED");
+  assert.equal(f.calls.filter((call) => call.includes("/attempts/1/jobs?")).length, 1);
+});
+for (const [name, mutate] of [
+  [
+    "missing original",
+    (f) => {
+      f.originalJobs.length = 0;
+    }
+  ],
+  [
+    "wrong original head",
+    (f) => {
+      f.originalJobs[0].head_sha = "0".repeat(40);
+    }
+  ],
+  [
+    "wrong original run",
+    (f) => {
+      f.originalJobs[0].run_id = 35;
+    }
+  ],
+  [
+    "wrong original attempt",
+    (f) => {
+      f.originalJobs[0].run_attempt = 2;
+    }
+  ],
+  [
+    "wrong original name",
+    (f) => {
+      f.originalJobs[0].name = "other";
+    }
+  ],
+  [
+    "cancelled original",
+    (f) => {
+      f.originalJobs[0].conclusion = "cancelled";
+    }
+  ],
+  [
+    "failed original",
+    (f) => {
+      f.originalJobs[0].conclusion = "failure";
+    }
+  ],
+  [
+    "different start time",
+    (f) => {
+      f.originalJobs[0].started_at = "2026-11-04T15:13:17Z";
+    }
+  ],
+  [
+    "different finish time",
+    (f) => {
+      f.originalJobs[0].completed_at = "2026-11-04T15:15:55Z";
+    }
+  ],
+  [
+    "missing timestamp proof",
+    (f) => {
+      delete f.originalJobs[0].started_at;
+    }
+  ],
+  [
+    "failed root qualification",
+    (f) => {
+      f.run.conclusion = "failure";
+    }
+  ]
+])
+  test(`reused gate rejects ${name} before any payload download`, async (t) => {
+    const f = reusedFixture(t);
+    mutate(f);
+    await assert.rejects(prepare("34", f.output, f.options));
+    assert(!f.calls.some((call) => call.startsWith("download:")));
+    assert(!fs.existsSync(f.output));
+  });
+test("a newer software PASS cannot authorize a report from the original failed software execution", async (t) => {
+  const f = reusedFixture(t, ["software"]);
+  Object.assign(f.originalJobs[0], {
+    conclusion: "failure",
+    started_at: "2026-11-04T15:10:17Z",
+    completed_at: "2026-11-04T15:10:55Z"
+  });
+  await assert.rejects(prepare("34", f.output, f.options));
+  assert(!f.calls.some((call) => call.startsWith("download:")));
 });
 for (const [name, change] of [
   [
