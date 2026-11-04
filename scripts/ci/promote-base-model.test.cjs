@@ -612,6 +612,75 @@ test("synthetic U and T qualify without mistaking candidate false flags for rele
   }
 });
 
+test("LICENSE alone normalizes CRLF to reviewed source bytes; all binary/notice bytes remain exact", () => {
+  const canonical = Buffer.from("Synthetic license\nExact source document.\n");
+  for (const artifact of [canonical, Buffer.from(canonical.toString().replaceAll("\n", "\r\n"))]) {
+    const f = fixture();
+    f.maps.runtime.LICENSE = artifact;
+    f.approval.publication.code_license_sha256 = hash(canonical);
+    f.approval.sources.runtime.files.LICENSE = metadata(canonical);
+    f.refresh();
+    const files = qualify(f.approval, f.evidence, f.archives);
+    assert.deepEqual(files.LICENSE, canonical);
+    assert.deepEqual(files["lp-electron.exe"], f.maps.runtime["lp-electron.exe"]);
+    assert.deepEqual(files["model.lpk"], f.maps.model["U.lpk"]);
+    assert.deepEqual(files["MODEL_SOURCE_NOTICES.txt"], f.maps.model["NOTICES.txt"]);
+  }
+});
+
+test("LICENSE rejects text edits, lone CR, invalid UTF-8, BOM removal and mismatched source pins", () => {
+  const canonical = Buffer.from("Synthetic license\nExact source document.\n");
+  for (const artifact of [
+    Buffer.from("Changed license\r\nExact source document.\r\n"),
+    Buffer.from(canonical.toString().replaceAll("\n", "\r")),
+    Buffer.from([0xff]),
+    Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), canonical])
+  ]) {
+    const f = fixture();
+    f.maps.runtime.LICENSE = artifact;
+    f.approval.publication.code_license_sha256 = hash(canonical);
+    f.approval.sources.runtime.files.LICENSE = metadata(canonical);
+    f.refresh();
+    assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+  }
+  const f = fixture();
+  f.approval.sources.runtime.files.LICENSE.sha256 = "0".repeat(64);
+  assert.throws(() => qualify(f.approval, f.evidence, f.archives));
+});
+
+test(
+  "actual ec07 Git LICENSE matches W01 CRLF artifact after CRLF-only canonicalization",
+  { skip: !process.env.BASE_MODEL_SOURCE_REPO },
+  () => {
+    const result = spawnSync("git", [
+      "-C",
+      process.env.BASE_MODEL_SOURCE_REPO,
+      "show",
+      "--no-textconv",
+      `${RUNTIME}:LICENSE`
+    ]);
+    assert.equal(result.status, 0, result.stderr.toString());
+    const canonical = result.stdout;
+    assert.equal(canonical.length, 35149);
+    assert.equal(
+      hash(canonical),
+      "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    );
+    const artifact = Buffer.from(canonical.toString("utf8").replaceAll("\n", "\r\n"));
+    assert.equal(artifact.length, 35823);
+    assert.equal(
+      hash(artifact),
+      "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    );
+    const f = fixture();
+    f.maps.runtime.LICENSE = artifact;
+    f.approval.publication.code_license_sha256 = hash(canonical);
+    f.approval.sources.runtime.files.LICENSE = metadata(canonical);
+    f.refresh();
+    assert.deepEqual(qualify(f.approval, f.evidence, f.archives).LICENSE, canonical);
+  }
+);
+
 test("FINAL uses the producer's ui-final-aggregate name, never the former alias", () => {
   const f = fixture();
   assert.equal(f.approval.runs.final.artifact_name, "ui-final-aggregate-13-1");

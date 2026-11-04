@@ -389,7 +389,21 @@ function qualify(a, evidence, archives, assertImportedSemantics) {
   assert(notices.length <= MiB && kenlm.length <= MiB);
   const exe = get.runtime("lp-electron.exe", a.runtime.sha256);
   assert.equal(exe.length, a.runtime.bytes);
-  const license = get.runtime("LICENSE", a.publication.code_license_sha256);
+  const artifactLicense = get.runtime("LICENSE");
+  assert(artifactLicense.length <= MiB);
+  // Normalize only this UTF-8 document's CRLF; binary resources remain byte-exact.
+  const licenseText = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true })
+    .decode(artifactLicense)
+    .replaceAll("\r\n", "\n");
+  assert(!licenseText.includes("\r"), "LICENSE contains lone CR");
+  const license = Buffer.from(licenseText, "utf8");
+  assert.equal(hash(license), a.publication.code_license_sha256, "canonical LICENSE hash mismatch");
+  assert.equal(
+    hash(license),
+    a.sources.runtime.files.LICENSE.sha256,
+    "source LICENSE hash mismatch"
+  );
+  assert.equal(license.length, a.sources.runtime.files.LICENSE.bytes);
   assert(license.length <= MiB);
   assert.equal(
     get
@@ -815,6 +829,11 @@ async function prepare(options) {
     tag: a.tag,
     source_sha: a.source_sha,
     runtime_source_sha: RUNTIME,
+    runtime_license: {
+      artifact_sha256: hash(inspectArchive(archives.runtime, "runtime", a.runs.runtime)("LICENSE")),
+      published_sha256: hash(files.LICENSE),
+      transform: "STRICT_UTF8_CRLF_TO_LF_ONLY"
+    },
     app_tooling_sha: a.app_tooling_sha,
     model: a.model,
     runtime: a.runtime,
