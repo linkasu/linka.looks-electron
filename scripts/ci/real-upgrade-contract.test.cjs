@@ -41,7 +41,8 @@ test("root process exit does not wait for an inherited descendant stdio pipe", a
   });
   const result = await waitForProcessExit(parent, 5000);
   assert.deepEqual(result, { pid: parent.pid, exitCode: 0, signalCode: null });
-  assert.equal(stdioClosed, false);
+  // Windows closes the parent's pipe independently; POSIX reproduces inherited-pipe delay.
+  if (process.platform !== "win32") assert.equal(stdioClosed, false);
   assert.deepEqual(await waitForProcessExit(parent, 5000), result);
 });
 
