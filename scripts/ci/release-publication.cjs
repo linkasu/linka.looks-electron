@@ -108,10 +108,14 @@ async function publish(directory, api) {
         if (attempt === 1) throw error;
         continue;
       }
-      state = await api.read(m);
-      current = inspectState(state, m, notes);
-      assert(completed(), "GitHub write did not produce expected verified state");
-      return;
+      const deadline = Date.now() + 30000;
+      for (;;) {
+        state = await api.read(m);
+        current = inspectState(state, m, notes);
+        if (completed()) return;
+        assert(Date.now() < deadline, "GitHub write did not produce expected verified state");
+        await new Promise((resolve) => setTimeout(resolve, Math.min(250, deadline - Date.now())));
+      }
     }
   }
   if (current.phase === "CREATE")
