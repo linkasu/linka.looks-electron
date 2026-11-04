@@ -71,6 +71,7 @@ const allowed = {
     "smoke.txt"
   ],
   final: ["final-aggregate.json", "final-book-original-aggregate.json"],
+  buildInputs: ["model.arpa", "frequencies.tsv", "BUILD.md", "reproduction.json"],
   windows: ["source.json", "memory.json", "ui.json", "requests.json"]
 };
 function fileSpec(spec, maximum) {
@@ -116,7 +117,13 @@ function validateApproval(a, sourceSha) {
     assert.equal(a.review?.[field], "APPROVED", `missing release review: ${field}`);
   assert.deepEqual(
     [...(a.review.scope || [])].sort(),
-    ["model", "notices", "source-code", "aggregate-evidence"].sort()
+    [
+      "model",
+      "notices",
+      "source-code",
+      "aggregate-evidence",
+      ...(a.publication?.model_build_inputs ? ["model-build-inputs"] : [])
+    ].sort()
   );
   assert.deepEqual(a.licenses, { code: "GPL-3.0-or-later", data: "CC0-1.0" });
   assert(["U", "T"].includes(a.model?.variant));
@@ -137,6 +144,21 @@ function validateApproval(a, sourceSha) {
       a.publication.notice.path.startsWith("provenance/releases/")
   );
   fileSpec(a.publication.notice, MiB);
+  if (a.publication.model_build_inputs !== undefined) {
+    const spec = a.publication.model_build_inputs;
+    assert.deepEqual(Object.keys(spec || {}).sort(), ["bytes", "path", "sha256"]);
+    assert.equal(
+      a.review.model_reproduction,
+      "APPROVED",
+      "model-input reproduction review required"
+    );
+    assert(
+      safePath(spec?.path) &&
+        spec.path.startsWith("provenance/releases/") &&
+        spec.path.endsWith(".zip")
+    );
+    fileSpec(spec, 32 * MiB);
+  }
   validateRawSource(a.raw_source);
   assert.deepEqual(Object.keys(a.runs || {}).sort(), Object.keys(workflows).sort());
   for (const [kind, spec] of Object.entries(a.runs)) {
@@ -225,6 +247,51 @@ function inspectArchive(bytes, kind, spec) {
   assert.equal(bytes.length, spec.archive_bytes);
   assert(bytes.length <= 300 * MiB);
   assert.equal(hash(bytes), spec.archive_sha256, "archive digest mismatch before decoding");
+  if (kind === "buildInputs") {
+    assert(bytes.length >= 22 && bytes.length <= 32 * MiB, "model-input ZIP budget");
+    const end = bytes.length - 22;
+    assert.equal(bytes.readUInt32LE(end), 0x06054b50, "canonical ZIP without comment required");
+    assert.equal(bytes.readUInt16LE(end + 20), 0);
+    assert.equal(bytes.readUInt16LE(end + 4), 0, "multi-disk ZIP forbidden");
+    assert.equal(bytes.readUInt16LE(end + 6), 0);
+    assert.equal(bytes.readUInt16LE(end + 8), 4);
+    assert.equal(bytes.readUInt16LE(end + 10), 4, "four non-ZIP64 members required");
+    const directory = bytes.readUInt32LE(end + 16),
+      size = bytes.readUInt32LE(end + 12);
+    assert(size <= 2048 && directory + size === end, "bounded non-ZIP64 directory required");
+    const noZip64Extra = (start, finish) => {
+      for (let p = start; p < finish;) {
+        assert(p + 4 <= finish && bytes.readUInt16LE(p) !== 1, "ZIP64 extra forbidden");
+        p += 4 + bytes.readUInt16LE(p + 2);
+        assert(p <= finish);
+      }
+    };
+    let offset = directory;
+    for (let i = 0; i < 4; i++) {
+      assert(offset + 46 <= end && bytes.readUInt32LE(offset) === 0x02014b50);
+      assert(bytes.readUInt16LE(offset + 6) < 45, "ZIP64 members forbidden");
+      assert.equal(bytes.readUInt16LE(offset + 34), 0, "multi-disk member forbidden");
+      const name = bytes.readUInt16LE(offset + 28),
+        extra = bytes.readUInt16LE(offset + 30);
+      const extraEnd = offset + 46 + name + extra;
+      assert(extraEnd <= end);
+      noZip64Extra(offset + 46 + name, extraEnd);
+      const local = bytes.readUInt32LE(offset + 42);
+      assert(local + 30 <= directory && bytes.readUInt32LE(local) === 0x04034b50);
+      assert(bytes.readUInt16LE(local + 4) < 45, "ZIP64 local member forbidden");
+      const localName = bytes.readUInt16LE(local + 26),
+        localExtra = bytes.readUInt16LE(local + 28);
+      assert(local + 30 + localName + localExtra <= directory);
+      assert(
+        bytes
+          .subarray(local + 30, local + 30 + localName)
+          .equals(bytes.subarray(offset + 46, offset + 46 + name))
+      );
+      noZip64Extra(local + 30 + localName, local + 30 + localName + localExtra);
+      offset = extraEnd + bytes.readUInt16LE(offset + 32);
+    }
+    assert.equal(offset, end);
+  }
   const zip = new Zip(bytes),
     seen = new Set();
   let total = 0;
@@ -243,16 +310,21 @@ function inspectArchive(bytes, kind, spec) {
       ? 128 * MiB
       : e.entryName.endsWith(".exe")
         ? 16 * MiB
-        : kind === "model"
-          ? 64 * MiB
-          : 8 * MiB;
+        : kind === "buildInputs"
+          ? ["model.arpa", "frequencies.tsv"].includes(e.entryName)
+            ? 64 * MiB
+            : MiB
+          : kind === "model"
+            ? 64 * MiB
+            : 8 * MiB;
     assert(
       Number.isSafeInteger(e.header.size) && e.header.size >= 0 && e.header.size <= maximum,
       "ZIP member budget exceeded"
     );
     total += e.header.size;
-    assert(total <= 512 * MiB, "ZIP expansion budget exceeded");
+    assert(total <= (kind === "buildInputs" ? 128 : 512) * MiB, "ZIP expansion budget exceeded");
   }
+  if (kind === "buildInputs") assert.deepEqual([...seen].sort(), [...allowed.buildInputs].sort());
   const member = (name, expectedHash) => {
     const entry = zip.getEntry(name);
     assert(entry && entry.header.size > 0, `missing resource: ${name}`);
@@ -289,6 +361,8 @@ function qualify(a, evidence, archives, assertImportedSemantics) {
   assert.equal(provenance.exclusion_sha256, undefined);
   for (const field of ["quality_approved", "redistribution_approved", "final_evaluated"])
     assert.equal(provenance[field], false);
+  if (provenance.execution?.kind === "book-local-linux-container")
+    assert(a.publication.model_build_inputs, "Book release requires reviewed model build inputs");
   const member = (name) => {
     sha(provenance.files_sha256?.[name]);
     return get.model(name, provenance.files_sha256[name]);
@@ -482,7 +556,7 @@ function sourceArchive(root, spec, kind) {
   }
   return git(root, ["archive", "--format=tar", spec.sha, "--", ...Object.keys(spec.files).sort()]);
 }
-function trackedFile(root, name, spec) {
+function trackedFile(root, name, spec, maximum = 8 * MiB) {
   assert(safePath(name));
   git(root, ["ls-files", "--error-unmatch", "--", name]);
   let current = root;
@@ -491,7 +565,7 @@ function trackedFile(root, name, spec) {
     assert(!fs.lstatSync(current).isSymbolicLink(), "tracked file symlink forbidden");
   }
   const stat = fs.lstatSync(current);
-  assert(stat.isFile() && stat.size === spec.bytes && stat.size <= 8 * MiB);
+  assert(stat.isFile() && stat.size === spec.bytes && stat.size <= maximum);
   const bytes = fs.readFileSync(current);
   assert.equal(hash(bytes), spec.sha256, "tracked file hash mismatch");
   assert.equal(
@@ -500,6 +574,55 @@ function trackedFile(root, name, spec) {
     "working tree differs from tracked approval/source"
   );
   return bytes;
+}
+function verifyModelBuildInputs(root, a, provenance) {
+  const spec = a.publication.model_build_inputs;
+  const bytes = trackedFile(root, spec.path, spec, 32 * MiB);
+  const member = inspectArchive(bytes, "buildInputs", {
+    archive_sha256: spec.sha256,
+    archive_bytes: spec.bytes
+  });
+  const arpa = provenance.arpa_sha256?.[a.model.variant];
+  const frequencies = provenance.frequencies_sha256;
+  sha(arpa);
+  sha(frequencies);
+  assert.equal(provenance.files_sha256?.["frequencies.tsv"], frequencies);
+  member("model.arpa", arpa);
+  member("frequencies.tsv", frequencies);
+  member("BUILD.md");
+  const scope =
+    "Exact production LPK generation from model weights and sufficient statistics; not an archive of original source records.";
+  assert.deepEqual(parse(member("reproduction.json")), {
+    schema: "linka-model-build-inputs-v1",
+    variant: a.model.variant,
+    source_sha: a.source_sha,
+    model_sha256: a.model.sha256,
+    model_bytes: a.model.bytes,
+    arpa_sha256: arpa,
+    frequencies_sha256: frequencies,
+    model_reproduction: "EXACT_BYTE_REPRODUCED_ON_BOOK",
+    licenses: a.licenses,
+    original_corpus_included: false,
+    evaluation_data_included: false,
+    scope
+  });
+  return {
+    bytes,
+    reproduction: {
+      status: "ARCHIVED_EXACT_MODEL_INPUTS",
+      archive: "MODEL_BUILD_INPUTS.zip",
+      sha256: spec.sha256,
+      bytes: spec.bytes,
+      source_sha: a.source_sha,
+      model_sha256: a.model.sha256,
+      model_bytes: a.model.bytes,
+      arpa_sha256: arpa,
+      frequencies_sha256: frequencies,
+      original_corpus_included: false,
+      evaluation_data_included: false,
+      scope
+    }
+  };
 }
 async function bounded(res, maximum) {
   assert(res.ok, "GitHub request failed");
@@ -661,10 +784,20 @@ async function prepare(options) {
       : undefined;
   const files = qualify(a, evidence, archives, bookSemantics);
   const modelMember = inspectArchive(archives.model, "model", a.runs.model);
+  const candidateProvenance = parse(modelMember("provenance.json"));
+  let modelBuild;
+  if (a.publication.model_build_inputs) {
+    assert.equal(
+      hash(modelMember("frequencies.tsv", candidateProvenance.files_sha256?.["frequencies.tsv"])),
+      candidateProvenance.frequencies_sha256
+    );
+    modelBuild = verifyModelBuildInputs(roots.approval, a, candidateProvenance);
+    files["MODEL_BUILD_INPUTS.zip"] = modelBuild.bytes;
+  }
   const rawSource = await verifyPublicSource(
     a,
     parse(modelMember("source-manifest.json", a.source_manifest_sha256)),
-    parse(modelMember("provenance.json"))
+    candidateProvenance
   );
   files["MODEL_NOTICE.md"] = trackedFile(
     roots.approval,
@@ -694,7 +827,8 @@ async function prepare(options) {
     candidate_approval_flags_remain_false: true,
     hardware: "NOT_TESTED",
     client_os: "NOT_TESTED",
-    raw_source: rawSource
+    raw_source: rawSource,
+    ...(modelBuild ? { model_build_reproduction: modelBuild.reproduction } : {})
   });
   files["REPRODUCTION.json"] = json({
     schema: "linka-base-model-reproduction-v1",
@@ -724,6 +858,7 @@ async function prepare(options) {
       tag: a.tag,
       source_sha: a.source_sha,
       approval_sha256: hash(json(a)),
+      ...(modelBuild ? { model_build_inputs: a.publication.model_build_inputs } : {}),
       files: Object.fromEntries(
         Object.entries(files).map(([name, bytes]) => [
           name,
@@ -796,5 +931,6 @@ module.exports = {
   qualify,
   sourceArchive,
   prepare,
-  verifyPublicSource
+  verifyPublicSource,
+  verifyModelBuildInputs
 };
