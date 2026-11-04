@@ -119,19 +119,36 @@ test("main-window keyboard uses the real sidecar, denies foreign senders and per
     await expect(suggestions.first()).toBeEnabled();
     await expect(page.locator('[aria-label="Клавиши"] button')).toHaveCount(33);
     await expect(page.getByRole("button", { name: "я", exact: true })).toBeVisible();
+    // Windows ignores setPosition while maximized; exercise a real native move.
+    const wasMaximized = await app.evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      const maximized = window.isMaximized();
+      if (maximized) window.unmaximize();
+      return maximized;
+    });
+    await expect
+      .poll(() =>
+        app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMaximized())
+      )
+      .toBe(false);
     expect(
       await app.evaluate(async ({ BrowserWindow, ipcMain }) => {
         const window = BrowserWindow.getAllWindows().find((win) =>
           win.webContents.getURL().endsWith("#/eye-typing")
         )!;
         const [x, y] = window.getPosition();
-        const changed = new Promise<boolean>((resolve) =>
-          ipcMain.once("eye-elements", (_event, data) => resolve(typeof data.id === "string"))
-        );
+        const changed = new Promise<boolean>((resolve) => {
+          ipcMain.once("eye-elements", (_event, data) => {
+            const [movedX, movedY] = window.getPosition();
+            resolve(typeof data.id === "string" && (movedX !== x || movedY !== y));
+          });
+        });
         window.setPosition(x + 8, y + 8);
         return changed;
       })
     ).toBe(true);
+    if (wasMaximized)
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].maximize());
     const word = await suggestions.first().getAttribute("aria-label");
     await suggestions.first().click();
     await expect(page.getByRole("textbox", { name: "Черновик" })).toHaveText(
