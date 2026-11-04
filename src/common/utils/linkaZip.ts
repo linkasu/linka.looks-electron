@@ -21,7 +21,7 @@ export function assertZipPath(name: string) {
   }
 }
 
-export function openLinkaZip(file: string): AdmZip {
+function parseLinkaZip(file: string): AdmZip {
   const fd = openSync(file, "r");
   let buffer: Buffer;
   try {
@@ -65,12 +65,29 @@ export function openLinkaZip(file: string): AdmZip {
     totalSize += Math.max(entry.header.size, entry.header.compressedSize);
     if (totalSize > MAX_UNPACKED_SIZE) throw new Error("Архив слишком большой");
   }
-  // adm-zip >=0.6.1 bounds DEFLATE output (including a declared size of zero).
-  // STORED output is bounded above by compressedSize; verify actual lengths too.
+  return zip;
+}
+
+function readEntry(zip: AdmZip, name: string): Buffer | null {
+  const entry = zip.getEntry(name);
+  if (!entry) return null;
+  // adm-zip >=0.6.1 bounds inflation and verifies CRC; check actual length as well.
+  const data = entry.getData();
+  if (data.length !== entry.header.size) {
+    throw new Error("Размер файла в архиве не совпадает с заголовком");
+  }
+  return data;
+}
+
+export function readLinkaZipEntry(file: string, name: string): Buffer | null {
+  return readEntry(parseLinkaZip(file), name);
+}
+
+export function openLinkaZip(file: string): AdmZip {
+  const zip = parseLinkaZip(file);
+  const entries = zip.getEntries();
   for (const entry of entries) {
-    if (entry.getData().length !== entry.header.size) {
-      throw new Error("Размер файла в архиве не совпадает с заголовком");
-    }
+    readEntry(zip, entry.entryName);
   }
   return zip;
 }

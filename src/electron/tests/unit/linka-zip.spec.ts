@@ -3,7 +3,7 @@ import AdmZip from "adm-zip";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertZipPath, openLinkaZip } from "@/common/utils/linkaZip";
+import { assertZipPath, openLinkaZip, readLinkaZipEntry } from "@/common/utils/linkaZip";
 import { appendZip } from "@/frontend/utils/addToZip";
 
 const roots: string[] = [];
@@ -28,6 +28,18 @@ function changeSize(file: string, size: number) {
 }
 
 describe("bounded .linka ZIP reading", () => {
+  it("checks the requested entry CRC and returns null only for a missing entry", () => {
+    const file = fixture();
+    expect(readLinkaZipEntry(file, "asset.txt")?.toString()).toBe("hello");
+    expect(readLinkaZipEntry(file, "absent.txt")).toBeNull();
+    const data = readFileSync(file);
+    const central = data.indexOf(Buffer.from("PK\x01\x02", "binary"));
+    data.writeUInt32LE(0, central + 16);
+    data.writeUInt32LE(0, data.readUInt32LE(central + 42) + 14);
+    writeFileSync(file, data);
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow();
+  });
+
   it("reads old assets, edits atomically and exports a readable archive", async () => {
     const file = fixture();
     expect(openLinkaZip(file).readAsText("asset.txt")).toBe("hello");
@@ -42,6 +54,7 @@ describe("bounded .linka ZIP reading", () => {
     changeSize(file, size);
     const before = readFileSync(file);
     expect(() => openLinkaZip(file)).toThrow();
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow();
     await expect(appendZip(file, "config.json", Buffer.from("{}"))).rejects.toThrow();
     expect(readFileSync(file)).toEqual(before);
   });
@@ -54,17 +67,20 @@ describe("bounded .linka ZIP reading", () => {
     zip.writeZip(file);
     changeSize(file, 0);
     expect(() => openLinkaZip(file)).toThrow();
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow();
   });
 
   it("accepts empty files without disabling the output limit", () => {
     const file = fixture(Buffer.alloc(0));
     expect(openLinkaZip(file).readFile("asset.txt")?.length).toBe(0);
+    expect(readLinkaZipEntry(file, "asset.txt")?.length).toBe(0);
   });
 
   it("rejects malformed and truncated archives", () => {
     const file = fixture();
     writeFileSync(file, readFileSync(file).subarray(0, 35));
     expect(() => openLinkaZip(file)).toThrow();
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow();
   });
 
   it("rejects excessive entry counts before loading entries", () => {
@@ -75,6 +91,7 @@ describe("bounded .linka ZIP reading", () => {
     data.writeUInt16LE(2001, end + 10);
     writeFileSync(file, data);
     expect(() => openLinkaZip(file)).toThrow("слишком много файлов");
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow("слишком много файлов");
   });
 
   it("limits the aggregate declared output before inflating any entry", () => {
@@ -94,6 +111,7 @@ describe("bounded .linka ZIP reading", () => {
     }
     writeFileSync(file, data);
     expect(() => openLinkaZip(file)).toThrow("слишком большой");
+    expect(() => readLinkaZipEntry(file, "a")).toThrow("слишком большой");
   });
 
   it("rejects links, including non-symlink special files", () => {
@@ -104,6 +122,7 @@ describe("bounded .linka ZIP reading", () => {
       data.writeUInt32LE((mode << 16) >>> 0, central + 38);
       writeFileSync(file, data);
       expect(() => openLinkaZip(file)).toThrow("ссылку или специальный файл");
+      expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow("ссылку или специальный файл");
     }
   });
 
@@ -114,6 +133,7 @@ describe("bounded .linka ZIP reading", () => {
     zip.addFile("ASSET.txt", Buffer.from("two"));
     zip.writeZip(file);
     expect(() => openLinkaZip(file)).toThrow("повторяющиеся пути");
+    expect(() => readLinkaZipEntry(file, "asset.txt")).toThrow("повторяющиеся пути");
     const data = readFileSync(file);
     const alias = Buffer.from("ASSET.txt");
     for (let offset = data.indexOf(alias); offset >= 0; offset = data.indexOf(alias, offset + 1)) {
