@@ -14,52 +14,13 @@ export function layoutTextImage(
   const maxWidth = width - padding * 2;
   const maxHeight = height - padding * 2;
 
-  function wrap(fontSize: number): string[] {
-    return text.split(/\r\n?|\n/).flatMap((paragraph) => {
-      const lines: string[] = [];
-      let line = "";
-      for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-        const candidate = line ? `${line} ${word}` : word;
-        if (measure(candidate, fontSize) <= maxWidth) {
-          line = candidate;
-          continue;
-        }
-        if (line) lines.push(line);
-        line = "";
-        for (const char of word) {
-          if (line && measure(line + char, fontSize) > maxWidth) {
-            lines.push(line);
-            line = "";
-          }
-          line += char;
-        }
-      }
-      lines.push(line);
-      return lines;
-    });
-  }
-
-  const words = text.split(/\s+/).filter(Boolean);
-  let wordLow = 1;
-  let wordHigh = Math.floor(maxHeight / 1.2);
-  let wholeWordFont = 0;
-  while (wordLow <= wordHigh) {
-    const size = Math.floor((wordLow + wordHigh) / 2);
-    if (words.every((word) => measure(word, size) <= maxWidth)) {
-      wholeWordFont = size;
-      wordLow = size + 1;
-    } else {
-      wordHigh = size - 1;
-    }
-  }
-  // Prefer whole words; allow very long words to wrap rather than cap all text at a tiny size.
-  let high = Math.max(wholeWordFont, Math.floor(maxHeight / 8));
+  const lines = text.split(/\r\n?|\n/);
+  let high = Math.floor(maxHeight / (lines.length * 1.2));
   let low = 1;
   let result: { fontSize: number; lines: string[]; lineHeight: number; padding: number } | null =
     null;
   while (low <= high) {
     const fontSize = Math.floor((low + high) / 2);
-    const lines = wrap(fontSize);
     const lineHeight = fontSize * 1.2;
     if (
       lines.length * lineHeight <= maxHeight &&

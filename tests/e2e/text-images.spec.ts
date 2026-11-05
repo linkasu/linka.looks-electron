@@ -24,7 +24,7 @@ const oldImage = Buffer.from(
 );
 
 for (const span of [1, 3]) {
-  test(`text images wrap and round-trip in a ${span}-cell card`, async () => {
+  test(`text images fit without wrapping and round-trip in a ${span}-cell card`, async () => {
     const startedAt = Date.now();
     const testInfo = test.info();
     test.setTimeout(90000);
@@ -127,7 +127,7 @@ for (const span of [1, 3]) {
             bottom = 0;
           for (let y = 0; y < img.height; y++) {
             for (let x = 0; x < img.width; x++) {
-              if (pixels[(y * img.width + x) * 4] < 128) {
+              if (pixels[(y * img.width + x) * 4] < 250) {
                 left = Math.min(left, x);
                 right = Math.max(right, x);
                 top = Math.min(top, y);
@@ -152,11 +152,14 @@ for (const span of [1, 3]) {
           Math.max(1, Math.round(1024 * Math.min(1, 1 / metrics.areaRatio)))
         );
         expect(metrics.right).toBeGreaterThan(metrics.left);
-        expect(metrics.bottom).toBeGreaterThan(metrics.top);
+        expect(metrics.bottom).toBeGreaterThanOrEqual(metrics.top);
         expect(metrics.left).toBeGreaterThan(1);
         expect(metrics.top).toBeGreaterThan(1);
         expect(metrics.right).toBeLessThan(metrics.width - 2);
         expect(metrics.bottom).toBeLessThan(metrics.height - 2);
+        if (text === "Хочу пить") {
+          expect(metrics.right - metrics.left).toBeGreaterThan((metrics.bottom - metrics.top) * 3);
+        }
         const pngPath = testInfo.outputPath(`case-${index}-generated.png`);
         const cardPath = testInfo.outputPath(`case-${index}-card.png`);
         writeFileSync(pngPath, Buffer.from(metrics.png, "base64"));
