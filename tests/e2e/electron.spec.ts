@@ -270,7 +270,7 @@ test("set explorer grid fills the viewport above footer", async () => {
       const grid = document.querySelector(".grid")?.getBoundingClientRect();
       const footer = document.querySelector(".footer")?.getBoundingClientRect();
       const leftButton = document.querySelector(".left-grid > button")?.getBoundingClientRect();
-      const rightButton = document.querySelector(".grid > button")?.getBoundingClientRect();
+      const rightButton = document.querySelector(".right-grid > button")?.getBoundingClientRect();
       return {
         footerBottom: footer?.bottom ?? 0,
         footerTop: footer?.top ?? 0,
@@ -411,7 +411,7 @@ test("standard set preserves typed output while turning pages", async () => {
     await window.getByRole("button", { name: "А", exact: true }).click();
     await expect(window.locator(".output-text .text")).toContainText("А");
 
-    await window.locator(".grid > button").click();
+    await window.getByRole("button", { name: "Следующая страница", exact: true }).click();
     await expect(window.getByText("2 из 3")).toBeVisible();
     await expect(window.locator(".output-text .text")).toContainText("А");
 
