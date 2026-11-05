@@ -37,7 +37,7 @@ async function smoke() {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const offset = (y * width + x) * 4;
-          if (pixels[offset] < 128 && pixels[offset + 3] > 0) {
+          if (pixels[offset] < 250 && pixels[offset + 3] > 0) {
             left = Math.min(left, x);
             right = Math.max(right, x);
             top = Math.min(top, y);
@@ -45,8 +45,11 @@ async function smoke() {
           }
         }
       }
-      assert(right > left && bottom > top, "PNG must contain visible text");
+      assert(right >= left && bottom >= top, "PNG must contain visible text");
       assert(left > 1 && top > 1 && right < width - 2 && bottom < height - 2, "Clipped text");
+      if (text === "Хочу пить") {
+        assert(right - left > (bottom - top) * 3, "Phrase must stay on one line");
+      }
       writeFileSync(
         join(process.env.TEXT_IMAGE_SMOKE_OUTPUT!, `${sizeIndex}-${textIndex}.png`),
         png

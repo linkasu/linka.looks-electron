@@ -25,8 +25,11 @@ function assertSandbox(env = process.env, platform = process.platform) {
 function runProcess(executable, args = "", timeoutMs = 10000) {
   const systemRoot = process.env.SystemRoot;
   assert(win32.isAbsolute(systemRoot), "Windows system root required");
+  const programFiles = process.env.ProgramFiles;
+  assert(win32.isAbsolute(programFiles), "Windows program files required");
   const result = spawnSync(
-    join(systemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe"),
+    // PowerShell 7 compiles Add-Type in-process, within the unchanged supervisor deadline.
+    join(programFiles, "PowerShell/7/pwsh.exe"),
     [
       "-NoLogo",
       "-NoProfile",
