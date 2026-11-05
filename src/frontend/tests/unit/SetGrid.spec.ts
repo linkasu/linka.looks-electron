@@ -206,6 +206,7 @@ describe("SetGrid", () => {
     it(`hides arrows for a one-page set in ${mode} mode`, () => {
       const wrapper = mountSetGrid({ store: createVuexStore(mode) });
       expect(pageTurnButtons(wrapper)).to.have.length(0);
+      expect(wrapper.find(".right-grid").exists()).to.equal(false);
     });
 
     it(`hides arrows for quiz pages in ${mode} mode`, () => {
@@ -219,7 +220,44 @@ describe("SetGrid", () => {
         store: createVuexStore(mode)
       });
       expect(pageTurnButtons(wrapper)).to.have.length(0);
+      expect(wrapper.find(".right-grid").exists()).to.equal(false);
     });
+  }
+
+  for (const pagination of [true, false]) {
+    for (const showExitButton of [true, false]) {
+      it(`keeps only real controls for pagination=${pagination}, exit=${showExitButton}`, async () => {
+        const wrapper = mountSetGrid({
+          config: createConfig([createConfig().pages[0], createConfig().pages[0]]),
+          store: createVuexStore(pagination ? "mouseAndEyes" : "hidden"),
+          showExitButton
+        });
+        try {
+          expect(wrapper.classes().includes("grid--split-controls")).to.equal(
+            pagination && showExitButton
+          );
+          expect(wrapper.classes().includes("grid--no-controls")).to.equal(
+            !pagination && !showExitButton
+          );
+          expect(wrapper.find(".right-grid").exists()).to.equal(pagination);
+          expect(wrapper.findAll(".right-grid > button")).to.have.length(pagination ? 1 : 0);
+          expect(
+            wrapper.findAll(".eye-button-stub").map((button) => button.attributes("aria-label"))
+          ).to.deep.equal([
+            ...(showExitButton ? ["Вернуться к наборам"] : []),
+            ...(pagination ? ["Предыдущая страница", "Следующая страница"] : [])
+          ]);
+          await wrapper.setProps({ showExitButton: !showExitButton });
+          expect(wrapper.classes().includes("grid--split-controls")).to.equal(
+            pagination && !showExitButton
+          );
+          expect(wrapper.emitted("update:page")).to.equal(undefined);
+          expect(cardButtons(wrapper)).to.have.length(1);
+        } finally {
+          wrapper.unmount();
+        }
+      });
+    }
   }
 
   it("removes arrows when hidden and restores the selected input mode without changing page", async () => {
@@ -370,12 +408,14 @@ function mountSetGrid({
   matchedCardIds = [],
   page = 0,
   selectedCardId = null,
+  showExitButton = false,
   store = createVuexStore()
 }: {
   config?: ConfigFile;
   matchedCardIds?: string[];
   page?: number;
   selectedCardId?: string | null;
+  showExitButton?: boolean;
   store?: ReturnType<typeof createVuexStore>;
 } = {}) {
   return mount(SetGrid, {
@@ -384,7 +424,8 @@ function mountSetGrid({
       file: "set.linka",
       matchedCardIds,
       page,
-      selectedCardId
+      selectedCardId,
+      showExitButton
     },
     global: {
       plugins: [store],
@@ -451,5 +492,5 @@ function cardButtons(wrapper: ReturnType<typeof mount>) {
 }
 
 function pageTurnButtons(wrapper: ReturnType<typeof mount>) {
-  return wrapper.findAll(".eye-button-stub");
+  return wrapper.findAll('.eye-button-stub[aria-label$="страница"]');
 }

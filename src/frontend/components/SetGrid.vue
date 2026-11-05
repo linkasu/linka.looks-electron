@@ -3,7 +3,8 @@
     class="grid"
     :class="{
       'grid--no-pagination': !showPagination,
-      'grid--no-controls': !showPagination && !showExitButton
+      'grid--no-controls': !showPagination && !showExitButton,
+      'grid--split-controls': showPagination && showExitButton
     }"
   >
     <div class="left-grid">
@@ -66,17 +67,18 @@
       />
     </div>
 
-    <eye-button
-      v-if="showPagination"
-      color="accent"
-      lock
-      :disabled="interactionBlocked"
-      aria-label="Следующая страница"
-      :eye-disabled="isPageTurnEyeDisabled"
-      @click="changePage(1)"
-    >
-      <v-icon> mdi-arrow-right </v-icon>
-    </eye-button>
+    <div v-if="showPagination" class="right-grid">
+      <eye-button
+        color="accent"
+        lock
+        :disabled="interactionBlocked"
+        aria-label="Следующая страница"
+        :eye-disabled="isPageTurnEyeDisabled"
+        @click="changePage(1)"
+      >
+        <v-icon> mdi-arrow-right </v-icon>
+      </eye-button>
+    </div>
   </div>
 </template>
 
@@ -240,16 +242,21 @@ function isCardDisabled(card: Card): boolean {
   height: 100%;
   min-height: 0;
 }
-.left-grid {
+.left-grid,
+.right-grid {
   display: grid;
   grid-template-columns: 1fr;
   min-height: 0;
 }
-.left-grid:has(button + button) {
-  grid-template-rows: 2fr 10fr;
+.grid--split-controls .left-grid,
+.grid--split-controls .right-grid {
+  grid-template-rows: minmax(0, 2fr) minmax(0, 10fr);
+}
+.grid--split-controls .right-grid > button {
+  grid-row: 2;
 }
 .left-grid > button,
-.grid > button {
+.right-grid > button {
   width: 100%;
   height: 100%;
   min-width: 0;

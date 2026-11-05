@@ -48,7 +48,13 @@ describe("page arrows with real gaze watcher and EyeButton", () => {
           };
           const wrapper = mount(SetGrid, {
             attachTo: document.body,
-            props: { config, file: "fixture.linka", page: 0, interactionBlocked },
+            props: {
+              config,
+              file: "fixture.linka",
+              page: 0,
+              interactionBlocked,
+              showExitButton: true
+            },
             global: { plugins: [store], stubs: { SetGridButton: true, VIcon: true } }
           });
           const watcher = new PageWatcher({
@@ -56,14 +62,23 @@ describe("page arrows with real gaze watcher and EyeButton", () => {
             ipcRenderer: { on: vi.fn(), off: vi.fn(), send: vi.fn() }
           });
           try {
-            const arrows = wrapper.findAll("button");
+            const arrows = wrapper.findAll("button.lock");
+            const exitEyes = enabled && !interactionBlocked ? 1 : 0;
+            expect(
+              wrapper.findAll(".eye").map((button) => button.attributes("aria-label"))
+            ).toEqual([
+              ...(exitEyes ? ["Вернуться к наборам"] : []),
+              ...(mode !== "hidden" && !interactionBlocked
+                ? ["Предыдущая страница", "Следующая страница"]
+                : [])
+            ]);
             if (mode === "hidden") {
               expect(arrows).toHaveLength(0);
-              expect(wrapper.findAll(".eye")).toHaveLength(0);
+              expect(wrapper.findAll(".eye")).toHaveLength(exitEyes);
               return;
             }
             expect(arrows).toHaveLength(2);
-            expect(wrapper.findAll(".eye")).toHaveLength(interactionBlocked ? 0 : 2);
+            expect(wrapper.findAll(".eye")).toHaveLength(interactionBlocked ? 0 : 2 + exitEyes);
             if (interactionBlocked) {
               for (const arrow of arrows) {
                 expect((arrow.element as HTMLButtonElement).disabled).toBe(true);
@@ -83,11 +98,17 @@ describe("page arrows with real gaze watcher and EyeButton", () => {
             await arrows[1].trigger("click");
             expect(store.state.explorer.page).toBe(1);
             expect(wrapper.emitted("update:page")?.at(-1)).toEqual([1]);
+            watcher.clickWatch(arrows[0].element as HTMLElement, false);
+            await wrapper.vm.$nextTick();
+            expect(store.state.explorer.page).toBe(0);
+            expect(wrapper.emitted("update:page")?.at(-1)).toEqual([0]);
             await wrapper.setProps({ interactionBlocked: true });
-            expect((wrapper.findAll("button")[1].element as HTMLButtonElement).disabled).toBe(true);
+            expect((wrapper.findAll("button.lock")[1].element as HTMLButtonElement).disabled).toBe(
+              true
+            );
             expect(wrapper.findAll(".eye")).toHaveLength(0);
             await wrapper.setProps({ interactionBlocked: false });
-            expect(wrapper.findAll(".eye")).toHaveLength(2);
+            expect(wrapper.findAll(".eye")).toHaveLength(2 + exitEyes);
             store.state.button.enabled = !enabled;
             await wrapper.vm.$nextTick();
             expect(arrows[1].attributes("data-eye-disabled")).toBe(
@@ -95,10 +116,10 @@ describe("page arrows with real gaze watcher and EyeButton", () => {
             );
             store.state.button.pageTurnMode = "hidden";
             await wrapper.vm.$nextTick();
-            expect(wrapper.findAll(".eye")).toHaveLength(0);
+            expect(wrapper.findAll(".eye")).toHaveLength(enabled ? 0 : 1);
             store.state.button.pageTurnMode = mode;
             await wrapper.vm.$nextTick();
-            expect(wrapper.findAll(".eye")).toHaveLength(2);
+            expect(wrapper.findAll(".eye")).toHaveLength(enabled ? 2 : 3);
           } finally {
             watcher.destroy();
             wrapper.unmount();
