@@ -66,7 +66,7 @@ describe("OutputLine", () => {
 
     await eyeButtons(wrapper)[1].trigger("click");
 
-    expect(playText.mock.calls[0]).to.deep.equal(["hello world"]);
+    expect(playText.mock.calls[0]).to.deep.equal(["hello world", undefined, "without-space"]);
     expect(playCards.mock.calls).to.have.length(0);
   });
 
@@ -76,7 +76,7 @@ describe("OutputLine", () => {
 
     await eyeButtons(wrapper)[1].trigger("click");
 
-    expect(playCards.mock.calls[0]).to.deep.equal(["set.linka", cards]);
+    expect(playCards.mock.calls[0]).to.deep.equal(["set.linka", cards, false, "standard"]);
     expect(playText.mock.calls).to.have.length(0);
   });
 

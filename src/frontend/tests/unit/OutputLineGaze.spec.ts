@@ -63,7 +63,12 @@ describe("OutputLine lock with the real EyeButton and PageWatcher", () => {
       await wrapper.vm.$nextTick();
 
       expect(output.classes()).not.toContain("isInside");
-      expect(TTS.instance.playCards).toHaveBeenCalledExactlyOnceWith("set.linka", cards);
+      expect(TTS.instance.playCards).toHaveBeenCalledExactlyOnceWith(
+        "set.linka",
+        cards,
+        false,
+        "standard"
+      );
       expect(store.state.button.enabled).toBe(true);
     } finally {
       watcher.destroy();

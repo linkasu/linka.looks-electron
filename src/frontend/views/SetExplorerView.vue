@@ -307,7 +307,7 @@ async function addCard(card: Card, index: number) {
       cards.value.push(card);
     }
   } else if (filename.value) {
-    TTS.instance.playCards(filename.value, [card], true);
+    TTS.instance.playCards(filename.value, [card], true, "direct");
   }
 }
 

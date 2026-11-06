@@ -150,8 +150,8 @@ async function say() {
   speechError.value = false;
   try {
     if (props.config?.withoutSpace) {
-      if (text.value) await TTS.instance.playText(text.value);
-    } else await TTS.instance.playCards(props.file, props.cards);
+      if (text.value) await TTS.instance.playText(text.value, undefined, "without-space");
+    } else await TTS.instance.playCards(props.file, props.cards, false, "standard");
   } catch {
     speechError.value = true;
   } finally {
