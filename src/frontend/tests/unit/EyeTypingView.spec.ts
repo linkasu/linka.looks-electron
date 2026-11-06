@@ -48,7 +48,12 @@ async function setup(predictor?: TypingPredictor, typingLayout: unknown = "A") {
         keyboardActivation: true,
         joystickActivation: true
       },
-      ui: { gazeSuspended: false }
+      ui: { gazeSuspended: false, outputPosition: "top" }
+    },
+    mutations: {
+      ui_outputPosition({ ui }, position: string) {
+        ui.outputPosition = position;
+      }
     },
     actions: {
       button_enabled({ state }) {
@@ -84,6 +89,21 @@ async function click(wrapper: VueWrapper, label: string) {
 }
 
 describe("eye typing UI", () => {
+  it("moves output without replacing the draft, caret or undo history", async () => {
+    saveTypingDraft({ text: "привет", caret: 3 });
+    const { wrapper } = await setup({ suggest: async () => [] });
+    const output = wrapper.get('[aria-label="Черновик"]').element;
+    await click(wrapper, "а");
+    for (let i = 0; i < 3; i++) {
+      await click(wrapper, "Строка вывода: Сверху");
+      expect(wrapper.classes()).toContain("output-bottom");
+      expect(wrapper.get('[aria-label="Черновик"]').element).toBe(output);
+      expect(loadTypingDraft()).toEqual({ text: "приавет", caret: 4 });
+      await click(wrapper, "Строка вывода: Снизу");
+    }
+    await click(wrapper, "Отменить");
+    expect(loadTypingDraft()).toEqual({ text: "привет", caret: 3 });
+  });
   it.skipIf(!existsSync(executablePath) || !existsSync(resolve("predictor-resources/model.lpk")))(
     "selects and undoes via real renderer service, session and tiny sidecar (in-memory IPC bridge)",
     async () => {

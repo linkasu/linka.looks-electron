@@ -110,6 +110,27 @@ describe("store", () => {
     expect(store.state.button.enabled).to.equal(false);
   });
 
+  for (const position of ["top", "bottom"] as const) {
+    it(`persists and restores output position ${position} independently of sets`, async () => {
+      store.commit("ui_outputPosition", position);
+      expect(eStore.get("ui_outputPosition")).to.equal(position);
+      store.commit("explorer_config", { version: "2.0", columns: 1, rows: 1, cards: [] });
+      expect(store.state.ui.outputPosition).to.equal(position);
+      vi.resetModules();
+      const { default: restartedStore } = await import("@/frontend/store");
+      expect(restartedStore.state.ui.outputPosition).to.equal(position);
+    });
+  }
+
+  it("defaults absent or invalid output position to top", async () => {
+    eStore.delete("ui_outputPosition");
+    vi.resetModules();
+    const { default: restartedStore } = await import("@/frontend/store");
+    expect(restartedStore.state.ui.outputPosition).to.equal("top");
+    restartedStore.commit("ui_outputPosition", "invalid");
+    expect(restartedStore.state.ui.outputPosition).to.equal("top");
+  });
+
   it("adds unique key bindings and prevents duplicates across sides", async () => {
     store.commit("selectedKey", "down");
 

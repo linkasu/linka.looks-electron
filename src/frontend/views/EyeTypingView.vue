@@ -2,7 +2,7 @@
   <section
     v-if="draftLoaded"
     class="typing variant-C"
-    :class="{ 'has-error': error }"
+    :class="{ 'has-error': error, 'output-bottom': outputAtBottom }"
     aria-label="Печать глазами"
   >
     <header class="commands" aria-label="Наборы, управление и речь">
@@ -34,6 +34,14 @@
       <span>{{ beforeCaret }}</span
       ><span ref="caret" class="caret" aria-label="Курсор"></span><span>{{ afterCaret }}</span>
     </div>
+    <eye-button
+      class="output-position"
+      :aria-label="`Строка вывода: ${outputAtBottom ? 'Снизу' : 'Сверху'}`"
+      @click="store.commit('ui_outputPosition', outputAtBottom ? 'top' : 'bottom')"
+    >
+      <span aria-hidden="true">{{ outputAtBottom ? "↑" : "↓" }}</span>
+      <small>Строка {{ outputAtBottom ? "снизу" : "сверху" }}</small>
+    </eye-button>
     <p v-if="error" role="alert" class="status error">{{ error }}</p>
 
     <div class="predictions" aria-label="Подсказки слов">
@@ -173,6 +181,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import GazePauseButton from "@/frontend/components/GazePauseButton.vue";
 import TypingIcon from "@/frontend/components/TypingIcon.vue";
@@ -188,6 +197,8 @@ import type { TypingEdit } from "@/common/typing";
 
 const props = defineProps<{ predictor?: TypingPredictor; exit?: () => void }>();
 const router = useRouter();
+const store = useStore();
+const outputAtBottom = computed(() => store.state.ui.outputPosition === "bottom");
 const model = reactive(new EyeTyping());
 const error = ref("");
 const draftLoaded = ref(false);
@@ -220,6 +231,7 @@ watch(
 );
 
 watch(() => model.draft, scrollToCaret, { flush: "post" });
+watch(outputAtBottom, scrollToCaret, { flush: "post" });
 
 watch(
   () => [model.draft.text, model.draft.caret, model.language],
@@ -299,6 +311,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .typing {
+  --output-row: 1;
+  --error-row: 2;
   --key-row: 2;
   --edit-row: 5;
   --output-height: clamp(96px, calc(var(--typing-height, 100dvh) / 6), 180px);
@@ -317,6 +331,23 @@ onBeforeUnmount(() => {
   --key-row: 3;
   --edit-row: 6;
   grid-template-rows: var(--output-height) 36px repeat(4, minmax(0, 1fr));
+}
+.output-bottom {
+  --key-row: 1;
+  --edit-row: 4;
+  --output-row: 5;
+  grid-template-rows: repeat(4, minmax(0, 1fr)) var(--output-height);
+}
+.output-bottom.has-error {
+  --key-row: 2;
+  --edit-row: 5;
+  --output-row: 6;
+  --error-row: 1;
+  grid-template-rows: 36px repeat(4, minmax(0, 1fr)) var(--output-height);
+}
+.output-position {
+  grid-column: 16 / 19;
+  grid-row: var(--output-row);
 }
 .typing-unavailable {
   grid-template-columns: minmax(0, 1fr);
@@ -370,7 +401,7 @@ onBeforeUnmount(() => {
 }
 .error {
   grid-column: 1 / -1;
-  grid-row: 2;
+  grid-row: var(--error-row);
   font-size: 16px;
   line-height: 18px;
 }
@@ -484,8 +515,8 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 0 3px rgb(var(--v-theme-primary));
 }
 .draft {
-  grid-column: 1 / -1;
-  grid-row: 1;
+  grid-column: 1 / 16;
+  grid-row: var(--output-row);
   min-height: 0;
   position: relative;
   overflow: auto;
