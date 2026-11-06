@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { TelemetryController } from "@/electron/telemetry/controller";
+import { projectRendererOutcome } from "@/electron/telemetry/projector";
 
 describe("telemetry consent transitions", () => {
   it("does not create telemetry or make network requests while unknown or denied", async () => {
@@ -42,4 +43,33 @@ describe("telemetry consent transitions", () => {
     expect(runtime.record).toHaveBeenCalledOnce();
     expect(runtime.disableAndClear).toHaveBeenCalledOnce();
   });
+
+  it.each(["completed", "failed", "cancelled"])(
+    "gates utterance %s outcomes behind current consent",
+    async (result) => {
+      const runtime = { record: vi.fn(() => true), disableAndClear: vi.fn(async () => undefined) };
+      const createTelemetry = vi.fn(() => runtime as never);
+      const controller = new TelemetryController(
+        { read: async () => "unknown", write: async () => undefined },
+        createTelemetry
+      );
+      const outcome = projectRendererOutcome({
+        kind: "utterance_completed",
+        result,
+        mode: "standard"
+      });
+      expect(outcome).toBeDefined();
+      if (!outcome) throw new Error("invalid test outcome");
+      await controller.initialize();
+      expect(controller.record(outcome)).toBe(false);
+      await controller.setPreference("disabled");
+      expect(controller.record(outcome)).toBe(false);
+      expect(createTelemetry).not.toHaveBeenCalled();
+      await controller.setPreference("enabled");
+      expect(controller.record(outcome)).toBe(true);
+      await controller.setPreference("disabled");
+      expect(controller.record(outcome)).toBe(false);
+      expect(runtime.record).toHaveBeenCalledExactlyOnceWith(outcome);
+    }
+  );
 });

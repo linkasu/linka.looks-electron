@@ -83,6 +83,21 @@ it("keeps visible wrong-answer feedback and allows retry even when speech fails"
   wrapper.unmount();
 });
 
+it("marks only direct user speech, not exercise feedback, as an utterance", async () => {
+  const { wrapper, store } = await mountSet({
+    version: "3.0",
+    withoutSpace: false,
+    pages: [{ id: "direct", mode: "standard", rows: 1, columns: 1, cards: [right] }]
+  });
+  store.state.ui.outputLine = false;
+  await flushPromises();
+  wrapper.getComponent(SetGrid).vm.$emit("card", right, 0);
+  await flushPromises();
+  expect(audio.playCards).toHaveBeenCalledExactlyOnceWith("§quiz.linka", [right], true, "direct");
+  expect(audio.forcePlayText).not.toHaveBeenCalled();
+  wrapper.unmount();
+});
+
 it("does not apply old answer speech completion to a replacement set", async () => {
   const { wrapper, store } = await mountQuiz(true);
   let complete!: () => void;
