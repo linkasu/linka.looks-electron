@@ -28,6 +28,16 @@
       <v-icon>mdi-form-textbox</v-icon>
     </v-btn>
     <v-btn
+      v-if="pageMode === 'standard'"
+      flat
+      icon
+      :title="`Строка вывода: ${outputAtBottom ? 'Снизу' : 'Сверху'}. Переместить ${outputAtBottom ? 'вверх' : 'вниз'}`"
+      :aria-label="`Строка вывода: ${outputAtBottom ? 'Снизу' : 'Сверху'}`"
+      @click="store.commit('ui_outputPosition', outputAtBottom ? 'top' : 'bottom')"
+    >
+      <v-icon>{{ outputAtBottom ? "mdi-dock-bottom" : "mdi-dock-top" }}</v-icon>
+    </v-btn>
+    <v-btn
       flat
       icon
       :color="buttonEnabled ? 'primary' : ''"
@@ -153,6 +163,7 @@ import { HOME_DIR } from "@/common/constants";
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
+const outputAtBottom = computed(() => store.state.ui.outputPosition === "bottom");
 const toolsDialog = ref(false);
 const operationBusy = ref(false);
 const operationError = ref("");

@@ -135,6 +135,17 @@
 
             <v-divider class="my-2" />
             <v-select
+              v-model="outputPosition"
+              :items="[
+                { title: 'Сверху', value: 'top' },
+                { title: 'Снизу', value: 'bottom' }
+              ]"
+              label="Положение строки вывода"
+              hint="Для всех обычных наборов и режима печати. Снизу доступны текст и озвучивание."
+              persistent-hint
+              class="mb-4"
+            />
+            <v-select
               v-model="dwellIndicator"
               :items="dwellIndicatorOptions"
               label="Индикатор ожидания взгляда"
@@ -212,6 +223,10 @@ import type { PageTurnMode, DwellIndicatorMode } from "@/frontend/store/LINKaSto
 import type { TelemetryConsent } from "@/frontend/utils/TelemetryConsent";
 
 const store = useStore();
+const outputPosition = computed({
+  get: () => store.state.ui.outputPosition,
+  set: (value: "top" | "bottom") => store.commit("ui_outputPosition", value)
+});
 const trialCount = ref(0);
 const dwellIndicatorOptions = [
   { title: "От краёв к центру", value: "inward" },

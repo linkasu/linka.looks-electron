@@ -51,6 +51,7 @@ export interface LINKaStore {
     gazeSuspensions: { tools: boolean; updater: boolean };
     disabled: boolean;
     outputLine: boolean;
+    outputPosition: "top" | "bottom";
     exitButton: boolean;
   };
   editor: {
