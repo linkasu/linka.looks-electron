@@ -29,6 +29,8 @@ pnpm-debug.log*
 # Native addon local build outputs
 /native/*/build
 /native/*/node_modules
+/native/tobii-backend/**/bin/
+/native/tobii-backend/**/obj/
 
 # Playwright output
 /test-results

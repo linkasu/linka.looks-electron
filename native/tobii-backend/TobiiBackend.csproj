@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- Tobii's package selects its native DLL using Platform, not PlatformTarget. -->
+    <Platform>x64</Platform>
+    <OutputPath>bin/$(Configuration)/</OutputPath>
+    <AssemblyName>Linka.TobiiBackend</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Checks/**/*.cs" />
+    <Reference Include="System.Runtime.Serialization" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Tobii.Interaction" Version="[0.7.3]" />
+  </ItemGroup>
+  <Target Name="ValidatePlatform" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(Platform)' != 'x64' Or '$(PlatformTarget)' != 'x64'"
+           Text="TobiiBackend requires Platform=x64 and PlatformTarget=x64, including its native SDK DLL." />
+  </Target>
+</Project>
