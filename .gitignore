@@ -2,6 +2,8 @@
 node_modules
 /dist
 /extraResources/bin
+/extraResources/bubble-backend/
+/build/prerequisites/
 
 # local env files
 .env.local

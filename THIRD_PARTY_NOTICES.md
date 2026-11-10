@@ -1,5 +1,16 @@
 # Уведомления о лицензиях и сторонних правах
 
+## Bubble: backend Tobii для Windows
+
+Backend `Linka.TobiiBackend.exe` (net48, x64) использует проприетарный SDK Tobii:
+`Tobii.EyeX.Client.dll`, `Tobii.Interaction.Model.dll`, `Tobii.Interaction.Net.dll`.
+Условия SDK не заменяются лицензией приложения. Окончательные версии, provenance,
+требуемые notices и право распространения фактического output **PENDING** до
+проверки релизного кандидата; прежние хеши EyeLog ниже не подтверждают новый output.
+Автоматическая проверка состава/архитектуры не является проверкой лицензии или
+разрешением Tobii. Сборщик не исполняет SDK и не предоставляет обход его условий.
+Блокирующие проверки: [Bubble release checklist](docs/bubble-release-checklist.md).
+
 ## Предиктор issue145
 
 `@linkasu/predictor-electron` и Rust sidecar: GPL-3.0-or-later, исходники

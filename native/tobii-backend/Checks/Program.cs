@@ -28,7 +28,8 @@ static class Checks
             "{\"id\":null,\"type\":\"hello\"}", "{\"id\":\"1\",\"type\":\"hello\"}",
             "{\"id\":1,\"type\":\"unknown\"}", "{\"id\":1e999,\"type\":\"hello\"}",
             "{\"id\":1,\"id\":2,\"type\":\"hello\"}", "{\"id\":1,\"type\":\"hello\"}{}",
-            "[]", "null", "{\"id\":{},\"type\":\"hello\"}" })
+            "[]", "null", "{\"id\":{},\"type\":\"hello\"}", "{\"id\":0,\"type\":\"hello\"}",
+            "{\"id\":1.5,\"type\":\"hello\"}", "{\"id\":9007199254740992,\"type\":\"hello\"}" })
             Assert(Protocol.Read(new StringReader(invalid + "\n"), out command) && command == null,
                 "reject invalid command: " + invalid);
         var boundary = "{\"id\":3,\"type\":\"shutdown\"}";
@@ -90,6 +91,9 @@ static class Checks
             mutex.ReleaseMutex();
         }
         LifecycleChecks.Run();
+        Assert(Maintenance.WaitForExit("relative", "looks.exe") == 2 &&
+            Maintenance.WaitForExit(Path.GetTempPath(), "../looks.exe") == 2,
+            "maintenance accepts only an absolute installation and a plain executable name");
         Console.WriteLine("Checks passed: framing, nulls, finite latest, SDK timestamps, 300ms freshness, invalidation, mutex ownership.");
         return 0;
     }

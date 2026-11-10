@@ -40,7 +40,8 @@ for (const [failure, enabled] of [null, "missing", "directory", "stale", "empty"
           launched++;
           assert.equal(compared, 4);
         }
-      }
+      },
+      "./build-bubble-backend.cjs": { validateRuntime: () => {} }
     };
     await vm.runInNewContext(source, {
       __dirname: path.resolve("fixture-app/scripts/ci"),

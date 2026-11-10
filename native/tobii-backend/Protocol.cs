@@ -106,7 +106,8 @@ namespace Linka.TobiiBackend
                 }
                 using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
                     command = (Command)new DataContractJsonSerializer(typeof(Command)).ReadObject(stream);
-                if (command == null || !Finite(command.Id) ||
+                if (command == null || !Finite(command.Id) || command.Id <= 0 ||
+                    command.Id > 9007199254740991 || command.Id != Math.Truncate(command.Id) ||
                     (command.Type != "hello" && command.Type != "getLatest" && command.Type != "shutdown"))
                     command = null;
             }

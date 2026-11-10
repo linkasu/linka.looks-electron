@@ -16,7 +16,7 @@ runtime/driver must already be installed. Do not copy only the executable.
 
 stdin/stdout are UTF-8 newline JSON. Input records are limited to 4096 characters;
 invalid records return `INVALID_REQUEST` with null id and are drained to newline.
-Commands have numeric `id` and `type`: `hello`, `getLatest`, `shutdown`.
+Commands have a positive safe-integer `id` and `type`: `hello`, `getLatest`, `shutdown`.
 Only commands produce replies; stdout is never a sample stream. `shutdown`
 replies before teardown, and EOF also stops the process. No coordinates are logged.
 
@@ -43,3 +43,8 @@ the packaged folder, mutex conflict, EOF/shutdown, DPI/monitor changes and SDK
 reconnect with actual hardware. Invalid coordinates/timestamps clear the current
 sample immediately. Only a strictly increasing SDK timestamp can renew freshness;
 the timestamp watermark resets on SDK reconnect, not on monitor geometry changes.
+
+The installer-only `--wait-installation-exit <absolute-directory> <executable-name>` mode
+does not initialize the SDK. It waits up to 15 seconds for the exact installation's
+main/backend processes and fails closed when ownership cannot be inspected. It never
+terminates a process; the interactive agent handles cooperative shutdown separately.

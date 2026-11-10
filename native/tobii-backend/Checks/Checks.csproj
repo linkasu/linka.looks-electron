@@ -9,5 +9,6 @@
     <Compile Include="../LatestSample.cs" Link="LatestSample.cs" />
     <Compile Include="../Program.cs" Link="BackendProgram.cs" />
     <Compile Include="../PrimaryMonitor.cs" Link="PrimaryMonitor.cs" />
+    <Compile Include="../Maintenance.cs" Link="Maintenance.cs" />
   </ItemGroup>
 </Project>
