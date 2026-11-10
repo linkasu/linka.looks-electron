@@ -168,7 +168,7 @@ export class BubbleClient {
 
 export function registerBubbleClient(owner: BrowserWindow, rendererUrl: string) {
   if (process.platform !== "win32") return;
-  const baseUrl = rendererUrl.split("#")[0];
+  const baseUrl = new URL(rendererUrl).href.split("#")[0];
   const client = new BubbleClient(join(app.getPath("userData"), "bubble-agent"), (state) => {
     if (!owner.isDestroyed()) owner.webContents.send("bubble:state", state);
     if (state.errorCode === "UPDATE_PREPARING") setImmediate(() => app.quit());

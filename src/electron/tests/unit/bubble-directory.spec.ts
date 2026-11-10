@@ -9,7 +9,7 @@ import { assertPrivateBubbleDirectory } from "../../bubble/controlChannel";
 const mocks = vi.hoisted(() => ({ spawn: vi.fn(), spawnSync: vi.fn(() => ({ status: 0 })) }));
 vi.mock("node:child_process", () => mocks);
 let directory: string;
-let child: EventEmitter & { pid: number; stdin: PassThrough; kill: ReturnType<typeof vi.fn> };
+let child: EventEmitter & { pid: number; stdout: PassThrough; kill: ReturnType<typeof vi.fn> };
 
 beforeEach(async () => {
   directory = await mkdtemp(join(tmpdir(), "bubble-acl-"));
@@ -19,13 +19,13 @@ beforeEach(async () => {
     platform: "win32",
     env: { ...runtime.env, SystemRoot: "C:\\Windows" }
   });
-  child = Object.assign(new EventEmitter(), { pid: 42, stdin: new PassThrough(), kill: vi.fn() });
+  child = Object.assign(new EventEmitter(), { pid: 42, stdout: new PassThrough(), kill: vi.fn() });
   mocks.spawn.mockReturnValue(child);
   vi.clearAllMocks();
 });
 afterEach(async () => {
   child.emit("close", 0);
-  child.stdin.destroy();
+  child.stdout.destroy();
   vi.unstubAllGlobals();
   vi.useRealTimers();
   await rm(directory, { recursive: true, force: true });

@@ -32,8 +32,7 @@ if (process.env.PRINT_APP_VERSION === "1") {
         () => app.exit(0),
         () => app.exit(2)
       );
-  } else if (!app.requestSingleInstanceLock()) app.quit();
-  else
+  } else
     void import("./bubble/agent")
       .then(async ({ startBubbleAgent }) => {
         if (resume) {
@@ -55,6 +54,10 @@ if (process.env.PRINT_APP_VERSION === "1") {
             app.quit();
             return;
           }
+        }
+        if (!app.requestSingleInstanceLock()) {
+          app.quit();
+          return;
         }
         await startBubbleAgent();
       })
