@@ -219,6 +219,8 @@ jobs:
         run: npm run bubble:backend:check
       - name: Windows Bubble IPC and ACL integration (no device)
         run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
+      - name: Cold Microsoft runtime signature checks (no installer execution)
+        run: node --test scripts/ci/provision-bubble-runtime.test.cjs
       - name: Windows SDK process negative controls (no device)
         id: sdk-controls
         if: github.event_name == 'pull_request'
