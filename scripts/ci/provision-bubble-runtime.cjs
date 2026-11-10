@@ -43,6 +43,15 @@ async function verifyFile(filename, expected) {
 function verifyAuthenticode(filename) {
   const systemRoot = process.env.SystemRoot;
   assert(systemRoot && path.isAbsolute(systemRoot), "Windows SystemRoot is required");
+  const env = { SystemRoot: systemRoot, WINDIR: systemRoot };
+  for (const [key, value] of Object.entries(process.env)) {
+    if (
+      /^(PATH|SYSTEMDRIVE|COMSPEC|PATHEXT|TEMP|TMP|USERPROFILE|APPDATA|LOCALAPPDATA|PROGRAMDATA)$/i.test(
+        key
+      )
+    )
+      env[key] = value;
+  }
   const result = spawnSync(
     path.join(systemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe"),
     [
@@ -51,22 +60,25 @@ function verifyAuthenticode(filename) {
       "-NonInteractive",
       "-Command",
       "$ErrorActionPreference = 'Stop'; " +
-        "$file = [Console]::In.ReadToEnd(); " +
+        "$file = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+        Buffer.from(filename, "utf8").toString("base64") +
+        "')); " +
+        "Import-Module ([IO.Path]::Combine($PSHOME,'Modules\\Microsoft.PowerShell.Security\\Microsoft.PowerShell.Security.psd1')) -ErrorAction Stop; " +
         "$signature = Get-AuthenticodeSignature -LiteralPath $file; " +
         "if ($signature.Status -ne 'Valid' -or " +
         "$signature.SignerCertificate.Subject -notmatch '(^|,\\s*)CN=Microsoft Corporation(,|$)') " +
         "{ exit 1 }; exit 0"
     ],
     {
-      input: filename,
       encoding: "utf8",
-      env: { SystemRoot: systemRoot, WINDIR: systemRoot },
+      env,
       timeout: 30000,
       windowsHide: true,
       maxBuffer: 65536
     }
   );
-  assert(!result.error && result.status === 0, "runtime Authenticode verification failed");
+  if (result.error?.code === "ETIMEDOUT") throw new Error("RUNTIME_SIGNATURE_TIMEOUT");
+  assert(!result.error && result.status === 0, "RUNTIME_SIGNATURE_INVALID");
 }
 
 async function provisionRuntime(runtime, directory) {
@@ -120,14 +132,20 @@ async function provision({ platform = process.platform } = {}) {
     return;
   }
   const directory = path.resolve(__dirname, "../../build/prerequisites");
-  for (const runtime of RUNTIMES) await provisionRuntime(runtime, directory);
+  for (const runtime of RUNTIMES) {
+    console.log(`Verifying ${runtime.filename}: pinned SHA-256 and Microsoft Authenticode`);
+    await provisionRuntime(runtime, directory);
+  }
 }
 
-module.exports = { RUNTIMES, verifyFile, provision };
+module.exports = { RUNTIMES, verifyFile, verifyAuthenticode, provision };
 
 if (require.main === module) {
-  provision().catch(() => {
-    console.error("Pinned Bubble runtime provisioning failed; build must stop");
+  provision().catch((error) => {
+    const code = ["RUNTIME_SIGNATURE_TIMEOUT", "RUNTIME_SIGNATURE_INVALID"].includes(error.message)
+      ? error.message
+      : "RUNTIME_PROVISION_FAILED";
+    console.error(`Pinned Bubble runtime provisioning failed (${code}); build must stop`);
     process.exitCode = 1;
   });
 }

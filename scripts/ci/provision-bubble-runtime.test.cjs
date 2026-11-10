@@ -5,10 +5,67 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const vm = require("node:vm");
 const { RUNTIMES, verifyFile } = require("./provision-bubble-runtime.cjs");
 
 const bytes = Buffer.from("synthetic offline installer fixture");
 const expected = { size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+
+test("signature verification never waits for stdin and still requires a valid Microsoft signature", async () => {
+  const source = await fs.readFile(path.join(__dirname, "provision-bubble-runtime.cjs"), "utf8");
+  const calls = [];
+  let response = { status: 0 };
+  const module = { exports: {} };
+  const root = path.resolve("windows-fixture");
+  vm.runInNewContext(source, {
+    module,
+    Buffer,
+    process: { env: { SystemRoot: root, GH_TOKEN: "must-not-be-forwarded" } },
+    require: (id) =>
+      id === "node:child_process"
+        ? {
+            spawnSync: (...args) => {
+              calls.push(args);
+              return response;
+            }
+          }
+        : require(id)
+  });
+  const verify = module.exports.verifyAuthenticode;
+  assert.equal(typeof verify, "function");
+  const filename = path.resolve("runtime 'quoted' Ж.exe");
+  verify(filename);
+  const [, args, options] = calls[0];
+  const script = args.at(-1);
+  assert(script.includes(Buffer.from(filename, "utf8").toString("base64")));
+  assert(!script.includes(filename));
+  assert(!script.includes("ReadToEnd"));
+  assert(script.includes("Get-AuthenticodeSignature"));
+  assert(script.includes("Microsoft Corporation"));
+  assert(script.includes("$signature.Status -ne 'Valid'"));
+  assert.equal(options.input, undefined);
+  assert.equal(options.env.GH_TOKEN, undefined);
+  assert(script.includes("Microsoft.PowerShell.Security.psd1"));
+  response = { status: null, error: { code: "ETIMEDOUT" } };
+  assert.throws(() => verify(filename), /RUNTIME_SIGNATURE_TIMEOUT/);
+  response = { status: 1 };
+  assert.throws(() => verify(filename), /RUNTIME_SIGNATURE_INVALID/);
+});
+
+test(
+  "Windows cold Authenticode rejects an unsigned file without timing out",
+  { skip: process.platform !== "win32" },
+  async (t) => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "runtime-signature-"));
+    t.after(() => fs.rm(directory, { recursive: true, force: true }));
+    const file = path.join(directory, "unsigned 'Ж'.exe");
+    await fs.writeFile(file, "unsigned synthetic fixture");
+    assert.throws(
+      () => require("./provision-bubble-runtime.cjs").verifyAuthenticode(file),
+      /RUNTIME_SIGNATURE_INVALID/
+    );
+  }
+);
 
 for (const scenario of ["valid", "missing", "truncated", "oversized", "wrong hash", "directory"]) {
   test(`runtime verification: ${scenario}`, async (t) => {
