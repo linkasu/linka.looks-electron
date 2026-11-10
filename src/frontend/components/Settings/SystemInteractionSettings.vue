@@ -134,7 +134,13 @@ function accept(state: BubbleSnapshot) {
     return;
   if (current && current.instanceId !== state.instanceId) retiredInstances.add(current.instanceId);
   snapshot.value = state;
-  clearDraft();
+  if (
+    !current ||
+    current.instanceId !== state.instanceId ||
+    current.revision !== state.revision ||
+    state.errorCode === "AGENT_STOPPED"
+  )
+    clearDraft();
 }
 
 function onState(_event: unknown, state: BubbleSnapshot) {

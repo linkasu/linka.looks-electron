@@ -58,6 +58,15 @@ describe("gaze presentation", () => {
     expect(gaze.frame(preferences, 210)?.x).toBe(320);
     expect(gaze.frame({ ...preferences, enabled: false }, 210)).toBeNull();
   });
+
+  it("invalidates the old geometry even if the backend repeats its last sequence", () => {
+    const gaze = new GazePresentation();
+    gaze.record(sample, bounds, size, 40, 100);
+    gaze.record(sample, bounds, { width: 640, height: 360 }, 40, 110);
+    expect(gaze.frame(preferences, 110)).toBeNull();
+    gaze.record({ ...sample, sequence: 2 }, bounds, { width: 640, height: 360 }, 40, 120);
+    expect(gaze.frame(preferences, 120)?.x).toBe(320);
+  });
 });
 
 describe("isolated bubble renderer", () => {

@@ -18,8 +18,8 @@ export class GazePresentation {
     smoothness: number,
     now: number
   ): void {
-    if (!Number.isFinite(sample.sequence) || sample.sequence <= this.sequence) return;
-    this.sequence = sample.sequence;
+    const newer = Number.isFinite(sample.sequence) && sample.sequence > this.sequence;
+    if (newer) this.sequence = sample.sequence;
     const geometry = [
       bounds.left,
       bounds.top,
@@ -52,6 +52,7 @@ export class GazePresentation {
       this.point = null;
       return;
     }
+    if (!newer) return;
     const x = ((sample.x - bounds.left) / bounds.width) * size.width;
     const y = ((sample.y - bounds.top) / bounds.height) * size.height;
     const time = now - sample.ageMs;

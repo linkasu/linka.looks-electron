@@ -108,6 +108,25 @@ describe("bubble settings", () => {
     expect(ipc.invoke).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps an appearance draft across tracker status updates, but cancels it on session exit", async () => {
+    const wrapper = render();
+    await flushPromises();
+    wrapper.findAllComponents(Slider)[0].vm.$emit("update:modelValue", 70);
+    publish(state({ stateSequence: 2, tracker: "stale" }));
+    await vi.advanceTimersByTimeAsync(120);
+    expect(ipc.invoke).toHaveBeenLastCalledWith("bubble:change", {
+      instanceId: "epoch-a",
+      revision: 1,
+      patch: { diameter: 70 }
+    });
+    await flushPromises();
+    wrapper.findAllComponents(Slider)[0].vm.$emit("update:modelValue", 80);
+    publish(state({ stateSequence: 3, errorCode: "AGENT_STOPPED", tracker: "unavailable" }));
+    const count = ipc.invoke.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(120);
+    expect(ipc.invoke).toHaveBeenCalledTimes(count);
+  });
+
   it("adopts conflicts without replay and preserves saved state on failure", async () => {
     const wrapper = render();
     await flushPromises();
