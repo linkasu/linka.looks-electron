@@ -113,6 +113,7 @@ export async function withTestBubbleCleanup(
   context: E2EContext
 ): Promise<ElectronApplication> {
   if (process.platform === "win32") {
+    const child = app.process();
     const appRoot = await app.evaluate(({ app }) => app.getAppPath());
     const installationId = createHash("sha256")
       .update(resolve(appRoot).toLowerCase())
@@ -121,11 +122,7 @@ export async function withTestBubbleCleanup(
     app.close = async () => {
       try {
         try {
-          if (
-            app.process().exitCode === null &&
-            app.process().signalCode === null &&
-            app.windows().length
-          )
+          if (child.exitCode === null && child.signalCode === null && app.windows().length)
             await readTestBubbleState(app);
         } finally {
           await stopTestBubbleAgent(context, installationId);
