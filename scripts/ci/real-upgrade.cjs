@@ -89,7 +89,48 @@ async function until(label, predicate, milliseconds = 90000) {
   throw new Error(`Deadline exceeded: ${label}`);
 }
 
+function systemEnvironment() {
+  const env = {};
+  const allowed =
+    /^(PATH|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMFILES(?:\(X86\))?|PROGRAMW6432|COMMONPROGRAMFILES(?:\(X86\))?|COMMONPROGRAMW6432|PROGRAMDATA|NUMBER_OF_PROCESSORS|PROCESSOR_ARCHITECTURE|OS|USERNAME|USERDOMAIN|PUBLIC|ALLUSERSPROFILE)$/i;
+  for (const [key, value] of Object.entries(process.env)) if (allowed.test(key)) env[key] = value;
+  return env;
+}
+
+function stopOwnedBubble() {
+  if (!profile) return;
+  const endpointFile = path.join(profile, "bubble-agent", "endpoint.json");
+  if (!fs.existsSync(endpointFile)) return;
+  assert(result.installedExecutable.new, "Only a verified installed candidate may control Bubble");
+  assert.equal(
+    digest(fs.readFileSync(exe)),
+    result.installedExecutable.new,
+    "Installed candidate changed before Bubble cleanup"
+  );
+  const stat = fs.lstatSync(endpointFile);
+  assert(
+    stat.isFile() && !stat.isSymbolicLink() && stat.size <= 4096,
+    "Regular scoped Bubble endpoint required"
+  );
+  const endpoint = readJson(endpointFile);
+  const installationId = digest(
+    Buffer.from(path.resolve(path.dirname(exe), "resources", "app.asar").toLowerCase())
+  );
+  assert.equal(
+    endpoint.installationId,
+    installationId,
+    "Never control a different installation's Bubble"
+  );
+  execFileSync(exe, ["--bubble-control"], {
+    env: systemEnvironment(),
+    windowsHide: true,
+    stdio: "ignore",
+    timeout: 15000
+  });
+}
+
 function ownedProcesses(close = false) {
+  if (close) stopOwnedBubble();
   // Exact executable path only: never close a pre-existing or unrelated application window.
   const script = `
     $ErrorActionPreference = 'Stop'
@@ -159,10 +200,7 @@ const server = http.createServer((request, response) => {
 
 async function launch(executable = exe) {
   // Do not pass workflow tokens, service credentials or arbitrary NODE_OPTIONS into the app/NSIS.
-  const env = {};
-  const allowed =
-    /^(PATH|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMFILES(?:\(X86\))?|PROGRAMW6432|COMMONPROGRAMFILES(?:\(X86\))?|COMMONPROGRAMW6432|PROGRAMDATA|NUMBER_OF_PROCESSORS|PROCESSOR_ARCHITECTURE|OS|USERNAME|USERDOMAIN|PUBLIC|ALLUSERSPROFILE)$/i;
-  for (const [key, value] of Object.entries(process.env)) if (allowed.test(key)) env[key] = value;
+  const env = systemEnvironment();
   Object.assign(env, {
     IS_TEST: "1",
     NODE_ENV: "production",
@@ -200,6 +238,7 @@ const updateState = (page) =>
   page.evaluate(() => globalThis.require("electron").ipcRenderer.invoke("updater:getState"));
 async function closeApp() {
   if (!application) return;
+  stopOwnedBubble();
   let timer;
   try {
     await Promise.race([

@@ -6,6 +6,7 @@ const path = require("node:path");
 const { spawnSync, spawn } = require("node:child_process");
 const { once } = require("node:events");
 const { randomUUID } = require("node:crypto");
+const vm = require("node:vm");
 const {
   OLD,
   INSTALLER,
@@ -16,6 +17,59 @@ const {
   candidateConfiguration,
   updateConfirmation
 } = require("./real-upgrade-contract.cjs");
+
+test("upgrade cleanup controls only a verified candidate's scoped Bubble without leaking credentials", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "bubble-upgrade-cleanup-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const exe = path.join(root, "LINKa. смотри.exe");
+  const profile = path.join(root, "profile");
+  const endpointFile = path.join(profile, "bubble-agent", "endpoint.json");
+  fs.mkdirSync(path.dirname(endpointFile), { recursive: true });
+  fs.writeFileSync(exe, "reviewed candidate bytes");
+  const result = { installedExecutable: { new: digest(fs.readFileSync(exe)) } };
+  const calls = [];
+  const source = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
+  const start = source.indexOf("function systemEnvironment()");
+  const end = source.indexOf("function ownedProcesses(");
+  assert(start >= 0 && end > start);
+  const stop = vm.runInNewContext(source.slice(start, end) + "; stopOwnedBubble", {
+    assert,
+    fs,
+    path,
+    profile,
+    exe,
+    result,
+    digest,
+    Buffer,
+    readJson: (file) => JSON.parse(fs.readFileSync(file, "utf8")),
+    process: {
+      env: {
+        SystemRoot: "C:\\Windows",
+        GH_TOKEN: "must-not-be-forwarded",
+        NODE_OPTIONS: "must-not-be-forwarded"
+      }
+    },
+    execFileSync: (...args) => calls.push(args)
+  });
+  stop();
+  assert.equal(calls.length, 0);
+  fs.writeFileSync(endpointFile, JSON.stringify({ installationId: "another installation" }));
+  assert.throws(stop, /different installation/);
+  const installationId = digest(
+    Buffer.from(path.resolve(path.dirname(exe), "resources", "app.asar").toLowerCase())
+  );
+  fs.writeFileSync(endpointFile, JSON.stringify({ installationId }));
+  stop();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], exe);
+  assert.equal(calls[0][1][0], "--bubble-control");
+  assert.equal(calls[0][2].env.SystemRoot, "C:\\Windows");
+  assert.equal(calls[0][2].env.GH_TOKEN, undefined);
+  assert.equal(calls[0][2].env.NODE_OPTIONS, undefined);
+  fs.writeFileSync(exe, "unverified replacement");
+  assert.throws(stop, /candidate changed/);
+  assert.equal(calls.length, 1);
+});
 
 test("pinned baseline keeps explicit confirmation for both historical and current updater UI", () => {
   assert.deepEqual(updateConfirmation("3.3.1"), {

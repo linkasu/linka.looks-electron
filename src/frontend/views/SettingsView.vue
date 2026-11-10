@@ -191,6 +191,7 @@
                 Политика конфиденциальности
               </v-btn>
             </details>
+            <system-interaction-settings />
           </v-card-text>
         </v-card>
       </v-col>
@@ -217,6 +218,7 @@ import { shell } from "electron";
 import ColorSettings from "@/frontend/components/Settings/ColorsSettings.vue";
 import VoiceSettings from "@/frontend/components/Settings/VoiceSettings.vue";
 import InputSettings from "@/frontend/components/Settings/InputSettings.vue";
+import SystemInteractionSettings from "@/frontend/components/Settings/SystemInteractionSettings.vue";
 import EyeButton from "@/frontend/components/EyeButton.vue";
 import { Telemetry } from "@/frontend/utils/Telemetry";
 import type { PageTurnMode, DwellIndicatorMode } from "@/frontend/store/LINKaStore";

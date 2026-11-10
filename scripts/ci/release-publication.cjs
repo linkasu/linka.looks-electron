@@ -27,6 +27,9 @@ function verifyNotes(notes, version) {
   );
   return notes;
 }
+function notesRequirePrerelease(notes) {
+  return /^<!-- release-channel: prerelease -->$/m.test(notes);
+}
 function verifyPrepared(directory) {
   assert(fs.lstatSync(directory).isDirectory(), "regular publication directory required");
   const stat = fs.lstatSync(path.join(directory, "publication.json"));
@@ -58,7 +61,11 @@ function verifyPrepared(directory) {
   );
   for (const file of [...m.files, m.notes])
     assert.deepEqual(fileRecord(directory, file.name), file, "prepared file digest mismatch");
-  verifyNotes(fs.readFileSync(path.join(directory, m.notes.name), "utf8"), m.version);
+  const notes = verifyNotes(fs.readFileSync(path.join(directory, m.notes.name), "utf8"), m.version);
+  assert(
+    m.prerelease || !notesRequirePrerelease(notes),
+    "Candidate notes require prerelease publication; stable publication is forbidden"
+  );
   return m;
 }
 function inspectState(state, m, notes) {
@@ -197,6 +204,7 @@ module.exports = {
   inspectState,
   verifyPrepared,
   verifyNotes,
+  notesRequirePrerelease,
   extractQualification,
   fileRecord,
   digest,

@@ -2,6 +2,8 @@
 node_modules
 /dist
 /extraResources/bin
+/extraResources/bubble-backend/
+/build/prerequisites/
 
 # local env files
 .env.local
@@ -29,6 +31,8 @@ pnpm-debug.log*
 # Native addon local build outputs
 /native/*/build
 /native/*/node_modules
+/native/tobii-backend/**/bin/
+/native/tobii-backend/**/obj/
 
 # Playwright output
 /test-results

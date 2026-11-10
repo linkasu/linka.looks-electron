@@ -2,6 +2,8 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/electron/main.ts",
+    "src/electron/bubble/preload.ts",
+    "src/frontend/bubble/main.ts",
     "src/frontend/typing/{main,prototypeBridge,storeBridge,speechBridge,trackerBridge}.ts",
     "src/frontend/tests/unit/**/*.spec.ts",
     "src/electron/tests/unit/**/*.spec.ts",

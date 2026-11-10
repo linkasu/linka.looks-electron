@@ -235,6 +235,23 @@ test("first publication creates draft, uploads exact bytes and only then publish
   assert.equal((await publish(f.directory, remote.api)).status, "ALREADY_PUBLISHED");
   assert.equal(remote.writes.length, 3);
 });
+test("prerelease-only candidate notes block automatic stable publication before any write", async (t) => {
+  const f = fixture(t);
+  const notes = "# 4.1.0\n\n<!-- release-channel: prerelease -->\n\nTester build only.\n";
+  fs.writeFileSync(path.join(f.directory, "release-notes.md"), notes);
+  f.manifest.notes = {
+    name: "release-notes.md",
+    bytes: Buffer.byteLength(notes),
+    sha256: hash(Buffer.from(notes))
+  };
+  fs.writeFileSync(path.join(f.directory, "publication.json"), JSON.stringify(f.manifest));
+  const remote = fakeApi(f.manifest);
+  await assert.rejects(publish(f.directory, remote.api), /stable publication is forbidden/);
+  assert.deepEqual(remote.writes, []);
+  f.manifest.prerelease = true;
+  fs.writeFileSync(path.join(f.directory, "publication.json"), JSON.stringify(f.manifest));
+  assert.equal(verifyPrepared(f.directory).prerelease, true);
+});
 test("publication mode is immutable for existing drafts and published releases", async (t) => {
   const f = fixture(t);
   for (const prerelease of [true, false]) {
@@ -1069,6 +1086,26 @@ test("full release qualification can seal a prerelease without changing qualific
   assert.equal((await prepare("34", f.output, f.options)).status, "PREPARED");
   assert.equal(f.q.mode, "release");
   assert.equal(verifyPrepared(f.output).prerelease, true);
+});
+test("automatic preparation honors the prerelease-only channel of exact candidate notes", async (t) => {
+  const f = completeFixture(t);
+  const notes = Buffer.from(
+    "# Release 4.1.0\n\n<!-- release-channel: prerelease -->\n\nTester only.\n"
+  );
+  f.inputs.sources["release-notes.md"] = notes;
+  Object.assign(
+    f.c.artifacts.sources.files.find((file) => file.name === "release-notes.md"),
+    {
+      bytes: notes.length,
+      sha256: hash(notes)
+    }
+  );
+  f.options.prerelease = false;
+  assert.equal((await prepare("34", f.output, f.options)).status, "PREPARED");
+  const manifest = verifyPrepared(f.output);
+  assert.equal(manifest.prerelease, true);
+  assert.equal(manifest.notes.sha256, hash(notes));
+  assert.equal(f.q.mode, "release");
 });
 function reusedFixture(t, reused = ["security"]) {
   const f = completeFixture(t, {

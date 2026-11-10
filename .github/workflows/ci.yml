@@ -105,6 +105,9 @@ jobs:
           scripts/ci/stage-approved-predictor.test.cjs
           scripts/ci/candidate-eyelog-api.test.cjs
           scripts/ci/packaged-eyelog.test.cjs
+          scripts/ci/build-bubble-backend.test.cjs
+          scripts/ci/provision-bubble-runtime.test.cjs
+          scripts/ci/bubble-installer.test.cjs
           scripts/ci/release-artifacts.test.cjs
           scripts/ci/release-inventory.test.cjs
           scripts/ci/windows-candidate-workflow.test.cjs
@@ -142,6 +145,10 @@ jobs:
         run: node -e 'const a=require("node:assert/strict");a.equal(process.platform,"win32");for(const [k,v] of Object.entries({GITHUB_ACTIONS:"true",RUNNER_ENVIRONMENT:"github-hosted",ImageOS:"win22",GITHUB_REPOSITORY:"linkasu/linka.looks-electron"}))a.equal(process.env[k],v,k)'
       - name: Windows native and candidate contracts (no app/model build)
         run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
+      - name: Bubble backend synthetic checks (no SDK or device execution)
+        run: npm run bubble:backend:check
+      - name: Windows Bubble IPC and ACL integration (no device)
+        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Hosted PR SDK process self-checks (no app or device)
         if: github.event_name == 'pull_request'
         env:
@@ -208,6 +215,10 @@ jobs:
         run: node -e 'const a=require("node:assert/strict");a.equal(process.platform,"win32");for(const [k,v] of Object.entries({GITHUB_ACTIONS:"true",RUNNER_ENVIRONMENT:"github-hosted",ImageOS:"win22",GITHUB_REPOSITORY:"linkasu/linka.looks-electron"}))a.equal(process.env[k],v,k)'
       - name: Windows native and candidate contracts (no app/model build)
         run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
+      - name: Bubble backend synthetic checks (no SDK or device execution)
+        run: npm run bubble:backend:check
+      - name: Windows Bubble IPC and ACL integration (no device)
+        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Windows SDK process negative controls (no device)
         id: sdk-controls
         if: github.event_name == 'pull_request'

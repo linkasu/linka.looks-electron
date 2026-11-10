@@ -23,6 +23,11 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: npm
         cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+    - name: Install Bubble backend build SDK on Windows
+      if: runner.os == 'Windows'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: "10.0.x"
     - name: Install locked dependencies without lifecycle scripts
       shell: bash
       working-directory: ${{ inputs.working-directory }}

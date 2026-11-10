@@ -129,6 +129,18 @@ function smokeMacPackage(appBundle) {
 (async () => {
   if (process.platform === "win32") {
     assertPinnedEyeLog(getWindowsExtraResourcesDir());
+    assertFile(join(getWindowsExtraResourcesDir(), "bubble.ico"));
+    require("./build-bubble-backend.cjs").validateRuntime(
+      join(getWindowsExtraResourcesDir(), "bubble-backend")
+    );
+    for (const name of [
+      "Linka.TobiiBackend.exe",
+      "Tobii.EyeX.Client.dll",
+      "Tobii.Interaction.Model.dll",
+      "Tobii.Interaction.Net.dll"
+    ]) {
+      assertFile(join(getWindowsExtraResourcesDir(), "bubble-backend", name));
+    }
     if (process.env.EYELOG_SANDBOX_GATE === "1") {
       require("./windows-sdk-launch.cjs").launch(
         join(getWindowsExtraResourcesDir(), "bin", "EyeLog.exe")

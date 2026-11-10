@@ -104,6 +104,20 @@ storageService
     console.error(error);
   });
 
+ipcRenderer.on("app:second-instance", (_event, argv: string[]) => {
+  if (!Array.isArray(argv)) return;
+  if (argv.includes("--bubble-settings")) {
+    void router.push("/settings?section=bubble");
+    return;
+  }
+  const file = argv.find((arg) => typeof arg === "string" && arg.toLowerCase().endsWith(".linka"));
+  if (file)
+    void storageService
+      .importExternalSet(file)
+      .then((imported) => router.push("/set/" + toRoutePath(imported)))
+      .catch((error) => console.error(error));
+});
+
 function toRoutePath(absolutePath: string) {
   return absolutePath.replace(HOME_DIR, "").replaceAll("/", "§").replaceAll("\\", "§");
 }
@@ -113,6 +127,7 @@ setTimeout(() => {
 }, 500);
 
 async function redirectFirstCalibration() {
+  if (router.currentRoute.value.query.section === "bubble") return;
   if (store.state.firstCalibrate) return;
   const currentPath = router.currentRoute.value.path;
   if (currentPath === "/tobii-calibration") return;

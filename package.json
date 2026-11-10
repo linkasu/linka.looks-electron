@@ -1,7 +1,7 @@
 {
   "license": "GPL-3.0-or-later",
   "name": "linka.looks",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "author": "ibakaidov",
   "private": true,
   "engines": {
@@ -29,8 +29,9 @@
     "test:e2e": "npm run build && playwright test",
     "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",
     "native:test-load": "npm --prefix node_modules/@linkasu/tobii-electron run native:test-load",
+    "bubble:backend:check": "node scripts/ci/build-bubble-backend.cjs --check",
     "test:packaged-resources": "node scripts/ci/packaged-resources-smoke.js",
-    "preelectron:build": "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs",
+    "preelectron:build": "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs && node scripts/ci/build-bubble-backend.cjs && node scripts/ci/provision-bubble-runtime.cjs",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run electron:build -- --win -p never",
     "electron:build:mac": "npm run electron:build -- --mac --x64 --arm64 -p never",
@@ -118,7 +119,24 @@
     "win": {
       "icon": "build/icons/icon.ico",
       "signAndEditExecutable": true,
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": false,
+      "extraResources": [
+        {
+          "from": "./build/icons/icon.ico",
+          "to": "extraResources/bubble.ico"
+        },
+        {
+          "from": "./extraResources/bubble-backend/",
+          "to": "extraResources/bubble-backend",
+          "filter": [
+            "Linka.TobiiBackend.exe",
+            "Linka.TobiiBackend.exe.config",
+            "Tobii.EyeX.Client.dll",
+            "Tobii.Interaction.Model.dll",
+            "Tobii.Interaction.Net.dll"
+          ]
+        }
+      ]
     },
     "linux": {
       "category": "Education",
@@ -149,6 +167,7 @@
         "to": "extraResources",
         "filter": [
           "**/*",
+          "!bubble-backend{,/**/*}",
           "!defaultSets/**/*",
           "defaultSets/Клавиатура.linka",
           "defaultSets/Крупная клавиатура/**/*",

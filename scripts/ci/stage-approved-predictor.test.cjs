@@ -204,7 +204,7 @@ test("single central prebuild hook and Windows-only unsigned PR profile", () => 
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json")));
   assert.equal(
     pkg.scripts["preelectron:build"],
-    "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs"
+    "node scripts/ci/stage-approved-predictor.cjs && node scripts/ci/provision-eyelog.cjs && node scripts/ci/build-bubble-backend.cjs && node scripts/ci/provision-bubble-runtime.cjs"
   );
   const yaml = require("yaml");
   const workflow = yaml.parse(fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"));

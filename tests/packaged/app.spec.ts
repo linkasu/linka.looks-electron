@@ -7,11 +7,12 @@ import {
   createE2EContext,
   firstTestWindow,
   standardConfig,
+  withTestBubbleCleanup,
   writeLinkaSet,
   type E2EContext
 } from "../e2e/helpers";
 
-function launch(context: E2EContext) {
+async function launch(context: E2EContext) {
   const executablePath =
     process.env.PACKAGED_EXECUTABLE ||
     (process.platform === "win32"
@@ -19,7 +20,7 @@ function launch(context: E2EContext) {
       : resolve(
           `dist/mac${process.arch === "arm64" ? "-arm64" : ""}/LINKa. смотри.app/Contents/MacOS/LINKa. смотри`
         ));
-  return electron.launch({
+  const application = await electron.launch({
     executablePath,
     timeout: 20000,
     args: ["-r", resolve("scripts/ci/startup-diagnostics.cjs"), "--remote-debugging-port=9343"],
@@ -28,10 +29,12 @@ function launch(context: E2EContext) {
       IS_TEST: "1",
       TEST_USER_DATA_DIR: context.userDataDir,
       LINKA_HOME_DIR: context.homeDir,
+      LOCALAPPDATA: context.root,
       NODE_ENV: "production",
       VITE_DEV_SERVER_URL: ""
     }
   });
+  return withTestBubbleCleanup(application, context);
 }
 
 test("packaged startup, consent persistence, storage save and process reopen", async () => {

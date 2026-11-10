@@ -57,6 +57,15 @@ export default defineConfig(({ command }) => ({
           }
         }
       },
+      preload: {
+        input: "src/electron/bubble/preload.ts",
+        vite: {
+          build: {
+            outDir: "dist-electron",
+            rollupOptions: { output: { entryFileNames: "bubble-preload.js" } }
+          }
+        }
+      },
       renderer: process.env.VITEST ? undefined : {}
     }),
     // Vitest runs in Node; Electron's require shims break native imports in integration specs.
@@ -64,7 +73,10 @@ export default defineConfig(({ command }) => ({
   ],
   build: {
     outDir: "dist",
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      input: { main: resolve(__dirname, "index.html"), bubble: resolve(__dirname, "bubble.html") }
+    }
   },
   test: {
     globals: true,

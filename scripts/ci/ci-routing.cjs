@@ -17,6 +17,8 @@ function route(paths) {
       /^(LICENSE|THIRD_PARTY_NOTICES|package(?:-lock)?\.json|\.npmrc$|\.nvmrc$|build\/|extraResources\/|predictor-resources\/|vendor\/)/.test(
         file
       ) ||
+      file.startsWith("native/tobii-backend/") ||
+      /^scripts\/ci\/(build-bubble-backend|provision-bubble-runtime)\.cjs$/.test(file) ||
       /^docs\/(security\/|.*approval)/.test(file) ||
       /^scripts\/ci\/(provision-eyelog\.cjs|stage-approved-predictor\.cjs|candidate-eyelog-api\.cjs|packaged-resources-smoke\.js|macos-single-build\.cjs)$/.test(
         file

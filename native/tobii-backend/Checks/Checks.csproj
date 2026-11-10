@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <StartupObject>Checks</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Protocol.cs" Link="Protocol.cs" />
+    <Compile Include="../LatestSample.cs" Link="LatestSample.cs" />
+    <Compile Include="../Program.cs" Link="BackendProgram.cs" />
+    <Compile Include="../PrimaryMonitor.cs" Link="PrimaryMonitor.cs" />
+    <Compile Include="../Maintenance.cs" Link="Maintenance.cs" />
+  </ItemGroup>
+</Project>
