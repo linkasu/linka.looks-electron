@@ -24,6 +24,7 @@ export async function assertPrivateBubbleDirectory(directory: string) {
   if (existing) return existing;
   // The directory owner/admins already control this process's capability; validate once per session.
   const proof = new Promise<void>((resolve, reject) => {
+    let phase = "process-start";
     const probe = spawn(
       join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
       [
@@ -31,21 +32,21 @@ export async function assertPrivateBubbleDirectory(directory: string) {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "$ErrorActionPreference='Stop'; $path=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+        "$ErrorActionPreference='Stop'; [Console]::WriteLine('[DEBUG-bubble-acl]:START'); $path=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
           Buffer.from(directory, "utf8").toString("base64") +
           "')); " +
           "$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; " +
           "$trusted=@($me,'S-1-5-18','S-1-5-32-544','S-1-3-0','S-1-3-4'); " +
-          "$acl=Get-Acl -LiteralPath $path; " +
+          "[Console]::WriteLine('[DEBUG-bubble-acl]:ACL'); $acl=Get-Acl -LiteralPath $path; [Console]::WriteLine('[DEBUG-bubble-acl]:OWNER'); " +
           "if($trusted -notcontains $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value) { exit 2 }; " +
-          "foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { " +
+          "[Console]::WriteLine('[DEBUG-bubble-acl]:RULES'); foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { " +
           "if($rule.AccessControlType -eq 'Allow' -and $trusted -notcontains $rule.IdentityReference.Value " +
           "-and ([long]$rule.FileSystemRights -band 3490512967) -ne 0) { exit 2 } }; exit 0"
       ],
       {
         env: { SystemRoot: root, WINDIR: root },
         windowsHide: true,
-        stdio: "ignore"
+        stdio: ["ignore", "pipe", "ignore"]
       }
     );
     let settled = false;
@@ -54,7 +55,7 @@ export async function assertPrivateBubbleDirectory(directory: string) {
       settled = true;
       clearTimeout(deadline);
       if (allowed) resolve();
-      else reject(new Error("INSECURE_PROFILE"));
+      else reject(new Error("INSECURE_PROFILE", { cause: phase }));
     };
     const failed = () => {
       if (probe.pid) probe.kill();
@@ -63,6 +64,11 @@ export async function assertPrivateBubbleDirectory(directory: string) {
     const deadline = setTimeout(failed, 10000);
     probe.once("error", failed);
     probe.once("close", (code) => finish(code === 0));
+    probe.stdout?.on("data", (chunk: Buffer) => {
+      for (const marker of ["START", "ACL", "OWNER", "RULES"]) {
+        if (chunk.toString("utf8").includes("[DEBUG-bubble-acl]:" + marker)) phase = marker;
+      }
+    });
   });
   privateDirectories.set(directory, proof);
   try {
