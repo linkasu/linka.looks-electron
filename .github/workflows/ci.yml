@@ -147,6 +147,8 @@ jobs:
         run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
       - name: Bubble backend synthetic checks (no SDK or device execution)
         run: npm run bubble:backend:check
+      - name: Windows Bubble IPC and ACL integration (no device)
+        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Hosted PR SDK process self-checks (no app or device)
         if: github.event_name == 'pull_request'
         env:
@@ -215,6 +217,8 @@ jobs:
         run: node --test scripts/ci/real-upgrade-contract.test.cjs scripts/ci/candidate-contract.test.cjs scripts/ci/qualification-contract.test.cjs
       - name: Bubble backend synthetic checks (no SDK or device execution)
         run: npm run bubble:backend:check
+      - name: Windows Bubble IPC and ACL integration (no device)
+        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Windows SDK process negative controls (no device)
         id: sdk-controls
         if: github.event_name == 'pull_request'
@@ -248,8 +252,6 @@ jobs:
       - name: Plain executable startup
         timeout-minutes: 2
         run: node scripts/ci/plain-app-startup.mjs
-      - name: Windows Bubble IPC and ACL integration (no device)
-        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Electron E2E
         timeout-minutes: 8
         run: npx playwright test --trace retain-on-failure

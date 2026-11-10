@@ -31,7 +31,9 @@ export async function assertPrivateBubbleDirectory(directory: string) {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "$ErrorActionPreference='Stop'; $path=[IO.StreamReader]::new([Console]::OpenStandardInput(),[Text.Encoding]::UTF8).ReadToEnd(); " +
+        "$ErrorActionPreference='Stop'; $path=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+          Buffer.from(directory, "utf8").toString("base64") +
+          "')); " +
           "$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; " +
           "$trusted=@($me,'S-1-5-18','S-1-5-32-544','S-1-3-0','S-1-3-4'); " +
           "$acl=Get-Acl -LiteralPath $path; " +
@@ -43,7 +45,7 @@ export async function assertPrivateBubbleDirectory(directory: string) {
       {
         env: { SystemRoot: root, WINDIR: root },
         windowsHide: true,
-        stdio: ["pipe", "ignore", "ignore"]
+        stdio: "ignore"
       }
     );
     let settled = false;
@@ -61,8 +63,6 @@ export async function assertPrivateBubbleDirectory(directory: string) {
     const deadline = setTimeout(failed, 10000);
     probe.once("error", failed);
     probe.once("close", (code) => finish(code === 0));
-    probe.stdin.once("error", failed);
-    probe.stdin.end(directory, "utf8");
   });
   privateDirectories.set(directory, proof);
   try {

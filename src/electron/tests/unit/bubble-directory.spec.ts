@@ -48,7 +48,10 @@ describe("Windows private profile probe", () => {
     expect(responsive).toBe(true);
     expect(settled).toBe(false);
     expect(mocks.spawnSync).not.toHaveBeenCalled();
-    expect(child.stdin.read().toString()).toBe(directory);
+    const args = mocks.spawn.mock.calls[0][1] as string[];
+    expect(args.at(-1)).toContain(Buffer.from(directory, "utf8").toString("base64"));
+    expect(args.at(-1)).not.toContain(directory);
+    expect(mocks.spawn.mock.calls[0][2].stdio).toBe("ignore");
     child.emit("close", 0);
     await result;
     await assertPrivateBubbleDirectory(directory);
