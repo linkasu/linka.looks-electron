@@ -9,6 +9,7 @@ const {
   fileRecord,
   verifyPrepared,
   verifyNotes,
+  notesRequirePrerelease,
   extractQualification
 } = require("./release-publication.cjs");
 const prefix = `/repos/${REPOSITORY}`;
@@ -193,8 +194,8 @@ function sanitizedRun(run) {
 async function prepare(runId, directory, options = {}) {
   assert(positiveId(runId), "one positive qualification run ID required");
   assert(directory, "output directory required");
-  const prerelease = options.prerelease === undefined ? false : options.prerelease;
-  assert.equal(typeof prerelease, "boolean", "publication prerelease must be boolean");
+  const requestedPrerelease = options.prerelease === undefined ? false : options.prerelease;
+  assert.equal(typeof requestedPrerelease, "boolean", "publication prerelease must be boolean");
   const read = options.request || request;
   const candidateIo = options.candidateIo || require("./candidate-io.cjs");
   const qualification = require("./qualification-contract.cjs");
@@ -274,7 +275,12 @@ async function prepare(runId, directory, options = {}) {
     path.join(stage, "windows")
   );
   const source = path.join(stage, "sources");
-  verifyNotes(fs.readFileSync(path.join(source, "release-notes.md"), "utf8"), c.version);
+  const notes = verifyNotes(
+    fs.readFileSync(path.join(source, "release-notes.md"), "utf8"),
+    c.version
+  );
+  // A reviewed candidate may restrict its channel; neither automatic nor manual publication can widen it.
+  const prerelease = requestedPrerelease || notesRequirePrerelease(notes);
   const windows = path.join(stage, "windows");
   const { verifyCandidate } = require("./real-upgrade-contract.cjs");
   verifyCandidate(windows, {
