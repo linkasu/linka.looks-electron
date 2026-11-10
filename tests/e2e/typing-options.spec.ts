@@ -2,7 +2,12 @@ import { test, expect, _electron as electron } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
+import {
+  createE2EContext,
+  cleanupE2EContext,
+  mockExternalServices,
+  withTestBubbleCleanup
+} from "./helpers";
 import { ownedProcessIds } from "./process-census.cjs";
 
 for (const cycles of [2, 50]) {
@@ -21,7 +26,7 @@ for (const cycles of [2, 50]) {
         })
       );
     }
-    const app = await electron.launch({
+    const application = await electron.launch({
       args: ["-r", resolve("tests/e2e/typing-tracker-fixture.cjs"), resolve(".")],
       env: {
         ...process.env,
@@ -30,9 +35,11 @@ for (const cycles of [2, 50]) {
         VITE_DEV_SERVER_URL: "",
         TEST_USER_DATA_DIR: context.userDataDir,
         LINKA_HOME_DIR: context.homeDir,
+        LOCALAPPDATA: context.root,
         UPDATE_FEED_URL: "http://127.0.0.1:1/"
       }
     });
+    const app = await withTestBubbleCleanup(application, context);
     const ownedPids = new Set<number>([app.process().pid!]);
     const measurements = [];
     const dialogs: string[] = [];
@@ -195,7 +202,7 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
       })
     );
     async function launch() {
-      return electron.launch({
+      const application = await electron.launch({
         args: ["-r", resolve("tests/e2e/typing-tracker-fixture.cjs"), resolve(".")],
         env: {
           ...process.env,
@@ -204,9 +211,11 @@ for (const layout of ["A", "B", "C", "invalid-old-layout"]) {
           VITE_DEV_SERVER_URL: "",
           TEST_USER_DATA_DIR: context.userDataDir,
           LINKA_HOME_DIR: context.homeDir,
+          LOCALAPPDATA: context.root,
           UPDATE_FEED_URL: "http://127.0.0.1:1/"
         }
       });
+      return withTestBubbleCleanup(application, context);
     }
     let app = await launch();
     try {

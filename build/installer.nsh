@@ -78,7 +78,9 @@
   !else
   Call EnsureBubbleRuntime
   InitPluginsDir
-  ${If} ${FileExists} "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+  ${If} ${FileExists} "$INSTDIR\resources\extraResources\bubble-backend\Linka.TobiiBackend.exe"
+  ${AndIf} ${FileExists} "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+    ; Older releases do not understand --bubble-control; never relaunch them during upgrade.
     ; Send a cooperative request in the original interactive user's context.
     ${StdUtils.ExecShellAsUser} $0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "open" "--bubble-control"
   ${EndIf}

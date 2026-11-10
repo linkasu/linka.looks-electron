@@ -3,6 +3,7 @@ const { _electron: electron } = require("@playwright/test");
 const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join, resolve } = require("node:path");
+const { spawnSync } = require("node:child_process");
 const { summarize, hash } = require("./windows-model-benchmark.cjs");
 
 async function benchmark() {
@@ -11,7 +12,7 @@ async function benchmark() {
   const source = JSON.parse(readFileSync("qualification/source.json"));
   assert.equal(hash(readFileSync("predictor-resources/lp-electron.exe")), source.exe_sha256);
   assert.equal(hash(readFileSync("predictor-resources/model.lpk")), source.model_sha256);
-  const root = mkdtempSync(join(tmpdir(), "windows-model-benchmark-"));
+  const root = mkdtempSync(join(process.env.APPDATA || tmpdir(), "windows-model-benchmark-"));
   const userData = join(root, "profile"),
     home = join(root, "home");
   mkdirSync(userData);
@@ -37,6 +38,16 @@ async function benchmark() {
       ([k]) => !/TOKEN|SECRET|PASSWORD|ACTIONS_|GITHUB_|^GH_|^MODEL_|^RUNTIME_/i.test(k)
     )
   );
+  const launchEnv = {
+    ...env,
+    IS_TEST: "1",
+    NODE_ENV: "production",
+    VITE_DEV_SERVER_URL: "",
+    TEST_USER_DATA_DIR: userData,
+    LINKA_HOME_DIR: home,
+    LOCALAPPDATA: root,
+    UPDATE_FEED_URL: "http://127.0.0.1:1/"
+  };
   let app;
   try {
     app = await electron.launch({
@@ -46,15 +57,7 @@ async function benchmark() {
         resolve("scripts/ci/windows-model-benchmark.fixture.cjs"),
         resolve("dist-electron/main.js")
       ],
-      env: {
-        ...env,
-        IS_TEST: "1",
-        NODE_ENV: "production",
-        VITE_DEV_SERVER_URL: "",
-        TEST_USER_DATA_DIR: userData,
-        LINKA_HOME_DIR: home,
-        UPDATE_FEED_URL: "http://127.0.0.1:1/"
-      }
+      env: launchEnv
     });
     assert.equal(
       await app.evaluate(({ app }) => app.isPackaged),
@@ -219,8 +222,19 @@ async function benchmark() {
     );
     assert.ok(metrics.within_budget, "UI latency budget exceeded; aggregate metrics retained");
   } finally {
-    if (app) await app.close();
-    rmSync(root, { recursive: true, force: true });
+    if (app) {
+      try {
+        const control = spawnSync(
+          app.process().spawnfile,
+          [resolve("dist-electron/main.js"), "--bubble-control"],
+          { env: launchEnv, windowsHide: true, stdio: "ignore", timeout: 15000 }
+        );
+        assert(!control.error && control.status === 0, "Owned Bubble cleanup failed");
+      } finally {
+        await app.close();
+      }
+    }
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }
 benchmark().catch(() => {

@@ -6,7 +6,12 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 // Normal executable startup: no Playwright Electron loader, no hardware substitution.
-const root = await mkdtemp(join(tmpdir(), "linka-plain-startup-"));
+const root = await mkdtemp(
+  join(
+    process.platform === "win32" && process.env.APPDATA ? process.env.APPDATA : tmpdir(),
+    "linka-plain-startup-"
+  )
+);
 await mkdir(join(root, "home"));
 await mkdir(join(root, "userData"));
 await writeFile(
@@ -31,15 +36,17 @@ const executable =
     : resolve(
         `dist/mac${process.arch === "arm64" ? "-arm64" : ""}/LINKa. смотри.app/Contents/MacOS/LINKa. смотри`
       ));
+const launchEnv = {
+  ...process.env,
+  IS_TEST: "1",
+  TEST_USER_DATA_DIR: join(root, "userData"),
+  LINKA_HOME_DIR: join(root, "home"),
+  LOCALAPPDATA: root,
+  NODE_ENV: "production",
+  VITE_DEV_SERVER_URL: ""
+};
 const child = spawn(executable, ["--remote-debugging-port=0", "--enable-logging=stderr"], {
-  env: {
-    ...process.env,
-    IS_TEST: "1",
-    TEST_USER_DATA_DIR: join(root, "userData"),
-    LINKA_HOME_DIR: join(root, "home"),
-    NODE_ENV: "production",
-    VITE_DEV_SERVER_URL: ""
-  },
+  env: launchEnv,
   stdio: ["ignore", "pipe", "pipe"]
 });
 let browser;
@@ -76,6 +83,14 @@ try {
   if (!version.isPackaged || version.platform !== process.platform)
     throw new Error("Wrong packaged IPC identity");
   console.log("[plain-startup] UI + packaged IPC PASS", JSON.stringify(version));
+  if (process.platform === "win32") {
+    const bubble = await page.evaluate(() =>
+      globalThis.require("electron").ipcRenderer.invoke("bubble:getState")
+    );
+    if (!bubble.ok || bubble.state?.preferences.enabled !== false)
+      throw new Error("Plain startup: Bubble did not start safely hidden");
+    console.log("[plain-startup] Bubble default-off + IPC PASS");
+  }
   await page.screenshot({ path: "plain-startup.png" });
 } catch (error) {
   if (browser) {
@@ -105,17 +120,40 @@ try {
   }
   throw error;
 } finally {
-  const exited =
-    child.exitCode === null && child.signalCode === null ? once(child, "exit") : Promise.resolve();
-  if (browser?.isConnected()) {
-    try {
-      const session = await browser.newBrowserCDPSession();
-      await session.send("Browser.close");
-    } catch (error) {
-      console.warn("[plain-startup] CDP close", error.message);
+  if (process.platform === "win32") {
+    const control = spawnSync(executable, ["--bubble-control"], {
+      env: launchEnv,
+      stdio: "ignore",
+      windowsHide: true,
+      timeout: 15000
+    });
+    if (control.error || control.status !== 0) {
+      console.warn("[plain-startup] Bubble cleanup failed", control.error?.code || control.status);
+      process.exitCode = 1;
     }
   }
-  if (browser) await browser.close();
+  const exited =
+    child.exitCode === null && child.signalCode === null ? once(child, "exit") : Promise.resolve();
+  let closeTimer;
+  try {
+    await Promise.race([
+      (async () => {
+        if (browser?.isConnected()) {
+          const session = await browser.newBrowserCDPSession();
+          await session.send("Browser.close");
+        }
+        if (browser) await browser.close();
+      })(),
+      exited,
+      new Promise((_, reject) => {
+        closeTimer = setTimeout(() => reject(new Error("CDP close deadline exceeded")), 5000);
+      })
+    ]);
+  } catch (error) {
+    console.warn("[plain-startup] CDP close", error.message);
+  } finally {
+    clearTimeout(closeTimer);
+  }
   await Promise.race([
     exited,
     new Promise((resolve) => {
@@ -129,5 +167,5 @@ try {
     else child.kill("SIGKILL");
     await exited;
   }
-  await rm(root, { recursive: true, force: true });
+  await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }

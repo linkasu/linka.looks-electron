@@ -11,6 +11,16 @@ test("installer cooperatively checks processes and embeds the required runtimes"
   const source = await fs.readFile(installerPath, "utf8");
   assert.match(source, /!macro customCheckAppRunning\b/);
   assert.doesNotMatch(source, /taskkill|Stop-Process|nsProcess::KillProcess/i);
+  const supported = source.indexOf(
+    '${If} ${FileExists} "$INSTDIR\\resources\\extraResources\\bubble-backend\\Linka.TobiiBackend.exe"'
+  );
+  const control = source.indexOf(
+    '${StdUtils.ExecShellAsUser} $0 "$INSTDIR\\${APP_EXECUTABLE_FILENAME}" "open" "--bubble-control"'
+  );
+  assert(
+    supported >= 0 && control > supported,
+    "Never launch a historical release with unsupported Bubble arguments"
+  );
   assert.match(
     source,
     /SetRegView 64\s+ReadRegDWORD \$1 HKLM "SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full" "Release"/
