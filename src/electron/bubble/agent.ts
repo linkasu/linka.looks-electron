@@ -33,6 +33,7 @@ export async function startBubbleAgent() {
   let retry: NodeJS.Timeout | undefined;
   let retryCount = 0;
   let generation = 0;
+  const resources: { tray?: Tray; timer?: NodeJS.Timeout; closeControl?: () => Promise<void> } = {};
 
   const overlay = await createBubbleOverlay(
     async () => presentation.frame(preferences, performance.now()),
@@ -58,6 +59,29 @@ export async function startBubbleAgent() {
     apply
   );
 
+  app.on("before-quit", (event) => {
+    if (allowQuit) return;
+    event.preventDefault();
+    if (stopping) return;
+    stopping = true;
+    clearInterval(resources.timer);
+    clearTimeout(retry);
+    hide();
+    void (async () => {
+      await controller.stop();
+      await transition;
+      if (tracker) await tracker.stop();
+      await resources.closeControl?.();
+      resources.tray?.destroy();
+      if (!overlay.isDestroyed()) overlay.destroy();
+      allowQuit = true;
+      app.quit();
+    })().catch(() => {
+      stopping = false;
+      controller.runtime("unavailable", false, "BACKEND_STOP_TIMEOUT");
+    });
+  });
+
   function hide() {
     presentation.reset();
     if (!overlay.isDestroyed()) overlay.hide();
@@ -78,14 +102,20 @@ export async function startBubbleAgent() {
           clearTimeout(retry);
           retry = undefined;
           const previous = tracker;
-          tracker = undefined;
           backendReady = false;
           ++generation;
           if (previous) await previous.stop();
+          tracker = undefined;
           controller.runtime("not-requested", false);
           return;
         }
-        if (tracker) return;
+        if (tracker && backendReady) return;
+        if (tracker) {
+          clearTimeout(retry);
+          retry = undefined;
+          await tracker.stop();
+          tracker = undefined;
+        }
         try {
           await access(executable);
         } catch {
@@ -101,8 +131,8 @@ export async function startBubbleAgent() {
         try {
           const hello = await source.request("hello");
           if (hello.status === "legacy-conflict") {
-            tracker = undefined;
             await source.stop();
+            tracker = undefined;
             controller.runtime("legacy-conflict", false, "LEGACY_CONFLICT");
           } else {
             backendReady = true;
@@ -119,7 +149,7 @@ export async function startBubbleAgent() {
   }
 
   function failed(source: BubbleTrackerProcess, code: string) {
-    if (stopping || tracker !== source) return;
+    if (stopping || !preferences.enabled || tracker !== source) return;
     backendReady = false;
     hide();
     controller.runtime("unavailable", false, code);
@@ -141,14 +171,16 @@ export async function startBubbleAgent() {
   }
 
   await controller.initialize();
+  if (stopping) return;
   const iconPath = app.isPackaged
     ? join(resourceRoot, "extraResources", "bubble.ico")
     : join(resourceRoot, "build", "icons", "icon.ico");
   const icon = nativeImage.createFromPath(iconPath);
   if (icon.isEmpty()) throw new Error("TRAY_ICON_MISSING");
-  const tray = new Tray(icon);
-  tray.setToolTip("LINKa Bubble — точка взгляда");
-  tray.on("double-click", openBubbleSettings);
+  const activeTray = new Tray(icon);
+  resources.tray = activeTray;
+  activeTray.setToolTip("LINKa Bubble — точка взгляда");
+  activeTray.on("double-click", openBubbleSettings);
   controller.watch((state) => {
     const labels = {
       "not-requested": "Пузырёк скрыт",
@@ -158,7 +190,7 @@ export async function startBubbleAgent() {
       unavailable: "Нет данных от трекера — проверьте Tobii",
       "legacy-conflict": "Закройте отдельный Bubble"
     };
-    tray.setContextMenu(
+    activeTray.setContextMenu(
       Menu.buildFromTemplate([
         {
           label: state.preferences.enabled ? "Скрыть точку" : "Показать точку",
@@ -169,7 +201,7 @@ export async function startBubbleAgent() {
               .change({ ...current, patch: { enabled: !current.preferences.enabled } })
               .then((result) => {
                 if (!result.ok)
-                  tray.displayBalloon({
+                  activeTray.displayBalloon({
                     title: "LINKa Bubble",
                     content: "Не удалось сохранить настройки."
                   });
@@ -200,8 +232,13 @@ export async function startBubbleAgent() {
       app.quit();
     }
   );
+  resources.closeControl = closeControl;
+  if (stopping) {
+    await closeControl();
+    return;
+  }
 
-  const timer = setInterval(() => {
+  resources.timer = setInterval(() => {
     const source = tracker;
     if (polling || !source || !backendReady || !preferences.enabled || stopping || retry) return;
     polling = true;
@@ -242,26 +279,4 @@ export async function startBubbleAgent() {
     /* The tray owns this independent session. */
   });
   await unlink(join(directory, "resume-after-update.json")).catch(() => undefined);
-  app.on("before-quit", (event) => {
-    if (allowQuit) return;
-    event.preventDefault();
-    if (stopping) return;
-    stopping = true;
-    clearInterval(timer);
-    clearTimeout(retry);
-    hide();
-    void (async () => {
-      await controller.stop();
-      await transition;
-      if (tracker) await tracker.stop();
-      await closeControl();
-      tray.destroy();
-      if (!overlay.isDestroyed()) overlay.destroy();
-      allowQuit = true;
-      app.quit();
-    })().catch(() => {
-      stopping = false;
-      controller.runtime("unavailable", false, "BACKEND_STOP_TIMEOUT");
-    });
-  });
 }

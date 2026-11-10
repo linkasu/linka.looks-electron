@@ -58,7 +58,7 @@ if (process.env.PRINT_APP_VERSION === "1") {
         }
         await startBubbleAgent();
       })
-      .catch(() => app.exit(1));
+      .catch(() => app.quit());
 } else if (process.env.IS_TEST === "1" || app.requestSingleInstanceLock()) {
   void import("./looksMain").catch(() => app.exit(1));
 } else app.quit();
