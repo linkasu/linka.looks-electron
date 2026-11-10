@@ -8,8 +8,8 @@ import type { BubbleResult } from "../../src/common/bubble/contract";
 import { connectBubbleControl } from "../../src/electron/bubble/controlChannel";
 
 export const devServerUrl = process.env.E2E_DEV_SERVER_URL || "http://127.0.0.1:5174";
-const testElectronRemoteDebuggingPort =
-  process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "9323";
+// A main-only quit does not guarantee immediate fixed-port reuse on Windows.
+const testElectronRemoteDebuggingPort = process.env.E2E_TEST_ELECTRON_REMOTE_DEBUGGING_PORT || "0";
 
 export interface E2EContext {
   root: string;
