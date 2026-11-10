@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Точка взгляда</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+        pointer-events: none;
+      }
+      #bubble {
+        position: absolute;
+        visibility: hidden;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="bubble" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <circle id="fill" fill="#198FD9" />
+      <circle id="white" fill="none" stroke="white" stroke-width="2" />
+      <circle id="dark" fill="none" stroke="#242C37" stroke-width="1" />
+      <circle id="center" fill="white" r="2" />
+    </svg>
+    <script type="module" src="/src/frontend/bubble/main.ts"></script>
+  </body>
+</html>
