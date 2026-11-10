@@ -16,7 +16,7 @@
         {{ connection }}.
       </p>
       <p v-if="error || snapshot?.errorCode" role="alert">
-        {{ error || `Ошибка агента: ${snapshot?.errorCode}` }}
+        {{ error || agentError }}
       </p>
       <v-btn
         v-if="!snapshot || snapshot.errorCode === 'AGENT_STOPPED'"
@@ -41,6 +41,17 @@
       <v-btn :disabled="disabled" variant="outlined" @click="resetAppearance">
         Сбросить оформление
       </v-btn>
+      <v-btn
+        v-if="
+          snapshot?.preferences.enabled &&
+          snapshot.errorCode &&
+          snapshot.errorCode !== 'AGENT_STOPPED'
+        "
+        :disabled="disabled"
+        variant="text"
+        @click="change({ enabled: true })"
+        >Повторить подключение</v-btn
+      >
     </template>
     <p class="text-caption text-medium-emphasis mt-2">
       Точка приблизительно показывает направление внимания, а не чтение или понимание текста.
@@ -67,6 +78,21 @@ const error = ref("");
 const draft = ref<Partial<Pick<BubblePreferences, AppearanceKey>>>({});
 const preferences = computed(() => snapshot.value?.preferences ?? DEFAULT_BUBBLE_PREFERENCES);
 const disabled = computed(() => busy.value || !snapshot.value);
+const agentError = computed(() => {
+  const messages: Record<string, string> = {
+    LEGACY_CONFLICT:
+      "Уже работает отдельный Bubble. Завершите его через трей и повторите подключение.",
+    BACKEND_MISSING: "Не найден компонент Tobii. Повторите установку «Смотри».",
+    SDK_UNAVAILABLE: "Не удалось подключиться к Tobii. Проверьте трекер и фирменное ПО.",
+    SETTINGS_UNREADABLE: "Не удалось прочитать настройки. Исходный файл сохранён без изменений.",
+    AGENT_STOPPED: "Bubble завершён. Для нового сеанса нажмите «Подключить Bubble».",
+    BACKEND_STOP_TIMEOUT: "Компонент Tobii не завершился. Закройте Bubble перед повторным запуском."
+  };
+  return (
+    messages[snapshot.value?.errorCode || ""] ||
+    "Компонент Bubble недоступен. Проверьте подключение Tobii."
+  );
+});
 const controls: { key: AppearanceKey; label: string; min: number; max: number }[] = [
   { key: "diameter", label: "Размер точки", min: 20, max: 100 },
   { key: "brightness", label: "Яркость точки", min: 10, max: 100 },
@@ -98,7 +124,13 @@ function clearDraft() {
 function accept(state: BubbleSnapshot) {
   if (!mounted || retiredInstances.has(state.instanceId)) return;
   const current = snapshot.value;
-  if (current?.instanceId === state.instanceId && state.stateSequence <= current.stateSequence)
+  if (
+    current?.instanceId === state.instanceId &&
+    (state.stateSequence < current.stateSequence ||
+      (state.stateSequence === current.stateSequence &&
+        state.errorCode !== "AGENT_STOPPED" &&
+        current.errorCode !== "AGENT_STOPPED"))
+  )
     return;
   if (current && current.instanceId !== state.instanceId) retiredInstances.add(current.instanceId);
   snapshot.value = state;
@@ -126,7 +158,9 @@ async function change(patch: Partial<BubblePreferences>) {
     if (!mounted) return;
     if (
       result.state &&
-      (requestGeneration === generation || result.state.instanceId === snapshot.value?.instanceId)
+      (requestGeneration === generation ||
+        (result.state.instanceId === snapshot.value?.instanceId &&
+          result.state.stateSequence > snapshot.value.stateSequence))
     ) {
       accept(result.state);
     }
