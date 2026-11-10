@@ -248,6 +248,8 @@ jobs:
       - name: Plain executable startup
         timeout-minutes: 2
         run: node scripts/ci/plain-app-startup.mjs
+      - name: Windows Bubble IPC and ACL integration (no device)
+        run: npx vitest run --config vitest.node.config.ts src/electron/tests/unit/bubble-channel.spec.ts --testTimeout=30000
       - name: Electron E2E
         timeout-minutes: 8
         run: npx playwright test --trace retain-on-failure

@@ -1,7 +1,12 @@
 import { test, expect, _electron as electron } from "@playwright/test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { createE2EContext, cleanupE2EContext, mockExternalServices } from "./helpers";
+import {
+  createE2EContext,
+  cleanupE2EContext,
+  mockExternalServices,
+  withTestBubbleCleanup
+} from "./helpers";
 
 test("main-window keyboard uses the real sidecar, denies foreign senders and persists", async () => {
   test.skip(
@@ -42,10 +47,11 @@ test("main-window keyboard uses the real sidecar, denies foreign senders and per
         VITE_DEV_SERVER_URL: "",
         TEST_USER_DATA_DIR: context.userDataDir,
         LINKA_HOME_DIR: context.homeDir,
+        LOCALAPPDATA: context.root,
         UPDATE_FEED_URL: "http://127.0.0.1:1/"
       }
     });
-    return application;
+    return withTestBubbleCleanup(application, context);
   }
   let app = await launch();
   try {
