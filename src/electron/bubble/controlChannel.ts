@@ -37,7 +37,7 @@ export async function assertPrivateBubbleDirectory(directory: string) {
           "')); " +
           "$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; " +
           "$trusted=@($me,'S-1-5-18','S-1-5-32-544','S-1-3-0','S-1-3-4'); " +
-          "[Console]::WriteLine('[DEBUG-bubble-acl]:ACL'); $acl=Get-Acl -LiteralPath $path; [Console]::WriteLine('[DEBUG-bubble-acl]:OWNER'); " +
+          "[Console]::WriteLine('[DEBUG-bubble-acl]:ACL'); $acl=[IO.Directory]::GetAccessControl($path); [Console]::WriteLine('[DEBUG-bubble-acl]:OWNER'); " +
           "if($trusted -notcontains $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value) { exit 2 }; " +
           "[Console]::WriteLine('[DEBUG-bubble-acl]:RULES'); foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { " +
           "if($rule.AccessControlType -eq 'Allow' -and $trusted -notcontains $rule.IdentityReference.Value " +
@@ -55,7 +55,10 @@ export async function assertPrivateBubbleDirectory(directory: string) {
       settled = true;
       clearTimeout(deadline);
       if (allowed) resolve();
-      else reject(new Error("INSECURE_PROFILE", { cause: phase }));
+      else {
+        console.warn("[DEBUG-bubble-acl] stopped at", phase);
+        reject(new Error("INSECURE_PROFILE", { cause: phase }));
+      }
     };
     const failed = () => {
       if (probe.pid) probe.kill();
