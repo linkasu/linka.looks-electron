@@ -5,6 +5,7 @@
     class="root"
     :class="{
       root_settings: isSettingsOpened,
+      root_bottom: showStandardOutput && store.state.ui.outputPosition === 'bottom',
       root_hide: !showStandardOutput && !isQuiz && !isMatch && !isSettingsOpened
     }"
   >
@@ -307,7 +308,7 @@ async function addCard(card: Card, index: number) {
       cards.value.push(card);
     }
   } else if (filename.value) {
-    TTS.instance.playCards(filename.value, [card], true);
+    TTS.instance.playCards(filename.value, [card], true, "direct");
   }
 }
 
@@ -397,6 +398,12 @@ async function onMatchCard(card: Card, index: number) {
 }
 .root_settings {
   grid-template-rows: auto minmax(0, 1fr);
+}
+.root_bottom {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.root_bottom > .output-line {
+  order: 1;
 }
 .root_hide {
   grid-template-rows: minmax(0, 1fr);

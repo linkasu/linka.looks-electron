@@ -55,6 +55,7 @@ const fields = [
   { commit: "button_animation", default: true } as Field<boolean>,
   { commit: "button_multiply_scale", default: false } as Field<boolean>,
   { commit: "ui_exitButton", default: true } as Field<boolean>,
+  { commit: "ui_outputPosition", default: "top" } as Field<"top" | "bottom">,
   { commit: "keyMapping_up", default: ["ArrowUp"] } as Field<string[]>,
   { commit: "keyMapping_down", default: ["ArrowDown"] } as Field<string[]>,
   { commit: "keyMapping_left", default: ["ArrowLeft"] } as Field<string[]>,
@@ -95,6 +96,7 @@ const store = createStore<LINKaStore>({
       gazeSuspensions: { tools: false, updater: false },
       disabled: false,
       outputLine: true,
+      outputPosition: "top",
       exitButton: true
     },
     selectedKey: undefined,
@@ -327,6 +329,9 @@ const store = createStore<LINKaStore>({
     interface_outputLine({ ui }, value) {
       ui.outputLine = value;
       Telemetry.product("toggleOutputLine");
+    },
+    ui_outputPosition({ ui }, value: unknown) {
+      ui.outputPosition = value === "bottom" ? "bottom" : "top";
     },
     pcHash(state, hash) {
       state.pcHash = hash;
