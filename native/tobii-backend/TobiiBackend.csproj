@@ -3,6 +3,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <!-- Tobii's package selects its native DLL using Platform, not PlatformTarget. -->
     <Platform>x64</Platform>
     <OutputPath>bin/$(Configuration)/</OutputPath>

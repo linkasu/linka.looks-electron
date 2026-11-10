@@ -7,6 +7,21 @@ const { spawnSync } = require("node:child_process");
 const { createRequire } = require("node:module");
 const { REQUIRED, validateRuntime, inspectPe } = require("./build-bubble-backend.cjs");
 
+test("Windows and cross-build restores use the same explicitly locked runtime", () => {
+  const project = fs.readFileSync(
+    path.resolve(__dirname, "../../native/tobii-backend/TobiiBackend.csproj"),
+    "utf8"
+  );
+  const lock = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, "../../native/tobii-backend/packages.lock.json"),
+      "utf8"
+    )
+  );
+  assert.match(project, /<RuntimeIdentifier>win-x64<\/RuntimeIdentifier>/);
+  assert(Object.hasOwn(lock.dependencies, ".NETFramework,Version=v4.8/win-x64"));
+});
+
 function pe(machine, managed) {
   const bytes = Buffer.alloc(512);
   bytes.write("MZ");
