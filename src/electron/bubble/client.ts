@@ -1,7 +1,7 @@
 import { app, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from "electron";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
-import { watch } from "node:fs";
+import { watch, existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { connectBubbleControl } from "./controlChannel";
@@ -12,7 +12,9 @@ export function bubbleInstallationId() {
 }
 
 function launchLooks(args: string[]) {
-  const child = spawn(process.execPath, [...(app.isPackaged ? [] : [app.getAppPath()]), ...args], {
+  const root = app.getAppPath();
+  const entry = existsSync(join(root, "package.json")) ? root : join(root, "main.js");
+  const child = spawn(process.execPath, [...(app.isPackaged ? [] : [entry]), ...args], {
     detached: true,
     stdio: "ignore",
     windowsHide: true

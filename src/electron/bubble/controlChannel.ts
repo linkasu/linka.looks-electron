@@ -1,8 +1,8 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer, createConnection, type Socket } from "node:net";
 import { mkdir, readFile, writeFile, rename, unlink } from "node:fs/promises";
-import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { join, win32 } from "node:path";
+import { spawn } from "node:child_process";
 import {
   BUBBLE_PROTOCOL,
   type BubbleResult,
@@ -13,37 +13,64 @@ import type { BubbleController } from "./controller";
 type Endpoint = { protocol: number; installationId: string; pipe: string; token: string };
 const PIPE_PREFIX = "\\\\.\\pipe\\linka-bubble-";
 const MAX_MESSAGE = 16384;
+const privateDirectories = new Map<string, Promise<void>>();
 
 export async function assertPrivateBubbleDirectory(directory: string) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   if (process.platform !== "win32") return;
   const root = process.env.SystemRoot;
-  if (!root) throw new Error("INSECURE_PROFILE");
-  const result = spawnSync(
-    join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
-    [
-      "-NoLogo",
-      "-NoProfile",
-      "-NonInteractive",
-      "-Command",
-      "$ErrorActionPreference='Stop'; $path=[Console]::In.ReadToEnd(); " +
-        "$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; " +
-        "$trusted=@($me,'S-1-5-18','S-1-5-32-544','S-1-3-0','S-1-3-4'); " +
-        "$acl=Get-Acl -LiteralPath $path; " +
-        "if($trusted -notcontains $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value) { exit 2 }; " +
-        "foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { " +
-        "if($rule.AccessControlType -eq 'Allow' -and $trusted -notcontains $rule.IdentityReference.Value " +
-        "-and ([long]$rule.FileSystemRights -band 3490512967) -ne 0) { exit 2 } }; exit 0"
-    ],
-    {
-      input: directory,
-      env: { SystemRoot: root, WINDIR: root },
-      encoding: "utf8",
-      windowsHide: true,
-      timeout: 10000
-    }
-  );
-  if (result.error || result.status !== 0) throw new Error("INSECURE_PROFILE");
+  if (!root || !win32.isAbsolute(root)) throw new Error("INSECURE_PROFILE");
+  const existing = privateDirectories.get(directory);
+  if (existing) return existing;
+  // The directory owner/admins already control this process's capability; validate once per session.
+  const proof = new Promise<void>((resolve, reject) => {
+    const probe = spawn(
+      join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "$ErrorActionPreference='Stop'; $path=[IO.StreamReader]::new([Console]::OpenStandardInput(),[Text.Encoding]::UTF8).ReadToEnd(); " +
+          "$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; " +
+          "$trusted=@($me,'S-1-5-18','S-1-5-32-544','S-1-3-0','S-1-3-4'); " +
+          "$acl=Get-Acl -LiteralPath $path; " +
+          "if($trusted -notcontains $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value) { exit 2 }; " +
+          "foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { " +
+          "if($rule.AccessControlType -eq 'Allow' -and $trusted -notcontains $rule.IdentityReference.Value " +
+          "-and ([long]$rule.FileSystemRights -band 3490512967) -ne 0) { exit 2 } }; exit 0"
+      ],
+      {
+        env: { SystemRoot: root, WINDIR: root },
+        windowsHide: true,
+        stdio: ["pipe", "ignore", "ignore"]
+      }
+    );
+    let settled = false;
+    const finish = (allowed: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      if (allowed) resolve();
+      else reject(new Error("INSECURE_PROFILE"));
+    };
+    const failed = () => {
+      if (probe.pid) probe.kill();
+      finish(false);
+    };
+    const deadline = setTimeout(failed, 10000);
+    probe.once("error", failed);
+    probe.once("close", (code) => finish(code === 0));
+    probe.stdin.once("error", failed);
+    probe.stdin.end(directory, "utf8");
+  });
+  privateDirectories.set(directory, proof);
+  try {
+    await proof;
+  } catch (error) {
+    privateDirectories.delete(directory);
+    throw error;
+  }
 }
 
 function readMessages(socket: Socket, receive: (message: Record<string, unknown>) => void) {

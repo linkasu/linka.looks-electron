@@ -15,7 +15,7 @@ export async function startBubbleAgent() {
   await app.whenReady();
   const directory = app.getPath("userData");
   await assertPrivateBubbleDirectory(directory);
-  const resourceRoot = app.isPackaged ? process.resourcesPath : app.getAppPath();
+  const resourceRoot = app.isPackaged ? process.resourcesPath : join(__dirname, "..");
   const executable = join(
     resourceRoot,
     "extraResources",

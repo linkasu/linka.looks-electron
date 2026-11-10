@@ -14,7 +14,12 @@ describe("Bubble local control", () => {
     cleanup.length = 0;
   });
   async function setup() {
-    const directory = await mkdtemp(join(tmpdir(), "bubble-ipc-"));
+    const directory = await mkdtemp(
+      join(
+        process.platform === "win32" && process.env.APPDATA ? process.env.APPDATA : tmpdir(),
+        "bubble-ipc-"
+      )
+    );
     cleanup.push(() => rm(directory, { recursive: true, force: true }));
     const controller = new BubbleController(
       { load: async () => ({ ...DEFAULT_BUBBLE_PREFERENCES }), save: async () => {} },
