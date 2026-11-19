@@ -5,9 +5,9 @@ import { getContributors } from "./generate-contributors.mjs";
 const user = (login, type = "User") => ({ login, type, contributions: 1 });
 const response = (data) => ({ ok: true, json: async () => data });
 
-test("reads all pages and excludes primary authors, bots and duplicate logins", async () => {
+test("reads all pages and excludes ignored contributors, bots and duplicate logins", async () => {
   const pages = [
-    [user("ibakaidov"), user("dependabot[bot]", "Bot"), user("Contributor")],
+    [user("ibakaidov"), user("UnguryanuO"), user("dependabot[bot]", "Bot"), user("Contributor")],
     [user("contributor"), user("Another"), user("automation", "Bot"), user("other[bot]")],
     []
   ];

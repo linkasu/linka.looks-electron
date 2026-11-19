@@ -1,8 +1,8 @@
 import { writeFile, rename } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-// GitHub profile and repository commit history confirm Ivan Bakaidov's account.
-const mainAuthors = new Set(["ibakaidov"]);
+// Ivan is credited separately; UnguryanuO is excluded at the project owner's request.
+const ignoredContributors = new Set(["ibakaidov", "unguryanuo"]);
 
 export async function getContributors(request = fetch) {
   const contributors = new Map();
@@ -41,7 +41,11 @@ export async function getContributors(request = fetch) {
         throw new Error(`Invalid contributor on page ${page}`);
       }
       const login = contributor.login.toLowerCase();
-      if (contributor.type !== "Bot" && !login.endsWith("[bot]") && !mainAuthors.has(login)) {
+      if (
+        contributor.type !== "Bot" &&
+        !login.endsWith("[bot]") &&
+        !ignoredContributors.has(login)
+      ) {
         contributors.set(login, contributor.login);
       }
     }
