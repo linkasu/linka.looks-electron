@@ -101,11 +101,12 @@ function stopOwnedBubble() {
   if (!profile) return;
   const endpointFile = path.join(profile, "bubble-agent", "endpoint.json");
   if (!fs.existsSync(endpointFile)) return;
-  assert(result.installedExecutable.new, "Only a verified installed candidate may control Bubble");
+  const expectedExecutable = result.installedExecutable.new ?? result.installedExecutable.old;
+  assert(expectedExecutable, "Only a verified installed baseline or candidate may control Bubble");
   assert.equal(
     digest(fs.readFileSync(exe)),
-    result.installedExecutable.new,
-    "Installed candidate changed before Bubble cleanup"
+    expectedExecutable,
+    "Installed executable changed before Bubble cleanup"
   );
   const stat = fs.lstatSync(endpointFile);
   assert(

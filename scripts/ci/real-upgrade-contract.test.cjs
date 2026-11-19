@@ -18,15 +18,15 @@ const {
   updateConfirmation
 } = require("./real-upgrade-contract.cjs");
 
-test("upgrade cleanup controls only a verified candidate's scoped Bubble without leaking credentials", (t) => {
+test("upgrade cleanup controls only the verified baseline or candidate's scoped Bubble without leaking credentials", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "bubble-upgrade-cleanup-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const exe = path.join(root, "LINKa. смотри.exe");
   const profile = path.join(root, "profile");
   const endpointFile = path.join(profile, "bubble-agent", "endpoint.json");
   fs.mkdirSync(path.dirname(endpointFile), { recursive: true });
-  fs.writeFileSync(exe, "reviewed candidate bytes");
-  const result = { installedExecutable: { new: digest(fs.readFileSync(exe)) } };
+  fs.writeFileSync(exe, "reviewed baseline bytes");
+  const result = { installedExecutable: { old: digest(fs.readFileSync(exe)) } };
   const calls = [];
   const source = fs.readFileSync(path.join(__dirname, "real-upgrade.cjs"), "utf8");
   const start = source.indexOf("function systemEnvironment()");
@@ -66,9 +66,19 @@ test("upgrade cleanup controls only a verified candidate's scoped Bubble without
   assert.equal(calls[0][2].env.SystemRoot, "C:\\Windows");
   assert.equal(calls[0][2].env.GH_TOKEN, undefined);
   assert.equal(calls[0][2].env.NODE_OPTIONS, undefined);
+  const oldHash = result.installedExecutable.old;
+  delete result.installedExecutable.old;
+  assert.throws(stop, /Only a verified installed/);
+  result.installedExecutable.old = oldHash;
+  fs.writeFileSync(exe, "reviewed candidate bytes");
+  result.installedExecutable.new = digest(fs.readFileSync(exe));
+  stop();
+  assert.equal(calls.length, 2);
+  fs.writeFileSync(exe, "reviewed baseline bytes");
+  assert.throws(stop, /changed/);
   fs.writeFileSync(exe, "unverified replacement");
-  assert.throws(stop, /candidate changed/);
-  assert.equal(calls.length, 1);
+  assert.throws(stop, /changed/);
+  assert.equal(calls.length, 2);
 });
 
 test("pinned baseline keeps explicit confirmation for both historical and current updater UI", () => {
