@@ -1,7 +1,7 @@
 {
   "license": "GPL-3.0-or-later",
   "name": "linka.looks",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "author": "ibakaidov",
   "private": true,
   "engines": {
@@ -16,6 +16,7 @@
   "scripts": {
     "prototype:keyboard": "vite --config vite.typing.config.ts --host 127.0.0.1 --port 5193 --strictPort",
     "serve": "vite",
+    "prebuild": "node scripts/generate-contributors.mjs",
     "build": "vite build",
     "lint-fix": "eslint . --fix",
     "lint": "eslint .",
@@ -24,7 +25,7 @@
     "report:visual": "node scripts/visual-report.mjs",
     "knip": "knip",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "test:unit": "vitest run && vitest run --config vitest.node.config.ts",
+    "test:unit": "node --test scripts/generate-contributors.test.mjs && vitest run && vitest run --config vitest.node.config.ts",
     "test:unit:coverage": "vitest run --coverage && vitest run --config vitest.node.config.ts --coverage",
     "test:e2e": "npm run build && playwright test",
     "native:build": "npm --prefix node_modules/@linkasu/tobii-electron run native:build",

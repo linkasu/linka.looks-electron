@@ -9,6 +9,7 @@ import EditorView from "@/frontend/views/EditorView.vue";
 import EditorViewAppBar from "@/frontend/views/EditorView.appbar.vue";
 import SettingsView from "@/frontend/views/SettingsView.vue";
 import SettingsViewAppBar from "@/frontend/views/SettingsView.appbar.vue";
+import AuthorsView from "@/frontend/views/AuthorsView.vue";
 import { storageService } from "@/frontend/services/card-storage-service";
 import CalibrationView from "../views/CalibrationView.vue";
 import TobiiCalibrationView from "../views/TobiiCalibrationView.vue";
@@ -26,6 +27,12 @@ declare module "vue-router" {
 }
 
 const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/authors",
+    name: "Authors",
+    meta: { interactionMode: "assistant" },
+    component: AuthorsView
+  },
   {
     path: "/eye-typing",
     name: "EyeTyping",

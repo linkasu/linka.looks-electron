@@ -87,6 +87,8 @@ jobs:
         run: node -e 'require("../tooling/scripts/ci/stage-approved-predictor.cjs").stage(process.cwd()).catch(() => { console.error("Approved resource prebuild validation failed"); process.exitCode = 1; })'
       - name: Build the single unsigned Windows installer (never publish)
         working-directory: app
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: npm run electron:build -- --win --x64 -p never
       - name: Static packaged resource and approved predictor checks (no training)
         working-directory: app

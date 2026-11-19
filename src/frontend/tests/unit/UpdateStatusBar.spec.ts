@@ -25,6 +25,7 @@ function setup() {
     global: {
       plugins: [store],
       stubs: {
+        RouterLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
         VDialog: { props: ["modelValue"], template: "<div v-if='modelValue'><slot /></div>" },
         VCard: { template: "<article><slot /></article>" },
         VCardTitle: { template: "<h2><slot /></h2>" },
@@ -58,6 +59,8 @@ describe("UpdateStatusBar", () => {
     await flushPromises();
 
     expect(wrapper.text()).not.toContain("Установка перезапустит приложение");
+    expect(wrapper.get(".authors-link").attributes("href")).toBe("/authors");
+    expect(wrapper.get(".authors-link").text()).toBe("Авторы программы");
     expect(ipcRenderer.send).not.toHaveBeenCalled();
     await wrapper.get(".status-action").trigger("click");
     expect(store.state.ui.gazeSuspended).toBe(true);

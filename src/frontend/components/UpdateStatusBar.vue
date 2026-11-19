@@ -1,6 +1,7 @@
 <template>
   <section class="update-status">
     <span class="version"> Версия {{ version }} </span>
+    <router-link class="authors-link" to="/authors">Авторы программы</router-link>
     <span v-if="available" role="status"> Загрузка обновления: {{ percent.toFixed(1) }}% </span>
     <button v-if="downloaded" class="status-action" @click="installDialog = true">
       Обновление готово — установить
@@ -157,6 +158,10 @@ function trackUpdateTelemetry(
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+.authors-link {
+  color: inherit;
+  text-underline-offset: 3px;
 }
 .error-details {
   white-space: pre-wrap;
