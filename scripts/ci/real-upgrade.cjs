@@ -47,6 +47,7 @@ const saveResult = () =>
   fs.writeFileSync(path.join(evidence, "upgrade-result.json"), JSON.stringify(result, null, 2));
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 let application;
+let launchedExecutable = exe;
 let profile;
 let home;
 let setFile;
@@ -101,10 +102,18 @@ function stopOwnedBubble() {
   if (!profile) return;
   const endpointFile = path.join(profile, "bubble-agent", "endpoint.json");
   if (!fs.existsSync(endpointFile)) return;
-  const expectedExecutable = result.installedExecutable.new ?? result.installedExecutable.old;
+  const historicalReader = path.join(work, "historical-reader", path.basename(exe));
+  assert(
+    launchedExecutable === exe || launchedExecutable === historicalReader,
+    "Only an owned installation may control Bubble"
+  );
+  const expectedExecutable =
+    launchedExecutable === historicalReader
+      ? result.installedExecutable.old
+      : (result.installedExecutable.new ?? result.installedExecutable.old);
   assert(expectedExecutable, "Only a verified installed baseline or candidate may control Bubble");
   assert.equal(
-    digest(fs.readFileSync(exe)),
+    digest(fs.readFileSync(launchedExecutable)),
     expectedExecutable,
     "Installed executable changed before Bubble cleanup"
   );
@@ -115,14 +124,16 @@ function stopOwnedBubble() {
   );
   const endpoint = readJson(endpointFile);
   const installationId = digest(
-    Buffer.from(path.resolve(path.dirname(exe), "resources", "app.asar").toLowerCase())
+    Buffer.from(
+      path.resolve(path.dirname(launchedExecutable), "resources", "app.asar").toLowerCase()
+    )
   );
   assert.equal(
     endpoint.installationId,
     installationId,
     "Never control a different installation's Bubble"
   );
-  execFileSync(exe, ["--bubble-control"], {
+  execFileSync(launchedExecutable, ["--bubble-control"], {
     env: systemEnvironment(),
     windowsHide: true,
     stdio: "ignore",
@@ -215,6 +226,7 @@ async function launch(executable = exe) {
     env,
     timeout: 45000
   });
+  launchedExecutable = executable;
   const child = application.process();
   for (const name of ["stdout", "stderr"]) {
     let remaining = 65536;

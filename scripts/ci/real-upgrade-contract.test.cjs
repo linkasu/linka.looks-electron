@@ -32,12 +32,14 @@ test("upgrade cleanup controls only the verified baseline or candidate's scoped 
   const start = source.indexOf("function systemEnvironment()");
   const end = source.indexOf("function ownedProcesses(");
   assert(start >= 0 && end > start);
-  const stop = vm.runInNewContext(source.slice(start, end) + "; stopOwnedBubble", {
+  const context = {
     assert,
     fs,
     path,
     profile,
     exe,
+    work: root,
+    launchedExecutable: exe,
     result,
     digest,
     Buffer,
@@ -50,7 +52,8 @@ test("upgrade cleanup controls only the verified baseline or candidate's scoped 
       }
     },
     execFileSync: (...args) => calls.push(args)
-  });
+  };
+  const stop = vm.runInNewContext(source.slice(start, end) + "; stopOwnedBubble", context);
   stop();
   assert.equal(calls.length, 0);
   fs.writeFileSync(endpointFile, JSON.stringify({ installationId: "another installation" }));
@@ -79,6 +82,23 @@ test("upgrade cleanup controls only the verified baseline or candidate's scoped 
   fs.writeFileSync(exe, "unverified replacement");
   assert.throws(stop, /changed/);
   assert.equal(calls.length, 2);
+  const reader = path.join(root, "historical-reader", path.basename(exe));
+  fs.mkdirSync(path.dirname(reader));
+  fs.writeFileSync(reader, "reviewed baseline bytes");
+  context.launchedExecutable = reader;
+  const readerInstallationId = digest(
+    Buffer.from(path.resolve(path.dirname(reader), "resources", "app.asar").toLowerCase())
+  );
+  fs.writeFileSync(endpointFile, JSON.stringify({ installationId: readerInstallationId }));
+  fs.writeFileSync(exe, "reviewed candidate bytes");
+  stop();
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2][0], reader);
+  fs.writeFileSync(reader, "unverified replacement");
+  assert.throws(stop, /changed/);
+  context.launchedExecutable = path.join(root, "unrelated.exe");
+  assert.throws(stop, /owned installation/);
+  assert.equal(calls.length, 3);
 });
 
 test("pinned baseline keeps explicit confirmation for both historical and current updater UI", () => {
